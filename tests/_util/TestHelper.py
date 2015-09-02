@@ -1,10 +1,11 @@
 # pylint: disable = missing-docstring
-
 from future import standard_library
+
 standard_library.install_aliases()
 from importlib import import_module
 from urllib.parse import parse_qs
 import re
+
 __author__ = 'haho0032'
 
 
@@ -18,6 +19,7 @@ def create_cookie_header(cookie_list, cookie_header=[]):
             cookies += "; "
         cookies += v.split(";")[0]
     return [("Cookie", cookies)]
+
 
 def get_url(headers):
     url = ""
@@ -47,11 +49,11 @@ def get_post_action_body(form):
     relay_state = None
     for value in resp:
         if value == "action":
-            action = resp[count+1]
+            action = resp[count + 1]
         if value == 'SAMLResponse':
-            saml_response = resp[count+3]
+            saml_response = resp[count + 3]
         if value == "RelayState":
-            relay_state = resp[count+3]
+            relay_state = resp[count + 3]
         count += 1
     body = {"SAMLResponse": saml_response, "RelayState": relay_state}
     return action, body
