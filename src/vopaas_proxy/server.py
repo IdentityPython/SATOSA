@@ -109,7 +109,7 @@ class WsgiApplication(object):
         # This is where any possible modification of the assertion is made
         try:
             response.ava = self.attribute_module.get_attributes(response.ava)
-        except NoUserData as e:
+        except NoUserData:
             LOGGER.error(
                 "User authenticated at IdP but not found by attribute module.")
             raise

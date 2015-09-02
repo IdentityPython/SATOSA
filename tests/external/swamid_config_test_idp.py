@@ -99,12 +99,12 @@ CONFIG = {
             "policy": {
                 "default": {
                     "lifetime": {"minutes": 15},
-                    #"attribute_restrictions": None, # means all I have
+                    # "attribute_restrictions": None, # means all I have
                     "name_form": NAME_FORMAT_URI,
                     "entity_categories": ["swamid"]
                 },
             },
-            #"subject_data": "./idp.subject",
+            # "subject_data": "./idp.subject",
             "name_id_format": [NAMEID_FORMAT_TRANSIENT,
                                NAMEID_FORMAT_PERSISTENT]
         },
@@ -131,7 +131,7 @@ CONFIG = {
     # This database holds the map between a subjects local identifier and
     # the identifier returned to a SP
     "xmlsec_binary": xmlsec_path,
-    #"attribute_map_dir": "../attributemaps",
+    # "attribute_map_dir": "../attributemaps",
     "logger": {
         "rotating": {
             "filename": "idp.log",
