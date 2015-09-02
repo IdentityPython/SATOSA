@@ -1,0 +1,20 @@
+language: python
+
+sudo: false
+
+env:
+  - TOX_ENV=py34
+
+addons:
+  apt:
+    packages:
+    - xmlsec1
+
+install:
+  - pip install -U tox
+
+script:
+  - tox -e $TOX_ENV
+
+notifications:
+  email: false

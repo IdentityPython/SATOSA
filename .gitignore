@@ -1,0 +1,9 @@
+.idea
+*.pyc
+*.log*
+example/*_conf.py
+*.xml
+*.db
+*static/
+*.egg-info
+.tox/

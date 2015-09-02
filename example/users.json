@@ -1,0 +1,12 @@
+{
+  "haho@example.com": {
+    "mail": "haho@test.com",
+    "testA": "haho@valueA",
+    "testB": "haho@valueB"
+  },
+  "rohe@example.com": {
+    "mail": "rohe@test.com",
+    "testA": "rohe@valueA",
+    "testB": "rohe@valueB"
+  }
+}

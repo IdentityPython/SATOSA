@@ -1,0 +1,13 @@
+{
+  "test1@example.com": {
+    "email": [
+      "test1@example.com"
+    ],
+    "testA": [
+      "test1@valueA"
+    ],
+    "testB": [
+      "test1@valueB"
+    ]
+  }
+}
