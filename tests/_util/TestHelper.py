@@ -1,10 +1,10 @@
 from future import standard_library
+
 standard_library.install_aliases()
-import copy
 from importlib import import_module
-import urllib.request, urllib.parse, urllib.error
 from urllib.parse import parse_qs
 import re
+
 __author__ = 'haho0032'
 
 
@@ -18,6 +18,7 @@ def create_cookie_header(cookie_list, cookie_header=[]):
             cookies += "; "
         cookies += v.split(";")[0]
     return [("Cookie", cookies)]
+
 
 def get_url(headers):
     url = ""
@@ -40,26 +41,26 @@ def get_url_dict(headers):
 
 
 def get_post_action_body(form):
-        resp = re.split( r'([^=, ]+)="([^" ]+|[^," ]+)" ?',  form)
-        count = 0
-        action = None
-        saml_response = None
-        relay_state = None
-        for value in resp:
-            if value == "action":
-                action = resp[count+1]
-            if value == 'SAMLResponse':
-                saml_response = resp[count+3]
-            if value == "RelayState":
-                relay_state = resp[count+3]
-            count+=1
-        body = {"SAMLResponse": saml_response, "RelayState": relay_state}
-        return action, body
+    resp = re.split(r'([^=, ]+)="([^" ]+|[^," ]+)" ?', form)
+    count = 0
+    action = None
+    saml_response = None
+    relay_state = None
+    for value in resp:
+        if value == "action":
+            action = resp[count + 1]
+        if value == 'SAMLResponse':
+            saml_response = resp[count + 3]
+        if value == "RelayState":
+            relay_state = resp[count + 3]
+        count += 1
+    body = {"SAMLResponse": saml_response, "RelayState": relay_state}
+    return action, body
 
 
 def get_config(config_file):
     if config_file.endswith(".py"):
-            config_file = config_file[:-3]
+        config_file = config_file[:-3]
     conf = None
     try:
         import_module('..' + config_file, 'test')

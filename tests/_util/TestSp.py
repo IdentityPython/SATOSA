@@ -9,7 +9,8 @@ from saml2.s_utils import rndstr, sid
 
 __author__ = 'haho0032'
 
-from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST, BINDING_HTTP_ARTIFACT, element_to_extension_element
+from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST, BINDING_HTTP_ARTIFACT, \
+    element_to_extension_element
 from saml2.client import Saml2Client
 from saml2 import s_utils
 from saml2.samlp import Extensions
@@ -52,14 +53,15 @@ class TestSp(object):
         osw = OpenSSLWrapper()
         ca_cert_str = osw.read_str_from_file(self.base_dir + "/root_cert/localhost.ca.crt")
         ca_key_str = osw.read_str_from_file(self.base_dir + "/root_cert/localhost.ca.key")
-        req_cert_str, req_key_str = osw.create_certificate(cert_info, request=True, sn=sn, key_length=2048)
+        req_cert_str, req_key_str = osw.create_certificate(cert_info, request=True, sn=sn,
+                                                           key_length=2048)
         cert_str = osw.create_cert_signed_certificate(ca_cert_str, ca_key_str, req_cert_str)
         return cert_str, req_key_str
 
     def create_authn_request(self, generate_cert=True):
         try:
-            #sid_ = sid()
-            #self.outstanding_queries[sid_] = came_from
+            # sid_ = sid()
+            # self.outstanding_queries[sid_] = came_from
             idps = self.sp.metadata.with_descriptor("idpsso")
             if len(idps) == 1:
                 self.entity_id = list(idps.keys())[0]
@@ -68,21 +70,24 @@ class TestSp(object):
             else:
                 Exception("No IdP metadata found!")
 
-            _binding, destination = self.sp.pick_binding("single_sign_on_service", self.bindings, "idpsso",
+            _binding, destination = self.sp.pick_binding("single_sign_on_service", self.bindings,
+                                                         "idpsso",
                                                          entity_id=self.entity_id)
 
             if generate_cert:
                 self.cert_str, self.cert_key_str = self.generate_cert()
                 cert = {
-                            "cert": self.cert_str,
-                            "key": self.cert_key_str
-                        }
+                    "cert": self.cert_str,
+                    "key": self.cert_key_str
+                }
                 tmp_cert_str = self.cert_str.replace("-----BEGIN CERTIFICATE-----\n", "")
                 tmp_cert_str = tmp_cert_str.replace("\n-----END CERTIFICATE-----\n", "")
                 tmp_cert_str = tmp_cert_str.replace("\n-----END CERTIFICATE-----", "")
                 spcertenc = SPCertEnc(
-                    x509_data=xmldsig.X509Data(x509_certificate=xmldsig.X509Certificate(text=tmp_cert_str)))
-                extensions = Extensions(extension_elements=[element_to_extension_element(spcertenc)])
+                    x509_data=xmldsig.X509Data(
+                        x509_certificate=xmldsig.X509Certificate(text=tmp_cert_str)))
+                extensions = Extensions(
+                    extension_elements=[element_to_extension_element(spcertenc)])
             else:
                 cert = None
                 extensions = None
@@ -94,7 +99,8 @@ class TestSp(object):
 
             if self.sp.authn_requests_signed:
                 self.sid = s_utils.sid()
-                req_id, self.msg_str = self.sp.create_authn_request(destination, vorg=vorg_name,
+                req_id, self.msg_str = self.sp.create_authn_request(destination,
+                                                                    vorg=vorg_name,
                                                                     sign=self.sp.authn_requests_signed,
                                                                     message_id=self.sid,
                                                                     extensions=extensions)
@@ -108,7 +114,8 @@ class TestSp(object):
                 self.outstanding_certs[self.sid] = cert
 
             self.rstate = rndstr()
-            self.ht_args = self.sp.apply_binding(_binding, self.msg_str, destination, relay_state=self.rstate)
+            self.ht_args = self.sp.apply_binding(_binding, self.msg_str, destination,
+                                                 relay_state=self.rstate)
             url = self.ht_args["headers"][0][1]
 
         except Exception as exc:
@@ -123,7 +130,8 @@ class TestSp(object):
             for line in file:
                 msg_str += line
             msg_str = msg_str.replace("IssueInstant=\"xxx\"",
-                                      "IssueInstant=\"" + str(datetime.datetime.now()).split('.')[0].
+                                      "IssueInstant=\"" + str(datetime.datetime.now()).split('.')[
+                                          0].
                                       replace(" ", "T") + "Z" + "\"")
             idps = self.sp.metadata.with_descriptor("idpsso")
             if len(idps) == 1:
@@ -133,19 +141,19 @@ class TestSp(object):
             else:
                 Exception("No IdP metadata found!")
 
-            _binding, destination = self.sp.pick_binding("single_sign_on_service", self.bindings, "idpsso",
+            _binding, destination = self.sp.pick_binding("single_sign_on_service", self.bindings,
+                                                         "idpsso",
                                                          entity_id=self.entity_id)
 
             self.rstate = rndstr()
-            self.ht_args = self.sp.apply_binding(_binding, msg_str, destination, relay_state=self.rstate)
+            self.ht_args = self.sp.apply_binding(_binding, msg_str, destination,
+                                                 relay_state=self.rstate)
             url = self.ht_args["headers"][0][1]
 
         except Exception as exc:
             raise Exception("Failed to construct the AuthnRequest: %s" % exc)
 
         return url
-
-
 
     def eval_authn_response(self, saml_response, binding=BINDING_HTTP_POST):
 

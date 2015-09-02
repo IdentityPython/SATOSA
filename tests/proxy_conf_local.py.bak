@@ -32,9 +32,10 @@ BASE = proxy_server_conf_local.ISSUER + ":%s" % proxy_server_conf_local.PORT
 
 DISCO_SRV = "https://md.nordu.net/role/idp.ds"
 
-SP_ENTITY_CATEGORIES = [{"name": "pvp2", "entcat": [PVP2]}, {"name": "pvp2charge", "entcat": [PVP2CHARGE]}]
+SP_ENTITY_CATEGORIES = [{"name": "pvp2", "entcat": [PVP2]},
+                        {"name": "pvp2charge", "entcat": [PVP2CHARGE]}]
 
-#None if no default SP should be used, otherwise a list. The list may be empty.
+# None if no default SP should be used, otherwise a list. The list may be empty.
 SP_ENTITY_CATEGORIES_DEFAULT = []
 
 CONFIG = {
@@ -59,16 +60,16 @@ CONFIG = {
                     "fail_on_missing_requested": False
                 },
             },
-            "subject_data": ("dict", None),#"./idp.subject",
+            "subject_data": ("dict", None),  # "./idp.subject",
             "name_id_format": NAMEID_FORMAT_PERSISTENT,
             "want_authn_requests_signed": False
         },
         "sp": {
             "authn_requests_signed": "true",
             "want_response_signed": "true",
-            #"required_attributes": ["sn", "givenname", "uid",
+            # "required_attributes": ["sn", "givenname", "uid",
             #                        "edupersonaffiliation"],
-            #"optional_attributes": ["title"],
+            # "optional_attributes": ["title"],
             "endpoints": {
                 "assertion_consumer_service": [
                     ("%s/acs/post" % BASE, BINDING_HTTP_POST),
@@ -85,7 +86,7 @@ CONFIG = {
     "key_file": full_path("proxy_cert/new_server.key"),
     "cert_file": full_path("proxy_cert/new_server.crt"),
     "metadata": {
-        #"mdfile": ["swamid2.md"],
+        # "mdfile": ["swamid2.md"],
         "local": [
             BASEDIR + "/external/pvp2_config_transient_test_sp.xml",
             BASEDIR + "/external/pvp2_config_test_sp.xml",

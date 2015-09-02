@@ -1,10 +1,11 @@
+# pylint: disable = missing-docstring
 class NoUserData(Exception):
     pass
 
 
 class AttributeModule(object):
     def get_attributes(self, idp_attributes):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class IdentityAttributes(AttributeModule):
