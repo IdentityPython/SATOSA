@@ -1,3 +1,4 @@
+# pylint: disable = missing-docstring
 import os
 from urllib.parse import urlsplit, parse_qs, urlencode
 

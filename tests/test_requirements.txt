@@ -1,2 +1,4 @@
 pytest
 nose # just for CherryPy test helper
+
+future

@@ -1,19 +1,20 @@
+# pylint: disable = missing-docstring
+
 from __future__ import absolute_import
 from future import standard_library
+
 standard_library.install_aliases()
 from builtins import object
 import urllib.request, urllib.parse, urllib.error
-import os
 from saml2.config import Config
 from saml2.request import AuthnRequest
 from saml2.sigver import encrypt_cert_from_item
 from .TestHelper import get_post_action_body
 from saml2.authn_context import AuthnBroker, authn_context_class_ref
 from saml2.authn_context import PASSWORD
+from saml2 import server, BINDING_HTTP_POST
 
 __author__ = 'haho0032'
-from saml2 import server, BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
-import re
 
 
 class Cache(object):
@@ -21,13 +22,12 @@ class Cache(object):
         self.user2uid = {}
         self.uid2user = {}
 
+
 def username_password_authn_dummy():
     return None
 
 
-
 class TestIdP(object):
-
     USERS = {
         "testuser1": {
             "c": "SE",
@@ -120,11 +120,11 @@ class TestIdP(object):
         self.binding_out = None
         self.destination = None
 
-
     def verify_pefim_authn_request_SPCertEnc(self, saml_request, binding):
         try:
             xml = self.idp.unravel(saml_request, binding, AuthnRequest.msgtype)
-            if xml.lower().find("begin certificate") > 0 or xml.lower().find("end certificate") > 0:
+            if xml.lower().find("begin certificate") > 0 or xml.lower().find(
+                    "end certificate") > 0:
                 return False
             xml_1 = xml.split("Extensions", 1)
             xml_2 = xml_1[1].split("SPCertEnc", 1)
@@ -135,25 +135,25 @@ class TestIdP(object):
         except Exception:
             return False
 
-    #binding = BINDING_HTTP_REDIRECT or BINDING_HTTP_POST
+    # binding = BINDING_HTTP_REDIRECT or BINDING_HTTP_POST
     def handle_authn_request(self, saml_request, relay_state, binding, userid):
 
         self.authn_req = self.idp.parse_authn_request(saml_request, binding)
         _encrypt_cert = encrypt_cert_from_item(self.authn_req.message)
 
         self.binding_out, self.destination = self.idp.pick_binding(
-                                                                    "assertion_consumer_service",
-                                                                    bindings=None,
-                                                                    entity_id=self.authn_req.message.issuer.text,
-                                                                    request=self.authn_req.message)
+            "assertion_consumer_service",
+            bindings=None,
+            entity_id=self.authn_req.message.issuer.text,
+            request=self.authn_req.message)
         resp_args = self.idp.response_args(self.authn_req.message)
-        AUTHN_BROKER = AuthnBroker()
-        AUTHN_BROKER.add(authn_context_class_ref(PASSWORD),
+        authn_broker = AuthnBroker()
+        authn_broker.add(authn_context_class_ref(PASSWORD),
                          username_password_authn_dummy,
                          10,
                          "http://test.idp.se")
-        AUTHN_BROKER.get_authn_by_accr(PASSWORD)
-        resp_args["authn"] = AUTHN_BROKER.get_authn_by_accr(PASSWORD)
+        authn_broker.get_authn_by_accr(PASSWORD)
+        resp_args["authn"] = authn_broker.get_authn_by_accr(PASSWORD)
         _resp = self.idp.create_authn_response(TestIdP.USERS[userid],
                                                userid=userid,
                                                encrypt_cert=_encrypt_cert,
