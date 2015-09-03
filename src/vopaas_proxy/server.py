@@ -4,14 +4,14 @@ import logging
 import re
 import sys
 import traceback
+import time
 
 from saml2.config import config_factory
-from saml2.httputil import Unauthorized
+from saml2.httputil import Unauthorized, geturl
 from saml2.httputil import NotFound
 
 from saml2.httputil import ServiceError
 
-from vopaas_proxy.back import SamlSP
 from vopaas_proxy.front import SamlIDP
 from vopaas_proxy.util.attribute_module import NoUserData
 
@@ -29,18 +29,19 @@ LOGGER.setLevel(logging.DEBUG)
 class WsgiApplication(object):
     def __init__(self, config_file, entityid=None, debug=False):
         self.urls = []
+        self.backends = {}
+        self.backend_endpoints = {}
         self.cache = {}
         self.debug = debug
 
-        sp_conf = config_factory("sp", config_file)
         idp_conf = config_factory("idp", config_file)
 
         self.config = {
-            "SP": sp_conf,
             "IDP": idp_conf
         }
 
         conf = importlib.import_module(config_file)
+        # TODO Remove attribute_module ?
         self.attribute_module = conf.ATTRIBUTE_MODULE
         # If entityID is set it means this is a proxy in front of one IdP
         if entityid:
@@ -50,8 +51,10 @@ class WsgiApplication(object):
             self.entity_id = None
             self.sp_args = {"discosrv": conf.DISCO_SRV}
 
-        sp = SamlSP(None, None, self.config["SP"], self.cache, **self.sp_args)
-        self.urls.extend(sp.register_endpoints())
+        for url, backend_info in conf.CONFIG["backends"].items():
+            inst = backend_info["module"](self.outgoing, backend_info["config"])
+            self.backend_endpoints[url] = inst.register_endpoints()
+            self.backends[url] = inst
 
         idp = SamlIDP(None, None, self.config["IDP"], self.cache, None)
         self.urls.extend(idp.register_endpoints())
@@ -69,19 +72,14 @@ class WsgiApplication(object):
         :return: response
         """
 
-        # If I know which IdP to authenticate at return a redirect to it
-        inst = SamlSP(environ, start_response, self.config["SP"],
-                      self.cache, self.outgoing, **self.sp_args)
-        if self.entity_id:
-            state_key = inst.store_state(info["authn_req"], relay_state,
-                                         info["req_args"])
-            return inst.authn_request(self.entity_id, state_key)
-        else:
-            # start the process by finding out which IdP to authenticate at
-            return inst.disco_query(info["authn_req"], relay_state,
-                                    info["req_args"])
+        inst = self.backends[environ['proxy.backend']]
+        came_from = geturl(environ)
+        state_key = str(hash(came_from + environ["REMOTE_ADDR"] + str(time.time())))
+        self.cache[state_key] = (info["authn_req"], relay_state, info["req_args"])
 
-    def outgoing(self, response, instance):
+        return inst.start_auth(environ, start_response, info, state_key)
+
+    def outgoing(self, environ, start_response, response, state_key):
         """
         An authentication response has been received and now an authentication
         response from this server should be constructed.
@@ -91,11 +89,10 @@ class WsgiApplication(object):
         :return: response
         """
 
-        _idp = SamlIDP(instance.environ, instance.start_response,
-                       self.config["SP"], self.cache, self.outgoing)
+        _idp = SamlIDP(environ, start_response,
+                       self.config["IDP"], self.cache, self.outgoing)
 
-        _state = instance.sp.state[response.in_response_to]
-        orig_authn_req, relay_state, req_args = instance.sp.state[_state]
+        orig_authn_req, relay_state, req_args = self.cache[state_key]
 
         # The Subject NameID
         subject = response.get_subject()
@@ -132,17 +129,13 @@ class WsgiApplication(object):
         """
 
         if isinstance(spec, tuple):
-            if spec[0] == "SP":
-                inst = SamlSP(environ, start_response, self.config["SP"],
-                              self.cache,
-                              self.outgoing, **self.sp_args)
-            else:
+            if spec[0] == "IDP":
                 inst = SamlIDP(environ, start_response, self.config["IDP"],
                                self.cache,
                                self.incoming)
-
-            func = getattr(inst, spec[1])
-            return func(*spec[2:])
+                func = getattr(inst, spec[1])
+                return func(*spec[2:])
+            return spec[0](environ, start_response, *spec[1:])
         else:
             return spec()
 
@@ -163,14 +156,18 @@ class WsgiApplication(object):
             resp = Unauthorized()
             return resp(environ, start_response)
 
-        for regex, spec in self.urls:
+        index = path.find('/')
+        backend = path[:index]
+        combined_urls = self.urls + self.backend_endpoints[backend]
+
+        for regex, spec in combined_urls:
             match = re.search(regex, path)
             if match is not None:
                 try:
                     environ['oic.url_args'] = match.groups()[0]
                 except IndexError:
                     environ['oic.url_args'] = path
-
+                environ['proxy.backend'] = backend
                 try:
                     return self.run_entity(spec, environ, start_response)
                 except Exception as err:

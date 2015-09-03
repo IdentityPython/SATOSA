@@ -11,12 +11,12 @@ from saml2.s_utils import UnsupportedBinding
 from saml2.server import Server
 
 import vopaas_proxy.service as service
-
+from vopaas_proxy.service import unpack, response
 
 logger = logging.getLogger(__name__)
 
 
-class SamlIDP(service.Service):
+class SamlIDP():
     def __init__(self, environ, start_response, conf, cache, incoming):
         """
         Constructor for the class.
@@ -25,7 +25,8 @@ class SamlIDP(service.Service):
         :param conf: The SAML configuration
         :param cache: Cache with active sessions
         """
-        service.Service.__init__(self, environ, start_response)
+        self.environ = environ
+        self.start_response = start_response
         self.response_bindings = None
         self.idp = Server(config=conf, cache=cache)
         self.incoming = incoming
@@ -97,7 +98,7 @@ class SamlIDP(service.Service):
             dictionary
         """
 
-        _request = self.unpack(binding_in)
+        _request = unpack(self.environ, binding_in)
         _binding_in = service.INV_BINDING_MAP[binding_in]
 
         try:
@@ -119,7 +120,7 @@ class SamlIDP(service.Service):
                 _request["RelayState"], response=True)
 
             logger.debug("HTTPargs: %s" % http_args)
-            return self.response(_binding, http_args)
+            return response(self.environ, self.start_response, _binding, http_args)
         else:
             return self.incoming(_dict, self.environ, self.start_response,
                                  _request["RelayState"])

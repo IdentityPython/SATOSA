@@ -1,27 +1,28 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from importlib import import_module
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2 import BINDING_HTTP_POST
 from saml2.entity_category.edugain import COC
 from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, \
     SFS_1993_1153, NREN, EU
-from saml2.extension.idpdisc import BINDING_DISCO
 from saml2.saml import NAME_FORMAT_URI
 from saml2.saml import NAMEID_FORMAT_TRANSIENT
 from saml2.saml import NAMEID_FORMAT_PERSISTENT
 import os.path
 from vopaas_proxy.util.attribute_module import IdentityAttributes
 
-try:
-    from saml2.sigver import get_xmlsec_binary
-except ImportError:
-    get_xmlsec_binary = None
+# try:
+#     from saml2.sigver import get_xmlsec_binary
+# except ImportError:
+#     get_xmlsec_binary = None
 xmlsec_path = '/usr/local/bin/xmlsec1'
 
 
 def full_path(local_file):
     basedir = os.path.abspath(os.path.dirname(__file__))
     return os.path.join(basedir, local_file)
+
 
 HOST = 'localhost'
 PORT = 8090
@@ -34,6 +35,8 @@ DISCO_SRV = "http://localhost/role/idp.ds"
 ATTRIBUTE_MODULE = IdentityAttributes()
 
 CONFIG = {
+    "backends": {
+    },
     "entityid": "%s/proxy.xml" % BASE,
     "description": "A SAML2SAML proxy",
     "entity_category": [COC, RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN,
@@ -44,8 +47,7 @@ CONFIG = {
             "name": "Proxy IdP",
             "endpoints": {
                 "single_sign_on_service": [
-                    ("%s/sso/redirect" % BASE, BINDING_HTTP_REDIRECT),
-                    ("%s/sso/post" % BASE, BINDING_HTTP_POST),
+
                 ],
             },
             "policy": {
@@ -62,26 +64,13 @@ CONFIG = {
                                NAMEID_FORMAT_PERSISTENT],
             "want_authn_requests_signed": False
         },
-        "sp": {
-            # "required_attributes": ["sn", "givenname", "uid",
-            # "edupersonaffiliation"],
-            # "optional_attributes": ["title"],
-            "endpoints": {
-                "assertion_consumer_service": [
-                    ("%s/acs/post" % BASE, BINDING_HTTP_POST),
-                    ("%s/acs/redirect" % BASE, BINDING_HTTP_REDIRECT)
-                ],
-                "discovery_response": [
-                    ("%s/disco" % BASE, BINDING_DISCO)
-                ]
-            }
-        },
     },
     "debug": 1,
     "key_file": full_path("pki/new_server.key"),
     "cert_file": full_path("pki/new_server.crt"),
     "metadata": {
-        "local": ["sp.xml", "idp.xml"],
+        "local": ["/Users/mathiashedstrom/work/DIRG/pysaml2/example/sp-wsgi/sp.xml",
+                  "/Users/mathiashedstrom/work/DIRG/pysaml2/example/idp2/idp.xml"],
     },
     "organization": {
         "display_name": "Example Identities",
@@ -112,3 +101,15 @@ CONFIG = {
         "loglevel": "debug",
     }
 }
+
+
+def add_module(config_path):
+    mod_conf = import_module(config_path)
+    CONFIG["backends"].update(mod_conf.CONFIG)
+    CONFIG["service"]["idp"]["endpoints"]["single_sign_on_service"].append(
+        ("%s/%s/sso/redirect" % (BASE, mod_conf.PROVIDER), BINDING_HTTP_REDIRECT))
+    CONFIG["service"]["idp"]["endpoints"]["single_sign_on_service"].append(
+        ("%s/%s/sso/post" % (BASE, mod_conf.PROVIDER), BINDING_HTTP_POST))
+
+
+add_module("saml2_backend_conf")
