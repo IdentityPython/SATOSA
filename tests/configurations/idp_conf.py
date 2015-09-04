@@ -10,7 +10,9 @@ def full_path(path):
     return os.path.join(os.path.dirname(__file__), path)
 
 
-BASE = "http://example.com"
+xmlsec_path = "/usr/local/bin/xmlsec1"
+
+BASE = "https://example.com"
 
 CONFIG = {
     "entityid": "{}/unittest_idp.xml".format(BASE),
@@ -27,6 +29,7 @@ CONFIG = {
     "key_file": full_path("../pki/key.pem"),
     "cert_file": full_path("../pki/cert.pem"),
     "metadata": {
-        "local": [full_path("proxy.xml")],
-    }
+        "local": [full_path("saml2.xml")],
+    },
+    "xmlsec_binary": xmlsec_path,
 }

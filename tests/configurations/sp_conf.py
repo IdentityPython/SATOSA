@@ -7,6 +7,8 @@ def full_path(path):
     return os.path.join(os.path.dirname(__file__), path)
 
 
+xmlsec_path = '/usr/local/bin/xmlsec1'
+
 BASE = "http://example.com"
 
 CONFIG = {
@@ -26,5 +28,6 @@ CONFIG = {
     "cert_file": full_path("../pki/cert.pem"),
     "metadata": {
         "local": [full_path("proxy.xml")],
-    }
+    },
+    "xmlsec_binary": xmlsec_path,
 }
