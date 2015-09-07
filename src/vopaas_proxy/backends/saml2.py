@@ -1,16 +1,14 @@
 #!/usr/bin/env python
+from base64 import b64encode, b64decode
 import copy
 import logging
-import time
 from urllib.parse import urlparse
 
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2 import BINDING_HTTP_POST
 from saml2.client_base import Base
-from saml2.httputil import geturl
 from saml2.httputil import ServiceError
-from saml2.httputil import SeeOther
-from saml2.config import config_factory, SPConfig
+from saml2.config import SPConfig
 from saml2.httputil import Unauthorized
 from saml2.response import VerificationError
 from saml2.s_utils import UnknownPrincipal
@@ -39,22 +37,21 @@ class SamlSP(BackendBase):
         self.idp_disco_query_param = "entityID"
         self.outgoing = outgoing
         self.discosrv = discosrv
-        self.entity_id = config["idp_entity_id"]
         if bindings:
             self.bindings = bindings
         else:
             self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST]
         logger.debug("--- SSO ---")
 
-    def start_auth(self, environ, start_response, request_info, state_key):
+    def start_auth(self, environ, start_response, request_info, state_key, entity_id):
         _cli = self.sp
-        # req_args = self.cache[state_key][2]
         req_args = request_info["req_args"]
+        entity_id = b64decode(entity_id).decode("utf-8")
         try:
             # Picks a binding to use for sending the Request to the IDP
             _binding, destination = _cli.pick_binding(
                 "single_sign_on_service", self.bindings, "idpsso",
-                entity_id=self.entity_id)
+                entity_id=entity_id)
             logger.debug("binding: %s, destination: %s" % (_binding,
                                                            destination))
             # Binding here is the response binding that is which binding the
@@ -140,3 +137,23 @@ class SamlSP(BackendBase):
                                                       BINDING_MAP[binding])))
 
         return url_map
+
+    def get_metadata_desc(self):
+        # TODO Only get IDP
+        metadata_desc = []
+        for metadata_file in self.sp.metadata.metadata:
+            desc = {}
+            metadata_file = self.sp.metadata.metadata[metadata_file]
+            entity_id = b64encode(metadata_file.entity_descr.entity_id.encode("utf-8")).decode(
+                "utf-8")
+            entity = metadata_file.entity
+            desc["entity_id"] = entity_id
+            metadata_desc.append(desc)
+            # organization = entity[entity_id]['organization']
+            # metadata_desc[entity_id]['organization']['organization_display_name'] =
+            # organization['organization_display_name']['text']
+            # metadata_desc[entity_id]['organization']['organization_name'] =
+            # organization['organization_name']['text']
+            # metadata_desc[entity_id]['organization']['organization_name'] =
+            # organization['organization_name']['text']
+        return metadata_desc

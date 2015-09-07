@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import copy
 import importlib
 import logging
 import re
@@ -6,7 +7,7 @@ import sys
 import traceback
 import time
 
-from saml2.config import config_factory
+from saml2.config import config_factory, IdPConfig
 from saml2.httputil import Unauthorized, geturl
 from saml2.httputil import NotFound
 
@@ -36,11 +37,11 @@ class WsgiApplication(object):
 
         idp_conf = config_factory("idp", config_file)
 
-        self.config = {
-            "IDP": idp_conf
-        }
-
         conf = importlib.import_module(config_file)
+        self.config = {
+            "IDP": idp_conf,
+            "MODULE": conf
+        }
         # TODO Remove attribute_module ?
         self.attribute_module = conf.ATTRIBUTE_MODULE
         # If entityID is set it means this is a proxy in front of one IdP
@@ -57,7 +58,7 @@ class WsgiApplication(object):
             self.backends[url] = inst
 
         idp = SamlIDP(None, None, self.config["IDP"], self.cache, None)
-        self.urls.extend(idp.register_endpoints())
+        self.urls.extend(idp.register_endpoints(conf))
 
     def incoming(self, info, environ, start_response, relay_state):
         """
@@ -71,13 +72,14 @@ class WsgiApplication(object):
 
         :return: response
         """
-
+        entity_id = environ["proxy.target_entity_id"]
+        idp_entityid = "%s/%s" % (self.config["MODULE"].CONFIG["entityid"], entity_id)
         inst = self.backends[environ['proxy.backend']]
         came_from = geturl(environ)
         state_key = str(hash(came_from + environ["REMOTE_ADDR"] + str(time.time())))
-        self.cache[state_key] = (info["authn_req"], relay_state, info["req_args"])
+        self.cache[state_key] = (info["authn_req"], relay_state, info["req_args"], idp_entityid)
 
-        return inst.start_auth(environ, start_response, info, state_key)
+        return inst.start_auth(environ, start_response, info, state_key, entity_id)
 
     def outgoing(self, environ, start_response, response, state_key):
         """
@@ -89,10 +91,15 @@ class WsgiApplication(object):
         :return: response
         """
 
-        _idp = SamlIDP(environ, start_response,
-                       self.config["IDP"], self.cache, self.outgoing)
+        orig_authn_req, relay_state, req_args, idp_entity_id = self.cache[state_key]
 
-        orig_authn_req, relay_state, req_args = self.cache[state_key]
+        # Change the idp entity id dynamically
+        idp_config = IdPConfig().load(copy.deepcopy(self.config["MODULE"].CONFIG),
+                                      metadata_construction=False)
+        idp_config.entityid = idp_entity_id
+
+        _idp = SamlIDP(environ, start_response,
+                       idp_config, self.cache, self.outgoing)
 
         # The Subject NameID
         subject = response.get_subject()
@@ -130,7 +137,19 @@ class WsgiApplication(object):
 
         if isinstance(spec, tuple):
             if spec[0] == "IDP":
-                inst = SamlIDP(environ, start_response, self.config["IDP"],
+
+                # Add endpoints dynamically
+                idp_config = IdPConfig().load(copy.deepcopy(self.config["MODULE"].CONFIG),
+                                              metadata_construction=False)
+                idp_config._idp_endpoints = {"single_sign_on_service": []}
+                for function, endpoint in self.config["MODULE"].SINGLE_SIGN_ON_SERVICE.items():
+                    endpoint = "{base}/{provider}/{target_id}/{endpoint}".format(
+                        base=self.config["MODULE"].BASE, provider=environ["proxy.backend"],
+                        target_id=environ["proxy.target_entity_id"], endpoint=endpoint)
+                    idp_config._idp_endpoints["single_sign_on_service"].append(
+                        (endpoint, function))
+
+                inst = SamlIDP(environ, start_response, idp_config,
                                self.cache,
                                self.incoming)
                 func = getattr(inst, spec[1])
@@ -156,8 +175,11 @@ class WsgiApplication(object):
             resp = Unauthorized()
             return resp(environ, start_response)
 
-        index = path.find('/')
-        backend = path[:index]
+        # index = path.find('/')
+        # backend = path[:index]
+        path_split = path.split('/')
+        backend = path_split[0]
+        target_entity_id = path_split[1]
         combined_urls = self.urls + self.backend_endpoints[backend]
 
         for regex, spec in combined_urls:
@@ -168,6 +190,7 @@ class WsgiApplication(object):
                 except IndexError:
                     environ['oic.url_args'] = path
                 environ['proxy.backend'] = backend
+                environ["proxy.target_entity_id"] = target_entity_id
                 try:
                     return self.run_entity(spec, environ, start_response)
                 except Exception as err:

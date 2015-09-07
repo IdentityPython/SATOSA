@@ -162,19 +162,25 @@ class SamlIDP():
 
         return resp(self.environ, self.start_response)
 
-    def register_endpoints(self):
+    def register_endpoints(self, conf):
         """
         Given the configuration, return a set of URL to function mappings.
         """
 
         url_map = []
-        idp_endpoints = self.idp.config.getattr("endpoints", "idp")
-        for endp, binding in idp_endpoints["single_sign_on_service"]:
+        # idp_endpoints = self.idp.config.getattr("endpoints", "idp")
+        idp_endpoints = conf.SINGLE_SIGN_ON_SERVICE
+        providers = list(conf.CONFIG["backends"].keys())
+        for binding, endp in idp_endpoints.items():
+            valid_providers = ""
+            for provider in providers:
+                valid_providers = "{}|^{}".format(valid_providers, provider)
+            valid_providers = valid_providers.lstrip("|")
             p = urlparse(endp)
-            url_map.append(("^%s/(.*)$" % p.path[1:],
+            url_map.append(("%s/[\w]+/%s$" % (valid_providers, p.path),
                             ("IDP", "handle_authn_request",
                              service.BINDING_MAP[binding])))
-            url_map.append(("^%s$" % p.path[1:],
+            url_map.append(("%s/[\w]+/%s/(.*)$" % (valid_providers, p.path),
                             ("IDP", "handle_authn_request",
                              service.BINDING_MAP[binding])))
 
