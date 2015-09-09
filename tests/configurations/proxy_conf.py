@@ -21,6 +21,11 @@ xmlsec_path = '/usr/local/bin/xmlsec1'
 ATTRIBUTE_MODULE = TestModule(full_path("../users.json"),
                               "eduPersonPrincipalName")
 
+BACKEND_MODULES = ["configurations.saml2_module_conf"]
+
+ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
+                                        BINDING_HTTP_POST: "sso/post"}}
+
 CONFIG = {
     "backends": {},
     "entityid": "{}/proxy.xml".format(BASE),
@@ -49,4 +54,12 @@ def add_module(config_path):
         ("%s/%s/sso/post" % (BASE, mod_conf.PROVIDER), BINDING_HTTP_POST))
 
 
-add_module("configurations.saml2_module_conf")
+def add_module(config_path):
+    mod_conf_file = import_module(config_path)
+    config = {"backends": {mod_conf_file.PROVIDER: {"module": mod_conf_file.MODULE,
+                                                    "config": mod_conf_file.CONFIG}}}
+    CONFIG.update(config)
+
+
+for module in BACKEND_MODULES:
+    add_module(module)

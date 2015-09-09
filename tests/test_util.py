@@ -11,12 +11,12 @@ class FakeSP(Saml2Client):
     def __init__(self, config_module):
         Saml2Client.__init__(self, config_factory('sp', config_module))
 
-    def make_auth_req(self):
+    def make_auth_req(self, entity_id):
         # Picks a binding to use for sending the Request to the IDP
         _binding, destination = self.pick_binding(
             'single_sign_on_service',
             [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST], 'idpsso',
-            entity_id='https://example.com/proxy.xml')
+            entity_id=entity_id)
         # Binding here is the response binding that is which binding the
         # IDP shou  ld use to return the response.
         acs = self.config.getattr('endpoints', 'sp')[

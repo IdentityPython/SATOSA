@@ -48,7 +48,8 @@ class ProxyTest(helper.CPWebCase):
         cherrypy.tree.graft(app.run_server, '/')
 
     def test_flow(self):
-        url = self.sp.make_auth_req()
+        ent_id = 'https://example.com/proxy.xml/aHR0cHM6Ly9leGFtcGxlLmNvbS91bml0dGVzdF9pZHAueG1s'
+        url = self.sp.make_auth_req(ent_id)
         status, headers, _ = self.getPage(url)
         assert status == '303 See Other'
 
