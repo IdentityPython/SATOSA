@@ -57,9 +57,6 @@ for filespec in args.config:
         fil = fil[:-3]
 
     conf_mod = import_module(fil)
-    key = list(conf_mod.CONFIG.keys())[0]
-    conf_dict = conf_mod.CONFIG[key]
-    conf_mod.CONFIG = conf_dict["config"]
 
     cnf = Config()
     cnf.load(copy.deepcopy(conf_mod.CONFIG), metadata_construction=True)

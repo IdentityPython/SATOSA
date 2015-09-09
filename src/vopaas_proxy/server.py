@@ -7,7 +7,7 @@ import sys
 import traceback
 import time
 
-from saml2.config import config_factory, IdPConfig
+from saml2.config import IdPConfig
 from saml2.httputil import Unauthorized, geturl
 from saml2.httputil import NotFound
 
@@ -35,9 +35,9 @@ class WsgiApplication(object):
         self.cache = {}
         self.debug = debug
 
-        idp_conf = config_factory("idp", config_file)
-
         conf = importlib.import_module(config_file)
+        idp_conf = copy.deepcopy(conf.CONFIG)
+        del idp_conf["backends"]
         self.config = {
             "IDP": idp_conf,
             "MODULE": conf
@@ -57,7 +57,9 @@ class WsgiApplication(object):
             self.backend_endpoints[url] = inst.register_endpoints()
             self.backends[url] = inst
 
-        idp = SamlIDP(None, None, self.config["IDP"], self.cache, None)
+        idp_config = IdPConfig().load(copy.deepcopy(self.config["IDP"]),
+                                      metadata_construction=False)
+        idp = SamlIDP(None, None, idp_config, self.cache, None)
         self.urls.extend(idp.register_endpoints(conf))
 
     def incoming(self, info, environ, start_response, relay_state):
@@ -73,7 +75,7 @@ class WsgiApplication(object):
         :return: response
         """
         entity_id = environ["proxy.target_entity_id"]
-        idp_entityid = "%s/%s" % (self.config["MODULE"].CONFIG["entityid"], entity_id)
+        idp_entityid = "%s/%s" % (self.config["IDP"]["entityid"], entity_id)
         inst = self.backends[environ['proxy.backend']]
         came_from = geturl(environ)
         state_key = str(hash(came_from + environ["REMOTE_ADDR"] + str(time.time())))
@@ -94,9 +96,9 @@ class WsgiApplication(object):
         orig_authn_req, relay_state, req_args, idp_entity_id = self.cache[state_key]
 
         # Change the idp entity id dynamically
-        idp_config = IdPConfig().load(copy.deepcopy(self.config["MODULE"].CONFIG),
-                                      metadata_construction=False)
-        idp_config.entityid = idp_entity_id
+        idp_config_file = copy.deepcopy(self.config["IDP"])
+        idp_config_file["entityid"] = idp_entity_id
+        idp_config = IdPConfig().load(idp_config_file, metadata_construction=False)
 
         _idp = SamlIDP(environ, start_response,
                        idp_config, self.cache, self.outgoing)
@@ -137,17 +139,17 @@ class WsgiApplication(object):
 
         if isinstance(spec, tuple):
             if spec[0] == "IDP":
-
-                # Add endpoints dynamically
-                idp_config = IdPConfig().load(copy.deepcopy(self.config["MODULE"].CONFIG),
-                                              metadata_construction=False)
-                idp_config._idp_endpoints = {"single_sign_on_service": []}
-                for function, endpoint in self.config["MODULE"].SINGLE_SIGN_ON_SERVICE.items():
-                    endpoint = "{base}/{provider}/{target_id}/{endpoint}".format(
-                        base=self.config["MODULE"].BASE, provider=environ["proxy.backend"],
-                        target_id=environ["proxy.target_entity_id"], endpoint=endpoint)
-                    idp_config._idp_endpoints["single_sign_on_service"].append(
-                        (endpoint, function))
+                idp_conf_file = copy.deepcopy(self.config["IDP"])
+                idp_endpoints = []
+                for endp_category in self.config["MODULE"].ENDPOINTS.keys():
+                    for function, endpoint in self.config["MODULE"].ENDPOINTS[
+                            endp_category].items():
+                        endpoint = "{base}/{provider}/{target_id}/{endpoint}".format(
+                            base=self.config["MODULE"].BASE, provider=environ["proxy.backend"],
+                            target_id=environ["proxy.target_entity_id"], endpoint=endpoint)
+                        idp_endpoints.append((endpoint, function))
+                    idp_conf_file["service"]["idp"]["endpoints"][endp_category] = idp_endpoints
+                idp_config = IdPConfig().load(idp_conf_file, metadata_construction=False)
 
                 inst = SamlIDP(environ, start_response, idp_config,
                                self.cache,
@@ -175,8 +177,6 @@ class WsgiApplication(object):
             resp = Unauthorized()
             return resp(environ, start_response)
 
-        # index = path.find('/')
-        # backend = path[:index]
         path_split = path.split('/')
         backend = path_split[0]
         target_entity_id = path_split[1]

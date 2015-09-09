@@ -170,8 +170,7 @@ for filespec in args.config:
         # Load backend module and get metadata description
         module_conf = import_module(module_config_file)
         provider = list(module_conf.CONFIG.keys())[0]
-        module = module_conf.CONFIG[provider]["module"](None,
-                                                        module_conf.CONFIG[provider]["config"])
+        module = module_conf.MODULE(None, module_conf.CONFIG)
         meta_desc = module.get_metadata_desc()
         for desc in meta_desc:
             metadata.append(_make_metadata(create_config_file(conf_mod, desc, module_conf)))

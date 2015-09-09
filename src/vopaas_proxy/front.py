@@ -169,9 +169,11 @@ class SamlIDP():
 
         url_map = []
         # idp_endpoints = self.idp.config.getattr("endpoints", "idp")
-        idp_endpoints = conf.SINGLE_SIGN_ON_SERVICE
+        # idp_endpoints = conf.SINGLE_SIGN_ON_SERVICE
+        idp_endpoints = conf.ENDPOINTS
         providers = list(conf.CONFIG["backends"].keys())
-        for binding, endp in idp_endpoints.items():
+
+        for binding, endp in idp_endpoints["single_sign_on_service"].items():
             valid_providers = ""
             for provider in providers:
                 valid_providers = "{}|^{}".format(valid_providers, provider)

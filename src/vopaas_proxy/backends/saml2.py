@@ -21,11 +21,6 @@ import vopaas_proxy.service as service
 logger = logging.getLogger(__name__)
 
 
-# -----------------------------------------------------------------------------
-# Authentication request constructor
-# -----------------------------------------------------------------------------
-
-
 class SamlSP(BackendBase):
     def __init__(self, outgoing, config, discosrv=None, bindings=None):
         super(SamlSP, self).__init__(outgoing)
@@ -139,14 +134,14 @@ class SamlSP(BackendBase):
         return url_map
 
     def get_metadata_desc(self):
-        # TODO Only get IDP
+        # TODO Only get IDPs
         metadata_desc = []
         for metadata_file in self.sp.metadata.metadata:
             desc = {}
             metadata_file = self.sp.metadata.metadata[metadata_file]
             entity_id = b64encode(metadata_file.entity_descr.entity_id.encode("utf-8")).decode(
                 "utf-8")
-            entity = metadata_file.entity
+            # entity = metadata_file.entity
             desc["entity_id"] = entity_id
             metadata_desc.append(desc)
             # organization = entity[entity_id]['organization']
