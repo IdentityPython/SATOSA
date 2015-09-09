@@ -13,6 +13,7 @@ from saml2.httputil import Unauthorized
 from saml2.response import VerificationError
 from saml2.s_utils import UnknownPrincipal
 from saml2.s_utils import UnsupportedBinding
+from vopaas_proxy import VALID_ATTRIBUTES
 from vopaas_proxy.backends.base import BackendBase
 
 from vopaas_proxy.service import BINDING_MAP, unpack, response
@@ -108,8 +109,23 @@ class SamlSP(BackendBase):
             resp = ServiceError("Other error: %s" % (err,))
             return resp(environ, start_response)
 
-        return self.outgoing(environ, start_response, _response,
+        return self.outgoing(environ, start_response, self._translate_response(_response),
                              self.cache[_response.in_response_to])
+
+    def _translate_response(self, response):
+        translated_response = {}
+        translated_params = {}
+        for param in VALID_ATTRIBUTES:
+            try:
+                translated_params[param] = response.ava[param]
+            except KeyError:
+                pass
+        translated_response["ava"] = translated_params
+        translated_response["name_id"] = response.get_subject()
+        _authn_info = response.authn_info()[0]
+        translated_response["auth_info"] = {"class_ref": _authn_info[0],
+                                            "authn_auth": _authn_info[1][0]}
+        return translated_response
 
     def register_endpoints(self):
         """

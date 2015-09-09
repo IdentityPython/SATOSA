@@ -103,18 +103,12 @@ class WsgiApplication(object):
         _idp = SamlIDP(environ, start_response,
                        idp_config, self.cache, self.outgoing)
 
-        # The Subject NameID
-        subject = response.get_subject()
         # Diverse arguments needed to construct the response
         resp_args = _idp.idp.response_args(orig_authn_req)
 
-        # Slightly awkward, should be done better
-        _authn_info = response.authn_info()[0]
-        _authn = {"class_ref": _authn_info[0], "authn_auth": _authn_info[1][0]}
-
         # This is where any possible modification of the assertion is made
         try:
-            response.ava = self.attribute_module.get_attributes(response.ava)
+            response["ava"] = self.attribute_module.get_attributes(response["ava"])
         except NoUserData:
             LOGGER.error(
                 "User authenticated at IdP but not found by attribute module.")
@@ -122,7 +116,7 @@ class WsgiApplication(object):
 
         # Will signed the response by default
         resp = _idp.construct_authn_response(
-            response.ava, name_id=subject, authn=_authn,
+            response["ava"], name_id=response["name_id"], authn=response["auth_info"],
             resp_args=resp_args, relay_state=relay_state, sign_response=True)
 
         return resp
