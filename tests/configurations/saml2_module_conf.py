@@ -23,6 +23,7 @@ CONFIG = {
     "entityid": "%s/proxy_sp.xml" % MODULE_BASE,
     "service": {
         "sp": {
+            "allow_unsolicited": True,
             "endpoints": {
                 "assertion_consumer_service": [
                     ("%s/acs/post" % MODULE_BASE, BINDING_HTTP_POST),
