@@ -4,7 +4,6 @@ import copy
 import os
 import sys
 from future.backports.test.support import import_module
-from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.mdstore import MetaDataFile, MetadataStore
 from saml2.metadata import entity_descriptor, metadata_tostring_fix
 from saml2.metadata import entities_descriptor
@@ -95,6 +94,7 @@ def create_combined_metadata(metadata_files):
         # else:
         kwargs = {}
 
+        # TODO Should not need to write to file
         f = open(tmp_file_name, "w")
         f.write(data)
         f.close()
@@ -145,15 +145,33 @@ def _make_metadata(config_dict):
 
 def create_config_file(config, metadata_desc, mod_conf):
     cnf = copy.deepcopy(config.CONFIG)
-    entity_id = metadata_desc["entity_id"]
-    cnf["service"]["idp"]["endpoints"]["single_sign_on_service"] = []
-    cnf["service"]["idp"]["endpoints"]["single_sign_on_service"].append(
-        ("%s/%s/%s/sso/redirect" % (config.BASE, mod_conf.PROVIDER, entity_id),
-         BINDING_HTTP_REDIRECT))
-    cnf["service"]["idp"]["endpoints"]["single_sign_on_service"].append(
-        ("%s/%s/%s/sso/post" % (config.BASE, mod_conf.PROVIDER, entity_id), BINDING_HTTP_POST))
-    cnf["entityid"] = "{}/{}".format(cnf["entityid"], entity_id)
+    proxy_id = cnf["entityid"]
+    entity_id = metadata_desc["entityid"]
+
+    cnf = _join_dict(cnf, metadata_desc)
+
+    # Add endpoints
+    proxy_idp_endpoints = config.ENDPOINTS
+    for endpoint_category in proxy_idp_endpoints.keys():
+        category_endpoints = []
+        for function, endpoint in proxy_idp_endpoints[endpoint_category].items():
+            endpoint = "%s/%s/%s/%s" % (config.BASE, mod_conf.PROVIDER, entity_id, endpoint)
+            category_endpoints.append((endpoint, function))
+        cnf["service"]["idp"]["endpoints"][endpoint_category] = category_endpoints
+
+    cnf["entityid"] = "{}/{}".format(proxy_id, entity_id)
     return cnf
+
+
+def _join_dict(dict_a, dict_b):
+    for key, value in dict_b.items():
+        if key not in dict_a:
+            dict_a[key] = value
+        elif not isinstance(value, dict):
+            dict_a[key] = value
+        else:
+            dict_a[key] = _join_dict(dict_a[key], dict_b[key])
+    return dict_a
 
 
 for filespec in args.config:

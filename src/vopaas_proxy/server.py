@@ -1,17 +1,19 @@
 #!/usr/bin/env python
+from base64 import b64encode, b64decode
 import copy
 import importlib
+import json
 import logging
 import re
 import sys
 import traceback
-import time
 
 from saml2.config import IdPConfig
-from saml2.httputil import Unauthorized, geturl
+from saml2.httputil import Unauthorized
 from saml2.httputil import NotFound
 
 from saml2.httputil import ServiceError
+from saml2.samlp import authn_request_from_string
 
 from vopaas_proxy.front import SamlIDP
 from vopaas_proxy.util.attribute_module import NoUserData
@@ -77,11 +79,14 @@ class WsgiApplication(object):
         entity_id = environ["proxy.target_entity_id"]
         idp_entityid = "%s/%s" % (self.config["IDP"]["entityid"], entity_id)
         inst = self.backends[environ['proxy.backend']]
-        came_from = geturl(environ)
-        state_key = str(hash(came_from + environ["REMOTE_ADDR"] + str(time.time())))
-        self.cache[state_key] = (info["authn_req"], relay_state, info["req_args"], idp_entityid)
+        origin_authn_req = info["authn_req"].to_string().decode("utf-8")
 
-        return inst.start_auth(environ, start_response, info, state_key, entity_id)
+        request_state = {"origin_authn_req": origin_authn_req,
+                         "relay_state": relay_state,
+                         "proxy_idp_entityid": idp_entityid, }
+        return inst.start_auth(environ, start_response, info,
+                               b64encode(json.dumps(request_state).encode("UTF-8")).decode(
+                                   "UTF-8"), entity_id)
 
     def outgoing(self, environ, start_response, response, state_key):
         """
@@ -93,18 +98,19 @@ class WsgiApplication(object):
         :return: response
         """
 
-        orig_authn_req, relay_state, req_args, idp_entity_id = self.cache[state_key]
+        request_state = json.loads(b64decode(state_key.encode("UTF-8")).decode("UTF-8"))
+        origin_authn_req = authn_request_from_string(request_state["origin_authn_req"])
 
         # Change the idp entity id dynamically
         idp_config_file = copy.deepcopy(self.config["IDP"])
-        idp_config_file["entityid"] = idp_entity_id
+        idp_config_file["entityid"] = request_state["proxy_idp_entityid"]
         idp_config = IdPConfig().load(idp_config_file, metadata_construction=False)
 
         _idp = SamlIDP(environ, start_response,
                        idp_config, self.cache, self.outgoing)
 
         # Diverse arguments needed to construct the response
-        resp_args = _idp.idp.response_args(orig_authn_req)
+        resp_args = _idp.idp.response_args(origin_authn_req)
 
         # This is where any possible modification of the assertion is made
         try:
@@ -117,7 +123,7 @@ class WsgiApplication(object):
         # Will signed the response by default
         resp = _idp.construct_authn_response(
             response["ava"], name_id=response["name_id"], authn=response["auth_info"],
-            resp_args=resp_args, relay_state=relay_state, sign_response=True)
+            resp_args=resp_args, relay_state=request_state["relay_state"], sign_response=True)
 
         return resp
 
@@ -133,15 +139,15 @@ class WsgiApplication(object):
 
         if isinstance(spec, tuple):
             if spec[0] == "IDP":
+                # Add endpoints dynamically
                 idp_conf_file = copy.deepcopy(self.config["IDP"])
                 idp_endpoints = []
                 for endp_category in self.config["MODULE"].ENDPOINTS.keys():
-                    for function, endpoint in self.config["MODULE"].ENDPOINTS[
-                            endp_category].items():
+                    for func, endpoint in self.config["MODULE"].ENDPOINTS[endp_category].items():
                         endpoint = "{base}/{provider}/{target_id}/{endpoint}".format(
                             base=self.config["MODULE"].BASE, provider=environ["proxy.backend"],
                             target_id=environ["proxy.target_entity_id"], endpoint=endpoint)
-                        idp_endpoints.append((endpoint, function))
+                        idp_endpoints.append((endpoint, func))
                     idp_conf_file["service"]["idp"]["endpoints"][endp_category] = idp_endpoints
                 idp_config = IdPConfig().load(idp_conf_file, metadata_construction=False)
 

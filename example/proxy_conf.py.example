@@ -34,9 +34,12 @@ DISCO_SRV = "http://localhost/role/idp.ds"
 
 ATTRIBUTE_MODULE = IdentityAttributes()
 
+BACKEND_MODULES = ["saml2_backend_conf"]
+
+ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
+                                        BINDING_HTTP_POST: "sso/post"}}
+
 CONFIG = {
-    "backends": {
-    },
     "entityid": "%s/proxy.xml" % BASE,
     "description": "A SAML2SAML proxy",
     "entity_category": [COC, RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN,
@@ -46,9 +49,7 @@ CONFIG = {
         "idp": {
             "name": "Proxy IdP",
             "endpoints": {
-                "single_sign_on_service": [
-
-                ],
+                "single_sign_on_service": [],
             },
             "policy": {
                 "default": {
@@ -72,23 +73,6 @@ CONFIG = {
         "local": ["/Users/mathiashedstrom/work/DIRG/pysaml2/example/sp-wsgi/sp.xml",
                   "/Users/mathiashedstrom/work/DIRG/pysaml2/example/idp2/idp.xml"],
     },
-    "organization": {
-        "display_name": "Example Identities",
-        "name": "Example Identiteter",
-        "url": "http://www.example.com",
-    },
-    "contact_person": [
-        {
-            "contact_type": "technical",
-            "given_name": "Technical",
-            "email_address": "technical@example.com"
-        }, {
-            "contact_type": "support",
-            "given_name": "Support",
-            "email_address": "support@example.com"
-        },
-    ],
-
     # This database holds the map between a subjects local identifier and
     # the identifier returned to a SP
     "xmlsec_binary": xmlsec_path,
@@ -104,12 +88,11 @@ CONFIG = {
 
 
 def add_module(config_path):
-    mod_conf = import_module(config_path)
-    CONFIG["backends"].update(mod_conf.CONFIG)
-    CONFIG["service"]["idp"]["endpoints"]["single_sign_on_service"].append(
-        ("%s/%s/sso/redirect" % (BASE, mod_conf.PROVIDER), BINDING_HTTP_REDIRECT))
-    CONFIG["service"]["idp"]["endpoints"]["single_sign_on_service"].append(
-        ("%s/%s/sso/post" % (BASE, mod_conf.PROVIDER), BINDING_HTTP_POST))
+    mod_conf_file = import_module(config_path)
+    config = {"backends": {mod_conf_file.PROVIDER: {"module": mod_conf_file.MODULE,
+                                                    "config": mod_conf_file.CONFIG}}}
+    CONFIG.update(config)
 
 
-add_module("saml2_backend_conf")
+for module in BACKEND_MODULES:
+    add_module(module)

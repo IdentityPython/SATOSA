@@ -15,6 +15,7 @@ from saml2.s_utils import UnknownPrincipal
 from saml2.s_utils import UnsupportedBinding
 from vopaas_proxy import VALID_ATTRIBUTES
 from vopaas_proxy.backends.base import BackendBase
+from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
 
 from vopaas_proxy.service import BINDING_MAP, unpack, response
 import vopaas_proxy.service as service
@@ -26,10 +27,9 @@ class SamlSP(BackendBase):
     def __init__(self, outgoing, config, discosrv=None, bindings=None):
         super(SamlSP, self).__init__(outgoing)
         self.cache = {}
-
         sp_config = SPConfig().load(copy.deepcopy(config), False)
 
-        self.sp = Base(sp_config, state_cache=self.cache)
+        self.sp = Base(sp_config)
         self.idp_disco_query_param = "entityID"
         self.outgoing = outgoing
         self.discosrv = discosrv
@@ -63,6 +63,8 @@ class SamlSP(BackendBase):
             ht_args = _cli.apply_binding(_binding, "%s" % req, destination,
                                          relay_state=state_key)
             _sid = req_id
+            self.cache[_sid] = state_key
+
             logger.debug("ht_args: %s" % ht_args)
         except Exception as exc:
             logger.exception(exc)
@@ -70,8 +72,6 @@ class SamlSP(BackendBase):
                 "Failed to construct the AuthnRequest: %s" % exc)
             return resp(environ, start_response)
 
-        # remember the request
-        self.cache[_sid] = state_key
         resp = response(environ, start_response, _binding, ht_args, do_not_start_response=True)
         return resp(environ, start_response)
 
@@ -92,8 +92,7 @@ class SamlSP(BackendBase):
         binding = service.INV_BINDING_MAP[binding]
         try:
             _response = self.sp.parse_authn_request_response(
-                _authn_response["SAMLResponse"], binding,
-                self.cache)
+                _authn_response["SAMLResponse"], binding)
         except UnknownPrincipal as excp:
             logger.error("UnknownPrincipal: %s" % (excp,))
             resp = ServiceError("UnknownPrincipal: %s" % (excp,))
@@ -110,7 +109,7 @@ class SamlSP(BackendBase):
             return resp(environ, start_response)
 
         return self.outgoing(environ, start_response, self._translate_response(_response),
-                             self.cache[_response.in_response_to])
+                             _authn_response['RelayState'])
 
     def _translate_response(self, response):
         translated_response = {}
@@ -155,16 +154,86 @@ class SamlSP(BackendBase):
         for metadata_file in self.sp.metadata.metadata:
             desc = {}
             metadata_file = self.sp.metadata.metadata[metadata_file]
-            entity_id = b64encode(metadata_file.entity_descr.entity_id.encode("utf-8")).decode(
-                "utf-8")
-            # entity = metadata_file.entity
-            desc["entity_id"] = entity_id
+            entity_id = metadata_file.entity_descr.entity_id
+            entity = metadata_file.entity
+            desc["entityid"] = b64encode(entity_id.encode("utf-8")).decode("utf-8")
+
+            # Add organization info
+            try:
+                organization = entity[entity_id]['organization']
+                desc['organization'] = {}
+                organization_params = [('display_name', 'organization_display_name'),
+                                       ('name', 'organization_name'), ('url', 'organization_url')]
+                for config_param, param in organization_params:
+                    try:
+                        value = []
+                        for obj in organization[param]:
+                            value.append((obj["text"], obj["lang"]))
+                        desc['organization'][config_param] = value
+                    except KeyError:
+                        pass
+            except:
+                pass
+
+            # Add contact person info
+            try:
+                contact_persons = entity[entity_id]['contact_person']
+                desc['contact_person'] = []
+                for cont_pers in contact_persons:
+                    person = {}
+                    try:
+                        person['contact_type'] = cont_pers['contact_type']
+                    except KeyError:
+                        pass
+                    try:
+                        email_address = cont_pers['email_address']
+                        person['email_address'] = []
+                        for address in email_address:
+                            person['email_address'].append(address['text'])
+                    except KeyError:
+                        pass
+                    try:
+                        person['given_name'] = cont_pers['given_name']['text']
+                    except KeyError:
+                        pass
+                    try:
+                        person['sur_name'] = cont_pers['sur_name']['text']
+                    except KeyError:
+                        pass
+                    desc['contact_person'].append(person)
+            except KeyError:
+                pass
+
+            # Add ui info
+            try:
+                for idpsso_desc in entity[entity_id]["idpsso_descriptor"]:
+                    ui_elements = idpsso_desc["extensions"]["extension_elements"]
+                    params = ["description", "display_name"]
+                    ui_info = {}
+
+                    for element in ui_elements:
+                        if not element["__class__"] == "%s&UIInfo" % UI_NAMESPACE:
+                            continue
+                        for param in params:
+                            try:
+                                value = []
+                                for data in element[param]:
+                                    value.append({"text": data["text"], "lang": data["lang"]})
+                                ui_info[param] = value
+                            except KeyError:
+                                pass
+                        try:
+                            logos = []
+                            for logo in element["logo"]:
+                                logos.append({"text": logo["text"], "width": logo["width"],
+                                              "height": logo["height"], "lang": logo["lang"]})
+                            ui_info["logo"] = logos
+                        except KeyError:
+                            pass
+                    if ui_info:
+                        desc["service"] = {"idp": {"ui_info": ui_info}}
+            except KeyError:
+                pass
+
             metadata_desc.append(desc)
-            # organization = entity[entity_id]['organization']
-            # metadata_desc[entity_id]['organization']['organization_display_name'] =
-            # organization['organization_display_name']['text']
-            # metadata_desc[entity_id]['organization']['organization_name'] =
-            # organization['organization_name']['text']
-            # metadata_desc[entity_id]['organization']['organization_name'] =
-            # organization['organization_name']['text']
         return metadata_desc
