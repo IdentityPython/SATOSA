@@ -88,24 +88,17 @@ mds = MetadataStore(ONTS.values(), None, None)
 
 def create_combined_metadata(metadata_files):
     key = 1
-    tmp_file_name = "tmp_cmb_workfile.xml"
     for data in metadata_files:
         # if args.ignore_valid:
         #     kwargs = {"check_validity": False}
         # else:
         kwargs = {}
 
-        # TODO Should not need to write to file
-        f = open(tmp_file_name, "w")
-        f.write(data)
-        f.close()
-
-        metad = MetaDataFile(ONTS.values(), None, filename=tmp_file_name, **kwargs)
-        metad.load()
+        metad = MetaDataFile(ONTS.values(), None, filename="no_file", **kwargs)
+        metad.parse_and_check_signature(data)
         mds.metadata["data_{}".format(key)] = metad
         key += 1
 
-    os.remove(tmp_file_name)
     print(mds.dumps(args.output))
 
 

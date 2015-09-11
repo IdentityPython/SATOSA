@@ -8,7 +8,6 @@ from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, \
 from saml2.extension.idpdisc import BINDING_DISCO
 import os.path
 from vopaas_proxy.backends.saml2 import SamlSP
-from server_conf import BASEURL
 
 # try:
 #     from saml2.sigver import get_xmlsec_binary
