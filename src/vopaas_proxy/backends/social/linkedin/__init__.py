@@ -1,11 +1,13 @@
 import json
-from idpproxy.social.oauth import OAuth
-import oauth2 as oauth
-#from xml.etree import ElementTree as ET
+from vopaas_proxy.backends.social.oauth import OAuth
+import vopaas_proxy.backends.social.oauth2 as oauth
+# from xml.etree import ElementTree as ET
 import logging
-logger = logging.getLogger(__name__)
+
+LOGGER = logging.getLogger(__name__)
 
 __author__ = 'rohe0002'
+
 
 class LinkedIn(OAuth):
     def __init__(self, client_id, client_secret, **kwargs):
@@ -18,14 +20,14 @@ class LinkedIn(OAuth):
         client = oauth.Client(self.consumer, token)
 
         resp, content = client.request(self.extra["userinfo_endpoint"], "GET")
-#        # content in XML :-(
-#        logger.debug("UserInfo XML: %s" % content)
-#        res = {}
-#        root = ET.fromstring(content)
-#        for child in root:
-#            res[child.tag] = child.text
+        #        # content in XML :-(
+        #        logger.debug("UserInfo XML: %s" % content)
+        #        res = {}
+        #        root = ET.fromstring(content)
+        #        for child in root:
+        #            res[child.tag] = child.text
 
         res = json.loads(content)
-        logger.debug("userinfo: %s" % res)
+        LOGGER.debug("userinfo: %s" % res)
         res["user_id"] = info_set["oauth_token"]
         return resp, res

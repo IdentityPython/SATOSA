@@ -1,11 +1,12 @@
 import urllib
-from idpproxy.social import Social
+from vopaas_proxy.backends.social import Social
 
 __author__ = 'rohe0002'
 
 import logging
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
+
 
 class FallTrough(Social):
     def __init__(self, consumer_key=None, consumer_secret=None, **kwargs):
@@ -17,21 +18,18 @@ class FallTrough(Social):
         self.authenticating_authority = "Foo"
         self.authorize_url = "http://localhost:8088/falltrough"
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def begin(self, environ, session, server_env, start_response, cookie,
               state, query):
-
         # attribute name *must* coincide with 'variable' in idp_proxy_conf
         args = {"session_id": session.sid_digest}
         url = "%s?%s" % (self.authorize_url, urllib.urlencode(args))
         start_response("302 Found", [("Location", url), cookie])
         return [url]
 
-
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def do(self, environ, session, server_env, start_response, cookie, state,
            query):
-
         user_info = {
             "uid": "user1",
             "name": "Foo Bar"
