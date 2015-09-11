@@ -4,6 +4,7 @@ import copy
 import os
 import sys
 from future.backports.test.support import import_module
+from pluginbase import PluginBase
 from saml2.mdstore import MetaDataFile, MetadataStore
 from saml2.metadata import entity_descriptor, metadata_tostring_fix
 from saml2.metadata import entities_descriptor
@@ -155,7 +156,7 @@ def create_config_file(config, metadata_desc, mod_conf):
     for endpoint_category in proxy_idp_endpoints.keys():
         category_endpoints = []
         for function, endpoint in proxy_idp_endpoints[endpoint_category].items():
-            endpoint = "%s/%s/%s/%s" % (config.BASE, mod_conf.PROVIDER, entity_id, endpoint)
+            endpoint = "%s/%s/%s/%s" % (config.BASE, mod_conf.provider, entity_id, endpoint)
             category_endpoints.append((endpoint, function))
         cnf["service"]["idp"]["endpoints"][endpoint_category] = category_endpoints
 
@@ -183,12 +184,15 @@ for filespec in args.config:
 
     conf_mod = import_module(fil)
 
+    plugin_base = PluginBase(package='backend_plugins')
+    plugin_source = plugin_base.make_plugin_source(searchpath=conf_mod.PLUGIN_PATH)
+
     metadata = []
+
     for module_config_file in conf_mod.BACKEND_MODULES:
-        # Load backend module and get metadata description
-        module_conf = import_module(module_config_file)
-        provider = list(module_conf.CONFIG.keys())[0]
-        module = module_conf.MODULE(None, module_conf.CONFIG)
+        module_conf = plugin_source.load_plugin(module_config_file).setup(conf_mod.BASE)
+        provider = module_conf.provider
+        module = module_conf.module(None, module_conf.config)
         meta_desc = module.get_metadata_desc()
         for desc in meta_desc:
             metadata.append(_make_metadata(create_config_file(conf_mod, desc, module_conf)))

@@ -162,7 +162,7 @@ class SamlIDP():
 
         return resp(self.environ, self.start_response)
 
-    def register_endpoints(self, conf):
+    def register_endpoints(self, conf, providers):
         """
         Given the configuration, return a set of URL to function mappings.
         """
@@ -171,7 +171,7 @@ class SamlIDP():
         # idp_endpoints = self.idp.config.getattr("endpoints", "idp")
         # idp_endpoints = conf.SINGLE_SIGN_ON_SERVICE
         idp_endpoints = conf.ENDPOINTS
-        providers = list(conf.CONFIG["backends"].keys())
+        # providers = list(conf.CONFIG["backends"].keys())
 
         for binding, endp in idp_endpoints["single_sign_on_service"].items():
             valid_providers = ""

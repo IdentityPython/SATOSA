@@ -7,6 +7,7 @@ import logging
 import re
 import sys
 import traceback
+from pluginbase import PluginBase
 
 from saml2.config import IdPConfig
 from saml2.httputil import Unauthorized
@@ -39,7 +40,7 @@ class WsgiApplication(object):
 
         conf = importlib.import_module(config_file)
         idp_conf = copy.deepcopy(conf.CONFIG)
-        del idp_conf["backends"]
+        # del idp_conf["backends"]
         self.config = {
             "IDP": idp_conf,
             "MODULE": conf
@@ -54,15 +55,22 @@ class WsgiApplication(object):
             self.entity_id = None
             self.sp_args = {"discosrv": conf.DISCO_SRV}
 
-        for url, backend_info in conf.CONFIG["backends"].items():
-            inst = backend_info["module"](self.outgoing, backend_info["config"])
-            self.backend_endpoints[url] = inst.register_endpoints()
-            self.backends[url] = inst
+        # Load backends
+        self._load_backends(conf)
 
         idp_config = IdPConfig().load(copy.deepcopy(self.config["IDP"]),
                                       metadata_construction=False)
         idp = SamlIDP(None, None, idp_config, self.cache, None)
-        self.urls.extend(idp.register_endpoints(conf))
+        self.urls.extend(idp.register_endpoints(conf, list(self.backends.keys())))
+
+    def _load_backends(self, config):
+        plugin_base = PluginBase(package='proxy_server.backend_plugins')
+        plugin_source = plugin_base.make_plugin_source(searchpath=config.PLUGIN_PATH)
+        for backend in config.BACKEND_MODULES:
+            backend_plugin = plugin_source.load_plugin(backend).setup(config.BASE)
+            module_inst = backend_plugin.module(self.outgoing, backend_plugin.config)
+            self.backend_endpoints[backend_plugin.provider] = module_inst.register_endpoints()
+            self.backends[backend_plugin.provider] = module_inst
 
     def incoming(self, info, environ, start_response, relay_state):
         """
