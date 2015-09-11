@@ -37,6 +37,7 @@ parser.add_argument('-x', dest='xmlsec',
                     help="xmlsec binaries to be used for the signing")
 parser.add_argument('-w', dest='wellknown',
                     help="Use wellknown namespace prefixes")
+parser.add_argument(dest="proxy_config", help="proxy config")
 parser.add_argument(dest="config", nargs="+")
 args = parser.parse_args()
 
@@ -56,10 +57,13 @@ for filespec in args.config:
     if fil.endswith(".py"):
         fil = fil[:-3]
 
-    conf_mod = import_module(fil)
+    proxy_conf_path = args.proxy_config.rstrip(".py")
+    proxy_config = import_module(proxy_conf_path)
+
+    conf_mod = import_module(fil).setup(proxy_config.BASE)
 
     cnf = Config()
-    cnf.load(copy.deepcopy(conf_mod.CONFIG), metadata_construction=True)
+    cnf.load(copy.deepcopy(conf_mod.config), metadata_construction=True)
     if valid_for:
         cnf.valid_for = valid_for
     eds.append(entity_descriptor(cnf))
