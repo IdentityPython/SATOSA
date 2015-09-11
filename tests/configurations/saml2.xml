@@ -1,4 +1,4 @@
-<ns0:EntityDescriptor xmlns:ns0="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ns1="http://www.w3.org/2000/09/xmldsig#" entityID="https://example.com/Saml2/proxy_sp.xml"><ns0:SPSSODescriptor AuthnRequestsSigned="false" WantAssertionsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><ns0:KeyDescriptor use="signing"><ns1:KeyInfo><ns1:X509Data><ns1:X509Certificate>MIIF9DCCA9ygAwIBAgIJAL8CdnzXOHfcMA0GCSqGSIb3DQEBBQUAMFkxCzAJBgNV
+<ns0:EntityDescriptor xmlns:ns0="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ns1="http://www.w3.org/2000/09/xmldsig#" entityID="https://localhost:8090/Saml2/proxy_sp.xml"><ns0:SPSSODescriptor AuthnRequestsSigned="false" WantAssertionsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><ns0:KeyDescriptor use="signing"><ns1:KeyInfo><ns1:X509Data><ns1:X509Certificate>MIIF9DCCA9ygAwIBAgIJAL8CdnzXOHfcMA0GCSqGSIb3DQEBBQUAMFkxCzAJBgNV
 BAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJbnRlcm5ldCBX
 aWRnaXRzIFB0eSBMdGQxEjAQBgNVBAMTCWxvY2FsaG9zdDAeFw0xNTA1MTIwNjI2
 NTdaFw0yNTA1MDkwNjI2NTdaMFkxCzAJBgNVBAYTAkFVMRMwEQYDVQQIEwpTb21l
@@ -30,4 +30,4 @@ bIPwZEPGvqzoZTfcEPaAFmOFYb+Y1lo2LRCGiaH1gQQhWL7ZABBQIJqk/Ieg38kQ
 z2DyCrUD1KDPsPuK+oYbNWjoh0NccN623dIamH8YqFcQNn4Jg0Au5+IHkRVMY8pO
 3ZGpLFC4M/nIO0VG5ZCJtLhYAhqioFcXwU5NpAtBtce3itJL2GhIuSzKWtCBIxeF
 oiyC36jecCQgxabbGZY65SPDB3ZvJ6NOwcdSBnRhbF/kxKfEzexiGA==
-</ns1:X509Certificate></ns1:X509Data></ns1:KeyInfo></ns0:KeyDescriptor><ns0:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://example.com/Saml2/acs/post" index="1" /><ns0:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://example.com/Saml2/acs/redirect" index="2" /></ns0:SPSSODescriptor></ns0:EntityDescriptor>
+</ns1:X509Certificate></ns1:X509Data></ns1:KeyInfo></ns0:KeyDescriptor><ns0:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://localhost:8090/Saml2/acs/post" index="1" /><ns0:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://localhost:8090/Saml2/acs/redirect" index="2" /></ns0:SPSSODescriptor></ns0:EntityDescriptor>

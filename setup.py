@@ -21,6 +21,7 @@ setup(
                  'Topic :: Software Development :: Libraries :: Python Modules',
                  'Programming Language :: Python :: 2.7',
                  'Programming Language :: Python :: 3.4'],
-    install_requires=["pysaml2 >= 3.0.0"],
+    install_requires=["pysaml2 >= 3.0.0",
+                      "pluginbase"],
     zip_safe=False,
 )

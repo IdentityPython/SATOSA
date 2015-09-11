@@ -48,8 +48,9 @@ class ProxyTest(helper.CPWebCase):
         cherrypy.tree.graft(app.run_server, '/')
 
     def test_flow(self):
-        ent_id = 'https://example.com/proxy.xml/aHR0cHM6Ly9leGFtcGxlLmNvbS91bml0dGVzdF9pZHAueG1s'
-        url = self.sp.make_auth_req(ent_id)
+        e_id = 'https://localhost:8090/proxy.xml/aHR0cHM6Ly9leGFtcGxlLmNvbS91bml0dGVzdF9pZHAueG1s'
+
+        url = self.sp.make_auth_req(e_id)
         status, headers, _ = self.getPage(url)
         assert status == '303 See Other'
 
@@ -72,10 +73,9 @@ class ProxyTest(helper.CPWebCase):
         assert 'RelayState' in req
         resp = self.sp.parse_authn_request_response(req['SAMLResponse'][0],
                                                     BINDING_HTTP_REDIRECT)
+
         identity = resp.ava
         assert identity["displayName"][0] == "Test1"
-        assert identity["sn"][0] == "test1@valueA"
-        assert identity['o'][0] == "Small university"
 
     def get_redirect_location(self, headers):
         for header, value in headers:

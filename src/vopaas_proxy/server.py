@@ -64,7 +64,7 @@ class WsgiApplication(object):
         self.urls.extend(idp.register_endpoints(conf, list(self.backends.keys())))
 
     def _load_backends(self, config):
-        plugin_base = PluginBase(package='proxy_server.backend_plugins')
+        plugin_base = PluginBase(package='proxy_plugins')
         plugin_source = plugin_base.make_plugin_source(searchpath=config.PLUGIN_PATH)
         for backend in config.BACKEND_MODULES:
             backend_plugin = plugin_source.load_plugin(backend).setup(config.BASE)
@@ -187,7 +187,6 @@ class WsgiApplication(object):
 
         path_split = path.split('/')
         backend = path_split[0]
-        target_entity_id = path_split[1]
         combined_urls = self.urls + self.backend_endpoints[backend]
 
         for regex, spec in combined_urls:
@@ -198,7 +197,9 @@ class WsgiApplication(object):
                 except IndexError:
                     environ['oic.url_args'] = path
                 environ['proxy.backend'] = backend
-                environ["proxy.target_entity_id"] = target_entity_id
+                if spec[0] == 'IDP':
+                    target_entity_id = path_split[1]
+                    environ["proxy.target_entity_id"] = target_entity_id
                 try:
                     return self.run_entity(spec, environ, start_response)
                 except Exception as err:
