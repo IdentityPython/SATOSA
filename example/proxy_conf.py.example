@@ -34,7 +34,8 @@ DISCO_SRV = "http://localhost/role/idp.ds"
 
 ATTRIBUTE_MODULE = IdentityAttributes()
 
-BACKEND_MODULES = ["saml2_backend_conf"]
+PLUGIN_PATH = ["plugins/backends"]
+BACKEND_MODULES = ["saml2_backend"]
 
 ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
                                         BINDING_HTTP_POST: "sso/post"}}
@@ -85,14 +86,3 @@ CONFIG = {
         "loglevel": "debug",
     }
 }
-
-
-def add_module(config_path):
-    mod_conf_file = import_module(config_path)
-    config = {"backends": {mod_conf_file.PROVIDER: {"module": mod_conf_file.MODULE,
-                                                    "config": mod_conf_file.CONFIG}}}
-    CONFIG.update(config)
-
-
-for module in BACKEND_MODULES:
-    add_module(module)
