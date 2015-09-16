@@ -26,12 +26,10 @@ logger = logging.getLogger(__name__)
 class SamlSP(BackendBase):
     def __init__(self, outgoing, config, discosrv=None, bindings=None):
         super(SamlSP, self).__init__(outgoing)
-        self.cache = {}
         sp_config = SPConfig().load(copy.deepcopy(config), False)
 
         self.sp = Base(sp_config)
         self.idp_disco_query_param = "entityID"
-        self.outgoing = outgoing
         self.discosrv = discosrv
         if bindings:
             self.bindings = bindings
@@ -39,9 +37,10 @@ class SamlSP(BackendBase):
             self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST]
         logger.debug("--- SSO ---")
 
-    def start_auth(self, environ, start_response, request_info, state_key, entity_id):
+    def start_auth(self, environ, start_response, request_info, state):
         _cli = self.sp
         req_args = request_info["req_args"]
+        entity_id = environ["vopaas.target_entity_id"]
         entity_id = b64decode(entity_id).decode("utf-8")
         try:
             # Picks a binding to use for sending the Request to the IDP
@@ -61,10 +60,7 @@ class SamlSP(BackendBase):
                                                     **req_args)
 
             ht_args = _cli.apply_binding(_binding, "%s" % req, destination,
-                                         relay_state=state_key)
-            _sid = req_id
-            self.cache[_sid] = state_key
-
+                                         relay_state=state)
             logger.debug("ht_args: %s" % ht_args)
         except Exception as exc:
             logger.exception(exc)
@@ -108,8 +104,9 @@ class SamlSP(BackendBase):
             resp = ServiceError("Other error: %s" % (err,))
             return resp(environ, start_response)
 
-        return self.outgoing(environ, start_response, self._translate_response(_response),
-                             _authn_response['RelayState'])
+        return self.auth_callback_func(environ, start_response,
+                                       self._translate_response(_response),
+                                       _authn_response['RelayState'])
 
     def _translate_response(self, response):
         translated_response = {}
