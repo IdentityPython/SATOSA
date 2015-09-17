@@ -17,8 +17,7 @@ from saml2.server import Server
 from vopaas_proxy.frontends.base import FrontendBase
 
 import vopaas_proxy.service as service
-from vopaas_proxy.service import unpack, response
-from vopaas_proxy.routing import ENVIRON_BACKEND_ATTR_NAME
+from vopaas_proxy.service import response
 
 logger = logging.getLogger(__name__)
 

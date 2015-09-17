@@ -7,7 +7,7 @@ setup.py
 from setuptools import setup, find_packages
 
 setup(
-    name='vopaas_proxy',
+    name='SATOSA',
     version='0.0.1',
     description='',
     author='DIRG',

@@ -18,7 +18,7 @@ def main():
                              "specified, a discovery server will be used "
                              "instead.")
     parser.add_argument(dest="proxy_config",
-                        help="Configuration file for the proxy (pysaml2 sp and idp).")
+                        help="Configuration file for the SATOSA proxy.")
     parser.add_argument(dest="server_config",
                         help="Configuration file with server settings.")
     args = parser.parse_args()

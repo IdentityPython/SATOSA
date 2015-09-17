@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os.path
-from vopaas_proxy.util.attribute_module import IdentityAttributes
 
 # try:
 #     from saml2.sigver import get_xmlsec_binary
@@ -19,8 +18,6 @@ HOST = 'localhost'
 PORT = 8090
 
 BASE = 'https://%s:%s' % (HOST, PORT)
-
-ATTRIBUTE_MODULE = IdentityAttributes()
 
 PLUGIN_PATH = ["plugins/backends", "plugins/frontends"]
 BACKEND_MODULES = ["saml2_backend"]
