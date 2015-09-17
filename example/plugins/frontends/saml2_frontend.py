@@ -31,7 +31,7 @@ def setup(base):
         "description": "A SAML2SAML proxy",
         "entity_category": [COC, RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN,
                             EU],
-        "valid_for": 168,
+        # "valid_for": 168,
         "service": {
             "idp": {
                 "name": "Proxy IdP",

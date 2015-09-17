@@ -91,7 +91,7 @@ def _operation(environ, start_response, func, _dict, binding):
                         mtype="request")
 
 
-def response(environ, start_response, binding, http_args, do_not_start_response=False):
+def response(binding, http_args):
     if binding == BINDING_HTTP_REDIRECT:
         for param, value in http_args["headers"]:
             if param == "Location":
@@ -102,10 +102,7 @@ def response(environ, start_response, binding, http_args, do_not_start_response=
     else:
         resp = Response(http_args["data"], headers=http_args["headers"])
 
-    if do_not_start_response:
-        return resp
-    else:
-        return resp(environ, start_response)
+    return resp
 
 
 def redirect(environ, start_response, func):

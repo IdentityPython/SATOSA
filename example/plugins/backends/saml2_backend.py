@@ -39,7 +39,7 @@ def setup(base):
         "description": "A SAML2 SP MODULE",
         "entity_category": [COC, RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN,
                             EU],
-        "valid_for": 168,
+        # "valid_for": 168,
         "service": {
             "sp": {
                 "allow_unsolicited": True,

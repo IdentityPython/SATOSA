@@ -9,7 +9,9 @@ from saml2.httputil import Unauthorized
 from saml2.httputil import NotFound
 
 from saml2.httputil import ServiceError
+from vopaas_proxy.request_context import RequestContext
 from vopaas_proxy.routing import ModuleRouter
+from vopaas_proxy.service import unpack_either
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 's2s.log'
@@ -36,9 +38,10 @@ class WsgiApplication(object):
         for frontend in config.FRONTEND_MODULES:
             frontend_plugin = plugin_source.load_plugin(frontend).setup(config.BASE)
             module_inst = frontend_plugin.module(self.incoming, frontend_plugin.config)
-            frontends[frontend_plugin.receiver] = {"instance": module_inst,
-                                                   "endpoints": module_inst.register_endpoints(
-                                                       providers)}
+            frontends[frontend_plugin.receiver] = module_inst
+            # frontends[frontend_plugin.receiver] = {"instance": module_inst,
+            #                                        "endpoints": module_inst.register_endpoints(
+            #                                            providers)}
         return frontends
 
     def _load_backends(self, config):
@@ -48,11 +51,12 @@ class WsgiApplication(object):
         for backend in config.BACKEND_MODULES:
             backend_plugin = plugin_source.load_plugin(backend).setup(config.BASE)
             module_inst = backend_plugin.module(self.outgoing, backend_plugin.config)
-            backends[backend_plugin.provider] = {"instance": module_inst,
-                                                 "endpoints": module_inst.register_endpoints()}
+            backends[backend_plugin.provider] = module_inst
+            # backends[backend_plugin.provider] = {"instance": module_inst,
+            #                                      "endpoints": module_inst.register_endpoints()}
         return backends
 
-    def incoming(self, environ, start_response, info, state):
+    def incoming(self, context, info, state):
         """
         An Authentication request has been requested, this is the second step
         in the sequence
@@ -64,10 +68,10 @@ class WsgiApplication(object):
 
         :return: response
         """
-        backend, state = self.module_router.incoming(environ, state)
-        return backend.start_auth(environ, start_response, info, state)
+        backend, state = self.module_router.incoming(context, state)
+        return backend.start_auth(context, info, state)
 
-    def outgoing(self, environ, start_response, internal_response, state):
+    def outgoing(self, context, internal_response, state):
         """
         An authentication response has been received and now an authentication
         response from this server should be constructed.
@@ -77,9 +81,9 @@ class WsgiApplication(object):
         :return: response
         """
         frontend, state = self.module_router.outgoing(state)
-        return frontend.handle_authn_response(environ, start_response, internal_response, state)
+        return frontend.handle_authn_response(context, internal_response, state)
 
-    def run_entity(self, environ, start_response, spec):
+    def run_entity(self, request_context, spec):
         """
         Picks entity and method to run by that entity.
 
@@ -90,7 +94,7 @@ class WsgiApplication(object):
         """
 
         if isinstance(spec, tuple):
-            return spec[0](environ, start_response, *spec[1:])
+            return spec[0](request_context, *spec[1:])
         else:
             return spec()
 
@@ -111,10 +115,16 @@ class WsgiApplication(object):
             resp = Unauthorized()
             return resp(environ, start_response)
 
-        spec = self.module_router.url_routing(environ, path)
+        context = RequestContext()
+        context.path = path
+        context.request = unpack_either(environ)
+
+        spec = self.module_router.url_routing(context)
         if spec:
             try:
-                return self.run_entity(environ, start_response, spec)
+
+                resp = self.run_entity(context, spec)
+                return resp(environ, start_response)
             except Exception as err:
                 if not self.debug:
                     print("%s" % err, file=sys.stderr)

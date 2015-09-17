@@ -38,7 +38,7 @@ class SamlIDP(FrontendBase):
         self.base = conf["base"]
         self.response_bindings = None
 
-    def verify_request(self, environ, start_response, idp, query, binding):
+    def verify_request(self, idp, query, binding):
         """ Parses and verifies the SAML Authentication Request
 
         :param query: The SAML authn request, transport encoded
@@ -49,7 +49,7 @@ class SamlIDP(FrontendBase):
         if not query:
             logger.info("Missing QUERY")
             resp = Unauthorized('Unknown user')
-            return {"response": resp(environ, start_response)}
+            return {"response": resp}
 
         req_info = idp.parse_authn_request(query, binding)
 
@@ -96,7 +96,7 @@ class SamlIDP(FrontendBase):
         return {"resp_args": resp_args, "response": _resp,
                 "authn_req": _authn_req, "req_args": req_args}
 
-    def handle_authn_request(self, environ, start_response, binding_in):
+    def handle_authn_request(self, context, binding_in):
         """
         Deal with an authentication request
 
@@ -105,8 +105,11 @@ class SamlIDP(FrontendBase):
             dictionary
         """
 
-        target_entity_id = environ["PATH_INFO"].lstrip("/").split('/')[1]
-        environ["vopaas.target_entity_id"] = target_entity_id
+        # target_entity_id = environ["PATH_INFO"].lstrip("/").split('/')[1]
+        # environ["vopaas.target_entity_id"] = target_entity_id
+
+        target_entity_id = context.path.lstrip("/").split('/')[1]
+        context.internal_data["vopaas.target_entity_id"] = target_entity_id
 
         # Add endpoints dynamically
         idp_conf_file = copy.deepcopy(self.config)
@@ -114,28 +117,27 @@ class SamlIDP(FrontendBase):
         for endp_category in self.endpoints.keys():
             for func, endpoint in self.endpoints[endp_category].items():
                 endpoint = "{base}/{provider}/{target_id}/{endpoint}".format(
-                    base=self.base, provider=environ[ENVIRON_BACKEND_ATTR_NAME],
-                    target_id=environ["vopaas.target_entity_id"], endpoint=endpoint)
+                    base=self.base, provider=context.target_backend,
+                    target_id=target_entity_id, endpoint=endpoint)
                 idp_endpoints.append((endpoint, func))
             idp_conf_file["service"]["idp"]["endpoints"][endp_category] = idp_endpoints
         idp_config = IdPConfig().load(idp_conf_file, metadata_construction=False)
 
         idp = Server(config=idp_config)
 
-        _request = unpack(environ, binding_in)
+        # _request = unpack(environ, binding_in)
+        _request = context.request
         _binding_in = service.INV_BINDING_MAP[binding_in]
 
         try:
-            _dict = self.verify_request(environ, start_response, idp, _request["SAMLRequest"],
+            _dict = self.verify_request(idp, _request["SAMLRequest"],
                                         _binding_in)
         except UnknownPrincipal as excp:
             logger.error("UnknownPrincipal: %s" % (excp,))
-            resp = ServiceError("UnknownPrincipal: %s" % (excp,))
-            return resp(environ, start_response)
+            return ServiceError("UnknownPrincipal: %s" % (excp,))
         except UnsupportedBinding as excp:
             logger.error("UnsupportedBinding: %s" % (excp,))
-            resp = ServiceError("UnsupportedBinding: %s" % (excp,))
-            return resp(environ, start_response)
+            return ServiceError("UnsupportedBinding: %s" % (excp,))
 
         _binding = _dict["resp_args"]["binding"]
         if _dict["response"]:  # An error response
@@ -145,11 +147,10 @@ class SamlIDP(FrontendBase):
                 _request["RelayState"], response=True)
 
             logger.debug("HTTPargs: %s" % http_args)
-            return response(environ, start_response, _binding, http_args)
+            return response(_binding, http_args)
         else:
 
-            entity_id = environ["vopaas.target_entity_id"]
-            idp_entityid = "%s/%s" % (self.config["entityid"], entity_id)
+            idp_entityid = "%s/%s" % (self.config["entityid"], target_entity_id)
             request_state = {"origin_authn_req": _dict["authn_req"].to_string().decode("utf-8"),
                              "relay_state": _request["RelayState"],
                              "proxy_idp_entityid": idp_entityid, }
@@ -157,9 +158,9 @@ class SamlIDP(FrontendBase):
             state = b64encode(json.dumps(request_state).encode("UTF-8")).decode(
                 "UTF-8")
 
-            return self.auth_req_callback_func(environ, start_response, _dict, state)
+            return self.auth_req_callback_func(context, _dict, state)
 
-    def handle_authn_response(self, environ, start_response, internal_response, state):
+    def handle_authn_response(self, context, internal_response, state):
         request_state = json.loads(b64decode(state.encode("UTF-8")).decode("UTF-8"))
         origin_authn_req = authn_request_from_string(request_state["origin_authn_req"])
 
@@ -174,7 +175,7 @@ class SamlIDP(FrontendBase):
         resp_args = idp.response_args(origin_authn_req)
 
         # Will signed the response by default
-        resp = self.construct_authn_response(environ, start_response, idp,
+        resp = self.construct_authn_response(idp,
                                              internal_response["ava"],
                                              name_id=internal_response["name_id"],
                                              authn=internal_response["auth_info"],
@@ -184,7 +185,7 @@ class SamlIDP(FrontendBase):
 
         return resp
 
-    def construct_authn_response(self, environ, start_response, idp, identity, name_id, authn,
+    def construct_authn_response(self, idp, identity, name_id, authn,
                                  resp_args,
                                  relay_state, sign_response=True):
         """
@@ -220,7 +221,7 @@ class SamlIDP(FrontendBase):
         if not resp:
             resp = ServiceError("Don't know how to return response")
 
-        return resp(environ, start_response)
+        return resp
 
     def register_endpoints(self, providers):
         """

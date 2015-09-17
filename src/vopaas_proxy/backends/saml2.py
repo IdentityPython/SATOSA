@@ -17,7 +17,7 @@ from vopaas_proxy import VALID_ATTRIBUTES
 from vopaas_proxy.backends.base import BackendBase
 from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
 
-from vopaas_proxy.service import BINDING_MAP, unpack, response
+from vopaas_proxy.service import BINDING_MAP, response
 import vopaas_proxy.service as service
 
 logger = logging.getLogger(__name__)
@@ -37,10 +37,10 @@ class SamlSP(BackendBase):
             self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST]
         logger.debug("--- SSO ---")
 
-    def start_auth(self, environ, start_response, request_info, state):
+    def start_auth(self, context, request_info, state):
         _cli = self.sp
         req_args = request_info["req_args"]
-        entity_id = environ["vopaas.target_entity_id"]
+        entity_id = context.internal_data["vopaas.target_entity_id"]
         entity_id = b64decode(entity_id).decode("utf-8")
         try:
             # Picks a binding to use for sending the Request to the IDP
@@ -64,26 +64,23 @@ class SamlSP(BackendBase):
             logger.debug("ht_args: %s" % ht_args)
         except Exception as exc:
             logger.exception(exc)
-            resp = ServiceError(
-                "Failed to construct the AuthnRequest: %s" % exc)
-            return resp(environ, start_response)
+            return ServiceError("Failed to construct the AuthnRequest: %s" % exc)
 
-        resp = response(environ, start_response, _binding, ht_args, do_not_start_response=True)
-        return resp(environ, start_response)
+        return response(_binding, ht_args)
 
-    def authn_response(self, environ, start_response, binding):
+    def authn_response(self, context, binding):
         """
         :param binding: Which binding the query came in over
         :returns: Error response or a response constructed by the transfer
             function
         """
 
-        _authn_response = unpack(environ, binding)
+        # _authn_response = unpack(environ, binding)
+        _authn_response = context.request
 
         if not _authn_response["SAMLResponse"]:
             logger.info("Missing Response")
-            resp = Unauthorized('Unknown user')
-            return resp(environ, start_response)
+            return Unauthorized('Unknown user')
 
         binding = service.INV_BINDING_MAP[binding]
         try:
@@ -91,20 +88,16 @@ class SamlSP(BackendBase):
                 _authn_response["SAMLResponse"], binding)
         except UnknownPrincipal as excp:
             logger.error("UnknownPrincipal: %s" % (excp,))
-            resp = ServiceError("UnknownPrincipal: %s" % (excp,))
-            return resp(environ, start_response)
+            return ServiceError("UnknownPrincipal: %s" % (excp,))
         except UnsupportedBinding as excp:
             logger.error("UnsupportedBinding: %s" % (excp,))
-            resp = ServiceError("UnsupportedBinding: %s" % (excp,))
-            return resp(environ, start_response)
+            return ServiceError("UnsupportedBinding: %s" % (excp,))
         except VerificationError as err:
-            resp = ServiceError("Verification error: %s" % (err,))
-            return resp(environ, start_response)
+            return ServiceError("Verification error: %s" % (err,))
         except Exception as err:
-            resp = ServiceError("Other error: %s" % (err,))
-            return resp(environ, start_response)
+            return ServiceError("Other error: %s" % (err,))
 
-        return self.auth_callback_func(environ, start_response,
+        return self.auth_callback_func(context,
                                        self._translate_response(_response),
                                        _authn_response['RelayState'])
 
