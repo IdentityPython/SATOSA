@@ -8,7 +8,7 @@ from saml2 import BINDING_HTTP_REDIRECT
 import cherrypy
 import sys
 
-from vopaas_proxy.server import WsgiApplication
+from vopaas_proxy.wsgi_server import WsgiApplication
 from tests.test_util import FakeSP, FakeIdP
 
 USERS = {
