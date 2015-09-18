@@ -3,7 +3,7 @@
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2 import BINDING_HTTP_POST
 import os.path
-from satosa.backends.saml2 import SamlSP
+from satosa.backends.vopaas_saml2 import SamlSP
 
 # try:
 #     from saml2.sigver import get_xmlsec_binary

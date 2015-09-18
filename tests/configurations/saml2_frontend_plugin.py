@@ -1,7 +1,7 @@
 import os
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from satosa.plugin_base.frontend import FrontendPlugin
-from satosa.frontends.saml2_idp import SamlIDP
+from satosa.frontends.vopaas_saml2_idp import SamlIDP
 
 __author__ = 'mathiashedstrom'
 

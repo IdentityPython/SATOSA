@@ -1,7 +1,7 @@
 import os
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from satosa.plugin_base.frontend import FrontendPlugin
-from satosa.frontends.saml2 import SamlFrontend
+from satosa.frontends.vopaas_saml2_idp import SamlIDP
 from saml2.entity_category.edugain import COC
 from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, \
     SFS_1993_1153, NREN, EU
@@ -19,15 +19,15 @@ def full_path(local_file):
 
 xmlsec_path = '/usr/local/bin/xmlsec1'
 
-MODULE = SamlFrontend
-RECEIVER = "Saml2IDP"
+MODULE = SamlIDP
+RECEIVER = "VOpaasIDP"
 ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
                                         BINDING_HTTP_POST: "sso/post"}}
 
 
 def setup(base):
     idpConfig = {
-        "entityid": "%s/%s/proxy.xml" % (base, RECEIVER),
+        "entityid": "%s/proxy.xml" % base,
         "description": "A SAML2SAML proxy",
         "entity_category": [COC, RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN,
                             EU],
@@ -36,10 +36,7 @@ def setup(base):
             "idp": {
                 "name": "Proxy IdP",
                 "endpoints": {
-                    "single_sign_on_service": [
-                        # The endpoints will be added later when registering endpoints in the
-                        # module.
-                    ],
+                    "single_sign_on_service": [],
                 },
                 "policy": {
                     "default": {
@@ -60,7 +57,8 @@ def setup(base):
         "key_file": full_path("pki/new_server.key"),
         "cert_file": full_path("pki/new_server.crt"),
         "metadata": {
-            "local": ["/Users/mathiashedstrom/work/DIRG/pysaml2/example/sp-wsgi/sp.xml"],
+            "local": ["/Users/mathiashedstrom/work/DIRG/pysaml2/example/sp-wsgi/sp.xml",
+                      "/Users/mathiashedstrom/work/DIRG/pysaml2/example/idp2/idp.xml"],
         },
         # This database holds the map between a subjects local identifier and
         # the identifier returned to a SP

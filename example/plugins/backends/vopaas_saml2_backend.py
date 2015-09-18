@@ -7,7 +7,7 @@ from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, \
     SFS_1993_1153, NREN, EU
 from saml2.extension.idpdisc import BINDING_DISCO
 import os.path
-from satosa.backends.saml2 import SamlSP
+from satosa.backends.vopaas_saml2 import SamlSP
 
 # try:
 #     from saml2.sigver import get_xmlsec_binary

@@ -23,18 +23,18 @@ import satosa.service as service
 logger = logging.getLogger(__name__)
 
 
-class SamlBackend(BackendBase):
-    def __init__(self, outgoing, config):
-        super(SamlBackend, self).__init__(outgoing)
+class SamlSP(BackendBase):
+    def __init__(self, outgoing, config, discosrv=None, bindings=None):
+        super(SamlSP, self).__init__(outgoing)
         sp_config = SPConfig().load(copy.deepcopy(config), False)
 
         self.sp = Base(sp_config)
         self.idp_disco_query_param = "entityID"
-        self.discosrv = True
-        # if bindings:
-        #     self.bindings = bindings
-        # else:
-        self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST]
+        self.discosrv = discosrv
+        if bindings:
+            self.bindings = bindings
+        else:
+            self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST]
         logger.debug("--- SSO ---")
 
     def start_auth(self, context, request_info, state):
@@ -101,25 +101,6 @@ class SamlBackend(BackendBase):
                                        self._translate_response(_response),
                                        _authn_response['RelayState'])
 
-    def disco_response(self, context, *args):
-        """
-        If I got a useful response from the discovery server, continue with
-        the authentication request.
-
-        :return: redirect containing the authentication request
-        """
-        # info = self.unpack_redirect()
-        info = context.request
-
-        try:
-            entity_id = info[self.idp_disco_query_param]
-        except KeyError:
-            resp = Unauthorized("You must chose an IdP")
-            return resp(self.environ, self.start_response)
-        else:
-            # should I check the state variable ?
-            return self.authn_request(entity_id, info["state"])
-
     def _translate_response(self, response):
         translated_response = {}
         translated_params = {}
@@ -156,3 +137,93 @@ class SamlBackend(BackendBase):
                                                       BINDING_MAP[binding])))
 
         return url_map
+
+    def get_metadata_desc(self):
+        # TODO Only get IDPs
+        metadata_desc = []
+        for metadata_file in self.sp.metadata.metadata:
+            desc = {}
+            metadata_file = self.sp.metadata.metadata[metadata_file]
+            entity_id = metadata_file.entity_descr.entity_id
+            entity = metadata_file.entity
+            desc["entityid"] = b64encode(entity_id.encode("utf-8")).decode("utf-8")
+
+            # Add organization info
+            try:
+                organization = entity[entity_id]['organization']
+                desc['organization'] = {}
+                organization_params = [('display_name', 'organization_display_name'),
+                                       ('name', 'organization_name'), ('url', 'organization_url')]
+                for config_param, param in organization_params:
+                    try:
+                        value = []
+                        for obj in organization[param]:
+                            value.append((obj["text"], obj["lang"]))
+                        desc['organization'][config_param] = value
+                    except KeyError:
+                        pass
+            except:
+                pass
+
+            # Add contact person info
+            try:
+                contact_persons = entity[entity_id]['contact_person']
+                desc['contact_person'] = []
+                for cont_pers in contact_persons:
+                    person = {}
+                    try:
+                        person['contact_type'] = cont_pers['contact_type']
+                    except KeyError:
+                        pass
+                    try:
+                        email_address = cont_pers['email_address']
+                        person['email_address'] = []
+                        for address in email_address:
+                            person['email_address'].append(address['text'])
+                    except KeyError:
+                        pass
+                    try:
+                        person['given_name'] = cont_pers['given_name']['text']
+                    except KeyError:
+                        pass
+                    try:
+                        person['sur_name'] = cont_pers['sur_name']['text']
+                    except KeyError:
+                        pass
+                    desc['contact_person'].append(person)
+            except KeyError:
+                pass
+
+            # Add ui info
+            try:
+                for idpsso_desc in entity[entity_id]["idpsso_descriptor"]:
+                    ui_elements = idpsso_desc["extensions"]["extension_elements"]
+                    params = ["description", "display_name"]
+                    ui_info = {}
+
+                    for element in ui_elements:
+                        if not element["__class__"] == "%s&UIInfo" % UI_NAMESPACE:
+                            continue
+                        for param in params:
+                            try:
+                                value = []
+                                for data in element[param]:
+                                    value.append({"text": data["text"], "lang": data["lang"]})
+                                ui_info[param] = value
+                            except KeyError:
+                                pass
+                        try:
+                            logos = []
+                            for logo in element["logo"]:
+                                logos.append({"text": logo["text"], "width": logo["width"],
+                                              "height": logo["height"], "lang": logo["lang"]})
+                            ui_info["logo"] = logos
+                        except KeyError:
+                            pass
+                    if ui_info:
+                        desc["service"] = {"idp": {"ui_info": ui_info}}
+            except KeyError:
+                pass
+
+            metadata_desc.append(desc)
+        return metadata_desc
