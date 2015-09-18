@@ -4,8 +4,9 @@ import re
 
 __author__ = 'mathiashedstrom'
 
-ENVIRON_BACKEND_ATTR_NAME = "satosa.backend"
-ENVIRON_FRONTEND_ATTR_NAME = "satosa.frontend"
+
+class NoBoundEndpointError(Exception):
+    pass
 
 
 class ModuleRouter():
@@ -79,3 +80,5 @@ class ModuleRouter():
             match = re.search(regex, context.path)
             if match is not None:
                 return spec
+
+        raise NoBoundEndpointError("{} not bound to anny function".format(context.path))
