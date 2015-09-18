@@ -1,4 +1,4 @@
-from vopaas_proxy.backends.base import BackendBase
+from satosa.backends.base import BackendBase
 
 __author__ = 'mathiashedstrom'
 

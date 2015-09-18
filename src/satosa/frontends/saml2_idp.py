@@ -14,10 +14,10 @@ from saml2.s_utils import UnknownPrincipal
 from saml2.s_utils import UnsupportedBinding
 from saml2.samlp import authn_request_from_string
 from saml2.server import Server
-from vopaas_proxy.frontends.base import FrontendBase
+from satosa.frontends.base import FrontendBase
 
-import vopaas_proxy.service as service
-from vopaas_proxy.service import response
+import satosa.service as service
+from satosa.service import response
 
 logger = logging.getLogger(__name__)
 

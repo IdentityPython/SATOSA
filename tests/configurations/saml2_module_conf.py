@@ -3,13 +3,13 @@
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2 import BINDING_HTTP_POST
 import os.path
-from vopaas_proxy.backends.saml2 import SamlSP
+from satosa.backends.saml2 import SamlSP
 
 # try:
 #     from saml2.sigver import get_xmlsec_binary
 # except ImportError:
 #     get_xmlsec_binary = None
-from vopaas_proxy.plugin_base.backend import BackendPlugin
+from satosa.plugin_base.backend import BackendPlugin
 
 xmlsec_path = '/usr/local/bin/xmlsec1'
 

@@ -1,5 +1,5 @@
-from vopaas_proxy.plugin_loader import load_backends, load_frontends
-from vopaas_proxy.routing import ModuleRouter
+from satosa.plugin_loader import load_backends, load_frontends
+from satosa.routing import ModuleRouter
 
 __author__ = 'mathiashedstrom'
 

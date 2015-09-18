@@ -8,10 +8,10 @@ from saml2.httputil import Unauthorized
 from saml2.httputil import NotFound
 
 from saml2.httputil import ServiceError
-from vopaas_proxy.base import SATOSABase
-from vopaas_proxy.request_context import RequestContext
-from vopaas_proxy.routing import NoBoundEndpointError
-from vopaas_proxy.service import unpack_either
+from satosa.base import SATOSABase
+from satosa.request_context import RequestContext
+from satosa.routing import NoBoundEndpointError
+from satosa.service import unpack_either
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 's2s.log'

@@ -13,12 +13,12 @@ from saml2.httputil import Unauthorized
 from saml2.response import VerificationError
 from saml2.s_utils import UnknownPrincipal
 from saml2.s_utils import UnsupportedBinding
-from vopaas_proxy import VALID_ATTRIBUTES
-from vopaas_proxy.backends.base import BackendBase
+from satosa import VALID_ATTRIBUTES
+from satosa.backends.base import BackendBase
 from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
 
-from vopaas_proxy.service import BINDING_MAP, response
-import vopaas_proxy.service as service
+from satosa.service import BINDING_MAP, response
+import satosa.service as service
 
 logger = logging.getLogger(__name__)
 

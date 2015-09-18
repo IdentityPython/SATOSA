@@ -1,7 +1,7 @@
 import os
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
-from vopaas_proxy.plugin_base.frontend import FrontendPlugin
-from vopaas_proxy.frontends.saml2_idp import SamlIDP
+from satosa.plugin_base.frontend import FrontendPlugin
+from satosa.frontends.saml2_idp import SamlIDP
 from saml2.entity_category.edugain import COC
 from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, \
     SFS_1993_1153, NREN, EU
