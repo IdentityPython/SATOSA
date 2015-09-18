@@ -3,12 +3,12 @@ import importlib
 import logging
 import sys
 import traceback
-from pluginbase import PluginBase
 
 from saml2.httputil import Unauthorized
 from saml2.httputil import NotFound
 
 from saml2.httputil import ServiceError
+from vopaas_proxy.plugin_loader import load_backends, load_frontends
 from vopaas_proxy.request_context import RequestContext
 from vopaas_proxy.routing import ModuleRouter
 from vopaas_proxy.service import unpack_either
@@ -27,36 +27,13 @@ class WsgiApplication(object):
     def __init__(self, config_file, debug=False):
         self.debug = debug
         conf = importlib.import_module(config_file)
-        backends = self._load_backends(conf)
-        frontends = self._load_frontends(conf, list(backends.keys()))
+
+        backends = load_backends(conf, self.outgoing)
+        frontends = load_frontends(conf, self.incoming)
+
         self.module_router = ModuleRouter(frontends, backends)
 
-    def _load_frontends(self, config, providers):
-        plugin_base = PluginBase(package='proxy_plugins')
-        plugin_source = plugin_base.make_plugin_source(searchpath=config.PLUGIN_PATH)
-        frontends = {}
-        for frontend in config.FRONTEND_MODULES:
-            frontend_plugin = plugin_source.load_plugin(frontend).setup(config.BASE)
-            module_inst = frontend_plugin.module(self.incoming, frontend_plugin.config)
-            frontends[frontend_plugin.receiver] = module_inst
-            # frontends[frontend_plugin.receiver] = {"instance": module_inst,
-            #                                        "endpoints": module_inst.register_endpoints(
-            #                                            providers)}
-        return frontends
-
-    def _load_backends(self, config):
-        plugin_base = PluginBase(package='proxy_plugins')
-        plugin_source = plugin_base.make_plugin_source(searchpath=config.PLUGIN_PATH)
-        backends = {}
-        for backend in config.BACKEND_MODULES:
-            backend_plugin = plugin_source.load_plugin(backend).setup(config.BASE)
-            module_inst = backend_plugin.module(self.outgoing, backend_plugin.config)
-            backends[backend_plugin.provider] = module_inst
-            # backends[backend_plugin.provider] = {"instance": module_inst,
-            #                                      "endpoints": module_inst.register_endpoints()}
-        return backends
-
-    def incoming(self, context, info, state):
+    def incoming(self, context, internal_request, state):
         """
         An Authentication request has been requested, this is the second step
         in the sequence
@@ -69,7 +46,7 @@ class WsgiApplication(object):
         :return: response
         """
         backend, state = self.module_router.incoming(context, state)
-        return backend.start_auth(context, info, state)
+        return backend.start_auth(context, internal_request, state)
 
     def outgoing(self, context, internal_response, state):
         """

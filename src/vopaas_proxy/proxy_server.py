@@ -6,7 +6,7 @@ import cherrypy
 from beaker.middleware import SessionMiddleware
 from werkzeug.debug import DebuggedApplication
 
-from vopaas_proxy.server import WsgiApplication
+from vopaas_proxy.wsgi_server import WsgiApplication
 
 
 def main():
