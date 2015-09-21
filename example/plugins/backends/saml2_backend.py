@@ -7,7 +7,7 @@ from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, \
     SFS_1993_1153, NREN, EU
 from saml2.extension.idpdisc import BINDING_DISCO
 import os.path
-from satosa.backends.vopaas_saml2 import SamlSP
+from satosa.backends.saml2 import SamlBackend
 
 # try:
 #     from saml2.sigver import get_xmlsec_binary
@@ -24,17 +24,14 @@ def full_path(local_file):
 
 
 PROVIDER = "Saml2"
-MODULE = SamlSP
-
-
-class Saml2Plugin(BackendPlugin):
-    def __init__(self, config):
-        super(Saml2Plugin, self).__init__(SamlSP, PROVIDER, config)
+MODULE = SamlBackend
 
 
 def setup(base):
     MODULE_BASE = "%s/%s" % (base, PROVIDER)
     config = {
+        "disco_srv": "http://localhost:8080/role/idp.ds",
+        "publish_metadata": "%s/metadata" % MODULE_BASE,
         "entityid": "%s/proxy_saml2_backend.xml" % MODULE_BASE,
         "description": "A SAML2 SP MODULE",
         "entity_category": [COC, RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN,
@@ -89,4 +86,4 @@ def setup(base):
         }
     }
 
-    return Saml2Plugin(config)
+    return BackendPlugin(MODULE, PROVIDER, config)

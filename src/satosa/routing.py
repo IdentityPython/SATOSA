@@ -1,4 +1,4 @@
-from base64 import b64encode, b64decode
+from base64 import urlsafe_b64decode, urlsafe_b64encode
 import json
 import re
 
@@ -29,7 +29,7 @@ class ModuleRouter():
                                         "endpoints": frontends[frontend].register_endpoints(
                                             providers)}
 
-    def incoming(self, context, state):
+    def backend_routing(self, context, state):
         """
         Returns the targeted backend and an updated state
         :param context: The request context
@@ -39,22 +39,22 @@ class ModuleRouter():
 
         backend = self.backends[context.target_backend]["instance"]
         satosa_state = {"state_key": state, "frontend": context.target_frontend}
-        satosa_state = b64encode(json.dumps(satosa_state).encode("UTF-8")).decode("UTF-8")
+        satosa_state = urlsafe_b64encode(json.dumps(satosa_state).encode("UTF-8")).decode("UTF-8")
         return backend, satosa_state
 
-    def outgoing(self, state):
+    def frontend_routing(self, state):
         """
         Returns the targeted frontend and original state
         :param state: The state created in the incoming function
         :return: (frontend, state)
         """
 
-        unpacked_state = json.loads(b64decode(state.encode("UTF-8")).decode("UTF-8"))
+        unpacked_state = json.loads(urlsafe_b64decode(state.encode("UTF-8")).decode("UTF-8"))
         frontend = self.frontends[unpacked_state["frontend"]]["instance"]
         request_state = unpacked_state["state_key"]
         return frontend, request_state
 
-    def url_routing(self, context):
+    def endpoint_routing(self, context):
         """
         Finds and returns the endpoint function bound to the path
         :param context: The request context

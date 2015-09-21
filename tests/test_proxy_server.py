@@ -1,6 +1,6 @@
 # pylint: disable = missing-docstring
 import os
-from urllib.parse import urlsplit, parse_qs, urlencode
+from urllib.parse import urlsplit, parse_qs, urlencode, quote
 
 from cherrypy.test import helper
 
@@ -48,9 +48,11 @@ class ProxyTest(helper.CPWebCase):
         cherrypy.tree.graft(app.run_server, '/')
 
     def test_flow(self):
-        e_id = 'https://localhost:8090/proxy.xml/aHR0cHM6Ly9leGFtcGxlLmNvbS91bml0dGVzdF9pZHAueG1s'
+        e_id = 'https://localhost:8090/proxy.xml'
+        target_id = 'https://example.com/unittest_idp.xml'
 
         url = self.sp.make_auth_req(e_id)
+        url = "%s&entityID=%s" % (url, quote(target_id))
         status, headers, _ = self.getPage(url)
         assert status == '303 See Other'
 

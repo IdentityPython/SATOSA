@@ -3,7 +3,7 @@
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2 import BINDING_HTTP_POST
 import os.path
-from satosa.backends.vopaas_saml2 import SamlSP
+from satosa.backends.saml2 import SamlBackend
 
 # try:
 #     from saml2.sigver import get_xmlsec_binary
@@ -20,12 +20,12 @@ def full_path(local_file):
 
 
 PROVIDER = "Saml2"
-MODULE = SamlSP
+MODULE = SamlBackend
 
 
 class Saml2Plugin(BackendPlugin):
     def __init__(self, config):
-        super(Saml2Plugin, self).__init__(SamlSP, PROVIDER, config)
+        super(Saml2Plugin, self).__init__(SamlBackend, PROVIDER, config)
 
 
 def setup(base):

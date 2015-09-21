@@ -10,6 +10,3 @@ class BackendBase(object):
 
     def register_endpoints(self):
         raise NotImplementedError()
-
-    def get_metadata_desc(self):
-        raise NotImplementedError()

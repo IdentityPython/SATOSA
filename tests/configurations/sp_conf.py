@@ -27,7 +27,7 @@ CONFIG = {
     "key_file": full_path("../pki/key.pem"),
     "cert_file": full_path("../pki/cert.pem"),
     "metadata": {
-        "local": [full_path("proxy.xml")],
+        "local": [full_path("Saml2IDP_frontend_metadata.xml")],
     },
     "xmlsec_binary": xmlsec_path,
 }

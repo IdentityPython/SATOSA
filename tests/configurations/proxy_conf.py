@@ -21,5 +21,5 @@ PORT = 8090
 BASE = 'https://%s:%s' % (HOST, PORT)
 
 PLUGIN_PATH = [full_path(".")]
-BACKEND_MODULES = ["saml2_module_conf"]
+BACKEND_MODULES = ["saml2_backend_plugin"]
 FRONTEND_MODULES = ["saml2_frontend_plugin"]

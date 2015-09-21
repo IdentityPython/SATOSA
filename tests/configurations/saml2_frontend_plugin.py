@@ -1,7 +1,7 @@
 import os
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from satosa.plugin_base.frontend import FrontendPlugin
-from satosa.frontends.vopaas_saml2_idp import SamlIDP
+from satosa.frontends.saml2 import SamlFrontend
 
 __author__ = 'mathiashedstrom'
 
@@ -13,8 +13,8 @@ def full_path(local_file):
 
 XMLSEC_PATH = '/usr/local/bin/xmlsec1'
 
-MODULE = SamlIDP
-RECEIVER = "VOpaasIDP"
+MODULE = SamlFrontend
+RECEIVER = "Saml2IDP"
 ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
                                         BINDING_HTTP_POST: "sso/post"}}
 

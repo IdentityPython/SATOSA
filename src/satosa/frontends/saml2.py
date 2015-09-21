@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from base64 import b64encode, b64decode
+from base64 import urlsafe_b64encode, urlsafe_b64decode
 import json
 import logging
 from urllib.parse import urlparse
@@ -54,7 +54,7 @@ class SamlFrontend(FrontendBase):
 
         logger.info("parsed OK")
         _authn_req = req_info.message
-        logger.debug("%s" % _authn_req)
+        logger.debug("%s", _authn_req)
 
         # Check that I know where to send the reply to
         try:
@@ -63,11 +63,10 @@ class SamlFrontend(FrontendBase):
                 bindings=self.response_bindings,
                 entity_id=_authn_req.issuer.text, request=_authn_req)
         except Exception as err:
-            logger.error("Couldn't find receiver endpoint: %s" % err)
+            logger.error("Couldn't find receiver endpoint: %s", err)
             raise
 
-        logger.debug("Binding: %s, destination: %s" % (binding_out,
-                                                       destination))
+        logger.debug("Binding: %s, destination: %s", binding_out, destination)
 
         resp_args = {}
         try:
@@ -111,10 +110,10 @@ class SamlFrontend(FrontendBase):
             _dict = self.verify_request(self.idp, _request["SAMLRequest"],
                                         _binding_in)
         except UnknownPrincipal as excp:
-            logger.error("UnknownPrincipal: %s" % (excp,))
+            logger.error("UnknownPrincipal: %s", excp)
             return ServiceError("UnknownPrincipal: %s" % (excp,))
         except UnsupportedBinding as excp:
-            logger.error("UnsupportedBinding: %s" % (excp,))
+            logger.error("UnsupportedBinding: %s", excp)
             return ServiceError("UnsupportedBinding: %s" % (excp,))
 
         _binding = _dict["resp_args"]["binding"]
@@ -124,20 +123,25 @@ class SamlFrontend(FrontendBase):
                 _dict["resp_args"]["destination"],
                 _request["RelayState"], response=True)
 
-            logger.debug("HTTPargs: %s" % http_args)
+            logger.debug("HTTPargs: %s", http_args)
             return response(_binding, http_args)
         else:
+
+            try:
+                context.internal_data["saml2.target_entity_id"] = _request["entityID"]
+            except KeyError:
+                pass
 
             request_state = {"origin_authn_req": _dict["authn_req"].to_string().decode("utf-8"),
                              "relay_state": _request["RelayState"]}
 
-            state = b64encode(json.dumps(request_state).encode("UTF-8")).decode(
+            state = urlsafe_b64encode(json.dumps(request_state).encode("UTF-8")).decode(
                 "UTF-8")
 
             return self.auth_req_callback_func(context, _dict, state)
 
     def handle_authn_response(self, context, internal_response, state):
-        request_state = json.loads(b64decode(state.encode("UTF-8")).decode("UTF-8"))
+        request_state = json.loads(urlsafe_b64decode(state.encode("UTF-8")).decode("UTF-8"))
         origin_authn_req = authn_request_from_string(request_state["origin_authn_req"])
 
         # Diverse arguments needed to construct the response
@@ -177,7 +181,7 @@ class SamlFrontend(FrontendBase):
             resp_args["binding"], "%s" % _resp, resp_args["destination"],
             relay_state, response=True)
 
-        logger.debug("HTTPargs: %s" % http_args)
+        logger.debug("HTTPargs: %s", http_args)
 
         resp = None
         if http_args["data"]:
@@ -218,10 +222,10 @@ class SamlFrontend(FrontendBase):
             for provider in providers:
                 valid_providers = "{}|^{}".format(valid_providers, provider)
             valid_providers = valid_providers.lstrip("|")
-            p = urlparse(endp)
-            url_map.append(("%s/%s$" % (valid_providers, p.path),
+            parsed_endp = urlparse(endp)
+            url_map.append(("%s/%s$" % (valid_providers, parsed_endp.path),
                             (self.handle_authn_request, service.BINDING_MAP[binding])))
-            url_map.append(("%s/%s/(.*)$" % (valid_providers, p.path),
+            url_map.append(("%s/%s/(.*)$" % (valid_providers, parsed_endp.path),
                             (self.handle_authn_request, service.BINDING_MAP[binding])))
 
         return url_map
