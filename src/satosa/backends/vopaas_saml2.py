@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from base64 import b64encode, b64decode
+from base64 import urlsafe_b64decode, urlsafe_b64encode
 import copy
 import logging
 from urllib.parse import urlparse
@@ -41,7 +41,7 @@ class SamlSP(BackendBase):
         _cli = self.sp
         req_args = request_info["req_args"]
         entity_id = context.internal_data["vopaas.target_entity_id"]
-        entity_id = b64decode(entity_id).decode("utf-8")
+        entity_id = urlsafe_b64decode(entity_id).decode("utf-8")
         try:
             # Picks a binding to use for sending the Request to the IDP
             _binding, destination = _cli.pick_binding(
@@ -146,7 +146,7 @@ class SamlSP(BackendBase):
             metadata_file = self.sp.metadata.metadata[metadata_file]
             entity_id = metadata_file.entity_descr.entity_id
             entity = metadata_file.entity
-            desc["entityid"] = b64encode(entity_id.encode("utf-8")).decode("utf-8")
+            desc["entityid"] = urlsafe_b64encode(entity_id.encode("utf-8")).decode("utf-8")
 
             # Add organization info
             try:

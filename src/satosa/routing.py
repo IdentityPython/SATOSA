@@ -1,4 +1,4 @@
-from base64 import b64encode, b64decode
+from base64 import urlsafe_b64decode, urlsafe_b64encode
 import json
 import re
 
@@ -39,7 +39,7 @@ class ModuleRouter():
 
         backend = self.backends[context.target_backend]["instance"]
         satosa_state = {"state_key": state, "frontend": context.target_frontend}
-        satosa_state = b64encode(json.dumps(satosa_state).encode("UTF-8")).decode("UTF-8")
+        satosa_state = urlsafe_b64encode(json.dumps(satosa_state).encode("UTF-8")).decode("UTF-8")
         return backend, satosa_state
 
     def outgoing(self, state):
@@ -49,7 +49,7 @@ class ModuleRouter():
         :return: (frontend, state)
         """
 
-        unpacked_state = json.loads(b64decode(state.encode("UTF-8")).decode("UTF-8"))
+        unpacked_state = json.loads(urlsafe_b64decode(state.encode("UTF-8")).decode("UTF-8"))
         frontend = self.frontends[unpacked_state["frontend"]]["instance"]
         request_state = unpacked_state["state_key"]
         return frontend, request_state

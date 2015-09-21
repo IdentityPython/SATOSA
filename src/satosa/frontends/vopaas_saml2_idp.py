@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from base64 import b64encode, b64decode
+from base64 import urlsafe_b64decode, urlsafe_b64encode
 import copy
 import json
 import logging
@@ -19,7 +19,7 @@ from satosa.frontends.base import FrontendBase
 import satosa.service as service
 from satosa.service import response
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 class SamlIDP(FrontendBase):
@@ -46,15 +46,15 @@ class SamlIDP(FrontendBase):
         """
 
         if not query:
-            logger.info("Missing QUERY")
+            LOGGER.info("Missing QUERY")
             resp = Unauthorized('Unknown user')
             return {"response": resp}
 
         req_info = idp.parse_authn_request(query, binding)
 
-        logger.info("parsed OK")
+        LOGGER.info("parsed OK")
         _authn_req = req_info.message
-        logger.debug("%s" % _authn_req)
+        LOGGER.debug("%s", _authn_req)
 
         # Check that I know where to send the reply to
         try:
@@ -63,11 +63,10 @@ class SamlIDP(FrontendBase):
                 bindings=self.response_bindings,
                 entity_id=_authn_req.issuer.text, request=_authn_req)
         except Exception as err:
-            logger.error("Couldn't find receiver endpoint: %s" % err)
+            LOGGER.error("Couldn't find receiver endpoint: %s", err)
             raise
 
-        logger.debug("Binding: %s, destination: %s" % (binding_out,
-                                                       destination))
+        LOGGER.debug("Binding: %s, destination: %s", binding_out, destination)
 
         resp_args = {}
         try:
@@ -132,10 +131,10 @@ class SamlIDP(FrontendBase):
             _dict = self.verify_request(idp, _request["SAMLRequest"],
                                         _binding_in)
         except UnknownPrincipal as excp:
-            logger.error("UnknownPrincipal: %s" % (excp,))
+            LOGGER.error("UnknownPrincipal: %s", excp)
             return ServiceError("UnknownPrincipal: %s" % (excp,))
         except UnsupportedBinding as excp:
-            logger.error("UnsupportedBinding: %s" % (excp,))
+            LOGGER.error("UnsupportedBinding: %s", excp)
             return ServiceError("UnsupportedBinding: %s" % (excp,))
 
         _binding = _dict["resp_args"]["binding"]
@@ -145,7 +144,7 @@ class SamlIDP(FrontendBase):
                 _dict["resp_args"]["destination"],
                 _request["RelayState"], response=True)
 
-            logger.debug("HTTPargs: %s" % http_args)
+            LOGGER.debug("HTTPargs: %s", http_args)
             return response(_binding, http_args)
         else:
 
@@ -154,13 +153,13 @@ class SamlIDP(FrontendBase):
                              "relay_state": _request["RelayState"],
                              "proxy_idp_entityid": idp_entityid, }
 
-            state = b64encode(json.dumps(request_state).encode("UTF-8")).decode(
+            state = urlsafe_b64encode(json.dumps(request_state).encode("UTF-8")).decode(
                 "UTF-8")
 
             return self.auth_req_callback_func(context, _dict, state)
 
     def handle_authn_response(self, context, internal_response, state):
-        request_state = json.loads(b64decode(state.encode("UTF-8")).decode("UTF-8"))
+        request_state = json.loads(urlsafe_b64decode(state.encode("UTF-8")).decode("UTF-8"))
         origin_authn_req = authn_request_from_string(request_state["origin_authn_req"])
 
         # Change the idp entity id dynamically
@@ -207,7 +206,7 @@ class SamlIDP(FrontendBase):
             resp_args["binding"], "%s" % _resp, resp_args["destination"],
             relay_state, response=True)
 
-        logger.debug("HTTPargs: %s" % http_args)
+        LOGGER.debug("HTTPargs: %s", http_args)
 
         resp = None
         if http_args["data"]:
@@ -234,10 +233,10 @@ class SamlIDP(FrontendBase):
             for provider in providers:
                 valid_providers = "{}|^{}".format(valid_providers, provider)
             valid_providers = valid_providers.lstrip("|")
-            p = urlparse(endp)
-            url_map.append(("%s/[\w]+/%s$" % (valid_providers, p.path),
+            parsed_endp = urlparse(endp)
+            url_map.append(("%s/[\w]+/%s$" % (valid_providers, parsed_endp.path),
                             (self.handle_authn_request, service.BINDING_MAP[binding])))
-            url_map.append(("%s/[\w]+/%s/(.*)$" % (valid_providers, p.path),
+            url_map.append(("%s/[\w]+/%s/(.*)$" % (valid_providers, parsed_endp.path),
                             (self.handle_authn_request, service.BINDING_MAP[binding])))
 
         return url_map
