@@ -29,7 +29,7 @@ class ModuleRouter():
                                         "endpoints": frontends[frontend].register_endpoints(
                                             providers)}
 
-    def incoming(self, context, state):
+    def backend_routing(self, context, state):
         """
         Returns the targeted backend and an updated state
         :param context: The request context
@@ -42,7 +42,7 @@ class ModuleRouter():
         satosa_state = urlsafe_b64encode(json.dumps(satosa_state).encode("UTF-8")).decode("UTF-8")
         return backend, satosa_state
 
-    def outgoing(self, state):
+    def frontend_routing(self, state):
         """
         Returns the targeted frontend and original state
         :param state: The state created in the incoming function
@@ -54,7 +54,7 @@ class ModuleRouter():
         request_state = unpacked_state["state_key"]
         return frontend, request_state
 
-    def url_routing(self, context):
+    def endpoint_routing(self, context):
         """
         Finds and returns the endpoint function bound to the path
         :param context: The request context

@@ -24,7 +24,7 @@ class SATOSABase():
 
         :return: response
         """
-        backend, state = self.module_router.incoming(context, state)
+        backend, state = self.module_router.backend_routing(context, state)
         return backend.start_auth(context, internal_request, state)
 
     def _auth_resp_callback_func(self, context, internal_response, state):
@@ -36,7 +36,7 @@ class SATOSABase():
         :param instance: SP instance that received the authentication response
         :return: response
         """
-        frontend, state = self.module_router.outgoing(state)
+        frontend, state = self.module_router.frontend_routing(state)
         return frontend.handle_authn_response(context, internal_response, state)
 
     def _run_bound_endpoint(self, context, spec):
@@ -46,5 +46,5 @@ class SATOSABase():
             return spec()
 
     def run(self, context):
-        spec = self.module_router.url_routing(context)
+        spec = self.module_router.endpoint_routing(context)
         return self._run_bound_endpoint(context, spec)
