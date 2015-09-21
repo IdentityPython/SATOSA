@@ -29,7 +29,7 @@ CONFIG = {
     "key_file": full_path("../pki/key.pem"),
     "cert_file": full_path("../pki/cert.pem"),
     "metadata": {
-        "local": [full_path("saml2.xml")],
+        "local": [full_path("Saml2_backend_metadata.xml")],
     },
     "xmlsec_binary": xmlsec_path,
 }

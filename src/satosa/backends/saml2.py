@@ -40,9 +40,14 @@ class SamlBackend(BackendBase):
 
         self.sp = Base(sp_config)
         self.idp_disco_query_param = "entityID"
-        self.discosrv = config["disco_srv"]
         self.config = config
         self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST]
+        self.discosrv = None
+        try:
+            self.discosrv = config["disco_srv"]
+        except KeyError:
+            pass
+
         LOGGER.debug("--- SSO ---")
 
     def start_auth(self, context, request_info, state):

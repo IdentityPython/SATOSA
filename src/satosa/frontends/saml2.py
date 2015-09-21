@@ -127,6 +127,11 @@ class SamlFrontend(FrontendBase):
             return response(_binding, http_args)
         else:
 
+            try:
+                context.internal_data["saml2.target_entity_id"] = _request["entityID"]
+            except KeyError:
+                pass
+
             request_state = {"origin_authn_req": _dict["authn_req"].to_string().decode("utf-8"),
                              "relay_state": _request["RelayState"]}
 
