@@ -1,47 +1,43 @@
-import os
+"""
+Tests for the SAML frontend module src/frontends/saml2.py.
+"""
+
+from urllib import parse
 
 import pytest
-from werkzeug.utils import ArgumentValidationError
+from saml2.authn_context import PASSWORD
+from saml2.config import SPConfig
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.entity_category.edugain import COC
 from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, \
     SFS_1993_1153, NREN, EU
-from saml2.saml import NAME_FORMAT_URI
+from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_PERSISTENT
 from saml2.saml import NAMEID_FORMAT_TRANSIENT
-from saml2.saml import NAMEID_FORMAT_PERSISTENT
 
 from satosa.frontends.saml2 import SamlFrontend
+from satosa.request_context import RequestContext
+from tests.test_users import USERS
+from tests.test_util import FakeSP, create_metadata, generate_cert, create_name_id
 
-
-def auth_req_callback_func(context, _dict, state):
-    pass
-
-
-def full_path(local_file):
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    return os.path.join(basedir, local_file)
-
-
+IDP_CERT_FILE, IDP_KEY_FILE = generate_cert()
 XMLSEC_PATH = '/usr/local/bin/xmlsec1'
-BASE = "http://test.tester.se"
-MODULE = SamlFrontend
+IDP_BASE = "http://test.tester.se"
 RECEIVER = "Saml2IDP"
 ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
                                         BINDING_HTTP_POST: "sso/post"}}
-
 IDPCONFIG = {
-    "entityid": "%s/%s/proxy.xml" % (BASE, RECEIVER),
+    "entityid": "%s/%s/proxy.xml" % (IDP_BASE, RECEIVER),
     "description": "A SAML2SAML proxy",
     "entity_category": [COC, RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN,
                         EU],
-    # "valid_for": 168,
+    "valid_for": 0,
     "service": {
         "idp": {
             "name": "Proxy IdP",
             "endpoints": {
                 "single_sign_on_service": [
-                    # The endpoints will be added later when registering endpoints in the
-                    # module.
+                    ("%s/sso/post" % IDP_BASE, BINDING_HTTP_POST),
+                    ("%s/sso/redirect" % IDP_BASE, BINDING_HTTP_REDIRECT)
                 ],
             },
             "policy": {
@@ -49,7 +45,7 @@ IDPCONFIG = {
                     "lifetime": {"minutes": 15},
                     "attribute_restrictions": None,  # means all I have
                     "name_form": NAME_FORMAT_URI,
-                    "entity_categories": ["edugain"],
+                    # "entity_categories": ["edugain"],
                     "fail_on_missing_requested": False
                 },
             },
@@ -60,13 +56,10 @@ IDPCONFIG = {
         },
     },
     "debug": 1,
-    "key_file": full_path("pki/new_server.key"),
-    "cert_file": full_path("pki/new_server.crt"),
+    "key_file": IDP_KEY_FILE.name,
+    "cert_file": IDP_CERT_FILE.name,
     "metadata": {
-        "local": ["/Users/mathiashedstrom/work/DIRG/pysaml2/example/sp-wsgi/sp.xml"],
     },
-    # This database holds the map between a subjects local identifier and
-    # the identifier returned to a SP
     "xmlsec_binary": XMLSEC_PATH,
     "logger": {
         "rotating": {
@@ -78,55 +71,94 @@ IDPCONFIG = {
     }
 }
 
-CONFIG_ERR1 = {"idp_config_notok": IDPCONFIG, "endpoints": ENDPOINTS, "base": BASE, }
-
-CONFIG_ERR2 = {"idp_config": IDPCONFIG, "endpoints_notok": ENDPOINTS, "base": BASE, }
-
-CONFIG_ERR3 = {"idp_config": IDPCONFIG, "endpoints": ENDPOINTS, "base_notok": BASE, }
-
-CONFIG = {"idp_config": IDPCONFIG, "endpoints": ENDPOINTS, "base": BASE}
+SP_CERT_FILE, SP_KEY_FILE = generate_cert()
+SP_BASE = "http://example.com"
+SPCONFIG = {
+    "entityid": "{}/unittest_sp.xml".format(SP_BASE),
+    "service": {
+        "sp": {
+            "endpoints": {
+                "assertion_consumer_service": [
+                    ("%s/acs/redirect" % SP_BASE, BINDING_HTTP_REDIRECT),
+                    ("%s/acs/post" % SP_BASE, BINDING_HTTP_POST)
+                ],
+            },
+            "allow_unsolicited": "true",
+        },
+    },
+    "key_file": SP_KEY_FILE.name,
+    "cert_file": SP_CERT_FILE.name,
+    "metadata": {
+    },
+    "xmlsec_binary": XMLSEC_PATH,
+}
+CONFIG_ERR1 = {"idp_config_notok": IDPCONFIG, "endpoints": ENDPOINTS, "base": IDP_BASE, }
+CONFIG_ERR2 = {"idp_config": IDPCONFIG, "endpoints_notok": ENDPOINTS, "base": IDP_BASE, }
+CONFIG_ERR3 = {"idp_config": IDPCONFIG, "endpoints": ENDPOINTS, "base_notok": IDP_BASE, }
+CONFIG = {"idp_config": IDPCONFIG, "endpoints": ENDPOINTS, "base": IDP_BASE}
 
 TESTDATA_HANDLE_AUTHN_REQUEST = \
-    [({"auth_req_callback_func": None, "conf": None, "error": ArgumentValidationError},
-      None, None),
-     ({"auth_req_callback_func": None, "conf": CONFIG_ERR1, "error": ArgumentValidationError},
-      None, None),
-     ({"auth_req_callback_func": None, "conf": CONFIG_ERR2, "error": ArgumentValidationError},
-      None, None),
-     ({"auth_req_callback_func": None, "conf": CONFIG_ERR3, "error": ArgumentValidationError},
-      None, None),
-     ({"auth_req_callback_func": None, "conf": CONFIG, "error": ArgumentValidationError},
-      None, None),
-     ({"auth_req_callback_func": auth_req_callback_func, "conf": CONFIG, "error": None},
-      {"context": None, "binding_in": None, "error": ArgumentValidationError},
-      {"providers": None, "error": ArgumentValidationError}),
-     ({"auth_req_callback_func": auth_req_callback_func, "conf": CONFIG, "error": None},
-      {"context": None, "binding_in": None, "error": ArgumentValidationError},
-      {"providers": ["qwerty", "ytrewq"], "error": ArgumentValidationError})]
+    [  # (None, None, None, ArgumentValidationError),
+       # (CONFIG_ERR1, None, None, ArgumentValidationError),
+       # (CONFIG_ERR2, None, None, ArgumentValidationError),
+       # (CONFIG_ERR3, None, None, ArgumentValidationError),
+       # (CONFIG, None, None, ArgumentValidationError),
+       # (CONFIG, "whatever", None, ArgumentValidationError),
+       (CONFIG, "redirect", ["qwerty", "ytrewq"], None)]
 
 
 @pytest.mark.parametrize(
-    "samlfrontend_params, handle_authn_request_params, register_endpoints_params",
+    "conf, binding_in, providers, error",
     TESTDATA_HANDLE_AUTHN_REQUEST)
-def test_handle_authn_request(samlfrontend_params, handle_authn_request_params,
-                              register_endpoints_params):
+def test_handle_authn_request(conf, binding_in, providers, error):
+    """
+    Performs a complete test for the module. The flow should be accepted.
+    :param conf:
+    :param binding_in:
+    :param providers:
+    :param error:
+    :return:
+    """
     samlfrontend = None
+    fakesp = None
     try:
-        samlfrontend = SamlFrontend(samlfrontend_params["auth_req_callback_func"],
-                                    samlfrontend_params["conf"])
-    except samlfrontend_params["error"]:
+        def auth_req_callback_func(context, _dict, state):
+            internal_response = {}
+            internal_response["ava"] = USERS["testuser1"]
+            internal_response["name_id"] = create_name_id()
+            internal_response["auth_info"] = {"class_ref": PASSWORD,
+                                              "authn_auth": "http://www.example.com/login"}
+            resp = samlfrontend.handle_authn_response(context, internal_response, state)
+            resp_dict = parse.parse_qs(resp.message.split("?")[1])
+            resp = fakesp.parse_authn_request_response(resp_dict['SAMLResponse'][0],
+                                                       BINDING_HTTP_REDIRECT)
+
+        samlfrontend = SamlFrontend(auth_req_callback_func, conf)
+    except error:
         assert True
-    assert samlfrontend_params["conf"] is not None, \
+    assert conf is not None, \
         "conf cannot be None. Argument validation missing."
-    assert samlfrontend_params["auth_req_callback_func"] is not None, \
-        "auth_req_callback_func cannot be None. Argument validation missing."
     try:
-        samlfrontend.register_endpoints(register_endpoints_params["providers"])
-    except register_endpoints_params["error"]:
+        sp_metadata_file = create_metadata(SPCONFIG)
+        IDPCONFIG["metadata"]["local"] = [sp_metadata_file.name]
+        samlfrontend.register_endpoints(providers)
+    except error:
         assert True
     try:
-        samlfrontend.handle_authn_request(handle_authn_request_params["context"],
-                                          handle_authn_request_params["binding_in"])
-    except handle_authn_request_params["error"]:
+        idp_metadata_file = create_metadata(samlfrontend.config)
+        SPCONFIG["metadata"]["local"] = [idp_metadata_file.name]
+        fakesp = FakeSP(None, config=SPConfig().load(SPCONFIG, metadata_construction=False))
+        context = RequestContext()
+        context.request = parse.parse_qs(fakesp.make_auth_req(samlfrontend.config["entityid"]).
+                                         split("?")[1])
+        tmp_dict = {}
+        for val in context.request:
+            if isinstance(context.request[val], list):
+                tmp_dict[val] = context.request[val][0]
+            else:
+                tmp_dict[val] = context.request[val]
+        context.request = tmp_dict
+        samlfrontend.handle_authn_request(context, binding_in)
+    except error:
         assert True
     assert True
