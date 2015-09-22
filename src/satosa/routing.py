@@ -1,11 +1,16 @@
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 import json
 import re
+from satosa.request_context import BadContextError
 
 __author__ = 'mathiashedstrom'
 
 
 class NoBoundEndpointError(Exception):
+    pass
+
+
+class UnknownTargetBackend(Exception):
     pass
 
 
@@ -15,6 +20,9 @@ class ModuleRouter():
         :param frontends: All available frontends
         :param backends: All available backends
         """
+
+        if not (frontends and backends):
+            raise ValueError("Need at least one frontend and backend")
 
         self.frontends = {}
         self.backends = {}
@@ -54,6 +62,12 @@ class ModuleRouter():
         request_state = unpacked_state["state_key"]
         return frontend, request_state
 
+    def _validate_context(self, context):
+        if not context:
+            raise BadContextError("Context is None")
+        if context.path is None:
+            raise BadContextError("Context did not contain any path")
+
     def endpoint_routing(self, context):
         """
         Finds and returns the endpoint function bound to the path
@@ -61,9 +75,13 @@ class ModuleRouter():
         :param path: url path
         :return: registered endpoint
         """
+        self._validate_context(context)
 
         path_split = context.path.split('/')
         backend = path_split[0]
+
+        if backend not in self.backends:
+            raise UnknownTargetBackend("Unknown backend {}".format(backend))
 
         context.target_backend = backend
 

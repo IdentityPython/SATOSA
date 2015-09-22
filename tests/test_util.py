@@ -5,6 +5,8 @@ from saml2 import server, BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.authn_context import AuthnBroker, authn_context_class_ref, PASSWORD
 from saml2.client import Saml2Client
 from saml2.config import config_factory
+from satosa.backends.base import BackendBase
+from satosa.frontends.base import FrontendBase
 
 
 class FakeSP(Saml2Client):
@@ -61,3 +63,44 @@ class FakeIdP(server.Server):
         saml_response = base64.b64encode(str(_resp).encode("utf-8"))
         resp = {'SAMLResponse': saml_response, 'RelayState': relay_state}
         return url, resp
+
+
+class FakeBackend(BackendBase):
+    def __init__(self, start_auth_func=None, register_endpoints_func=None):
+        super(FakeBackend, self).__init__(None)
+
+        self.start_auth_func = start_auth_func
+        self.register_endpoints_func = register_endpoints_func
+
+    def start_auth(self, context, request_info, state):
+        if self.start_auth:
+            return self.start_auth(context, request_info, state)
+        return None
+
+    def register_endpoints(self):
+        if self.register_endpoints_func:
+            return self.register_endpoints_func()
+        return None
+
+
+class FakeFrontend(FrontendBase):
+    def __init__(self, handle_authn_request_func=None, handle_authn_response_func=None,
+                 register_endpoints_func=None):
+        super(FakeFrontend, self).__init__(None)
+        self.handle_authn_request_func = handle_authn_request_func
+        self.handle_authn_response_func = handle_authn_response_func
+        self.register_endpoints_func = register_endpoints_func
+
+    def handle_authn_request(self, context, binding_in):
+        if self.handle_authn_request_func:
+            return self.handle_authn_request_func(context, binding_in)
+        return None
+
+    def handle_authn_response(self, context, internal_response, state):
+        if self.handle_authn_response_func:
+            return self.handle_authn_response_func(context, internal_response, state)
+        return None
+
+    def register_endpoints(self, providers):
+        if self.register_endpoints_func:
+            return self.register_endpoints_func(providers)
