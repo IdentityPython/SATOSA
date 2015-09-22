@@ -31,7 +31,10 @@ class FakeSP(Saml2Client):
         acs = self.config.getattr('endpoints', 'sp')[
             'assertion_consumer_service']
         # just pick one
-        endp, return_binding = acs[0]
+        for i in range(len(acs)):
+            endp, return_binding = acs[i]
+            if return_binding == _binding:
+                break
 
         req_id, req = self.create_authn_request(destination,
                                                 binding=return_binding)
