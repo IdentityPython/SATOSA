@@ -1,10 +1,9 @@
 """
 Tests for the SAML frontend module src/frontends/saml2.py.
 """
-
-from urllib import parse
-
+import re
 import pytest
+from urllib import parse
 from saml2.authn_context import PASSWORD
 from saml2.config import SPConfig
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
@@ -13,7 +12,6 @@ from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, \
     SFS_1993_1153, NREN, EU
 from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_PERSISTENT
 from saml2.saml import NAMEID_FORMAT_TRANSIENT
-
 from satosa.frontends.saml2 import SamlFrontend
 from satosa.request_context import RequestContext
 from tests.test_users import USERS
@@ -107,9 +105,7 @@ TESTDATA_HANDLE_AUTHN_REQUEST = \
        (CONFIG, "redirect", ["qwerty", "ytrewq"], None)]
 
 
-@pytest.mark.parametrize(
-    "conf, binding_in, providers, error",
-    TESTDATA_HANDLE_AUTHN_REQUEST)
+@pytest.mark.parametrize("conf, binding_in, providers, error", TESTDATA_HANDLE_AUTHN_REQUEST)
 def test_handle_authn_request(conf, binding_in, providers, error):
     """
     Performs a complete test for the module. The flow should be accepted.
@@ -132,25 +128,40 @@ def test_handle_authn_request(conf, binding_in, providers, error):
             resp_dict = parse.parse_qs(resp.message.split("?")[1])
             resp = fakesp.parse_authn_request_response(resp_dict['SAMLResponse'][0],
                                                        BINDING_HTTP_REDIRECT)
+            for key in resp.ava:
+                assert key in resp.ava
+                assert USERS["testuser1"][key] == resp.ava[key]
 
         samlfrontend = SamlFrontend(auth_req_callback_func, conf)
-    except error:
-        assert True
+    except Exception as exception:
+        if error is None or not isinstance(exception, error):
+            raise exception
     assert conf is not None, \
         "conf cannot be None. Argument validation missing."
     try:
         sp_metadata_file = create_metadata(SPCONFIG)
         IDPCONFIG["metadata"]["local"] = [sp_metadata_file.name]
-        samlfrontend.register_endpoints(providers)
-    except error:
-        assert True
+        url_map = samlfrontend.register_endpoints(providers)
+        for regex in url_map:
+            p = re.compile(regex[0])
+            match = False
+            for provider in providers:
+                for s_key in conf["endpoints"]:
+                    for b_key in conf["endpoints"][s_key]:
+                        if p.match(provider + "/" + conf["endpoints"][s_key][b_key]):
+                            match = True
+                            break
+            assert match, "All regular expressions must match!"
+    except Exception as exception:
+        if error is None or not isinstance(exception, error):
+            raise exception
     try:
         idp_metadata_file = create_metadata(samlfrontend.config)
         SPCONFIG["metadata"]["local"] = [idp_metadata_file.name]
         fakesp = FakeSP(None, config=SPConfig().load(SPCONFIG, metadata_construction=False))
         context = RequestContext()
-        context.request = parse.parse_qs(fakesp.make_auth_req(samlfrontend.config["entityid"]).
-                                         split("?")[1])
+        context.request = parse.parse_qs(
+            fakesp.make_auth_req(samlfrontend.config["entityid"]).split("?")[1])
         tmp_dict = {}
         for val in context.request:
             if isinstance(context.request[val], list):
@@ -159,6 +170,7 @@ def test_handle_authn_request(conf, binding_in, providers, error):
                 tmp_dict[val] = context.request[val]
         context.request = tmp_dict
         samlfrontend.handle_authn_request(context, binding_in)
-    except error:
-        assert True
+    except Exception as exception:
+        if error is None or not isinstance(exception, error):
+            raise exception
     assert True
