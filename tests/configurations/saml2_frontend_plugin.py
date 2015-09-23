@@ -1,7 +1,7 @@
 import os
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
-from satosa.plugin_base.frontend import FrontendPlugin
 from satosa.frontends.saml2 import SamlFrontend
+from satosa.plugin_base.endpoint import FrontendModule
 
 __author__ = 'mathiashedstrom'
 
@@ -19,26 +19,29 @@ ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
                                         BINDING_HTTP_POST: "sso/post"}}
 
 
-def setup(base):
-    idpConfig = {
-        "entityid": "{}/proxy.xml".format(base),
-        "service": {
-            "idp": {
-                "endpoints": {
-                    "single_sign_on_service": [],
+class Saml2Frontend(FrontendModule):
+
+    @staticmethod
+    def get_instance(base_url):
+        idpConfig = {
+            "entityid": "{}/proxy.xml".format(base_url),
+            "service": {
+                "idp": {
+                    "endpoints": {
+                        "single_sign_on_service": [],
+                    },
                 },
             },
-        },
-        "key_file": full_path("../pki/key.pem"),
-        "cert_file": full_path("../pki/cert.pem"),
-        "metadata": {
-            "local": [full_path("unittest_sp.xml")],
-        },
-        "xmlsec_binary": XMLSEC_PATH,
-    }
+            "key_file": full_path("../pki/key.pem"),
+            "cert_file": full_path("../pki/cert.pem"),
+            "metadata": {
+                "local": [full_path("unittest_sp.xml")],
+            },
+            "xmlsec_binary": XMLSEC_PATH,
+        }
 
-    config = {"idp_config": idpConfig,
-              "endpoints": ENDPOINTS,
-              "base": base}
+        config = {"idp_config": idpConfig,
+                  "endpoints": ENDPOINTS,
+                  "base": base_url}
 
-    return FrontendPlugin(MODULE, RECEIVER, config)
+        return Saml2Frontend(MODULE, RECEIVER, config)
