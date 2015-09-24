@@ -1,14 +1,14 @@
-# pylint: disable = missing-docstring
+"""
+Complete test for a SAML to SAML proxy.
+"""
 import os
 import inspect
 from urllib.parse import urlsplit, parse_qs, urlencode, quote
 import sys
 
 from cherrypy.test import helper
-
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 import cherrypy
-
 from saml2.config import SPConfig, IdPConfig
 
 from satosa.backends.saml2 import SamlBackend
@@ -18,19 +18,6 @@ from satosa.satosa_config import SATOSAConfig
 from tests.wsgi_server import WsgiApplication
 from tests.util import FakeSP, FakeIdP, generate_cert, create_metadata
 from tests.users import USERS
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # Add test directory to path to be able to import configurations
 sys.path.append(os.path.dirname(__file__))
@@ -55,10 +42,22 @@ BACKEND_CERT, BACKEND_KEY = generate_cert("Saml2Backend")
 
 
 class Saml2BackendPlugin(BackendModulePlugin):
+    """
+    Plugin containing the configuration for the module SamlBackend.
+    """
     provider = "Saml2"
 
     @staticmethod
     def get_instance(base_url):
+        """
+        Creates an instance of the class with defined configuration.
+
+        :type base_url: str
+        :rtype: Saml2BackendPlugin
+
+        :param base_url: Base url for the proxy server.
+        :return: Object instance for this class.
+        """
         module_base = "%s/%s" % (base_url, Saml2BackendPlugin.provider)
         config = {
             "idp_entity_id": "https://example.com/unittest_idp.xml",
@@ -90,21 +89,34 @@ FRONTEND_CERT, FRONTEND_KEY = generate_cert("Saml2Frontend")
 
 
 class Saml2FrontendPlugin(FrontendModulePlugin):
+    """
+    Plugin containing the configuration for the module SamlFrontend.
+    """
     endpoints = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
                                             BINDING_HTTP_POST: "sso/post"}}
 
     @staticmethod
     def get_instance(base_url):
-        idpConfig = {
+        """
+        Creates an instance of the class with defined configuration.
+
+        :type base_url: str
+        :rtype: Saml2FrontendPlugin
+
+        :param base_url: Base url for the proxy server.
+        :return: Object instance for this class.
+        """
+        idpconfig = {
             "entityid": "{}/proxy.xml".format(base_url),
             "service": {
                 "idp": {
                     "endpoints": {
-                        "single_sign_on_service": [("%s/%s/sso/redirect" % (
-                            base_url, Saml2BackendPlugin.provider), BINDING_HTTP_REDIRECT),
-                                                   ("%s/%s/sso/post" % (
-                                                       base_url, Saml2BackendPlugin.provider),
-                                                    BINDING_HTTP_POST)],
+                        "single_sign_on_service": [("%s/%s/sso/redirect" %
+                                                    (base_url, Saml2BackendPlugin.provider),
+                                                    BINDING_HTTP_REDIRECT),
+                                                   ("%s/%s/sso/post" %
+                                                    (base_url, Saml2BackendPlugin.provider),
+                                                    BINDING_HTTP_POST)]
                     },
                 },
             },
@@ -116,7 +128,7 @@ class Saml2FrontendPlugin(FrontendModulePlugin):
             "xmlsec_binary": xmlsec_path,
         }
 
-        config = {"idp_config": idpConfig,
+        config = {"idp_config": idpconfig,
                   "endpoints": Saml2FrontendPlugin.endpoints,
                   "base": base_url}
 
