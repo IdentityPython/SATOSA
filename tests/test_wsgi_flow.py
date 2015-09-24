@@ -16,29 +16,115 @@ from satosa.frontends.saml2 import SamlFrontend
 from satosa.plugin_base.endpoint import BackendModulePlugin, FrontendModulePlugin
 from satosa.satosa_config import SATOSAConfig
 from tests.wsgi_server import WsgiApplication
-from tests.util import FakeSP, FakeIdP, generate_cert, create_metadata
+from tests.util import FakeSP, FakeIdP, FileGenerator
 from tests.users import USERS
 
-# Add test directory to path to be able to import configurations
-sys.path.append(os.path.dirname(__file__))
 
-xmlsec_path = "/usr/local/bin/xmlsec1"
+class TestConfiguration(object):
+    """
+    Contains all metadata, cert and key configurations.
+    """
+    _instance = None
 
-PROXY_CONFIG_DICT = {"HOST": 'localhost',
-                     "PORT": 8090,
-                     "HTTPS": True,
-                     "PLUGIN_PATH": [os.path.dirname(__file__)],
-                     "BACKEND_MODULES": [inspect.getmodulename(__file__)],
-                     "FRONTEND_MODULES": [inspect.getmodulename(__file__)]}
+    def __init__(self):
+        if TestConfiguration._instance:
+            raise TypeError('Singletons must be accessed through `get_instance()`.')
+        else:
+            TestConfiguration._instance = self
+        # Add test directory to path to be able to import configurations
+        sys.path.append(os.path.dirname(__file__))
 
-PROXY_CONFIG = SATOSAConfig(PROXY_CONFIG_DICT)
+        self.xmlsec_path = "/usr/local/bin/xmlsec1"
 
-FRONTEND_METADATA = []
-BACKEND_METADATA = []
-FAKE_IDP_METADATA = []
-FAKE_SP_METADATA = []
+        proxy_config_dict = {"HOST": 'localhost',
+                             "PORT": 8090,
+                             "HTTPS": True,
+                             "PLUGIN_PATH": [os.path.dirname(__file__)],
+                             "BACKEND_MODULES": [inspect.getmodulename(__file__)],
+                             "FRONTEND_MODULES": [inspect.getmodulename(__file__)]}
 
-BACKEND_CERT, BACKEND_KEY = generate_cert("Saml2Backend")
+        self.proxy_config = SATOSAConfig(proxy_config_dict)
+
+        frontend_metadata = []
+        backend_metadata = []
+        self.fake_idp_metadata = []
+        self.fake_sp_metadata = []
+
+        self.backend_cert, self.backend_key = \
+            FileGenerator.get_instance().generate_cert("Saml2Backend")
+        self.frontend_cert, self.frontend_key = \
+            FileGenerator.get_instance().generate_cert("Saml2Frontend")
+
+        fake_idp_base = "https://example.com"
+        fake_idp_cert, fake_idp_key = FileGenerator.get_instance().generate_cert("fake_idp")
+        self.fake_idp_config = {
+            "entityid": "{}/unittest_idp.xml".format(fake_idp_base),
+            "service": {
+                "idp": {
+                    "endpoints": {
+                        "single_sign_on_service": [
+                            ("%s/sso/post" % fake_idp_base, BINDING_HTTP_POST),
+                            ("%s/sso/redirect" % fake_idp_base, BINDING_HTTP_REDIRECT),
+                        ],
+                    },
+                },
+            },
+            "key_file": fake_idp_key.name,
+            "cert_file": fake_idp_cert.name,
+            "metadata": {
+                "local": backend_metadata,
+            },
+            "xmlsec_binary": self.xmlsec_path,
+        }
+
+        fake_sp_base = "http://example.com"
+        fake_sp_cert, fake_sp_key = FileGenerator.get_instance().generate_cert("fake_sp")
+        self.fake_sp_config = {
+            "entityid": "{}/unittest_sp.xml".format(fake_sp_base),
+            "service": {
+                "sp": {
+                    "endpoints": {
+                        "assertion_consumer_service": [
+                            ("%s/acs/redirect" % fake_sp_base, BINDING_HTTP_REDIRECT),
+                            ("%s/acs/post" % fake_sp_base, BINDING_HTTP_POST)
+                        ],
+                    },
+                    "allow_unsolicited": "true",
+                },
+            },
+            "key_file": fake_sp_key.name,
+            "cert_file": fake_sp_cert.name,
+            "metadata": {
+                "local": frontend_metadata,
+            },
+            "xmlsec_binary": self.xmlsec_path,
+        }
+
+        fake_idp_metadata_file = FileGenerator.get_instance().create_metadata(
+            self.fake_idp_config,
+            "fake_idp")
+        fake_sp_metadata_file = FileGenerator.get_instance().create_metadata(
+            self.fake_sp_config,
+            "fake_sp")
+        frontend_metadata_file = FileGenerator.get_instance().create_metadata(
+            Saml2FrontendPlugin.get_instance(self.proxy_config.BASE).config["idp_config"],
+            "frontend")
+        backend_metadata_file = FileGenerator.get_instance().create_metadata(
+            Saml2BackendPlugin.get_instance(self.proxy_config.BASE).config, "backend")
+
+        self.fake_idp_metadata.append(fake_idp_metadata_file.name)
+        self.fake_sp_metadata.append(fake_sp_metadata_file.name)
+        frontend_metadata.append(frontend_metadata_file.name)
+        backend_metadata.append(backend_metadata_file.name)
+
+    @staticmethod
+    def get_instance():
+        """
+        Returns an instance of the singleton class.
+        """
+        if not TestConfiguration._instance:
+            TestConfiguration._instance = TestConfiguration()
+        return TestConfiguration._instance
 
 
 class Saml2BackendPlugin(BackendModulePlugin):
@@ -73,19 +159,16 @@ class Saml2BackendPlugin(BackendModulePlugin):
                     }
                 }
             },
-            "key_file": BACKEND_KEY.name,
-            "cert_file": BACKEND_CERT.name,
+            "key_file": TestConfiguration.get_instance().backend_key.name,
+            "cert_file": TestConfiguration.get_instance().backend_cert.name,
             "metadata": {
-                "local": FAKE_IDP_METADATA,
+                "local": TestConfiguration.get_instance().fake_idp_metadata,
             },
 
-            "xmlsec_binary": xmlsec_path,
+            "xmlsec_binary": TestConfiguration.get_instance().xmlsec_path,
         }
 
         return Saml2BackendPlugin(SamlBackend, Saml2BackendPlugin.provider, config)
-
-
-FRONTEND_CERT, FRONTEND_KEY = generate_cert("Saml2Frontend")
 
 
 class Saml2FrontendPlugin(FrontendModulePlugin):
@@ -120,12 +203,12 @@ class Saml2FrontendPlugin(FrontendModulePlugin):
                     },
                 },
             },
-            "key_file": FRONTEND_KEY.name,
-            "cert_file": FRONTEND_CERT.name,
+            "key_file": TestConfiguration.get_instance().frontend_key.name,
+            "cert_file": TestConfiguration.get_instance().frontend_cert.name,
             "metadata": {
-                "local": FAKE_SP_METADATA,
+                "local": TestConfiguration.get_instance().fake_sp_metadata,
             },
-            "xmlsec_binary": xmlsec_path,
+            "xmlsec_binary": TestConfiguration.get_instance().xmlsec_path,
         }
 
         config = {"idp_config": idpconfig,
@@ -135,75 +218,37 @@ class Saml2FrontendPlugin(FrontendModulePlugin):
         return Saml2FrontendPlugin(SamlFrontend, "Saml2IDP", config)
 
 
-FAKE_IDP_BASE = "https://example.com"
-FAKE_IDP_CERT, FAKE_IDP_KEY = generate_cert()
-FAKE_IDP_CONFIG = {
-    "entityid": "{}/unittest_idp.xml".format(FAKE_IDP_BASE),
-    "service": {
-        "idp": {
-            "endpoints": {
-                "single_sign_on_service": [
-                    ("%s/sso/post" % FAKE_IDP_BASE, BINDING_HTTP_POST),
-                    ("%s/sso/redirect" % FAKE_IDP_BASE, BINDING_HTTP_REDIRECT),
-                ],
-            },
-        },
-    },
-    "key_file": FAKE_IDP_KEY.name,
-    "cert_file": FAKE_IDP_CERT.name,
-    "metadata": {
-        "local": BACKEND_METADATA,
-    },
-    "xmlsec_binary": xmlsec_path,
-}
-
-FAKE_SP_BASE = "http://example.com"
-FAKE_SP_CERT, FAKE_SP_KEY = generate_cert()
-FAKE_SP_CONFIG = {
-    "entityid": "{}/unittest_sp.xml".format(FAKE_SP_BASE),
-    "service": {
-        "sp": {
-            "endpoints": {
-                "assertion_consumer_service": [
-                    ("%s/acs/redirect" % FAKE_SP_BASE, BINDING_HTTP_REDIRECT),
-                    ("%s/acs/post" % FAKE_SP_BASE, BINDING_HTTP_POST)
-                ],
-            },
-            "allow_unsolicited": "true",
-        },
-    },
-    "key_file": FAKE_SP_KEY.name,
-    "cert_file": FAKE_SP_CERT.name,
-    "metadata": {
-        "local": FRONTEND_METADATA,
-    },
-    "xmlsec_binary": xmlsec_path,
-}
-
-FAKE_IDP_METADATA_FILE = create_metadata(FAKE_IDP_CONFIG)
-FAKE_SP_METADATA_FILE = create_metadata(FAKE_SP_CONFIG)
-FRONTEND_METADATA_FILE = create_metadata(
-    Saml2FrontendPlugin.get_instance(PROXY_CONFIG.BASE).config["idp_config"])
-BACKEND_METADATA_FILE = create_metadata(Saml2BackendPlugin.get_instance(PROXY_CONFIG.BASE).config)
-
-FAKE_IDP_METADATA.append(FAKE_IDP_METADATA_FILE.name)
-FAKE_SP_METADATA.append(FAKE_SP_METADATA_FILE.name)
-FRONTEND_METADATA.append(FRONTEND_METADATA_FILE.name)
-BACKEND_METADATA.append(BACKEND_METADATA_FILE.name)
-
-
 class ProxyTest(helper.CPWebCase):
+    """
+    Performs a complete flow test for the proxy.
+    Verifies SAML -> PROXY -> SAML in a cherrypy server.
+    """
     def setUp(self):
-        self.sp = FakeSP(None, config=SPConfig().load(FAKE_SP_CONFIG, metadata_construction=False))
-        self.idp = FakeIdP(USERS, IdPConfig().load(FAKE_IDP_CONFIG, metadata_construction=False))
+        """
+        Initiates the test.
+        :return: None
+        """
+        self.sp = FakeSP(None, config=SPConfig().load(TestConfiguration.get_instance().
+                                                      fake_sp_config,
+                                                      metadata_construction=False))
+        self.idp = FakeIdP(USERS, IdPConfig().load(TestConfiguration.get_instance().fake_idp_config,
+                                                   metadata_construction=False))
 
     @staticmethod
     def setup_server():
-        app = WsgiApplication(config=PROXY_CONFIG)
+        """
+        Creates a new server.
+
+        :return: None
+        """
+        app = WsgiApplication(config=TestConfiguration.get_instance().proxy_config)
 
         cherrypy.tree.graft(app.run_server, '/')
 
     def test_flow(self):
+        """
+        Performs the test.
+        """
         e_id = 'https://localhost:8090/proxy.xml'
         target_id = 'https://example.com/unittest_idp.xml'
 
@@ -236,6 +281,14 @@ class ProxyTest(helper.CPWebCase):
         assert identity["displayName"][0] == "Test Testsson"
 
     def get_redirect_location(self, headers):
+        """
+        Gets the redirect location from the header.
+        :type headers: {list}
+        :rtype: str
+
+        :param headers: A list of (str, str) tuples.
+        :return: An URL for the redirect.
+        """
         for header, value in headers:
             if header.lower() == 'location':
                 return value

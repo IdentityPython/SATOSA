@@ -15,9 +15,9 @@ from saml2.saml import NAMEID_FORMAT_TRANSIENT
 from satosa.frontends.saml2 import SamlFrontend
 from satosa.request_context import RequestContext
 from tests.users import USERS
-from tests.util import FakeSP, create_metadata, generate_cert, create_name_id
+from tests.util import FakeSP, create_name_id, FileGenerator
 
-IDP_CERT_FILE, IDP_KEY_FILE = generate_cert()
+IDP_CERT_FILE, IDP_KEY_FILE = FileGenerator.get_instance().generate_cert()
 XMLSEC_PATH = '/usr/local/bin/xmlsec1'
 IDP_BASE = "http://test.tester.se"
 RECEIVER = "Saml2IDP"
@@ -69,7 +69,7 @@ IDPCONFIG = {
     }
 }
 
-SP_CERT_FILE, SP_KEY_FILE = generate_cert()
+SP_CERT_FILE, SP_KEY_FILE = FileGenerator.get_instance().generate_cert()
 SP_BASE = "http://example.com"
 SPCONFIG = {
     "entityid": "{}/unittest_sp.xml".format(SP_BASE),
@@ -109,21 +109,33 @@ TESTDATA_HANDLE_AUTHN_REQUEST = \
 def test_handle_authn_request(conf, binding_in, providers, error):
     """
     Performs a complete test for the module. The flow should be accepted.
-    :param conf:
-    :param binding_in:
-    :param providers:
-    :param error:
-    :return:
+    :type conf: dict
+    :type binding_in: str
+    :type providers: list
+    :type error: Exception
+
+    :param conf: Module configuration.
+    :param binding_in: Type of binding post | redirect
+    :param providers: A list of strings with the names of the providers.
+    :param error: None or an allowed exception.
     """
     samlfrontend = None
     fakesp = None
     try:
         def auth_req_callback_func(context, _dict, state):
-            internal_response = {}
-            internal_response["ava"] = USERS["testuser1"]
-            internal_response["name_id"] = create_name_id()
-            internal_response["auth_info"] = {"class_ref": PASSWORD,
-                                              "authn_auth": "http://www.example.com/login"}
+            """
+            :type context: satosa.request_context.RequestContext
+            :type: _dict: dict
+            :type: state: str
+
+            :param context: Contains the request context from the module.
+            :param _dict:
+            :param state: The current state for the module.
+            :return:
+            """
+            internal_response = {"ava": USERS["testuser1"], "name_id": create_name_id(),
+                                 "auth_info": {"class_ref": PASSWORD,
+                                               "authn_auth": "http://www.example.com/login"}}
             resp = samlfrontend.handle_authn_response(context, internal_response, state)
             resp_dict = parse.parse_qs(resp.message.split("?")[1])
             resp = fakesp.parse_authn_request_response(resp_dict['SAMLResponse'][0],
@@ -140,7 +152,7 @@ def test_handle_authn_request(conf, binding_in, providers, error):
     assert conf is not None, \
         "conf cannot be None. Argument validation missing."
     try:
-        sp_metadata_file = create_metadata(SPCONFIG)
+        sp_metadata_file = FileGenerator.get_instance().create_metadata(SPCONFIG)
         IDPCONFIG["metadata"]["local"] = [sp_metadata_file.name]
         url_map = samlfrontend.register_endpoints(providers)
         for regex in url_map:
@@ -158,7 +170,7 @@ def test_handle_authn_request(conf, binding_in, providers, error):
             raise exception
         return
     try:
-        idp_metadata_file = create_metadata(samlfrontend.config)
+        idp_metadata_file = FileGenerator.get_instance().create_metadata(samlfrontend.config)
         SPCONFIG["metadata"]["local"] = [idp_metadata_file.name]
         fakesp = FakeSP(None, config=SPConfig().load(SPCONFIG, metadata_construction=False))
         context = RequestContext()
