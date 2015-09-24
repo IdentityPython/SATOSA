@@ -11,9 +11,11 @@ from saml2.client import Saml2Client
 from saml2.config import config_factory, Config
 from saml2.metadata import entity_descriptor, entities_descriptor
 from saml2.saml import name_id_from_string
+
 from saml2.validate import valid_instance
-from satosa.backends.base import BackendBase
-from satosa.frontends.base import FrontendBase
+
+from satosa.backends.base import BackendModule
+from satosa.frontends.base import FrontendModule
 
 
 class FakeSP(Saml2Client):
@@ -48,8 +50,8 @@ class FakeSP(Saml2Client):
 
 
 class FakeIdP(server.Server):
-    def __init__(self, user_db):
-        server.Server.__init__(self, 'configurations.idp_conf')
+    def __init__(self, user_db, config):
+        server.Server.__init__(self, config=config)
         self.user_db = user_db
 
     def handle_auth_req(self, saml_request, relay_state, binding, userid):
@@ -77,7 +79,12 @@ class FakeIdP(server.Server):
         return url, resp
 
 
-def generate_cert():
+GENERATED_CERTS = {}
+
+
+def generate_cert(code=None):
+    if code in GENERATED_CERTS:
+        return GENERATED_CERTS[code]
     sn = random.randint(1, sys.maxsize)
     cert_info = {
         "cn": "localhost",
@@ -95,6 +102,8 @@ def generate_cert():
     key_file = tempfile.NamedTemporaryFile()
     key_file.write(key_str)
     key_file.flush()
+    if code is not None:
+        GENERATED_CERTS[code] = cert_file, key_file
     return cert_file, key_file
 
 
@@ -125,7 +134,7 @@ def create_metadata(config):
     return tmp_file
 
 
-class FakeBackend(BackendBase):
+class FakeBackend(BackendModule):
     def __init__(self, start_auth_func=None, register_endpoints_func=None):
         super(FakeBackend, self).__init__(None)
 
@@ -143,7 +152,7 @@ class FakeBackend(BackendBase):
         return None
 
 
-class FakeFrontend(FrontendBase):
+class FakeFrontend(FrontendModule):
     def __init__(self, handle_authn_request_func=None, handle_authn_response_func=None,
                  register_endpoints_func=None):
         super(FakeFrontend, self).__init__(None)

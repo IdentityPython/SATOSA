@@ -1,0 +1,10 @@
+HOST: '130.239.200.190'
+PORT: 8090
+HTTPS: Yes
+PLUGIN_PATH:
+  - "plugins/backends"
+  - "plugins/frontends"
+BACKEND_MODULES:
+  - "saml2_backend"
+FRONTEND_MODULES:
+  - "saml2_frontend"

@@ -1,7 +1,7 @@
 import pytest
 from satosa.request_context import RequestContext
 from satosa.routing import ModuleRouter
-from tests.test_util import FakeFrontend, FakeBackend
+from tests.util import FakeFrontend, FakeBackend
 
 __author__ = 'mathiashedstrom'
 

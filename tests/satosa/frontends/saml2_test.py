@@ -14,8 +14,8 @@ from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_PERSISTENT
 from saml2.saml import NAMEID_FORMAT_TRANSIENT
 from satosa.frontends.saml2 import SamlFrontend
 from satosa.request_context import RequestContext
-from tests.test_users import USERS
-from tests.test_util import FakeSP, create_metadata, generate_cert, create_name_id
+from tests.users import USERS
+from tests.util import FakeSP, create_metadata, generate_cert, create_name_id
 
 IDP_CERT_FILE, IDP_KEY_FILE = generate_cert()
 XMLSEC_PATH = '/usr/local/bin/xmlsec1'
@@ -136,6 +136,7 @@ def test_handle_authn_request(conf, binding_in, providers, error):
     except Exception as exception:
         if error is None or not isinstance(exception, error):
             raise exception
+        return
     assert conf is not None, \
         "conf cannot be None. Argument validation missing."
     try:
@@ -155,6 +156,7 @@ def test_handle_authn_request(conf, binding_in, providers, error):
     except Exception as exception:
         if error is None or not isinstance(exception, error):
             raise exception
+        return
     try:
         idp_metadata_file = create_metadata(samlfrontend.config)
         SPCONFIG["metadata"]["local"] = [idp_metadata_file.name]
@@ -173,4 +175,4 @@ def test_handle_authn_request(conf, binding_in, providers, error):
     except Exception as exception:
         if error is None or not isinstance(exception, error):
             raise exception
-    assert True
+        return

@@ -17,7 +17,7 @@ from saml2.s_utils import UnknownPrincipal
 from saml2.s_utils import UnsupportedBinding
 from saml2.samlp import name_id_policy_from_string
 from satosa import VALID_ATTRIBUTES
-from satosa.backends.base import BackendBase
+from satosa.backends.base import BackendModule
 
 from satosa.service import BINDING_MAP, response
 import satosa.service as service
@@ -33,7 +33,7 @@ class MetadataResponse(Response):
         super(MetadataResponse, self).__init__(message=metadata_string, **resp)
 
 
-class SamlBackend(BackendBase):
+class SamlBackend(BackendModule):
     def __init__(self, outgoing, config):
         super(SamlBackend, self).__init__(outgoing)
         sp_config = SPConfig().load(copy.deepcopy(config), False)

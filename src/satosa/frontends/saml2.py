@@ -13,7 +13,7 @@ from saml2.s_utils import UnknownPrincipal
 from saml2.s_utils import UnsupportedBinding
 from saml2.samlp import authn_request_from_string
 from saml2.server import Server
-from satosa.frontends.base import FrontendBase
+from satosa.frontends.base import FrontendModule
 
 import satosa.service as service
 from satosa.service import response
@@ -21,7 +21,7 @@ from satosa.service import response
 logger = logging.getLogger(__name__)
 
 
-class SamlFrontend(FrontendBase):
+class SamlFrontend(FrontendModule):
     def __init__(self, auth_req_callback_func, conf):
         """
         Constructor for the class.

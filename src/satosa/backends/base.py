@@ -1,7 +1,7 @@
 __author__ = 'mathiashedstrom'
 
 
-class BackendBase(object):
+class BackendModule(object):
     def __init__(self, auth_callback_func):
         self.auth_callback_func = auth_callback_func
 

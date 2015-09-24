@@ -1,6 +1,6 @@
 import os
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
-from satosa.plugin_base.endpoint import FrontendModule
+from satosa.plugin_base.endpoint import FrontendModulePlugin
 from satosa.frontends.saml2 import SamlFrontend
 from saml2.entity_category.edugain import COC
 from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, \
@@ -25,7 +25,7 @@ ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
                                         BINDING_HTTP_POST: "sso/post"}}
 
 
-class Saml2FrontendModule(FrontendModule):
+class Saml2FrontendModulePlugin(FrontendModulePlugin):
 
     @staticmethod
     def get_instance(base_url):
@@ -83,4 +83,4 @@ class Saml2FrontendModule(FrontendModule):
                   "base": base_url,
                   }
 
-        return Saml2FrontendModule(MODULE, RECEIVER, config)
+        return Saml2FrontendModulePlugin(MODULE, RECEIVER, config)

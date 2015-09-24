@@ -1,5 +1,5 @@
-from satosa.backends.base import BackendBase
-from satosa.frontends.base import FrontendBase
+from satosa.backends.base import BackendModule
+from satosa.frontends.base import FrontendModule
 
 __author__ = 'mathiashedstrom'
 
@@ -15,15 +15,15 @@ class InterfaceModule(object):
         raise NotImplementedError()
 
 
-class FrontendModule(InterfaceModule):
+class FrontendModulePlugin(InterfaceModule):
     def __init__(self, module, receiver, config):
-        if not issubclass(module, FrontendBase):
-            raise AttributeError("module is not instance of {}".format(FrontendBase.__name__))
-        super(FrontendModule, self).__init__(module, receiver, config)
+        if not issubclass(module, FrontendModule):
+            raise AttributeError("module is not instance of {}".format(FrontendModule.__name__))
+        super(FrontendModulePlugin, self).__init__(module, receiver, config)
 
 
-class BackendModule(InterfaceModule):
+class BackendModulePlugin(InterfaceModule):
     def __init__(self, module, receiver, config):
-        if not issubclass(module, BackendBase):
-            raise AttributeError("module is not instance of {}".format(FrontendBase.__name__))
-        super(BackendModule, self).__init__(module, receiver, config)
+        if not issubclass(module, BackendModule):
+            raise AttributeError("module is not instance of {}".format(FrontendModule.__name__))
+        super(BackendModulePlugin, self).__init__(module, receiver, config)

@@ -1,7 +1,7 @@
 __author__ = 'mathiashedstrom'
 
 
-class FrontendBase():
+class FrontendModule():
     def __init__(self, auth_req_callback_func):
         self.auth_req_callback_func = auth_req_callback_func
 

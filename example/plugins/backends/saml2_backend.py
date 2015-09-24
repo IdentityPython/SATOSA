@@ -13,7 +13,7 @@ from satosa.backends.saml2 import SamlBackend
 #     from saml2.sigver import get_xmlsec_binary
 # except ImportError:
 #     get_xmlsec_binary = None
-from satosa.plugin_base.endpoint import BackendModule
+from satosa.plugin_base.endpoint import BackendModulePlugin
 
 xmlsec_path = '/usr/local/bin/xmlsec1'
 
@@ -27,7 +27,7 @@ PROVIDER = "Saml2"
 MODULE = SamlBackend
 
 
-class Saml2BackendModule(BackendModule):
+class Saml2BackendModulePlugin(BackendModulePlugin):
     @staticmethod
     def get_instance(base_url):
         module_base = "%s/%s" % (base_url, PROVIDER)
@@ -88,4 +88,4 @@ class Saml2BackendModule(BackendModule):
             }
         }
 
-        return Saml2BackendModule(MODULE, PROVIDER, config)
+        return Saml2BackendModulePlugin(MODULE, PROVIDER, config)
