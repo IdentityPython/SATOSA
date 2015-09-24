@@ -19,8 +19,6 @@ from tests.wsgi_server import WsgiApplication
 from tests.util import FakeSP, FakeIdP, generate_cert, create_metadata
 from tests.users import USERS
 
-
-
 # Add test directory to path to be able to import configurations
 sys.path.append(os.path.dirname(__file__))
 
