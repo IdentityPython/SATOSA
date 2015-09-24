@@ -31,12 +31,21 @@ class SamlFrontend(FrontendModule):
         :param conf: The SAML configuration
         :param cache: Cache with active sessions
         """
+        if conf is None:
+            raise TypeError("conf can't be 'None'")
+        self._validate_config(conf)
+
         super(SamlFrontend, self).__init__(auth_req_callback_func)
         self.config = conf["idp_config"]
         self.endpoints = conf["endpoints"]
         self.base = conf["base"]
         self.response_bindings = None
         self.idp = None
+
+    def _validate_config(self, config):
+        mandatory_keys = ["idp_config", "endpoints", "base"]
+        for key in mandatory_keys:
+            assert key in config, "Missing key '%s' in config" % key
 
     def verify_request(self, idp, query, binding):
         """ Parses and verifies the SAML Authentication Request
@@ -197,10 +206,15 @@ class SamlFrontend(FrontendModule):
 
         return resp
 
+    def _validate_providers(self, providers):
+        if providers is None or not isinstance(providers, list):
+            raise TypeError("'providers' is not 'list' type")
+
     def register_endpoints(self, providers):
         """
         Given the configuration, return a set of URL to function mappings.
         """
+        self._validate_providers(providers)
 
         # Add an endpoint to each provider
         idp_endpoints = []

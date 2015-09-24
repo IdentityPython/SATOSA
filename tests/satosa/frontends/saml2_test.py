@@ -96,13 +96,13 @@ CONFIG_ERR3 = {"idp_config": IDPCONFIG, "endpoints": ENDPOINTS, "base_notok": ID
 CONFIG = {"idp_config": IDPCONFIG, "endpoints": ENDPOINTS, "base": IDP_BASE}
 
 TESTDATA_HANDLE_AUTHN_REQUEST = \
-    [  # (None, None, None, ArgumentValidationError),
-       # (CONFIG_ERR1, None, None, ArgumentValidationError),
-       # (CONFIG_ERR2, None, None, ArgumentValidationError),
-       # (CONFIG_ERR3, None, None, ArgumentValidationError),
-       # (CONFIG, None, None, ArgumentValidationError),
-       # (CONFIG, "whatever", None, ArgumentValidationError),
-       (CONFIG, "redirect", ["qwerty", "ytrewq"], None)]
+    [(None, None, None, TypeError),
+     (CONFIG_ERR1, None, None, AssertionError),
+     (CONFIG_ERR2, None, None, AssertionError),
+     (CONFIG_ERR3, None, None, AssertionError),
+     (CONFIG, None, None, TypeError),
+     (CONFIG, "whatever", None, TypeError),
+     (CONFIG, "redirect", ["qwerty", "ytrewq"], None)]
 
 
 @pytest.mark.parametrize("conf, binding_in, providers, error", TESTDATA_HANDLE_AUTHN_REQUEST)
