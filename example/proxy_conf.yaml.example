@@ -1,0 +1,25 @@
+#--- SATOSA Config ---#
+HOST: 'localhost'
+PORT: 8090
+HTTPS: Yes
+PLUGIN_PATH:
+  - "plugins/backends"
+  - "plugins/frontends"
+BACKEND_MODULES:
+  - "saml2_backend"
+FRONTEND_MODULES:
+  - "saml2_frontend"
+
+#--- Server Config ---#
+SERVER_CERT: 'pki/mycert.pem'
+SERVER_KEY: 'pki/mykey.pem'
+CERT_CHAIN: Null
+STATIC_DIR: '/static'
+LOG_FILE: 'server.log'
+
+# Beaker session configuration
+# This session can be configured to use database, file, or memory
+SESSION_OPTS:
+    session.type: 'memory'
+    session.cookie_expires: Yes  # Expire when the session is closed
+    session.auto: Yes

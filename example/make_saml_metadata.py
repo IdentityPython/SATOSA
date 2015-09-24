@@ -3,7 +3,6 @@ import argparse
 import copy
 import os
 import sys
-from future.backports.test.support import import_module
 from pluginbase import PluginBase
 from saml2.mdstore import MetaDataFile, MetadataStore
 from saml2.metadata import entity_descriptor, metadata_tostring_fix
@@ -32,6 +31,10 @@ from saml2 import xmlenc
 # file
 # =============================================================================
 from repoze.who.plugins.sql import make_metadata_plugin
+from satosa.backends.saml2 import SamlBackend
+from satosa.frontends.saml2 import SamlFrontend
+from satosa.plugin_loader import _load_plugins, backend_filter, frontend_filter
+from satosa.satosa_config import SATOSAConfig
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', dest='valid',
@@ -52,6 +55,7 @@ parser.add_argument('-x', dest='xmlsec',
                     help="xmlsec binaries to be used for the signing")
 parser.add_argument('-o', dest='output', default="local")
 parser.add_argument('-a', dest='attrsmap')
+parser.add_argument('-m', help='merge metadata', action="store_true")
 parser.add_argument(dest="config", nargs="+")
 args = parser.parse_args()
 
@@ -139,42 +143,35 @@ for filespec in args.config:
     bas, fil = os.path.split(filespec)
     if bas != "":
         sys.path.insert(0, bas)
-    if fil.endswith(".py"):
-        fil = fil[:-3]
 
-    conf_mod = import_module(fil)
+    conf_mod = SATOSAConfig(fil)
 
     plugin_base = PluginBase(package='endpoint_plugins')
     plugin_source = plugin_base.make_plugin_source(searchpath=conf_mod.PLUGIN_PATH)
 
     metadata = {"backends": {}, "frontends": {}}
 
+    backend_plugins = _load_plugins(conf_mod.PLUGIN_PATH, conf_mod.BACKEND_MODULES, conf_mod.BASE, backend_filter)
+    frontend_plugins = _load_plugins(conf_mod.PLUGIN_PATH, conf_mod.FRONTEND_MODULES, conf_mod.BASE, frontend_filter)
+
     providers = []
-    for backend_file in conf_mod.BACKEND_MODULES:
-        backend_plugin = plugin_source.load_plugin(backend_file).setup(conf_mod.BASE)
-        providers.append(backend_plugin.provider)
-        metadata["backends"][backend_plugin.provider] = _make_metadata(backend_plugin.config)
+    for plugin in backend_plugins:
+        if issubclass(plugin.module, SamlBackend):
+            metadata["backends"][plugin.name] = _make_metadata(plugin.config)
+            providers.append(plugin.name)
 
-    receivers = []
-    for frontend_file in conf_mod.FRONTEND_MODULES:
-        frontend_plugin = plugin_source.load_plugin(frontend_file).setup(conf_mod.BASE)
-        receivers.append(frontend_plugin.receiver)
+    for plugin in frontend_plugins:
+        if issubclass(plugin.module, SamlFrontend):
+            module = plugin.module(None, plugin.config)
+            module.register_endpoints(providers)
+            metadata["frontends"][plugin.name] = _make_metadata(module.config)
 
-        proxy_idp_endpoints = frontend_plugin.config["endpoints"]
-        for endpoint_category in proxy_idp_endpoints.keys():
-            category_endpoints = []
-            for provider in providers:
-                for function, endpoint in proxy_idp_endpoints[endpoint_category].items():
-                    endpoint = "%s/%s/%s" % (conf_mod.BASE, provider, endpoint)
-                    category_endpoints.append((endpoint, function))
-            frontend_plugin.config["idp_config"]["service"]["idp"]["endpoints"][
-                endpoint_category] = category_endpoints
-
-        metadata["frontends"][frontend_plugin.receiver] = _make_metadata(
-            frontend_plugin.config["idp_config"])
-
-    make_combined_metadata = False
-    if make_combined_metadata:
+    if args.m:
+        metadata_list = []
+        for backend in metadata["backends"]:
+            metadata_list.append(metadata["backends"][backend])
+        for frontends in metadata["frontends"]:
+            metadata_list.append(metadata["frontends"][frontends])
         create_combined_metadata(metadata)
     else:
         for backend, data in metadata["backends"].items():

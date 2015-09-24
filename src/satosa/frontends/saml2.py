@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from base64 import urlsafe_b64encode, urlsafe_b64decode
+import copy
 import json
 import logging
 from urllib.parse import urlparse
@@ -212,7 +213,7 @@ class SamlFrontend(FrontendModule):
             self.config["service"]["idp"]["endpoints"][endp_category] = idp_endpoints
 
         # Create the idp
-        idp_config = IdPConfig().load(self.config, metadata_construction=False)
+        idp_config = IdPConfig().load(copy.deepcopy(self.config), metadata_construction=False)
         self.idp = Server(config=idp_config)
 
         url_map = []

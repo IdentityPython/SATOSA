@@ -29,14 +29,21 @@ def frontend_filter(member):
 
 
 def _load_endpoint_modules(plugin_path, modules, base, callback, filter):
+    endpoint_modules = {}
+    plugins = _load_plugins(plugin_path, modules, base, filter)
+    for plugin in plugins:
+        module_inst = plugin.module(callback, plugin.config)
+        endpoint_modules[plugin.name] = module_inst
+
+    return endpoint_modules
+
+
+def _load_plugins(plugin_path, modules, base, filter):
     plugin_base = PluginBase(package='satosa_plugins')
     plugin_source = plugin_base.make_plugin_source(searchpath=plugin_path)
-    endpoint_modules = {}
+    plugins = []
     for module_file_name in modules:
         module = plugin_source.load_plugin(module_file_name)
         for name, obj in inspect.getmembers(module, filter):
-            endpoint_plugin = obj.get_instance(base)
-            module_inst = endpoint_plugin.module(callback, endpoint_plugin.config)
-            endpoint_modules[endpoint_plugin.name] = module_inst
-
-    return endpoint_modules
+            plugins.append(obj.get_instance(base))
+    return plugins

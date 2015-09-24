@@ -23,7 +23,7 @@ class SATOSAConfig(object):
         self.BASE = "http%s://%s:%s" % (https, self.HOST, self.PORT)
 
     def _verify_dict(self, conf):
-        assert conf is not None, "Missing configuration or unknown format"
+        assert conf is not None and isinstance(conf, dict), "Missing configuration or unknown format"
         for mand_key in SATOSAConfig.mandatory_dict_keys:
             assert mand_key in conf, "Missing key '%s' in config" % mand_key
 
