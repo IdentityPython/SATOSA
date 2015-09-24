@@ -74,12 +74,6 @@ class FakeIdP(server.Server):
     A SAML IdP that can be used to perform tests.
     """
 
-    def choose_session_storage(self):
-        """
-        See server.Server#choose_session_storage
-        """
-        pass
-
     def __init__(self, user_db, config):
         """
         :type user_db: {dict}
