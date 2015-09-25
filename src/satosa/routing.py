@@ -66,8 +66,8 @@ class ModuleRouter():
         :return: (backend, state)
         """
 
-        backend = self.backends[context.target_backend]["instance"]
-        satosa_state = {"state_key": state, "frontend": context.target_frontend}
+        backend = self.backends[context._target_backend]["instance"]
+        satosa_state = {"state_key": state, "frontend": context._target_frontend}
         satosa_state = urlsafe_b64encode(json.dumps(satosa_state).encode("UTF-8")).decode("UTF-8")
         return backend, satosa_state
 
@@ -121,14 +121,14 @@ class ModuleRouter():
         if backend not in self.backends:
             raise UnknownTargetBackend("Unknown backend {}".format(backend))
 
-        context.target_backend = backend
+        context._target_backend = backend
 
         # Search for frontend endpoint
         for frontend in self.frontends.keys():
             for regex, spec in self.frontends[frontend]["endpoints"]:
                 match = re.search(regex, context.path)
                 if match is not None:
-                    context.target_frontend = frontend
+                    context._target_frontend = frontend
                     return spec
 
         # Search for backend endpoint

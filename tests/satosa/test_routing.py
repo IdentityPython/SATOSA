@@ -74,8 +74,8 @@ def test_url_routing(router_fixture):
         spec = router.endpoint_routing(context)
         assert spec[0] == receiver
         assert spec[1] == endpoint
-        assert context.target_frontend == receiver
-        assert context.target_backend == provider
+        assert context._target_frontend == receiver
+        assert context._target_backend == provider
 
     def test_backend(path, provider, endpoint):
         context = RequestContext()
@@ -83,8 +83,8 @@ def test_url_routing(router_fixture):
         spec = router.endpoint_routing(context)
         assert spec[0] == provider
         assert spec[1] == endpoint
-        assert context.target_backend == provider
-        assert context.target_frontend is None
+        assert context._target_backend == provider
+        assert context._target_frontend is None
 
     foreach_frontend_endpoint(test_frontend)
     foreach_backend_endpoint(test_backend)
