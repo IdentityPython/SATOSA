@@ -47,7 +47,7 @@ IDPCONFIG = {
                     "fail_on_missing_requested": False
                 },
             },
-            "subject_data": "./idp.subject",
+            "subject_data": {},
             "name_id_format": [NAMEID_FORMAT_TRANSIENT,
                                NAMEID_FORMAT_PERSISTENT],
             "want_authn_requests_signed": False
@@ -59,14 +59,6 @@ IDPCONFIG = {
     "metadata": {
     },
     "xmlsec_binary": XMLSEC_PATH,
-    "logger": {
-        "rotating": {
-            "filename": "idp.log",
-            "maxBytes": 500000,
-            "backupCount": 5,
-        },
-        "loglevel": "debug",
-    }
 }
 
 SP_CERT_FILE, SP_KEY_FILE = FileGenerator.get_instance().generate_cert()
