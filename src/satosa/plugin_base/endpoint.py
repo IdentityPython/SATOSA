@@ -4,7 +4,7 @@ from satosa.frontends.base import FrontendModule
 __author__ = 'mathiashedstrom'
 
 
-class InterfaceModule(object):
+class InterfaceModulePlugin(object):
     def __init__(self, module, name, config):
         self.module = module
         self.name = name
@@ -15,14 +15,14 @@ class InterfaceModule(object):
         raise NotImplementedError()
 
 
-class FrontendModulePlugin(InterfaceModule):
+class FrontendModulePlugin(InterfaceModulePlugin):
     def __init__(self, module, receiver, config):
         if not issubclass(module, FrontendModule):
             raise AttributeError("module is not instance of {}".format(FrontendModule.__name__))
         super(FrontendModulePlugin, self).__init__(module, receiver, config)
 
 
-class BackendModulePlugin(InterfaceModule):
+class BackendModulePlugin(InterfaceModulePlugin):
     def __init__(self, module, receiver, config):
         if not issubclass(module, BackendModule):
             raise AttributeError("module is not instance of {}".format(FrontendModule.__name__))
