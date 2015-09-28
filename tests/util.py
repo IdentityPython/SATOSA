@@ -5,14 +5,15 @@ import base64
 import random
 import tempfile
 import sys
-
+import re
 from saml2 import server, BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.authn_context import AuthnBroker, authn_context_class_ref, PASSWORD
 from saml2.cert import OpenSSLWrapper
 from saml2.client import Saml2Client
 from saml2.config import config_factory, Config
 from saml2.metadata import entity_descriptor, entities_descriptor
-from saml2.saml import name_id_from_string
+from saml2.saml import name_id_from_string, NAMEID_FORMAT_TRANSIENT
+from saml2.samlp import NameIDPolicy
 
 from saml2.validate import valid_instance
 
@@ -125,6 +126,28 @@ class FakeIdP(server.Server):
         resp = {'SAMLResponse': saml_response, 'RelayState': relay_state}
         return url, resp
 
+    def get_post_action_body(self, form):
+        form_str = form
+        if isinstance(form, list):
+            form_str = ""
+            for item in form:
+                form_str += item
+        resp = re.split( r'([^=, ]+)="([^" ]+|[^," ]+)" ?',  form_str)
+        count = 0
+        action = None
+        saml_response = None
+        relay_state = None
+        for value in resp:
+            if value == "action":
+                action = resp[count+1]
+            if value == 'SAMLRequest':
+                saml_response = resp[count+3]
+            if value == "RelayState":
+                relay_state = resp[count+3]
+            count += 1
+        body = {"SAMLRequest": saml_response, "RelayState": relay_state}
+        return action, body
+
 
 class FileGenerator(object):
     """
@@ -227,6 +250,15 @@ def create_name_id():
 </NameID>
 """
     return name_id_from_string(test_name_id)
+
+def create_name_id_policy_transient():
+    """
+    Creates a transient name id policy.
+    :return:
+    """
+    nameid_format = NAMEID_FORMAT_TRANSIENT
+    name_id_policy = NameIDPolicy(format=nameid_format)
+    return name_id_policy
 
 
 class FakeBackend(BackendModule):
