@@ -12,7 +12,7 @@ from saml2.cert import OpenSSLWrapper
 from saml2.client import Saml2Client
 from saml2.config import config_factory, Config
 from saml2.metadata import entity_descriptor, entities_descriptor
-from saml2.saml import name_id_from_string, NAMEID_FORMAT_TRANSIENT
+from saml2.saml import name_id_from_string, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
 from saml2.samlp import NameIDPolicy
 
 from saml2.validate import valid_instance
@@ -257,6 +257,16 @@ def create_name_id_policy_transient():
     :return:
     """
     nameid_format = NAMEID_FORMAT_TRANSIENT
+    name_id_policy = NameIDPolicy(format=nameid_format)
+    return name_id_policy
+
+
+def create_name_id_policy_persistent():
+    """
+    Creates a transient name id policy.
+    :return:
+    """
+    nameid_format = NAMEID_FORMAT_PERSISTENT
     name_id_policy = NameIDPolicy(format=nameid_format)
     return name_id_policy
 

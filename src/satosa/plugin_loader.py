@@ -13,7 +13,7 @@ def load_backends(config, callback):
     Load all backend modules specified in the config
 
     :type config: satosa.satosa_config.SATOSAConfig
-    :type callback: (satosa.request_context.RequestContext, dict, str) -> object
+    :type callback: (satosa.context.Context, dict, str) -> object
     :rtype: list[satosa.backends.base.BackendModule]
 
     :param config: The configuration of the satosa proxy
@@ -29,7 +29,7 @@ def load_frontends(config, callback):
     Load all frontend modules specified in the config
 
     :type config: satosa.satosa_config.SATOSAConfig
-    :type callback: (satosa.request_context.RequestContext, dict, str) -> T
+    :type callback: (satosa.context.Context, dict, str) -> T
     :rtype: list[satosa.frontends.base.FrontendModule]
 
     :param config: The configuration of the satosa proxy
@@ -90,7 +90,7 @@ def _load_endpoint_modules(plugin_path, modules, base_url, callback, filter):
     :type plugin_path: str
     :type modules: list[str]
     :type base_url: str
-    :type callback: (satosa.request_context.RequestContext, dict, str) -> T
+    :type callback: (satosa.context.Context, dict, str) -> T
     :type filter: (type | str) -> bool
     :rtype dict[str, satosa.frontends.base.FrontendModule | satosa.backends.base.BackendModule]
 

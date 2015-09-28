@@ -4,7 +4,7 @@ Holds satosa routing logic
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 import json
 import re
-from satosa.request_context import BadContextError
+from satosa.context import BadContextError
 
 __author__ = 'mathiashedstrom'
 
@@ -57,7 +57,7 @@ class ModuleRouter():
         """
         Returns the targeted backend and an updated state
 
-        :type context: satosa.request_context.RequestContext
+        :type context: satosa.context.Context
         :type state: str
         :rtype (satosa.backends.base.BackendModule, str)
 
@@ -92,7 +92,7 @@ class ModuleRouter():
         Validates values in the context needed by the ModuleRouter.
         Raises BadContextError if any error.
 
-        :type context: satosa.request_context.RequestContext
+        :type context: satosa.context.Context
         :rtype: None
 
         :param context: The request context
@@ -107,7 +107,7 @@ class ModuleRouter():
         """
         Finds and returns the endpoint function bound to the path
 
-        :type context: satosa.request_context.RequestContext
+        :type context: satosa.context.Context
         :rtype: (function, *args)
 
         :param context: The request context

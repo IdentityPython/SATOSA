@@ -1,11 +1,11 @@
 import pytest
-from satosa.request_context import RequestContext
+from satosa.context import Context
 
 __author__ = 'mathiashedstrom'
 
 
 def test_path():
-    context = RequestContext()
+    context = Context()
     with pytest.raises(ValueError):
         context.path = None
 
