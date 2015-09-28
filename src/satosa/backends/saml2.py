@@ -68,10 +68,12 @@ class SamlBackend(BackendModule):
         """
 
         # state_key = self.store_state(authn_req, relay_state, req_args)
-        disco_state = {"req_args": {
-            "name_id_policy": request_info["req_args"]["name_id_policy"].to_string().decode(
-                "utf-8")},
-            "state": state, }
+        disco_state = {"state": state, }
+        if "req_args" in request_info and "name_id_policy" in request_info["req_args"]:
+            disco_state["req_args"] = {
+                "name_id_policy":
+                    request_info["req_args"]["name_id_policy"].to_string().decode("utf-8")}
+
         disco_state = urlsafe_b64encode(json.dumps(disco_state).encode("utf-8")).decode("utf-8")
 
         # disco_state = urlencode(disco_state)
@@ -166,8 +168,9 @@ class SamlBackend(BackendModule):
             return Unauthorized("You must chose an IdP")
         else:
             state = json.loads(state)
-            state["req_args"]["name_id_policy"] = name_id_policy_from_string(
-                state["req_args"]["name_id_policy"])
+            if "req_args" in state and "name_id_policy" in state["req_args"]:
+                state["req_args"]["name_id_policy"] = name_id_policy_from_string(
+                    state["req_args"]["name_id_policy"])
 
             return self.authn_request(context, entity_id, state, state["state"])
 
