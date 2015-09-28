@@ -28,12 +28,10 @@ LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.DEBUG)
 
 
-class WsgiApplication(object):
+class WsgiApplication(SATOSABase):
     def __init__(self, config, debug=False):
+        super(WsgiApplication, self).__init__(config)
         self.debug = debug
-        if config is None:
-            raise ValueError("Missing configuration")
-        self.satosa = SATOSABase(config)
 
     def run_server(self, environ, start_response):
         path = environ.get('PATH_INFO', '').lstrip('/')
@@ -46,7 +44,7 @@ class WsgiApplication(object):
         context.request = unpack_either(environ)
 
         try:
-            resp = self.satosa.run(context)
+            resp = self.run(context)
             return resp(environ, start_response)
         except NoBoundEndpointError:
             LOGGER.debug("unknown side: %s" % path)
