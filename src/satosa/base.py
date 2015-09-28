@@ -1,11 +1,28 @@
+"""
+The SATOSA main module
+"""
 from satosa.plugin_loader import load_backends, load_frontends
 from satosa.routing import ModuleRouter
 
 __author__ = 'mathiashedstrom'
 
 
-class SATOSABase():
+class SATOSABase(object):
+    """
+    Base class for a satosa proxy server.
+    Does not contain any server parts.
+    """
     def __init__(self, config):
+        """
+        Creates a satosa proxy base
+
+        :type config: satosa.satosa_config.SATOSAConfig
+
+        :param config: satosa proxy config
+        """
+        if config is None:
+            raise ValueError("Missing configuration")
+
         self.config = config
         backends = load_backends(self.config, self._auth_resp_callback_func)
         frontends = load_frontends(self.config, self._auth_req_callback_func)
