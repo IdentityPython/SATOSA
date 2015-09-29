@@ -108,7 +108,7 @@ class ModuleRouter():
         Finds and returns the endpoint function bound to the path
 
         :type context: satosa.context.Context
-        :rtype: (function, *args)
+        :rtype: ((satosa.context.Context, Any) -> Any, Any)
 
         :param context: The request context
         :return: registered endpoint and bound parameters
