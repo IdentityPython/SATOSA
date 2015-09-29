@@ -24,13 +24,6 @@ logger = logging.getLogger(__name__)
 
 class SamlFrontend(FrontendModule):
     def __init__(self, auth_req_callback_func, conf):
-        """
-        Constructor for the class.
-        :param environ: WSGI environ
-        :param start_response: WSGI start response function
-        :param conf: The SAML configuration
-        :param cache: Cache with active sessions
-        """
         if conf is None:
             raise TypeError("conf can't be 'None'")
         self._validate_config(conf)
@@ -48,13 +41,6 @@ class SamlFrontend(FrontendModule):
             assert key in config, "Missing key '%s' in config" % key
 
     def verify_request(self, idp, query, binding):
-        """ Parses and verifies the SAML Authentication Request
-
-        :param query: The SAML authn request, transport encoded
-        :param binding: Which binding the query came in over
-        :returns: dictionary
-        """
-
         if not query:
             logger.info("Missing QUERY")
             resp = Unauthorized('Unknown user')
@@ -105,14 +91,6 @@ class SamlFrontend(FrontendModule):
                 "authn_req": _authn_req, "req_args": req_args}
 
     def handle_authn_request(self, context, binding_in):
-        """
-        Deal with an authentication request
-
-        :param binding_in: Which binding was used when receiving the query
-        :return: A response if an error occurred or session information in a
-            dictionary
-        """
-
         _request = context.request
         _binding_in = service.INV_BINDING_MAP[binding_in]
 
@@ -171,17 +149,6 @@ class SamlFrontend(FrontendModule):
     def construct_authn_response(self, idp, identity, name_id, authn,
                                  resp_args,
                                  relay_state, sign_response=True):
-        """
-
-        :param identity:
-        :param name_id:
-        :param authn:
-        :param resp_args:
-        :param relay_state:
-        :param sign_response:
-        :return:
-        """
-
         _resp = idp.create_authn_response(identity, name_id=name_id,
                                           authn=authn,
                                           sign_response=sign_response,
@@ -211,9 +178,6 @@ class SamlFrontend(FrontendModule):
             raise TypeError("'providers' is not 'list' type")
 
     def register_endpoints(self, providers):
-        """
-        Given the configuration, return a set of URL to function mappings.
-        """
         self._validate_providers(providers)
 
         # Add an endpoint to each provider

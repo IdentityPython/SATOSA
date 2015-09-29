@@ -59,15 +59,6 @@ class SamlBackend(BackendModule):
             return self.disco_query(context, request_info, state)
 
     def disco_query(self, context, request_info, state):
-        """
-        This service is expected to always use a discovery service. This is
-        where the response is handled
-
-        :param authn_req: The Authentication Request
-        :return: A 302 messages redirecting to the discovery service
-        """
-
-        # state_key = self.store_state(authn_req, relay_state, req_args)
         disco_state = {"state": state, }
         if "req_args" in request_info and "name_id_policy" in request_info["req_args"]:
             disco_state["req_args"] = {
@@ -75,8 +66,6 @@ class SamlBackend(BackendModule):
                     request_info["req_args"]["name_id_policy"].to_string().decode("utf-8")}
 
         disco_state = urlsafe_b64encode(json.dumps(disco_state).encode("utf-8")).decode("utf-8")
-
-        # disco_state = urlencode(disco_state)
 
         _cli = self.sp
 
@@ -123,11 +112,6 @@ class SamlBackend(BackendModule):
         return response(_binding, ht_args)
 
     def authn_response(self, context, binding):
-        """
-        :param binding: Which binding the query came in over
-        :returns: Error response or a response constructed by the transfer
-            function
-        """
         _authn_response = context.request
 
         if not _authn_response["SAMLResponse"]:
@@ -154,12 +138,6 @@ class SamlBackend(BackendModule):
                                        _authn_response['RelayState'])
 
     def disco_response(self, context, *args):
-        """
-        If I got a useful response from the discovery server, continue with
-        the authentication request.
-
-        :return: redirect containing the authentication request
-        """
         info = context.request
         state = urlsafe_b64decode(info["state"].encode("utf-8")).decode("utf-8")
         try:
@@ -193,10 +171,6 @@ class SamlBackend(BackendModule):
         return MetadataResponse(self.sp.config)
 
     def register_endpoints(self):
-        """
-        Given the configuration, return a set of URL to function mappings.
-        """
-
         url_map = []
         sp_endpoints = self.sp.config.getattr("endpoints", "sp")
         for endp, binding in sp_endpoints["assertion_consumer_service"]:
