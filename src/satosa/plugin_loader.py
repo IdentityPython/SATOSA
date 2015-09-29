@@ -13,12 +13,12 @@ def load_backends(config, callback):
     Load all backend modules specified in the config
 
     :type config: satosa.satosa_config.SATOSAConfig
-    :type callback: (satosa.request_context.RequestContext, dict, str) -> Any
+    :type callback: (satosa.context.Context, dict, str) -> object
     :rtype: dict[str, satosa.backends.base.BackendModule]
 
     :param config: The configuration of the satosa proxy
     :param callback: Function that will be called by the backend after the authentication is done.
-    :return: A dict of backend modules
+    :return: A list of backend modules
     """
     return _load_endpoint_modules(config.PLUGIN_PATH, config.BACKEND_MODULES, config.BASE,
                                   callback, backend_filter)
@@ -29,8 +29,9 @@ def load_frontends(config, callback):
     Load all frontend modules specified in the config
 
     :type config: satosa.satosa_config.SATOSAConfig
-    :type callback: (satosa.request_context.RequestContext, dict, str) -> Any
+    :type callback: (satosa.context.Context, dict, str) -> Any
     :rtype: dict[str, satosa.frontends.base.FrontendModule]
+    :rtype: list[satosa.frontends.base.FrontendModule]
 
     :param config: The configuration of the satosa proxy
     :param callback: Function that will be called by the frontend after the authentication request has been processed.
@@ -90,7 +91,7 @@ def _load_endpoint_modules(plugin_path, modules, base_url, callback, filter):
     :type plugin_path: str
     :type modules: list[str]
     :type base_url: str
-    :type callback: (satosa.request_context.RequestContext, dict, str) -> T
+    :type callback: (satosa.context.Context, dict, str) -> T
     :type filter: (type | str) -> bool
     :rtype dict[str, satosa.frontends.base.FrontendModule | satosa.backends.base.BackendModule]
 

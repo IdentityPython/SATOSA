@@ -33,7 +33,7 @@ class SATOSABase(object):
         """
         This function is called by a frontend module when an authorization request has been processed.
 
-        :type context: satosa.request_context.RequestContext
+        :type context: satosa.context.Context
         :type internal_request: dict
         :type state: str
 
@@ -44,13 +44,14 @@ class SATOSABase(object):
         :return: response
         """
         backend, state = self.module_router.backend_routing(context, state)
+        context.request = None
         return backend.start_auth(context, internal_request, state)
 
     def _auth_resp_callback_func(self, context, internal_response, state):
         """
         This function is called by a backend module when the authorization is complete.
 
-        :type context: satosa.request_context.RequestContext
+        :type context: satosa.context.Context
         :type internal_response: dict
         :type state: str
 
@@ -61,13 +62,14 @@ class SATOSABase(object):
         """
 
         frontend, state = self.module_router.frontend_routing(state)
+        context.request = None
         return frontend.handle_authn_response(context, internal_response, state)
 
     def _run_bound_endpoint(self, context, spec):
         """
 
-        :type context: satosa.request_context.RequestContext
-        :type spec: (satosa.request_context.RequestContext) -> object
+        :type context: satosa.context.Context
+        :type spec: (satosa.context.Context) -> object
 
         :param context: The request context
         :param spec: bound endpoint function
@@ -82,7 +84,7 @@ class SATOSABase(object):
         """
         Runs the satosa proxy with the given context.
 
-        :type context: satosa.request_context.RequestContext
+        :type context: satosa.context.Context
 
         :param context: The request context
         :return: response

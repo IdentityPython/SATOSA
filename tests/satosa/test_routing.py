@@ -1,5 +1,5 @@
 import pytest
-from satosa.request_context import RequestContext
+from satosa.context import Context
 from satosa.routing import ModuleRouter
 from tests.util import FakeFrontend, FakeBackend
 
@@ -69,7 +69,7 @@ def test_url_routing(router_fixture):
     router, _, _ = router_fixture
 
     def test_frontend(path, provider, receiver, endpoint):
-        context = RequestContext()
+        context = Context()
         context.path = path
         spec = router.endpoint_routing(context)
         assert spec[0] == receiver
@@ -78,7 +78,7 @@ def test_url_routing(router_fixture):
         assert context._target_backend == provider
 
     def test_backend(path, provider, endpoint):
-        context = RequestContext()
+        context = Context()
         context.path = path
         spec = router.endpoint_routing(context)
         assert spec[0] == provider
@@ -95,7 +95,7 @@ def test_module_routing(router_fixture):
     original_state = "original_state"
 
     def test_routing(path, provider, receiver, _):
-        context = RequestContext()
+        context = Context()
         context.path = path
         router.endpoint_routing(context)
 

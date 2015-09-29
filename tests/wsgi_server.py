@@ -8,7 +8,7 @@ from saml2.httputil import NotFound
 
 from saml2.httputil import ServiceError
 from satosa.base import SATOSABase
-from satosa.request_context import RequestContext
+from satosa.context import Context
 from satosa.routing import NoBoundEndpointError
 from satosa.service import unpack_either
 
@@ -48,7 +48,7 @@ class WsgiApplication(object):
             resp = Unauthorized()
             return resp(environ, start_response)
 
-        context = RequestContext()
+        context = Context()
         context.path = path
         context.request = unpack_either(environ)
 

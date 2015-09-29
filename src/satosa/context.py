@@ -6,12 +6,12 @@ __author__ = 'mathiashedstrom'
 
 class BadContextError(Exception):
     """
-    Raise this exception if validating the RequestContext and failing.
+    Raise this exception if validating the Context and failing.
     """
     pass
 
 
-class RequestContext(object):
+class Context(object):
     """
     Holds information about the current request.
 

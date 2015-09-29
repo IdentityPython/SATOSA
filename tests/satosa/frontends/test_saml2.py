@@ -13,7 +13,7 @@ from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, \
 from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_PERSISTENT
 from saml2.saml import NAMEID_FORMAT_TRANSIENT
 from satosa.frontends.saml2 import SamlFrontend
-from satosa.request_context import RequestContext
+from satosa.context import Context
 from tests.users import USERS
 from tests.util import FakeSP, create_name_id, FileGenerator
 
@@ -116,7 +116,7 @@ def test_handle_authn_request(conf, binding_in, providers, error):
     try:
         def auth_req_callback_func(context, _dict, state):
             """
-            :type context: satosa.request_context.RequestContext
+            :type context: satosa.context.Context
             :type: _dict: dict
             :type: state: str
 
@@ -165,7 +165,7 @@ def test_handle_authn_request(conf, binding_in, providers, error):
         idp_metadata_file = FileGenerator.get_instance().create_metadata(samlfrontend.config)
         SPCONFIG["metadata"]["local"] = [idp_metadata_file.name]
         fakesp = FakeSP(None, config=SPConfig().load(SPCONFIG, metadata_construction=False))
-        context = RequestContext()
+        context = Context()
         context.request = parse.parse_qs(
             fakesp.make_auth_req(samlfrontend.config["entityid"]).split("?")[1])
         tmp_dict = {}
