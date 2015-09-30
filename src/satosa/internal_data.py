@@ -360,20 +360,27 @@ SATOSA_TO_PYSAML = dict((value, key) for key, value in PYSAML_TO_SATOSA.items())
 
 class UserIdHashType(Enum):
     transient = 1
-    persistent = 1
+    persistent = 3
     pairwise = 1
     public = 2
 
 
-class AuthenticationInformation():
+class AuthenticationInformation(object):
 
     def __init__(self, auth_class_ref, timestamp, issuer):
         self.auth_class_ref = auth_class_ref
         self.timestamp = timestamp
         self.issuer = issuer
 
-
 class InternalData(object):
+    def __init__(self, user_id_hash_type):
+        self.user_id_hash_type = user_id_hash_type
+
+class InternalRequest(InternalData):
+    def __init__(self,user_id_hash_type):
+        super(InternalRequest, self).__init__(user_id_hash_type)
+
+class InternalResponse(InternalData):
     """
     Holds internal representation of service related data.
 
@@ -387,9 +394,9 @@ class InternalData(object):
     """
 
     def __init__(self, user_id_hash_type, internal_attributes=SATOSA_ATTRIBUTES, auth_info=None):
+        super(InternalResponse, self).__init__(user_id_hash_type)
         self._user_id = None
         self._attributes = {}
-        self.user_id_hash_type = None
         self.internal_attributes = internal_attributes
         self.auth_info = auth_info
 

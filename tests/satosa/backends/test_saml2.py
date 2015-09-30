@@ -14,6 +14,7 @@ from saml2.extension.idpdisc import BINDING_DISCO
 from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
 from satosa.backends.saml2 import SamlBackend
 from satosa.context import Context
+from satosa.internal_data import AuthenticationInformation, InternalData, UserIdHashType, InternalRequest
 from tests.users import USERS
 
 from tests.util import FileGenerator, FakeIdP, create_name_id_policy_transient, \
@@ -127,7 +128,7 @@ def test_register_endpoints():
                 if p.match(e[0].replace(TestConfiguration.get_instance().sp_base + "/", "")):
                     match = True
                     break
-            assert match, "Not correct regluar expression for endpoint: %s" % e[0]
+            assert match, "Not correct regular expression for endpoint: %s" % e[0]
 
 
 def test_start_auth_no_request_info():
@@ -138,13 +139,17 @@ def test_start_auth_no_request_info():
         None,
         TestConfiguration.get_instance().spconfig)
 
-    resp = samlbackend.start_auth(Context(), {}, "my_state")
+    internal_data = InternalRequest(None)
+
+    resp = samlbackend.start_auth(Context(), internal_data, "my_state")
     assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
     assert resp.message.startswith(TestConfiguration.get_instance().spconfig["disco_srv"]), \
         "Redirect to wrong URL."
 
-    create_name_id_policy_transient()
-    resp = samlbackend.start_auth(Context(), {}, "my_state")
+    # create_name_id_policy_transient()
+    user_id_hash_type = UserIdHashType.transient
+    internal_data = InternalRequest(user_id_hash_type)
+    resp = samlbackend.start_auth(Context(), internal_data, "my_state")
     assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
 
 
@@ -156,9 +161,11 @@ def test_start_auth_name_id_policy():
         None,
         TestConfiguration.get_instance().spconfig)
 
-    name_id_policy = create_name_id_policy_transient()
-    request_info = {"req_args": {"name_id_policy": name_id_policy}}
-    resp = samlbackend.start_auth(Context(), request_info, "my_state")
+    # name_id_policy = create_name_id_policy_transient()
+    # request_info = {"req_args": {"name_id_policy": name_id_policy}}
+    internal_req = InternalRequest(UserIdHashType.transient)
+    resp = samlbackend.start_auth(Context(), internal_req, "my_state")
+
     assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
     disco_resp = parse.parse_qs(resp.message.replace(
         TestConfiguration.get_instance().spconfig["disco_srv"] + "?", ""))
@@ -172,8 +179,9 @@ def test_start_auth_name_id_policy():
     request_info_tmp = urlsafe_b64decode(info["state"][0].encode("utf-8")).decode("utf-8")
     request_info_tmp = json.loads(request_info_tmp)
     assert request_info_tmp["state"] == "my_state", "Wrong state!"
-    assert (request_info_tmp["req_args"]["name_id_policy"] ==
-            name_id_policy.to_string().decode('ascii')), "Wrong name_id_policy"
+    assert request_info_tmp["user_id_hash_type"] == UserIdHashType.transient.name
+    # assert (request_info_tmp["req_args"]["name_id_policy"] ==
+    #         name_id_policy.to_string().decode('ascii')), "Wrong name_id_policy"
     pass
 
 
@@ -187,11 +195,11 @@ def test__start_auth_disco():
         TestConfiguration.get_instance().idpconfig,
         metadata_construction=False))
 
-    def auth_req_callback_func(context, _dict, state):
+    def auth_req_callback_func(context, internal_resp, state):
         """
         Callback function.
         :type context:
-        :type: _dict: dict
+        :type: internal_resp: satosa.internal_data.InternalResponse
         :type: state: str
 
         :param context: Contains the request context from the module.
@@ -201,19 +209,23 @@ def test__start_auth_disco():
         """
         assert isinstance(context, Context), "Not correct instance!"
         assert state == "my_state", "Not correct state!"
-        assert _dict["auth_info"]["class_ref"] == PASSWORD, "Not correct authentication!"
-        assert _dict["name_id"].format == NAMEID_FORMAT_PERSISTENT, "Must be transient!"
-        for key in _dict["ava"]:
-            assert key in _dict["ava"]
-            assert USERS[_dict["name_id"].text][key] == _dict["ava"][key]
+        assert internal_resp.auth_info.auth_class_ref == PASSWORD, "Not correct authentication!"
+        assert internal_resp.user_id_hash_type == UserIdHashType.persistent, "Must be persistent!"
+        _dict = internal_resp.get_pysaml_attributes()
+        for key in _dict:
+            assert key in _dict
+            assert USERS[_dict["uid"][0]][key] == _dict[key]
 
     samlbackend = SamlBackend(
         auth_req_callback_func,
         spconfig)
 
-    name_id_policy = create_name_id_policy_persistent()
-    request_info = {"req_args": {"name_id_policy": name_id_policy}}
-    resp = samlbackend.start_auth(Context(), request_info, "my_state")
+    # name_id_policy = create_name_id_policy_persistent()
+    # request_info = {"req_args": {"name_id_policy": name_id_policy}}
+
+    internal_req = InternalRequest(UserIdHashType.persistent)
+
+    resp = samlbackend.start_auth(Context(), internal_req, "my_state")
     assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
     context = Context()
     sp_disco_resp = spconfig["service"]["sp"]["endpoints"]["discovery_response"][0][0]

@@ -11,24 +11,24 @@ class BackendModule(object):
 
     def __init__(self, auth_callback_func):
         """
-        :type auth_callback_func: (satosa.context.Context, dict, str) -> Any
+        :type auth_callback_func: (satosa.context.Context, satosa.internal_data.InternalResponse, str) -> Any
 
         :param auth_callback_func: Callback should be called by the module after
                                    the authorization in the backend is done.
         """
         self.auth_callback_func = auth_callback_func
 
-    def start_auth(self, context, request_info, state):
+    def start_auth(self, context, internal_request, state):
         """
         This is the start up function of the backend authorization.
 
         :type context: satosa.context.Context
-        :type request_info: dict
+        :type internal_request: satosa.internal_data.InternalRequest
         :type state: str
         :rtype Any
 
         :param context: the request context
-        :param request_info: Information about the authorization request
+        :param internal_request: Information about the authorization request
         :param state: current state
         :return: response
         """
