@@ -12,9 +12,11 @@ from saml2.httputil import Redirect
 from saml2.httputil import Unauthorized
 from saml2.s_utils import UnknownPrincipal
 from saml2.s_utils import UnsupportedBinding
+from saml2.saml import NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT, NameID
 from saml2.samlp import authn_request_from_string
 from saml2.server import Server
 from satosa.frontends.base import FrontendModule
+from satosa.internal_data import UserIdHashType, InternalRequest
 
 import satosa.service as service
 from satosa.service import response
@@ -126,7 +128,24 @@ class SamlFrontend(FrontendModule):
             state = urlsafe_b64encode(json.dumps(request_state).encode("UTF-8")).decode(
                 "UTF-8")
 
-            return self.auth_req_callback_func(context, _dict, state)
+            internal_req = InternalRequest(self.name_format_to_hash_type(_dict['req_args']['name_id_policy'].format))
+            return self.auth_req_callback_func(context, internal_req, state)
+
+    @staticmethod
+    def name_format_to_hash_type(name_format):
+        if name_format == NAMEID_FORMAT_TRANSIENT:
+            return UserIdHashType.transient
+        elif name_format == NAMEID_FORMAT_PERSISTENT:
+            return UserIdHashType.persistent
+        return None
+
+    @staticmethod
+    def get_name_id_format(hash_type):
+        if hash_type == UserIdHashType.transient:
+            return NAMEID_FORMAT_TRANSIENT
+        elif hash_type == UserIdHashType.persistent:
+            return NAMEID_FORMAT_PERSISTENT
+        return None
 
     def handle_authn_response(self, context, internal_response, state):
         request_state = json.loads(urlsafe_b64decode(state.encode("UTF-8")).decode("UTF-8"))
@@ -135,11 +154,20 @@ class SamlFrontend(FrontendModule):
         # Diverse arguments needed to construct the response
         resp_args = self.idp.response_args(origin_authn_req)
 
+        ava = internal_response.get_pysaml_attributes()
+        # TODO what about authn_auth in auth_info?
+        auth_info = {"class_ref": internal_response.auth_info.auth_class_ref}
+
+        name_id = NameID(text=internal_response.user_id,
+                         format=self.get_name_id_format(internal_response.user_id_hash_type),
+                         sp_name_qualifier=None,
+                         name_qualifier=None)
+
         # Will signed the response by default
         resp = self.construct_authn_response(self.idp,
-                                             internal_response["ava"],
-                                             name_id=internal_response["name_id"],
-                                             authn=internal_response["auth_info"],
+                                             ava,
+                                             name_id=name_id,
+                                             authn=auth_info,
                                              resp_args=resp_args,
                                              relay_state=request_state["relay_state"],
                                              sign_response=True)

@@ -14,8 +14,9 @@ from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_PERSISTENT
 from saml2.saml import NAMEID_FORMAT_TRANSIENT
 from satosa.frontends.saml2 import SamlFrontend
 from satosa.context import Context
+from satosa.internal_data import InternalResponse, AuthenticationInformation
 from tests.users import USERS
-from tests.util import FakeSP, create_name_id, FileGenerator
+from tests.util import FakeSP, FileGenerator
 
 IDP_CERT_FILE, IDP_KEY_FILE = FileGenerator.get_instance().generate_cert()
 XMLSEC_PATH = '/usr/local/bin/xmlsec1'
@@ -114,20 +115,22 @@ def test_handle_authn_request(conf, binding_in, providers, error):
     samlfrontend = None
     fakesp = None
     try:
-        def auth_req_callback_func(context, _dict, state):
+        def auth_req_callback_func(context, internal_req, state):
             """
             :type context: satosa.context.Context
-            :type: _dict: dict
+            :type: internal_req: satosa.internal_data.InternalRequest
             :type: state: str
 
             :param context: Contains the request context from the module.
-            :param _dict:
+            :param internal_req:
             :param state: The current state for the module.
             :return:
             """
-            internal_response = {"ava": USERS["testuser1"], "name_id": create_name_id(),
-                                 "auth_info": {"class_ref": PASSWORD,
-                                               "authn_auth": "http://www.example.com/login"}}
+
+            auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
+            internal_response = InternalResponse(internal_req.user_id_hash_type, auth_info=auth_info)
+            internal_response.add_pysaml_attributes(USERS["testuser1"])
+
             resp = samlfrontend.handle_authn_response(context, internal_response, state)
             resp_dict = parse.parse_qs(resp.message.split("?")[1])
             resp = fakesp.parse_authn_request_response(resp_dict['SAMLResponse'][0],

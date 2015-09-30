@@ -11,25 +11,25 @@ class FrontendModule(object):
 
     def __init__(self, auth_req_callback_func):
         """
-        :type auth_req_callback_func: (satosa.context.Context, dict, str) -> Any
+        :type auth_req_callback_func: (satosa.context.Context, satosa.internal_data.InternalData, str) -> Any
 
         :param auth_req_callback_func: Callback should be called by the module after the authorization response
                                        has been processed.
         """
         self.auth_req_callback_func = auth_req_callback_func
 
-    def handle_authn_response(self, context, internal_response, state):
+    def handle_authn_response(self, context, internal_resp, state):
         """
         If an authorization has been successful in a backend, this function is called and is supposed to send an
         authorization response to the client.
 
         :type context: satosa.context.Context
-        :type internal_response: dict
+        :type internal_resp: satosa.internal_data.InternalResponse
         :type state: str
         :rtype Any
 
         :param context: The request context
-        :param internal_response: Attributes from the authorization
+        :param internal_resp: Attributes from the authorization
         :param state: the saved frontend state
         :return response
         """

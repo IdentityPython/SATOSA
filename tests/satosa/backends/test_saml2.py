@@ -14,11 +14,10 @@ from saml2.extension.idpdisc import BINDING_DISCO
 from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
 from satosa.backends.saml2 import SamlBackend
 from satosa.context import Context
-from satosa.internal_data import AuthenticationInformation, InternalData, UserIdHashType, InternalRequest
+from satosa.internal_data import UserIdHashType, InternalRequest
 from tests.users import USERS
 
-from tests.util import FileGenerator, FakeIdP, create_name_id_policy_transient, \
-    create_name_id_policy_persistent
+from tests.util import FileGenerator, FakeIdP
 
 __author__ = 'haho0032'
 
@@ -203,7 +202,7 @@ def test__start_auth_disco():
         :type: state: str
 
         :param context: Contains the request context from the module.
-        :param _dict:
+        :param internal_resp:
         :param state: The current state for the module.
         :return:
         """
@@ -214,7 +213,7 @@ def test__start_auth_disco():
         _dict = internal_resp.get_pysaml_attributes()
         for key in _dict:
             assert key in _dict
-            assert USERS[_dict["uid"][0]][key] == _dict[key]
+            assert USERS[internal_resp.user_id][key] == _dict[key]
 
     samlbackend = SamlBackend(
         auth_req_callback_func,

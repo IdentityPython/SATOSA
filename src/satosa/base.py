@@ -12,6 +12,7 @@ class SATOSABase(object):
     Base class for a satosa proxy server.
     Does not contain any server parts.
     """
+
     def __init__(self, config):
         """
         Creates a satosa proxy base
@@ -34,7 +35,7 @@ class SATOSABase(object):
         This function is called by a frontend module when an authorization request has been processed.
 
         :type context: satosa.context.Context
-        :type internal_request: dict
+        :type internal_request: satosa.internal_data.InternalRequest
         :type state: str
 
         :param context: The request context
@@ -52,7 +53,7 @@ class SATOSABase(object):
         This function is called by a backend module when the authorization is complete.
 
         :type context: satosa.context.Context
-        :type internal_response: dict
+        :type internal_response: satosa.internal_data.InternalResponse
         :type state: str
 
         :param context: The request context
@@ -69,7 +70,7 @@ class SATOSABase(object):
         """
 
         :type context: satosa.context.Context
-        :type spec: (satosa.context.Context) -> object
+        :type spec: ((satosa.context.Context, Any) -> Any, Any) | (satosa.context.Context, Any) -> Any
 
         :param context: The request context
         :param spec: bound endpoint function
@@ -78,7 +79,7 @@ class SATOSABase(object):
         if isinstance(spec, tuple):
             return spec[0](context, *spec[1:])
         else:
-            return spec()
+            return spec(context)
 
     def run(self, context):
         """

@@ -176,19 +176,19 @@ OIDC_TO_SATOSA = {
     'middle_name': None,
     'nickname': 'eduPersonNickname',
     'preferred_username': 'userid',
-    'profile_string': '',           #URL of the End-User's profile page.
-    'picture': None,	            #URL of the End-User's profile picture.
-    'website': None,                #URL of the End-User's Web page or blog.
+    'profile_string': '',  # URL of the End-User's profile page.
+    'picture': None,  # URL of the End-User's profile picture.
+    'website': None,  # URL of the End-User's Web page or blog.
     'email': 'email',
-    'email_verified': None,	        #boolean - True if the End-User's e-mail address is verified;
-    'gender': None,                 #End-User's gender.
-    'birthdate': None,              #End-User's birthday
-    'zoneinfo': None,               #time zone database representing the End-User's time zone.
-    'locale': None,                 #End-User's locale
+    'email_verified': None,  # boolean - True if the End-User's e-mail address is verified;
+    'gender': None,  # End-User's gender.
+    'birthdate': None,  # End-User's birthday
+    'zoneinfo': None,  # time zone database representing the End-User's time zone.
+    'locale': None,  # End-User's locale
     'phone_number': None,
     'phone_number_verified': None,
     'address': None,
-    'updated_at': None              #Time the End-User's information was last updated.
+    'updated_at': None  # Time the End-User's information was last updated.
 }
 
 SATOSA_TO_OIDC = dict((value, key) for key, value in OIDC_TO_SATOSA.items())
@@ -366,19 +366,21 @@ class UserIdHashType(Enum):
 
 
 class AuthenticationInformation(object):
-
     def __init__(self, auth_class_ref, timestamp, issuer):
         self.auth_class_ref = auth_class_ref
         self.timestamp = timestamp
         self.issuer = issuer
 
+
 class InternalData(object):
     def __init__(self, user_id_hash_type):
         self.user_id_hash_type = user_id_hash_type
 
+
 class InternalRequest(InternalData):
-    def __init__(self,user_id_hash_type):
+    def __init__(self, user_id_hash_type):
         super(InternalRequest, self).__init__(user_id_hash_type)
+
 
 class InternalResponse(InternalData):
     """
@@ -445,19 +447,8 @@ class InternalResponse(InternalData):
 
     @user_id.setter
     def user_id(self, user_id):
-        """
-        Inserts a path to the context.
-        This path is striped by the base_url, so for example:
-            A path BASE_URL/ENDPOINT_URL, would be inserted as only ENDPOINT_URL
-            https://localhost:8092/sso/redirect -> sso/redirect
-
-        :type p: str
-
-        :param p: A path to an endpoint.
-        :return: None
-        """
         if not user_id:
             raise ValueError("user_id can't be set to None")
-        elif p.startswith('/'):
-            raise ValueError("path can't start with '/'")
-        self._user_id = p
+        elif user_id.startswith('/'):
+            raise ValueError("user_id can't start with '/'")
+        self._user_id = user_id

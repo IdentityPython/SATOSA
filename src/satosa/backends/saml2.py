@@ -16,10 +16,9 @@ from saml2.response import VerificationError
 from saml2.s_utils import UnknownPrincipal
 from saml2.s_utils import UnsupportedBinding
 from saml2.saml import NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
-from saml2.samlp import name_id_policy_from_string, NameIDPolicy
-from satosa import VALID_ATTRIBUTES
+from saml2.samlp import NameIDPolicy
 from satosa.backends.base import BackendModule
-from satosa.internal_data import InternalData, UserIdHashType, InternalRequest, InternalResponse, \
+from satosa.internal_data import UserIdHashType, InternalRequest, InternalResponse, \
     AuthenticationInformation
 
 from satosa.service import BINDING_MAP, response
@@ -72,7 +71,6 @@ class SamlBackend(BackendModule):
             return UserIdHashType.persistent
         return None
 
-
     def start_auth(self, context, internal_req, state):
 
         try:
@@ -83,10 +81,6 @@ class SamlBackend(BackendModule):
 
     def disco_query(self, context, internal_req, state):
         disco_state = {"state": state, }
-        # if "req_args" in request_info and "name_id_policy" in request_info["req_args"]:
-        #     disco_state["req_args"] = {
-        #         "name_id_policy":
-        #             request_info["req_args"]["name_id_policy"].to_string().decode("utf-8")}
         if internal_req.user_id_hash_type:
             disco_state["user_id_hash_type"] = internal_req.user_id_hash_type.name
 
@@ -109,8 +103,6 @@ class SamlBackend(BackendModule):
 
     def authn_request(self, context, entity_id, internal_req, state):
         _cli = self.sp
-        # req_args = request_info["req_args"]
-        # req_args = request_info["user_"]
         req_args = {"name_id_policy": self.create_name_id_policy(internal_req.user_id_hash_type)}
 
         try:
@@ -174,40 +166,20 @@ class SamlBackend(BackendModule):
             return Unauthorized("You must chose an IdP")
         else:
             state = json.loads(state)
-            # if "req_args" in state and "name_id_policy" in state["req_args"]:
-            #     state["req_args"]["name_id_policy"] = name_id_policy_from_string(
-            #         state["req_args"]["name_id_policy"])
             request_info = InternalRequest(getattr(UserIdHashType, state["user_id_hash_type"]))
-
             return self.authn_request(context, entity_id, request_info, state["state"])
 
-
-
     def _translate_response(self, response):
-
         _authn_info = response.authn_info()[0]
         user_id_hash_type = self.name_format_to_hash_type(response.name_id.format)
-        timestamp = response.response.issue_instant
-        # issuer = response.assertion.issuer.text
+        timestamp = response.assertion.authn_statement[0].authn_instant
         issuer = _authn_info[1][0]
         auth_class_ref = _authn_info[0]
 
         auth_info = AuthenticationInformation(auth_class_ref, timestamp, issuer)
         internal_resp = InternalResponse(user_id_hash_type, auth_info=auth_info)
         internal_resp.add_pysaml_attributes(response.ava)
-
-        # translated_response = {}
-        # translated_params = {}
-        # for param in VALID_ATTRIBUTES:
-        #     try:
-        #         translated_params[param] = response.ava[param]
-        #     except KeyError:
-        #         pass
-        # translated_response["ava"] = translated_params
-        # translated_response["name_id"] = response.get_subject()
-        # _authn_info = response.authn_info()[0]
-        # translated_response["auth_info"] = {"class_ref": _authn_info[0],
-        #                                     "authn_auth": _authn_info[1][0]}
+        internal_resp.user_id = response.get_subject().text
         return internal_resp
 
     def _metadata(self, context, *args):

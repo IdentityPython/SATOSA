@@ -13,7 +13,7 @@ def load_backends(config, callback):
     Load all backend modules specified in the config
 
     :type config: satosa.satosa_config.SATOSAConfig
-    :type callback: (satosa.context.Context, dict, str) -> object
+    :type callback: (satosa.context.Context, satosa.internal_data.InternalResponse, str) -> Any
     :rtype: dict[str, satosa.backends.base.BackendModule]
 
     :param config: The configuration of the satosa proxy
@@ -29,9 +29,9 @@ def load_frontends(config, callback):
     Load all frontend modules specified in the config
 
     :type config: satosa.satosa_config.SATOSAConfig
-    :type callback: (satosa.context.Context, dict, str) -> Any
+    :type callback: (satosa.context.Context, satosa.internal_data.InternalRequest, str) -> Any
     :rtype: dict[str, satosa.frontends.base.FrontendModule]
-    :rtype: list[satosa.frontends.base.FrontendModule]
+    :rtype: dict[str, satosa.frontends.base.FrontendModule]
 
     :param config: The configuration of the satosa proxy
     :param callback: Function that will be called by the frontend after the authentication request has been processed.
