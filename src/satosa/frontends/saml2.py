@@ -224,15 +224,16 @@ class SamlFrontend(FrontendModule):
 
         url_map = []
 
-        for binding, endp in self.endpoints["single_sign_on_service"].items():
-            valid_providers = ""
-            for provider in providers:
-                valid_providers = "{}|^{}".format(valid_providers, provider)
-            valid_providers = valid_providers.lstrip("|")
-            parsed_endp = urlparse(endp)
-            url_map.append(("%s/%s$" % (valid_providers, parsed_endp.path),
-                            (self.handle_authn_request, service.BINDING_MAP[binding])))
-            url_map.append(("%s/%s/(.*)$" % (valid_providers, parsed_endp.path),
-                            (self.handle_authn_request, service.BINDING_MAP[binding])))
+        for endp_category in self.endpoints:
+            for binding, endp in self.endpoints[endp_category].items():
+                valid_providers = ""
+                for provider in providers:
+                    valid_providers = "{}|^{}".format(valid_providers, provider)
+                valid_providers = valid_providers.lstrip("|")
+                parsed_endp = urlparse(endp)
+                url_map.append(("%s/%s$" % (valid_providers, parsed_endp.path),
+                                (self.handle_authn_request, service.BINDING_MAP[binding])))
+                url_map.append(("%s/%s/(.*)$" % (valid_providers, parsed_endp.path),
+                                (self.handle_authn_request, service.BINDING_MAP[binding])))
 
         return url_map
