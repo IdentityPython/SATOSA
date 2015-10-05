@@ -27,8 +27,6 @@ class MicroService(object):
         if self._child_service:
             data = self._child_service.process_service_queue(context, data)
         return self.process(context, data)
-        # data = self.process(context, data)
-        # return self._child_service.process_service_queue(context, data) if self._child_service is not None else data
 
     def process(self, context, data):
         """

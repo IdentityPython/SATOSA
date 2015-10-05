@@ -89,13 +89,45 @@ def frontend_filter(member):
 
 
 def _micro_service_filter(member):
+    """
+    Will only give a find on classes that is a subclass of MicroService, with the exception that the class
+    is not allowed to be a direct ResponseMicroService or RequestMicroService.
+
+    :type member: type | str
+    :rtype: bool
+
+    :param member: A class object
+    :return: True if match, else false
+    """
     return (inspect.isclass(member) and issubclass(member, MicroService) and member is not ResponseMicroService and
             member is not RequestMicroService)
 
+
 def _request_micro_service_filter(member):
+    """
+    Will only give a find on classes that is a subclass of RequestMicroService.
+    Use this filter to only find frontend plugins
+
+    :type member: type | str
+    :rtype: bool
+
+    :param member: A class object
+    :return: True if match, else false
+    """
     return _micro_service_filter(member) and issubclass(member, RequestMicroService)
 
+
 def _response_micro_service_filter(member):
+    """
+    Will only give a find on classes that is a subclass of ResponseMicroService.
+    Use this filter to only find frontend plugins
+
+    :type member: type | str
+    :rtype: bool
+
+    :param member: A class object
+    :return: True if match, else false
+    """
     return _micro_service_filter(member) and issubclass(member, ResponseMicroService)
 
 
