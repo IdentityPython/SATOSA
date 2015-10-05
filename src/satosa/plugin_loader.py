@@ -4,7 +4,7 @@ Some help functions to load satosa backend and frontend modules
 import inspect
 from pluginbase import PluginBase
 from satosa.micro_service.service_base import MicroService, RequestMicroService, ResponseMicroService, \
-    buld_micro_service_queue
+    build_micro_service_queue
 from satosa.plugin_base.endpoint import InterfaceModulePlugin, BackendModulePlugin, FrontendModulePlugin
 
 __author__ = 'mathiashedstrom'
@@ -192,4 +192,4 @@ def load_micro_services(plugin_path, plugins):
     """
     request_services = _load_plugins(plugin_path, plugins, _request_micro_service_filter)
     response_services = _load_plugins(plugin_path, plugins, _response_micro_service_filter)
-    return (buld_micro_service_queue(request_services), buld_micro_service_queue(response_services))
+    return (build_micro_service_queue(request_services), build_micro_service_queue(response_services))

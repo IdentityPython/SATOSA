@@ -57,12 +57,12 @@ class RequestMicroService(MicroService):
     pass
 
 
-def buld_micro_service_queue(services):
+def build_micro_service_queue(services):
     """
     Builds a micro service queue from a list of micro services
 
-    :type services: list[satosa.internal_data.InternalResponse | satosa.internal_data.InternalRequest]
-    :rtype: satosa.internal_data.InternalResponse | satosa.internal_data.InternalRequest
+    :type services: list[satosa.micro_service.service_base.ResponseMicroService| satosa.micro_service.service_base.RequestMicroService]
+    :rtype: satosa.micro_service.service_base.ResponseMicroService| satosa.micro_service.service_base.RequestMicroService
 
     :param services: A list of micro services
     :return: A micro service queue
