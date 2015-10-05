@@ -28,6 +28,8 @@ class SATOSABase(object):
         backends = load_backends(self.config, self._auth_resp_callback_func)
         frontends = load_frontends(self.config, self._auth_req_callback_func)
 
+        self.request_micro_services = None
+        self.response_micro_services = None
         if "MICRO_SERVICES" in self.config:
             self.request_micro_services, self.response_micro_services = load_micro_services(self.config.PLUGIN_PATH,
                                                                                             self.config.MICRO_SERVICES)
