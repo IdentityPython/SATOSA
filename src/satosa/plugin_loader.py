@@ -20,8 +20,9 @@ def load_backends(config, callback):
     :param callback: Function that will be called by the backend after the authentication is done.
     :return: A list of backend modules
     """
-    return _load_endpoint_modules(config.PLUGIN_PATH, config.BACKEND_MODULES, config.BASE,
-                                  callback, backend_filter)
+    return _load_endpoint_modules(
+        _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, config.BASE, backend_filter),
+        callback)
 
 
 def load_frontends(config, callback):
@@ -37,8 +38,9 @@ def load_frontends(config, callback):
     :param callback: Function that will be called by the frontend after the authentication request has been processed.
     :return: A dict of frontend modules
     """
-    return _load_endpoint_modules(config.PLUGIN_PATH, config.FRONTEND_MODULES, config.BASE,
-                                  callback, frontend_filter)
+    return _load_endpoint_modules(
+        _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, config.BASE, frontend_filter),
+        callback)
 
 
 def _member_filter(member):
@@ -84,26 +86,19 @@ def frontend_filter(member):
     return _member_filter(member) and issubclass(member, FrontendModulePlugin)
 
 
-def _load_endpoint_modules(plugin_path, modules, base_url, callback, filter):
+def _load_endpoint_modules(plugins, callback):
     """
-    Loads endpoint modules
+    Loads endpoint modules from plugins
 
-    :type plugin_path: str
-    :type modules: list[str]
-    :type base_url: str
+    :type plugins: list[satosa.plugins_base.endpoint.InterfaceModulePlugin]
     :type callback: (satosa.context.Context, dict, str) -> T
-    :type filter: (type | str) -> bool
     :rtype dict[str, satosa.frontends.base.FrontendModule | satosa.backends.base.BackendModule]
 
-    :param plugin_path: Path to the plugin directory
-    :param modules: A list with the name of the plugin files
-    :param base_url: The proxy base url
-    :param callback: A function that will be called by the loaded module
-    :param filter: Filter what to load from the file
+    :param plugins: A list of plugins
+    :param callback: A function that will be called by the loaded endpoint module
     :return: a dict with the laoded modules. Key as module name and value as module instance
     """
     endpoint_modules = {}
-    plugins = _load_plugins(plugin_path, modules, base_url, filter)
     for plugin in plugins:
         module_inst = plugin.module(callback, plugin.config)
         endpoint_modules[plugin.name] = module_inst
@@ -119,7 +114,7 @@ def _load_plugins(plugin_path, plugins, base_url, filter):
     :type plugins: list[str]
     :type base_url: str
     :type filter: (type | str) -> bool
-    :rtype list[T <= satosa.plugin_base.endpoint.InterfaceModulePlugin]
+    :rtype list[satosa.plugin_base.endpoint.InterfaceModulePlugin]
 
     :param plugin_path: Path to the plugin directory
     :param plugins: A list with the name of the plugin files

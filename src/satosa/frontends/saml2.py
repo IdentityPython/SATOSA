@@ -37,6 +37,29 @@ class SamlFrontend(FrontendModule):
         self.response_bindings = None
         self.idp = None
 
+    @staticmethod
+    def name_format_to_hash_type(name_format):
+        if name_format == NAMEID_FORMAT_TRANSIENT:
+            return UserIdHashType.transient
+        elif name_format == NAMEID_FORMAT_PERSISTENT:
+            return UserIdHashType.persistent
+        return None
+
+    @staticmethod
+    def get_name_id_format(hash_type):
+        if hash_type == UserIdHashType.transient:
+            return NAMEID_FORMAT_TRANSIENT
+        elif hash_type == UserIdHashType.persistent:
+            return NAMEID_FORMAT_PERSISTENT
+        return None
+
+    def save_state(self, context, _dict, _request):
+            return {"origin_authn_req": _dict["authn_req"].to_string().decode("utf-8"),
+                             "relay_state": _request["RelayState"]}
+
+    def load_state(self, state):
+        return json.loads(urlsafe_b64decode(state.encode("UTF-8")).decode("UTF-8"))
+
     def _validate_config(self, config):
         mandatory_keys = ["idp_config", "endpoints", "base"]
         for key in mandatory_keys:
@@ -92,12 +115,12 @@ class SamlFrontend(FrontendModule):
         return {"resp_args": resp_args, "response": _resp,
                 "authn_req": _authn_req, "req_args": req_args}
 
-    def handle_authn_request(self, context, binding_in):
+    def _handle_authn_request(self, context, binding_in, idp):
         _request = context.request
         _binding_in = service.INV_BINDING_MAP[binding_in]
 
         try:
-            _dict = self.verify_request(self.idp, _request["SAMLRequest"],
+            _dict = self.verify_request(idp, _request["SAMLRequest"],
                                         _binding_in)
         except UnknownPrincipal as excp:
             logger.error("UnknownPrincipal: %s", excp)
@@ -108,7 +131,7 @@ class SamlFrontend(FrontendModule):
 
         _binding = _dict["resp_args"]["binding"]
         if _dict["response"]:  # An error response
-            http_args = self.idp.apply_binding(
+            http_args = idp.apply_binding(
                 _binding, "%s" % _dict["response"],
                 _dict["resp_args"]["destination"],
                 _request["RelayState"], response=True)
@@ -122,8 +145,7 @@ class SamlFrontend(FrontendModule):
             except KeyError:
                 pass
 
-            request_state = {"origin_authn_req": _dict["authn_req"].to_string().decode("utf-8"),
-                             "relay_state": _request["RelayState"]}
+            request_state = self.save_state(context, _dict, _request)
 
             state = urlsafe_b64encode(json.dumps(request_state).encode("UTF-8")).decode(
                 "UTF-8")
@@ -131,28 +153,15 @@ class SamlFrontend(FrontendModule):
             internal_req = InternalRequest(self.name_format_to_hash_type(_dict['req_args']['name_id_policy'].format))
             return self.auth_req_callback_func(context, internal_req, state)
 
-    @staticmethod
-    def name_format_to_hash_type(name_format):
-        if name_format == NAMEID_FORMAT_TRANSIENT:
-            return UserIdHashType.transient
-        elif name_format == NAMEID_FORMAT_PERSISTENT:
-            return UserIdHashType.persistent
-        return None
+    def handle_authn_request(self, context, binding_in):
+        return self._handle_authn_request(context, binding_in, self.idp)
 
-    @staticmethod
-    def get_name_id_format(hash_type):
-        if hash_type == UserIdHashType.transient:
-            return NAMEID_FORMAT_TRANSIENT
-        elif hash_type == UserIdHashType.persistent:
-            return NAMEID_FORMAT_PERSISTENT
-        return None
-
-    def handle_authn_response(self, context, internal_response, state):
-        request_state = json.loads(urlsafe_b64decode(state.encode("UTF-8")).decode("UTF-8"))
+    def _handle_authn_response(self, context, internal_response, state, idp):
+        request_state = self.load_state(state)
         origin_authn_req = authn_request_from_string(request_state["origin_authn_req"])
 
         # Diverse arguments needed to construct the response
-        resp_args = self.idp.response_args(origin_authn_req)
+        resp_args = idp.response_args(origin_authn_req)
 
         ava = internal_response.get_pysaml_attributes()
         # TODO what about authn_auth in auth_info?
@@ -164,7 +173,7 @@ class SamlFrontend(FrontendModule):
                          name_qualifier=None)
 
         # Will signed the response by default
-        resp = self.construct_authn_response(self.idp,
+        resp = self.construct_authn_response(idp,
                                              ava,
                                              name_id=name_id,
                                              authn=auth_info,
@@ -173,6 +182,9 @@ class SamlFrontend(FrontendModule):
                                              sign_response=True)
 
         return resp
+
+    def handle_authn_response(self, context, internal_response, state):
+        return self._handle_authn_response(context, internal_response, state, self.idp)
 
     def construct_authn_response(self, idp, identity, name_id, authn,
                                  resp_args,
@@ -205,23 +217,7 @@ class SamlFrontend(FrontendModule):
         if providers is None or not isinstance(providers, list):
             raise TypeError("'providers' is not 'list' type")
 
-    def register_endpoints(self, providers):
-        self._validate_providers(providers)
-
-        # Add an endpoint to each provider
-        idp_endpoints = []
-        for endp_category in self.endpoints.keys():
-            for func, endpoint in self.endpoints[endp_category].items():
-                for provider in providers:
-                    endpoint = "{base}/{provider}/{endpoint}".format(
-                        base=self.base, provider=provider, endpoint=endpoint)
-                    idp_endpoints.append((endpoint, func))
-            self.config["service"]["idp"]["endpoints"][endp_category] = idp_endpoints
-
-        # Create the idp
-        idp_config = IdPConfig().load(copy.deepcopy(self.config), metadata_construction=False)
-        self.idp = Server(config=idp_config)
-
+    def _register_endpoints(self, providers):
         url_map = []
 
         for endp_category in self.endpoints:
@@ -237,3 +233,24 @@ class SamlFrontend(FrontendModule):
                                 (self.handle_authn_request, service.BINDING_MAP[binding])))
 
         return url_map
+
+    def _build_idp_config_endpoints(self, config, providers):
+        # Add an endpoint to each provider
+        idp_endpoints = []
+        for endp_category in self.endpoints.keys():
+            for func, endpoint in self.endpoints[endp_category].items():
+                for provider in providers:
+                    endpoint = "{base}/{provider}/{endpoint}".format(
+                        base=self.base, provider=provider, endpoint=endpoint)
+                    idp_endpoints.append((endpoint, func))
+            config["service"]["idp"]["endpoints"][endp_category] = idp_endpoints
+
+        return config
+
+    def register_endpoints(self, providers):
+        self._validate_providers(providers)
+        self.config = self._build_idp_config_endpoints(self.config, providers)
+        # Create the idp
+        idp_config = IdPConfig().load(copy.deepcopy(self.config), metadata_construction=False)
+        self.idp = Server(config=idp_config)
+        return self._register_endpoints(providers)
