@@ -28,8 +28,8 @@ MODULE = SamlBackend
 
 
 class Saml2BackendModulePlugin(BackendModulePlugin):
-    @staticmethod
-    def get_instance(base_url):
+
+    def __init__(self, base_url):
         module_base = "%s/%s" % (base_url, PROVIDER)
         config = {
             "disco_srv": "http://localhost:8080/role/idp.ds",
@@ -88,4 +88,4 @@ class Saml2BackendModulePlugin(BackendModulePlugin):
             }
         }
 
-        return Saml2BackendModulePlugin(MODULE, PROVIDER, config)
+        super(Saml2BackendModulePlugin, self).__init__(MODULE, PROVIDER, config)

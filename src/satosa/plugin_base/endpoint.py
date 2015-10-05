@@ -27,19 +27,6 @@ class InterfaceModulePlugin(object):
         self.name = name
         self.config = config
 
-    @staticmethod
-    def get_instance(base_url):
-        """
-        This method is used by satosa to instantiate the module plugin.
-
-        :type base_url: str
-        :rtype satosa.plugin_base.endpoint.InterfaceModulePlugin
-
-        :param base_url: the base url of the satosa proxy
-        :return: an instance of the module plugin
-        """
-        raise NotImplementedError()
-
 
 class FrontendModulePlugin(InterfaceModulePlugin):
     """

@@ -107,10 +107,10 @@ class TestConfiguration(object):
             self.fake_sp_config,
             "fake_sp")
         frontend_metadata_file = FileGenerator.get_instance().create_metadata(
-            Saml2FrontendPlugin.get_instance(self.proxy_config.BASE).config["idp_config"],
+            Saml2FrontendPlugin(self.proxy_config.BASE).config["idp_config"],
             "frontend")
         backend_metadata_file = FileGenerator.get_instance().create_metadata(
-            Saml2BackendPlugin.get_instance(self.proxy_config.BASE).config, "backend")
+            Saml2BackendPlugin(self.proxy_config.BASE).config, "backend")
 
         self.fake_idp_metadata.append(fake_idp_metadata_file.name)
         self.fake_sp_metadata.append(fake_sp_metadata_file.name)
@@ -133,8 +133,7 @@ class Saml2BackendPlugin(BackendModulePlugin):
     """
     provider = "Saml2"
 
-    @staticmethod
-    def get_instance(base_url):
+    def __init__(self, base_url):
         """
         Creates an instance of the class with defined configuration.
 
@@ -168,7 +167,7 @@ class Saml2BackendPlugin(BackendModulePlugin):
             "xmlsec_binary": TestConfiguration.get_instance().xmlsec_path,
         }
 
-        return Saml2BackendPlugin(SamlBackend, Saml2BackendPlugin.provider, config)
+        super(Saml2BackendPlugin, self).__init__(SamlBackend, Saml2BackendPlugin.provider, config)
 
 
 class Saml2FrontendPlugin(FrontendModulePlugin):
@@ -178,8 +177,7 @@ class Saml2FrontendPlugin(FrontendModulePlugin):
     endpoints = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
                                             BINDING_HTTP_POST: "sso/post"}}
 
-    @staticmethod
-    def get_instance(base_url):
+    def __init__(self, base_url):
         """
         Creates an instance of the class with defined configuration.
 
@@ -215,7 +213,7 @@ class Saml2FrontendPlugin(FrontendModulePlugin):
                   "endpoints": Saml2FrontendPlugin.endpoints,
                   "base": base_url}
 
-        return Saml2FrontendPlugin(SamlFrontend, "Saml2IDP", config)
+        super(Saml2FrontendPlugin, self).__init__(SamlFrontend, "Saml2IDP", config)
 
 
 class ProxyTest(helper.CPWebCase):

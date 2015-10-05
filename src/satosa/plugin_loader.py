@@ -3,6 +3,8 @@ Some help functions to load satosa backend and frontend modules
 """
 import inspect
 from pluginbase import PluginBase
+from satosa.micro_service.service_base import MicroService, RequestMicroService, ResponseMicroService, \
+    buld_micro_service_queue
 from satosa.plugin_base.endpoint import InterfaceModulePlugin, BackendModulePlugin, FrontendModulePlugin
 
 __author__ = 'mathiashedstrom'
@@ -21,7 +23,7 @@ def load_backends(config, callback):
     :return: A list of backend modules
     """
     return _load_endpoint_modules(
-        _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, config.BASE, backend_filter),
+        _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter, config.BASE),
         callback)
 
 
@@ -39,7 +41,7 @@ def load_frontends(config, callback):
     :return: A dict of frontend modules
     """
     return _load_endpoint_modules(
-        _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, config.BASE, frontend_filter),
+        _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter, config.BASE),
         callback)
 
 
@@ -86,6 +88,17 @@ def frontend_filter(member):
     return _member_filter(member) and issubclass(member, FrontendModulePlugin)
 
 
+def _micro_service_filter(member):
+    return (inspect.isclass(member) and issubclass(member, MicroService) and member is not ResponseMicroService and
+            member is not RequestMicroService)
+
+def _request_micro_service_filter(member):
+    return _micro_service_filter(member) and issubclass(member, RequestMicroService)
+
+def _response_micro_service_filter(member):
+    return _micro_service_filter(member) and issubclass(member, ResponseMicroService)
+
+
 def _load_endpoint_modules(plugins, callback):
     """
     Loads endpoint modules from plugins
@@ -106,20 +119,20 @@ def _load_endpoint_modules(plugins, callback):
     return endpoint_modules
 
 
-def _load_plugins(plugin_path, plugins, base_url, filter):
+def _load_plugins(plugin_path, plugins, filter, *args):
     """
     Loads endpoint plugins
 
-    :type plugin_path: str
+    :type plugin_path: list[str]
     :type plugins: list[str]
-    :type base_url: str
     :type filter: (type | str) -> bool
+    :type args: Any
     :rtype list[satosa.plugin_base.endpoint.InterfaceModulePlugin]
 
     :param plugin_path: Path to the plugin directory
     :param plugins: A list with the name of the plugin files
-    :param base_url: The proxy base url
     :param filter: Filter what to load from the module file
+    :param args: Arguments to the plugin
     :return: A list with all the loaded plugins
     """
     plugin_base = PluginBase(package='satosa_plugins')
@@ -128,5 +141,23 @@ def _load_plugins(plugin_path, plugins, base_url, filter):
     for module_file_name in plugins:
         module = plugin_source.load_plugin(module_file_name)
         for name, obj in inspect.getmembers(module, filter):
-            loaded_plugins.append(obj.get_instance(base_url))
+            loaded_plugins.append(obj(*args))
     return loaded_plugins
+
+
+def load_micro_services(plugin_path, plugins):
+    """
+    Loads micro services
+
+    :type plugin_path: list[str]
+    :type plugins: list[str]
+    :rtype (satosa.micro_service.service_base.RequestMicroService,
+    satosa.micro_service.service_base.ResponseMicroService)
+
+    :param plugin_path: Path to the plugin directory
+    :param plugins: A list with the name of the plugin files
+    :return: (Request micro service, response micro service)
+    """
+    request_services = _load_plugins(plugin_path, plugins, _request_micro_service_filter)
+    response_services = _load_plugins(plugin_path, plugins, _response_micro_service_filter)
+    return (buld_micro_service_queue(request_services), buld_micro_service_queue(response_services))

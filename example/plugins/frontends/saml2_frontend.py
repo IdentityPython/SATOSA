@@ -27,8 +27,7 @@ ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
 
 class Saml2FrontendModulePlugin(FrontendModulePlugin):
 
-    @staticmethod
-    def get_instance(base_url):
+    def __init__(self, base_url):
         idpConfig = {
             "entityid": "%s/%s/proxy.xml" % (base_url, RECEIVER),
             "description": "A SAML2SAML proxy",
@@ -83,4 +82,4 @@ class Saml2FrontendModulePlugin(FrontendModulePlugin):
                   "base": base_url,
                   }
 
-        return Saml2FrontendModulePlugin(MODULE, RECEIVER, config)
+        super(Saml2FrontendModulePlugin, self).__init__(MODULE, RECEIVER, config)

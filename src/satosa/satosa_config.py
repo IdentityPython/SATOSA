@@ -81,6 +81,9 @@ class SATOSAConfig(object):
             if self._config is not None:
                 self._config[key] = value
 
+    def __iter__(self):
+        return self._config.__iter__()
+
     @staticmethod
     def _load_dict(config):
         """

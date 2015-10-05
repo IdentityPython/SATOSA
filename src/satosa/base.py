@@ -1,7 +1,7 @@
 """
 The SATOSA main module
 """
-from satosa.plugin_loader import load_backends, load_frontends
+from satosa.plugin_loader import load_backends, load_frontends, load_micro_services
 from satosa.routing import ModuleRouter
 
 __author__ = 'mathiashedstrom'
@@ -28,6 +28,9 @@ class SATOSABase(object):
         backends = load_backends(self.config, self._auth_resp_callback_func)
         frontends = load_frontends(self.config, self._auth_req_callback_func)
 
+        if "MICRO_SERVICES" in self.config:
+            self.request_micro_services, self.response_micro_services = load_micro_services(self.config.PLUGIN_PATH,
+                                                                                            self.config.MICRO_SERVICES)
         self.module_router = ModuleRouter(frontends, backends)
 
     def _auth_req_callback_func(self, context, internal_request, state):
@@ -46,6 +49,8 @@ class SATOSABase(object):
         """
         backend, state = self.module_router.backend_routing(context, state)
         context.request = None
+        if self.request_micro_services:
+            internal_request = self.request_micro_services.process_service_queue(context, internal_request)
         return backend.start_auth(context, internal_request, state)
 
     def _auth_resp_callback_func(self, context, internal_response, state):
@@ -64,6 +69,8 @@ class SATOSABase(object):
 
         frontend, state = self.module_router.frontend_routing(state)
         context.request = None
+        if self.response_micro_services:
+            internal_response = self.response_micro_services.process_service_queue(context, internal_response)
         return frontend.handle_authn_response(context, internal_response, state)
 
     def _run_bound_endpoint(self, context, spec):
