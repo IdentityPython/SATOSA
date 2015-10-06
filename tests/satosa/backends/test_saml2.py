@@ -138,7 +138,7 @@ def test_start_auth_no_request_info():
         None,
         TestConfiguration.get_instance().spconfig)
 
-    internal_data = InternalRequest(None)
+    internal_data = InternalRequest(None, None)
 
     resp = samlbackend.start_auth(Context(), internal_data, "my_state")
     assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
@@ -147,7 +147,7 @@ def test_start_auth_no_request_info():
 
     # create_name_id_policy_transient()
     user_id_hash_type = UserIdHashType.transient
-    internal_data = InternalRequest(user_id_hash_type)
+    internal_data = InternalRequest(user_id_hash_type, None)
     resp = samlbackend.start_auth(Context(), internal_data, "my_state")
     assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
 
@@ -162,7 +162,7 @@ def test_start_auth_name_id_policy():
 
     # name_id_policy = create_name_id_policy_transient()
     # request_info = {"req_args": {"name_id_policy": name_id_policy}}
-    internal_req = InternalRequest(UserIdHashType.transient)
+    internal_req = InternalRequest(UserIdHashType.transient, None)
     resp = samlbackend.start_auth(Context(), internal_req, "my_state")
 
     assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
@@ -222,7 +222,7 @@ def test__start_auth_disco():
     # name_id_policy = create_name_id_policy_persistent()
     # request_info = {"req_args": {"name_id_policy": name_id_policy}}
 
-    internal_req = InternalRequest(UserIdHashType.persistent)
+    internal_req = InternalRequest(UserIdHashType.persistent, "example.se/sp.xml")
 
     resp = samlbackend.start_auth(Context(), internal_req, "my_state")
     assert resp.status == "303 See Other", "Must be a redirect to the discovery server."

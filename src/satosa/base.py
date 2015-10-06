@@ -1,6 +1,7 @@
 """
 The SATOSA main module
 """
+from satosa.internal_data import UserIdHasher
 from satosa.plugin_loader import load_backends, load_frontends, load_micro_services
 from satosa.routing import ModuleRouter
 
@@ -49,6 +50,7 @@ class SATOSABase(object):
 
         :return: response
         """
+        state = UserIdHasher.save_state(internal_request, state)
         backend, state = self.module_router.backend_routing(context, state)
         context.request = None
         if self.request_micro_services:
@@ -68,9 +70,9 @@ class SATOSABase(object):
         :param state: The current state
         :return: response
         """
-
-        frontend, state = self.module_router.frontend_routing(state)
+        frontend, state = self.module_router.frontend_routing(context, state)
         context.request = None
+        internal_response, state = UserIdHasher.set_id(internal_response, state)
         if self.response_micro_services:
             internal_response = self.response_micro_services.process_service_queue(context, internal_response)
         return frontend.handle_authn_response(context, internal_response, state)

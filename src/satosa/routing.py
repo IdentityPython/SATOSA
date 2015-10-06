@@ -71,19 +71,22 @@ class ModuleRouter():
         satosa_state = urlsafe_b64encode(json.dumps(satosa_state).encode("UTF-8")).decode("UTF-8")
         return backend, satosa_state
 
-    def frontend_routing(self, state):
+    def frontend_routing(self, context, state):
         """
         Returns the targeted frontend and original state
 
+        :type context: satosa.context.Context
         :type state: str
         :rtype (satosa.frontends.base.FrontendModule, str)
 
+        :param context: The response context
         :param state: The state created in the incoming function
         :return: (frontend, state)
         """
 
         unpacked_state = json.loads(urlsafe_b64decode(state.encode("UTF-8")).decode("UTF-8"))
-        frontend = self.frontends[unpacked_state["frontend"]]["instance"]
+        context._target_frontend = unpacked_state["frontend"]
+        frontend = self.frontends[context._target_frontend]["instance"]
         request_state = unpacked_state["state_key"]
         return frontend, request_state
 

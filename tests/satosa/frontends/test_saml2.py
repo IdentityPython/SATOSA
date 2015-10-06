@@ -126,7 +126,7 @@ def test_handle_authn_request(conf, binding_in, providers, error):
             :param state: The current state for the module.
             :return:
             """
-
+            assert internal_req.requestor == SPCONFIG["entityid"]
             auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
             internal_response = InternalResponse(internal_req.user_id_hash_type, auth_info=auth_info)
             internal_response.add_pysaml_attributes(USERS["testuser1"])

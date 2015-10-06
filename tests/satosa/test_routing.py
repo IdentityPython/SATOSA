@@ -102,9 +102,10 @@ def test_module_routing(router_fixture):
         backend, backend_state = router.backend_routing(context, original_state)
         assert backend == backends[provider]
 
-        frontend, frontend_state = router.frontend_routing(backend_state)
+        frontend, frontend_state = router.frontend_routing(context, backend_state)
         assert frontend == frontends[receiver]
         assert frontend_state == original_state
+        assert context._target_frontend == receiver
 
     foreach_frontend_endpoint(test_routing)
 

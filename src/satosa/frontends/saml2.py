@@ -54,8 +54,8 @@ class SamlFrontend(FrontendModule):
         return None
 
     def save_state(self, context, _dict, _request):
-            return {"origin_authn_req": _dict["authn_req"].to_string().decode("utf-8"),
-                             "relay_state": _request["RelayState"]}
+        return {"origin_authn_req": _dict["authn_req"].to_string().decode("utf-8"),
+                "relay_state": _request["RelayState"]}
 
     def load_state(self, state):
         return json.loads(urlsafe_b64decode(state.encode("UTF-8")).decode("UTF-8"))
@@ -150,7 +150,8 @@ class SamlFrontend(FrontendModule):
             state = urlsafe_b64encode(json.dumps(request_state).encode("UTF-8")).decode(
                 "UTF-8")
 
-            internal_req = InternalRequest(self.name_format_to_hash_type(_dict['req_args']['name_id_policy'].format))
+            internal_req = InternalRequest(self.name_format_to_hash_type(_dict['req_args']['name_id_policy'].format),
+                                           _dict["resp_args"]["sp_entity_id"])
             return self.auth_req_callback_func(context, internal_req, state)
 
     def handle_authn_request(self, context, binding_in):

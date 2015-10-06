@@ -2,7 +2,11 @@
 The module contains internal data representation in SATOSA and general converteras that can be used
 for converting from SAML/OAuth/OpenID connect to the internal representation.
 """
+from base64 import urlsafe_b64encode, urlsafe_b64decode
+import datetime
 from enum import Enum
+import hashlib
+import json
 
 __author__ = 'haho0032'
 
@@ -360,9 +364,40 @@ SATOSA_TO_PYSAML = dict((value, key) for key, value in PYSAML_TO_SATOSA.items())
 
 class UserIdHashType(Enum):
     transient = 1
-    persistent = 3
-    pairwise = 1
-    public = 2
+    persistent = 2
+    pairwise = 2
+    public = 3
+
+
+class UserIdHasher():
+    @staticmethod
+    def save_state(internal_request, state):
+        new_state = {"state": state,
+                     "requestor": internal_request.requestor}
+        return urlsafe_b64encode(json.dumps(new_state).encode("UTF-8")).decode("UTF-8")
+
+    @staticmethod
+    def set_id(internal_response, state):
+        state = json.loads(urlsafe_b64decode(state.encode("UTF-8")).decode("UTF-8"))
+        requestor = state["requestor"]
+        user_id = internal_response.user_id
+        user_id_hash_type = internal_response.user_id_hash_type
+
+        if user_id_hash_type == UserIdHashType.transient:
+            timestamp = datetime.datetime.now().time()
+            user_id = "{req}{time}{id}".format(req=requestor, time=timestamp, id=user_id)
+        elif user_id_hash_type == UserIdHashType.persistent:
+            user_id = "{req}{id}".format(req=requestor, id=user_id)
+        elif user_id_hash_type == UserIdHashType.pairwise:
+            user_id = "{req}{id}".format(req=requestor, id=user_id)
+        elif user_id_hash_type == UserIdHashType.public:
+            user_id = "{id}".format(id=user_id)
+        else:
+            raise ValueError("Unknown id hash type: '{}'".format(user_id_hash_type))
+
+        internal_response.user_id = hashlib.md5(user_id.encode("utf-8")).hexdigest()
+
+        return (internal_response, state["state"])
 
 
 class AuthenticationInformation(object):
@@ -378,8 +413,17 @@ class InternalData(object):
 
 
 class InternalRequest(InternalData):
-    def __init__(self, user_id_hash_type):
+    def __init__(self, user_id_hash_type, requestor):
+        """
+
+        :param user_id_hash_type:
+        :param requestor: identifier of the requestor
+
+        :type user_id_hash_type: UserIdHashType
+        :type requestor: str
+        """
         super(InternalRequest, self).__init__(user_id_hash_type)
+        self.requestor = requestor
 
 
 class InternalResponse(InternalData):

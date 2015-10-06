@@ -166,7 +166,7 @@ class SamlBackend(BackendModule):
             return Unauthorized("You must chose an IdP")
         else:
             state = json.loads(state)
-            request_info = InternalRequest(getattr(UserIdHashType, state["user_id_hash_type"]))
+            request_info = InternalRequest(getattr(UserIdHashType, state["user_id_hash_type"]), None)
             return self.authn_request(context, entity_id, request_info, state["state"])
 
     def _translate_response(self, response):
