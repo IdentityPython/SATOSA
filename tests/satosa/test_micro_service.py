@@ -3,13 +3,15 @@ from satosa.micro_service.service_base import MicroService, build_micro_service_
 
 __author__ = 'mathiashedstrom'
 
+
 def create_process_func(data_str):
     def process(context, data):
         return "{}{}".format(data, data_str)
+
     return process
 
-def test_micro_service():
 
+def test_micro_service():
     data_list = ["1", "2", "3"]
     service_list = []
     for d in data_list:
