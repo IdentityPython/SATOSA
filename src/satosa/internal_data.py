@@ -377,7 +377,7 @@ class UserIdHasher():
         return urlsafe_b64encode(json.dumps(new_state).encode("UTF-8")).decode("UTF-8")
 
     @staticmethod
-    def set_id(internal_response, state):
+    def set_id(salt, internal_response, state):
         state = json.loads(urlsafe_b64decode(state.encode("UTF-8")).decode("UTF-8"))
         requestor = state["requestor"]
         user_id = internal_response.user_id
@@ -395,7 +395,8 @@ class UserIdHasher():
         else:
             raise ValueError("Unknown id hash type: '{}'".format(user_id_hash_type))
 
-        internal_response.user_id = hashlib.md5(user_id.encode("utf-8")).hexdigest()
+        user_id += salt
+        internal_response.user_id = hashlib.sha256(user_id.encode("utf-8")).hexdigest()
 
         return (internal_response, state["state"])
 

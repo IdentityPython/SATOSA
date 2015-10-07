@@ -1,6 +1,7 @@
 """
 The SATOSA main module
 """
+from satosa.consent import ConsentModule
 from satosa.internal_data import UserIdHasher
 from satosa.plugin_loader import load_backends, load_frontends, load_micro_services
 from satosa.routing import ModuleRouter
@@ -28,6 +29,9 @@ class SATOSABase(object):
         self.config = config
         backends = load_backends(self.config, self._auth_resp_callback_func)
         frontends = load_frontends(self.config, self._auth_req_callback_func)
+        self.consent_module = ConsentModule(config, self._consent_resp_callback_func)
+        # TODO register consent_module endpoints to module_router. Just add to backend list?
+        backends["consent"] = self.consent_module
 
         self.request_micro_services = None
         self.response_micro_services = None
@@ -50,9 +54,10 @@ class SATOSABase(object):
 
         :return: response
         """
-        state = UserIdHasher.save_state(internal_request, state)
-        backend, state = self.module_router.backend_routing(context, state)
         context.request = None
+        backend, state = self.module_router.backend_routing(context, state)
+        state = self.consent_module.save_state(internal_request, state)
+        state = UserIdHasher.save_state(internal_request, state)
         if self.request_micro_services:
             internal_request = self.request_micro_services.process_service_queue(context, internal_request)
         return backend.start_auth(context, internal_request, state)
@@ -70,11 +75,16 @@ class SATOSABase(object):
         :param state: The current state
         :return: response
         """
-        frontend, state = self.module_router.frontend_routing(context, state)
+
         context.request = None
-        internal_response, state = UserIdHasher.set_id(internal_response, state)
+        internal_response, state = UserIdHasher.set_id(self.config.USER_ID_HASH_SALT, internal_response, state)
         if self.response_micro_services:
             internal_response = self.response_micro_services.process_service_queue(context, internal_response)
+        return self.consent_module.check_consent(context, internal_response, state)
+
+    def _consent_resp_callback_func(self, context, internal_response, state):
+        context.request = None
+        frontend, state = self.module_router.frontend_routing(context, state)
         return frontend.handle_authn_response(context, internal_response, state)
 
     def _run_bound_endpoint(self, context, spec):
