@@ -6,20 +6,20 @@ from satosa.internal_data import InternalResponse, AuthenticationInformation, Us
 
 __author__ = 'mathiashedstrom'
 
-class ConsentModule(object):
 
+class ConsentModule(object):
     def __init__(self, config, callback_func):
-        self.check_consent_url = config.CONSENT["service.check"]
-        self.consent_interaction = config.CONSENT["service.interaction"]
-        self.endpoint = config.CONSENT["endpoint"]
         self.callback_func = callback_func
+        self.enabled = "CONSENT" in config and ("enable" not in config.CONSENT or config.CONSENT["enable"])
+        if self.enabled:
+            self.check_consent_url = config.CONSENT["service.check"]
+            self.consent_interaction = config.CONSENT["service.interaction"]
+            self.endpoint = config.CONSENT["endpoint"]
 
     def save_state(self, internal_request, state):
-        # state = {"state": state,
-        #          "filter": internal_request.attribute_filter}
-        state = {"state": state,
-                 "filter": "some_filters"}
-        state = urlsafe_b64encode(json.dumps(state).encode("utf-8")).decode("utf-8")
+        if self.enabled:
+            state = {"state": state, "filter": internal_request._attribute_filter}
+            state = urlsafe_b64encode(json.dumps(state).encode("utf-8")).decode("utf-8")
         return state
 
     def _handle_consent_response(self, context):
@@ -30,7 +30,8 @@ class ConsentModule(object):
             state = json.loads(urlsafe_b64decode(context.request["state"].encode("utf-8")).decode("utf-8"))
 
             # rebuild internal_response from state
-            auth_info = AuthenticationInformation(state["auth_info"]["auth_class_ref"], state["auth_info"]["timestamp"], state["auth_info"]["issuer"])
+            auth_info = AuthenticationInformation(state["auth_info"]["auth_class_ref"], state["auth_info"]["timestamp"],
+                                                  state["auth_info"]["issuer"])
             internal_response = InternalResponse(getattr(UserIdHashType, state["hash_type"]), auth_info=auth_info)
             internal_response._attributes = state["attr"]
             internal_response.user_id = state["usr_id"]
@@ -40,12 +41,21 @@ class ConsentModule(object):
             return Response(message="consent NOT given")
 
     def check_consent(self, context, internal_response, state):
+
+        if not self.enabled:
+            return self.callback_func(context, internal_response, state)
+
         state = json.loads(urlsafe_b64decode(state).decode("utf-8"))
         filter = state["filter"]
         state = state["state"]
 
         # filter attributes
-        filtered_attributes = internal_response._attributes
+
+        filtered_attributes = []
+        for attr in filter:
+            if attr in internal_response._attributes:
+                filtered_attributes.append(attr)
+
         all_attributes = urlsafe_b64encode(json.dumps(filtered_attributes).encode("utf-8")).decode("utf-8")
         # Check against consent service if consent is given or not
         try:
@@ -57,7 +67,10 @@ class ConsentModule(object):
                 "Could not connect to consent service: {}".format(str(con_exc)))
 
         # update internal response
-        internal_response._attributes = filtered_attributes
+        filtered_data = {}
+        for attr in filtered_attributes:
+            filtered_data[attr] = internal_response._attributes[attr]
+        internal_response._attributes = filtered_data
 
         # Check if consent is already given
         if result["result"]:
@@ -78,7 +91,7 @@ class ConsentModule(object):
                           "hash_type": internal_response.user_id_hash_type.name,
                           "auth_info": {"issuer": auth_info.issuer,
                                         "timestamp": auth_info.timestamp,
-                                        "auth_class_ref": auth_info.auth_class_ref,}}
+                                        "auth_class_ref": auth_info.auth_class_ref, }}
         return urlsafe_b64encode(json.dumps(response_state).encode("utf-8")).decode("utf-8")
 
     def register_endpoints(self):
