@@ -73,13 +73,13 @@ def test_simple_test():
     enc_key = "Ireallyliketoencryptthisdictionary!"
     state = State()
     my_dict_frontend = get_dict(10, get_str(10), get_str(10))
-    my_dict_frontend["resp_attr"] = get_str(150)
+    my_dict_frontend["resp_attr"] = get_str(100)
     assert len(my_dict_frontend) == 11, "The dictionary is not correct!"
-    my_dict_consent = get_dict(1, get_str(10), get_str(150))
+    my_dict_consent = get_dict(1, get_str(10), get_str(100))
     assert len(my_dict_consent) == 1, "The dictionary is not correct!"
     my_dict_hash = get_dict(1, get_str(10), get_str(15))
     assert len(my_dict_hash) == 1, "The dictionary is not correct!"
-    my_dict_router = get_dict(1, get_str(10), get_str(20))
+    my_dict_router = get_dict(1, get_str(10), get_str(10))
     assert len(my_dict_router) == 1, "The dictionary is not correct!"
     my_dict_backend = get_dict(10, get_str(10), get_str(10))
     assert len(my_dict_backend) == 10, "The dictionary is not correct!"
