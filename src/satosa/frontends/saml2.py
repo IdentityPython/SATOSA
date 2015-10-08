@@ -148,13 +148,15 @@ class SamlFrontend(FrontendModule):
             request_state = self.save_state(context, _dict, _request)
             state = urlsafe_b64encode(json.dumps(request_state).encode("UTF-8")).decode("UTF-8")
 
-            idp_policy = idp.config.getattr("policy", "idp")
-            entity_categories = idp_policy.get_entity_categories(_dict["resp_args"]["sp_entity_id"], idp.metadata)
-            attribute_filter = list(entity_categories.keys())
-
             internal_req = InternalRequest(self.name_format_to_hash_type(_dict['req_args']['name_id_policy'].format),
                                            _dict["resp_args"]["sp_entity_id"])
-            internal_req.add_pysaml_attr_filter(attribute_filter)
+
+            idp_policy = idp.config.getattr("policy", "idp")
+            if idp_policy:
+                entity_categories = idp_policy.get_entity_categories(_dict["resp_args"]["sp_entity_id"], idp.metadata)
+                attribute_filter = list(entity_categories.keys())
+                internal_req.add_pysaml_attr_filter(attribute_filter)
+
             return self.auth_req_callback_func(context, internal_req, state)
 
     def handle_authn_request(self, context, binding_in):

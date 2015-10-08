@@ -31,7 +31,8 @@ class SATOSABase(object):
         frontends = load_frontends(self.config, self._auth_req_callback_func)
         self.consent_module = ConsentModule(config, self._consent_resp_callback_func)
         # TODO register consent_module endpoints to module_router. Just add to backend list?
-        backends["consent"] = self.consent_module
+        if self.consent_module.enabled:
+            backends["consent"] = self.consent_module
 
         self.request_micro_services = None
         self.response_micro_services = None
