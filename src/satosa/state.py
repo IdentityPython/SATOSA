@@ -4,36 +4,78 @@ server.
 """
 import base64
 import json
-from zipfile import LZMACompressor, LZMADecompressor
 import hashlib
+from lzma import LZMADecompressor, LZMACompressor
+
 from Crypto import Random
 from Crypto.Cipher import AES
 
 
 class AESCipher(object):
+    """
+    This class will perform AES encryption/decryption with a keylength of 256.
+    """
 
     def __init__(self, key):
+        """
+        Constructor
+
+        :type key: str
+
+        :param key: The key used for encryption and decryption. The longer key the better.
+        """
         self.bs = 32
         self.key = hashlib.sha256(key.encode()).digest()
 
     def encrypt(self, raw):
+        """
+        Encryptes the parameter raw.
+
+        :type raw: bytes
+        :rtype: str
+
+        :param: bytes to be encrypted.
+
+        :return: A base 64 encoded string.
+        """
         raw = self._pad(raw)
         iv = Random.new().read(AES.block_size)
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
         return base64.b64encode(iv + cipher.encrypt(raw))
 
     def decrypt(self, enc):
+        """
+        Decryptes the parameter enc.
+
+        :type enc: bytes
+        :rtype: bytes
+
+        :param: The value to be decrypted.
+        :return: The decrypted value.
+        """
         enc = base64.b64decode(enc)
         iv = enc[:AES.block_size]
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        return self._unpad(cipher.decrypt(enc[AES.block_size:])).decode('utf-8')
+        return self._unpad(cipher.decrypt(enc[AES.block_size:]))
 
-    def _pad(self, s):
-        return s + (self.bs - len(s) % self.bs) * chr(self.bs - len(s) % self.bs)
+    def _pad(self, b):
+        """
+        Will padd the param to be of the correct length for the encryption alg.
+
+        :type b: bytes
+        :rtype: bytes
+        """
+        return b + (self.bs - len(b) % self.bs) * chr(self.bs - len(b) % self.bs).encode("UTF-8")
 
     @staticmethod
-    def _unpad(s):
-        return s[:-ord(s[len(s)-1:])]
+    def _unpad(b):
+        """
+        Removes the padding performed by the method _pad.
+
+        :type b: bytes
+        :rtype: bytes
+        """
+        return b[:-ord(b[len(b) - 1:])]
 
 
 class State(object):
@@ -62,6 +104,9 @@ class State(object):
             lzma = LZMADecompressor()
             urlstate_data = lzma.decompress(urlstate_data)
             urlstate_data = AESCipher(encryption_key).decrypt(urlstate_data)
+            lzma = LZMADecompressor()
+            urlstate_data = lzma.decompress(urlstate_data)
+            urlstate_data = urlstate_data.decode("UTF-8")
             self._state_dict = json.loads(urlstate_data)
 
     def add(self, key, data):
@@ -101,13 +146,18 @@ class State(object):
         """
         Will return a url safe representation of the state.
 
+        :type encryption_key: Key used for encryption.
         :rtype: str
 
         :return: Url representation av of the state.
         """
+        lzma = LZMACompressor()
         urlstate_data = json.dumps(self._state_dict)
-        urlstate_data = AESCipher(encryption_key).encrypt(urlstate_data.encode('utf-8'))
+        urlstate_data = lzma.compress(urlstate_data.encode("UTF-8"))
+        urlstate_data += lzma.flush()
+        urlstate_data = AESCipher(encryption_key).encrypt(urlstate_data)
         lzma = LZMACompressor()
         urlstate_data = lzma.compress(urlstate_data)
+        urlstate_data += lzma.flush()
         urlstate_data = base64.b64encode(urlstate_data)
         return urlstate_data
