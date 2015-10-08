@@ -81,7 +81,7 @@ def test_simple_test():
     assert len(my_dict_hash) == 1, "The dictionary is not correct!"
     my_dict_router = get_dict(1, get_str(10), get_str(20))
     assert len(my_dict_router) == 1, "The dictionary is not correct!"
-    my_dict_backend = get_dict(10, get_str(10), get_str(20))
+    my_dict_backend = get_dict(10, get_str(10), get_str(10))
     assert len(my_dict_backend) == 10, "The dictionary is not correct!"
     state.add("my_dict_frontend", my_dict_frontend)
     state.add("my_dict_consent", my_dict_consent)
