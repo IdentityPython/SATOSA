@@ -454,6 +454,14 @@ class InternalResponse(InternalData):
         """
         self.add_attributes(PYSAML_TO_SATOSA, dict)
 
+    def add_oidc_attributes(self, dict):
+        """
+        :type dict: dict[str, str]
+        :param dict:
+        :return:
+        """
+        self.add_attributes(OIDC_TO_SATOSA, dict)
+
     def get_pysaml_attributes(self):
         return self.get_attributes(SATOSA_TO_PYSAML)
 

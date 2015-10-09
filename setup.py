@@ -23,6 +23,7 @@ setup(
                  'Programming Language :: Python :: 3.4'],
     install_requires=["pysaml2 >= 3.0.0",
                       "pluginbase",
-                      "future"],
+                      "future",
+                      "oic"],
     zip_safe=False,
 )
