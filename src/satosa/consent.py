@@ -1,3 +1,6 @@
+"""
+A consent module for the satosa proxy
+"""
 import hashlib
 from http.cookies import SimpleCookie
 import json
@@ -14,6 +17,9 @@ __author__ = 'mathiashedstrom'
 
 
 class ConsentModule(object):
+    """
+    Module for handling consent. Uses an external consent service
+    """
 
     STATE_KEY = "CONSENT"
 
@@ -33,11 +39,30 @@ class ConsentModule(object):
             self.sign_key.use = "sig"
 
     def save_state(self, internal_request, state):
+        """
+        Save stuff needed by the consent module when getting an internal response
+
+        :type internal_request: satosa.internal_data.InternalRequest
+        :type state: satosa.state.State
+        :rtype: None
+
+        :param internal_request: The current request
+        :param state: the current state
+        :return: None
+        """
         if self.enabled:
             state.add(ConsentModule.STATE_KEY, {"fr": internal_request._attribute_filter,
                                                 "reqor": internal_request.requestor})
 
     def _handle_consent_response(self, context):
+        """
+        Endpoint for handling consent service response
+        :type context: satosa.context.Context
+        :rtype context: Any
+
+        :param context: response context
+        :return: response
+        """
         # Handle answer from consent service
         # load state
         state = State(SimpleCookie(context.cookie)["consent_state"].value, self.state_enc_key)
@@ -65,6 +90,19 @@ class ConsentModule(object):
             return Response(message="consent was NOT given")
 
     def manage_consent(self, context, internal_response, state):
+        """
+        Manage consent and attribute filtering
+
+        :type context: satosa.context.Context
+        :type internal_response: satosa.internal_data.InternalResponse
+        :type state: satosa.state.State
+        :rtype: Any
+
+        :param context: response context
+        :param internal_response: the response
+        :param state: the current state
+        :return: response
+        """
 
         if not self.enabled:
             return self.callback_func(context, internal_response, state)
@@ -110,11 +148,32 @@ class ConsentModule(object):
         return Redirect(consent_redirect, headers=[tuple(cookie.output().split(": ", 1))], content="text/html")
 
     def _get_consent_id(self, requestor, user_id, filtered_attr):
+        """
+        Get a hashed id based on requestor, user id and filtered attributes
+
+        :type requestor: str
+        :type user_id: str
+        :type filtered_attr: list[str]
+
+        :param requestor: The calling requestor
+        :param user_id: The authorized user id
+        :param filtered_attr: a list containing all attributes to be sent
+        :return: an id
+        """
         filtered_attr.sort()
         id_string = "%s%s%s" % (requestor, user_id, json.dumps(filtered_attr))
         return urlsafe_b64encode(hashlib.sha224(id_string.encode("utf-8")).hexdigest().encode("utf-8")).decode("utf-8")
 
     def _verify_consent(self, id):
+        """
+        Connects to the consent service using the REST api and checks if the user has given consent
+
+        :type id: str
+        :rtype: bool
+
+        :param id: An id associated to the authenticated user, the calling requestor and attributes to be sent.
+        :return: True if given consent, else False
+        """
         try:
             request = "{}/verify/{}".format(self.consent_uri, id)
             res = requests.get(request, verify=False)
@@ -124,6 +183,14 @@ class ConsentModule(object):
         return res.status_code == 200
 
     def _internal_resp_to_dict(self, internal_response):
+        """
+        Converts an InternalResponse object to a dict
+
+        :type internal_response: satosa.internal_data.InternalResponse
+
+        :param internal_response: The incoming response
+        :return: A dict representation of internal_response
+        """
         # TODO move to InternalResponse?
         auth_info = internal_response.auth_info
         response_state = {"usr_id": internal_response.user_id,
@@ -135,9 +202,25 @@ class ConsentModule(object):
         return response_state
 
     def _to_jws(self, data):
+        """
+        Converts data to a jws
+
+        :type data: Any
+        :rtype: str
+
+        :param data: Data to be converted to jws
+        :return: a jws
+        """
         algorithm = "RS256"
         _jws = JWS(json.dumps(data), alg=algorithm)
         return _jws.sign_compact([self.sign_key])
 
     def register_endpoints(self):
+        """
+        Register consent module endpoints
+
+        :rtype: list[(srt, (satosa.context.Context) -> Any)]
+
+        :return: A list of endpoints bound to a function
+        """
         return [("^consent/%s?(.*)$" % self.endpoint, self._handle_consent_response)]
