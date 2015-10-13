@@ -21,6 +21,7 @@ class ConsentModule(object):
         self.callback_func = callback_func
         self.enabled = "CONSENT" in config and ("enable" not in config.CONSENT or config.CONSENT["enable"])
         if self.enabled:
+            self.proxy_base = config.BASE
             self.state_enc_key = config.CONSENT["state_enc_key"]
             self.consent_uri = config.CONSENT["service.rest_uri"]
             self.consent_redirect_url = config.CONSENT["service.consent_redirect"]
@@ -102,7 +103,7 @@ class ConsentModule(object):
 
         consent_args = {"attr": filtered_attributes,
                         "id": id_hash,
-                        "redirect_endpoint": self.consent_redirect_url}
+                        "redirect_endpoint": "%s/consent/%s" % (self.proxy_base, self.endpoint)}
         consent_args_json = self._to_jws(consent_args)
 
         consent_redirect = "%s?jwt=%s" % (self.consent_redirect_url, consent_args_json)
