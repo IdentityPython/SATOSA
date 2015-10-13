@@ -6,6 +6,7 @@ import random
 import tempfile
 import sys
 import re
+from Crypto.PublicKey import RSA
 from saml2 import server, BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.authn_context import AuthnBroker, authn_context_class_ref, PASSWORD
 from saml2.cert import OpenSSLWrapper
@@ -236,6 +237,11 @@ class FileGenerator(object):
         return tmp_file
 
 
+def private_to_public_key(pk_file):
+    f = open(pk_file, 'r')
+    pk = RSA.importKey(f.read())
+    return pk.publickey().exportKey('PEM')
+
 def create_name_id():
     """
     :rtype: str
@@ -250,6 +256,7 @@ def create_name_id():
 </NameID>
 """
     return name_id_from_string(test_name_id)
+
 
 def create_name_id_policy_transient():
     """

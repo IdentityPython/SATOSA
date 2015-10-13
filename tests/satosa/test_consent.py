@@ -1,5 +1,7 @@
 import re
 from urllib.parse import urlparse, parse_qs
+from jwkest import jws
+from jwkest.jwk import rsa_load, RSAKey, import_rsa_key
 from jwkest.jwt import JWT
 import pytest
 import responses
@@ -9,7 +11,7 @@ from satosa.context import Context
 from satosa.internal_data import InternalResponse, UserIdHashType, InternalRequest, AuthenticationInformation
 from satosa.satosa_config import SATOSAConfig
 from satosa.state import State
-from tests.util import FileGenerator
+from tests.util import FileGenerator, private_to_public_key
 
 __author__ = 'mathiashedstrom'
 
@@ -22,6 +24,8 @@ SATOSA_CONFIG = {"HOST": 'localhost',
                  "USER_ID_HASH_SALT": "qwerty"}
 
 CONSENT_CERT, CONSENT_KEY = FileGenerator.get_instance().generate_cert("consent")
+
+CONSENT_PUB_KEY_STR = private_to_public_key(CONSENT_KEY.name)
 
 CONSENT_CONFIG = {"CONSENT":
                       {"service.rest_uri": "https://localhost:8055",
@@ -57,12 +61,12 @@ class ConsentService():
         assert len(parsed_url["jwt"]) == 1
 
         # # Assert signature
-        # _bkey = rsa_load(CONSENT_CERT.name)
-        # sign_key = RSAKey().load_key(_bkey)
-        # sign_key.use = "sig"
-        #
-        # _jw = jws.factory(parsed_url["jwt"][0])
-        # _jw.verify_compact(parsed_url["jwt"][0], sign_key)
+        _bkey = import_rsa_key(CONSENT_PUB_KEY_STR)
+        sign_key = RSAKey().load_key(_bkey)
+        sign_key.use = "sig"
+
+        _jw = jws.factory(parsed_url["jwt"][0])
+        _jw.verify_compact(parsed_url["jwt"][0], [sign_key])
 
         # unpack jwt
         _jwt = JWT().unpack(parsed_url["jwt"][0])
