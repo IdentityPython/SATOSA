@@ -47,7 +47,7 @@ class SATOSABase(object):
 
         :type context: satosa.context.Context
         :type internal_request: satosa.internal_data.InternalRequest
-        :type state: str
+        :type state: satosa.state.State
 
         :param context: The request context
         :param internal_request: request processed by the frontend
@@ -56,9 +56,9 @@ class SATOSABase(object):
         :return: response
         """
         context.request = None
-        backend, state = self.module_router.backend_routing(context, state)
-        state = self.consent_module.save_state(internal_request, state)
-        state = UserIdHasher.save_state(internal_request, state)
+        backend = self.module_router.backend_routing(context, state)
+        self.consent_module.save_state(internal_request, state)
+        UserIdHasher.save_state(internal_request, state)
         if self.request_micro_services:
             internal_request = self.request_micro_services.process_service_queue(context, internal_request)
         return backend.start_auth(context, internal_request, state)
@@ -69,7 +69,7 @@ class SATOSABase(object):
 
         :type context: satosa.context.Context
         :type internal_response: satosa.internal_data.InternalResponse
-        :type state: str
+        :type state: satosa.state.State
 
         :param context: The request context
         :param internal_response: The authentication response
@@ -78,14 +78,14 @@ class SATOSABase(object):
         """
 
         context.request = None
-        internal_response, state = UserIdHasher.set_id(self.config.USER_ID_HASH_SALT, internal_response, state)
+        internal_response = UserIdHasher.set_id(self.config.USER_ID_HASH_SALT, internal_response, state)
         if self.response_micro_services:
             internal_response = self.response_micro_services.process_service_queue(context, internal_response)
-        return self.consent_module.check_consent(context, internal_response, state)
+        return self.consent_module.manage_consent(context, internal_response, state)
 
     def _consent_resp_callback_func(self, context, internal_response, state):
         context.request = None
-        frontend, state = self.module_router.frontend_routing(context, state)
+        frontend = self.module_router.frontend_routing(context, state)
         return frontend.handle_authn_response(context, internal_response, state)
 
     def _run_bound_endpoint(self, context, spec):

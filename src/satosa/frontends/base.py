@@ -11,7 +11,7 @@ class FrontendModule(object):
 
     def __init__(self, auth_req_callback_func):
         """
-        :type auth_req_callback_func: (satosa.context.Context, satosa.internal_data.InternalData, str) -> Any
+        :type auth_req_callback_func: (satosa.context.Context, satosa.internal_data.InternalData, satosa.state.State) -> Any
 
         :param auth_req_callback_func: Callback should be called by the module after the authorization response
                                        has been processed.
@@ -25,7 +25,7 @@ class FrontendModule(object):
 
         :type context: satosa.context.Context
         :type internal_resp: satosa.internal_data.InternalResponse
-        :type state: str
+        :type state: satosa.state.State
         :rtype Any
 
         :param context: The request context

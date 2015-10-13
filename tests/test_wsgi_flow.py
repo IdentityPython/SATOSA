@@ -146,6 +146,7 @@ class Saml2BackendPlugin(BackendModulePlugin):
         """
         module_base = "%s/%s" % (base_url, Saml2BackendPlugin.provider)
         config = {
+            "encryption_key": "asd89673oeirds90",
             "idp_entity_id": "https://example.com/unittest_idp.xml",
             "entityid": "%s/proxy_sp.xml" % module_base,
             "service": {

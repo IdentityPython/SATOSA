@@ -41,7 +41,7 @@ class AESCipher(object):
         raw = self._pad(raw)
         iv = Random.new().read(AES.block_size)
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        return base64.b64encode(iv + cipher.encrypt(raw))
+        return base64.urlsafe_b64encode(iv + cipher.encrypt(raw))
 
     def decrypt(self, enc):
         """
@@ -53,7 +53,7 @@ class AESCipher(object):
         :param: The value to be decrypted.
         :return: The decrypted value.
         """
-        enc = base64.b64decode(enc)
+        enc = base64.urlsafe_b64decode(enc)
         iv = enc[:AES.block_size]
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
         return self._unpad(cipher.decrypt(enc[AES.block_size:]))
@@ -100,7 +100,8 @@ class State(object):
         """
         self._state_dict = {}
         if urlstate_data is not None:
-            urlstate_data = base64.b64decode(urlstate_data)
+            urlstate_data = urlstate_data.encode("utf-8")
+            urlstate_data = base64.urlsafe_b64decode(urlstate_data)
             lzma = LZMADecompressor()
             urlstate_data = lzma.decompress(urlstate_data)
             urlstate_data = AESCipher(encryption_key).decrypt(urlstate_data)
@@ -159,5 +160,5 @@ class State(object):
         lzma = LZMACompressor()
         urlstate_data = lzma.compress(urlstate_data)
         urlstate_data += lzma.flush()
-        urlstate_data = base64.b64encode(urlstate_data)
-        return urlstate_data
+        urlstate_data = base64.urlsafe_b64encode(urlstate_data)
+        return urlstate_data.decode("utf-8")

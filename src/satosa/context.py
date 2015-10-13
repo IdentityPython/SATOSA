@@ -30,6 +30,7 @@ class Context(object):
         self._target_backend = None
         self._target_frontend = None
         self.internal_data = {}
+        self.cookie = None
 
     @property
     def path(self):

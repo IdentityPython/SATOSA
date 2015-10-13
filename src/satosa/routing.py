@@ -28,6 +28,9 @@ class ModuleRouter():
     Routes url paths to their bound functions
     and handles the internal routing between frontends and backends.
     """
+
+    STATE_KEY = "ROUTER"
+
     def __init__(self, frontends, backends):
         """
         :type frontends: dict[str, satosa.frontends.base.FrontendModule]
@@ -58,37 +61,35 @@ class ModuleRouter():
         Returns the targeted backend and an updated state
 
         :type context: satosa.context.Context
-        :type state: str
-        :rtype (satosa.backends.base.BackendModule, str)
+        :type state: satosa.state.State
+        :rtype satosa.backends.base.BackendModule
 
         :param context: The request context
         :param state: The current state
-        :return: (backend, state)
+        :return: backend
         """
 
         backend = self.backends[context._target_backend]["instance"]
-        satosa_state = {"state_key": state, "frontend": context._target_frontend}
-        satosa_state = urlsafe_b64encode(json.dumps(satosa_state).encode("UTF-8")).decode("UTF-8")
-        return backend, satosa_state
+        state.add(ModuleRouter.STATE_KEY, context._target_frontend)
+        return backend
 
     def frontend_routing(self, context, state):
         """
         Returns the targeted frontend and original state
 
         :type context: satosa.context.Context
-        :type state: str
-        :rtype (satosa.frontends.base.FrontendModule, str)
+        :type state: satosa.state.State
+        :rtype satosa.frontends.base.FrontendModule
 
         :param context: The response context
         :param state: The state created in the incoming function
-        :return: (frontend, state)
+        :return: frontend
         """
 
-        unpacked_state = json.loads(urlsafe_b64decode(state.encode("UTF-8")).decode("UTF-8"))
-        context._target_frontend = unpacked_state["frontend"]
+        target_frontend = state.get(ModuleRouter.STATE_KEY)
+        context._target_frontend = target_frontend
         frontend = self.frontends[context._target_frontend]["instance"]
-        request_state = unpacked_state["state_key"]
-        return frontend, request_state
+        return frontend
 
     def _validate_context(self, context):
         """

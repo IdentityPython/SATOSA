@@ -370,16 +370,16 @@ class UserIdHashType(Enum):
 
 
 class UserIdHasher():
+
+    STATE_KEY = "IDHASHER"
+
     @staticmethod
     def save_state(internal_request, state):
-        new_state = {"state": state,
-                     "requestor": internal_request.requestor}
-        return urlsafe_b64encode(json.dumps(new_state).encode("UTF-8")).decode("UTF-8")
+        state.add(UserIdHasher.STATE_KEY, internal_request.requestor)
 
     @staticmethod
     def set_id(salt, internal_response, state):
-        state = json.loads(urlsafe_b64decode(state.encode("UTF-8")).decode("UTF-8"))
-        requestor = state["requestor"]
+        requestor = state.get(UserIdHasher.STATE_KEY)
         user_id = internal_response.user_id
         user_id_hash_type = internal_response.user_id_hash_type
 
@@ -398,7 +398,7 @@ class UserIdHasher():
         user_id += salt
         internal_response.user_id = hashlib.sha256(user_id.encode("utf-8")).hexdigest()
 
-        return (internal_response, state["state"])
+        return internal_response
 
 
 class AuthenticationInformation(object):
