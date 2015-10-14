@@ -2,8 +2,10 @@
 The SATOSA main module
 """
 from satosa.consent import ConsentModule
+from satosa.exception import SATOSAError
 from satosa.internal_data import UserIdHasher
 from satosa.plugin_loader import load_backends, load_frontends, load_micro_services
+from satosa.response import Response
 from satosa.routing import ModuleRouter
 
 __author__ = 'mathiashedstrom'
@@ -88,6 +90,10 @@ class SATOSABase(object):
         frontend = self.module_router.frontend_routing(context, state)
         return frontend.handle_authn_response(context, internal_response, state)
 
+    def _handle_satosa_error(self, error):
+        frontend = self.module_router.frontend_routing(error.state)
+        frontend.handle_backend_error(error)
+
     def _run_bound_endpoint(self, context, spec):
         """
 
@@ -98,10 +104,13 @@ class SATOSABase(object):
         :param spec: bound endpoint function
         :return: response
         """
-        if isinstance(spec, tuple):
-            return spec[0](context, *spec[1:])
-        else:
-            return spec(context)
+        try:
+            if isinstance(spec, tuple):
+                return spec[0](context, *spec[1:])
+            else:
+                return spec(context)
+        except SATOSAError as error:
+            return self._handle_satosa_error(error)
 
     def run(self, context):
         """
@@ -113,4 +122,9 @@ class SATOSABase(object):
         :return: response
         """
         spec = self.module_router.endpoint_routing(context)
-        return self._run_bound_endpoint(context, spec)
+        try:
+            resp = self._run_bound_endpoint(context, spec)
+        except Exception as error:
+            # TODO Log error
+            resp = Response(error, status=500)
+        return resp

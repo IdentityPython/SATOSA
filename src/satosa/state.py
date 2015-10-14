@@ -3,6 +3,7 @@ This class contains all needed to keep a request state, without saving any infor
 server.
 """
 import base64
+import copy
 from http.cookies import SimpleCookie
 import json
 import hashlib
@@ -179,3 +180,15 @@ class State(object):
         urlstate_data += lzma.flush()
         urlstate_data = base64.urlsafe_b64encode(urlstate_data)
         return urlstate_data.decode("utf-8")
+    
+    def copy(self):
+        """
+        Returns a deepcopy of the state
+
+        :rtype: satosa.state.State
+
+        :return: A copy of the state
+        """
+        state_copy = State()
+        state_copy._state_dict = copy.deepcopy(self._state_dict)
+        return state_copy
