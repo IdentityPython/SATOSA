@@ -1,10 +1,9 @@
-import json
 import logging
 
 from oic.utils.http_util import Redirect
 from oic.exception import MissingAttribute
 from oic import oic
-from oic.oauth2 import rndstr, ErrorResponse
+from oic.oauth2 import ErrorResponse
 from oic.oic import ProviderConfigurationResponse, AuthorizationResponse
 from oic.oic import RegistrationResponse
 from oic.oic import AuthorizationRequest
@@ -28,8 +27,8 @@ class Client(oic.Client):
         if behaviour:
             self.behaviour = behaviour
 
-    def create_authn_request(self, state, acr_value=None, **kwargs):
-        request_args = self.setup_authn_request_args(acr_value, kwargs, state)
+    def create_authn_request(self, state, nonce, acr_value=None, **kwargs):
+        request_args = self.setup_authn_request_args(acr_value, kwargs, state, nonce)
 
         cis = self.construct_AuthorizationRequest(request_args=request_args)
         logger.debug("request: %s" % cis)
@@ -48,13 +47,11 @@ class Client(oic.Client):
         logger.debug("resp_headers: %s" % resp.headers)
         return resp
 
-    def setup_authn_request_args(self, acr_value, kwargs, state):
-        nonce = rndstr()
-        state["nonce"] = nonce
+    def setup_authn_request_args(self, acr_value, kwargs, state, nonce):
         request_args = {
             "response_type": self.behaviour["response_type"],
             "scope": self.behaviour["scope"],
-            "state": json.dumps(state),
+            "state": state,
             "nonce": nonce,
             "redirect_uri": self.registration_response["redirect_uris"][0]
         }

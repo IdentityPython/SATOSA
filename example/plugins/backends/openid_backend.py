@@ -46,3 +46,5 @@ class RpConfig(object):
         self.ACR_VALUES = ["PASSWORD"]
         self.VERIFY_SSL = False
         self.OP_URL = "https://localhost:8092"
+        self.STATE_ENCRYPTION_KEY = "Qrn9IQ5hr9uUnIdNQe2e0KxsmR3CusyARs3RKLjp"
+        self.STATE_ID = "OpenID_Qrn9R3Cus"

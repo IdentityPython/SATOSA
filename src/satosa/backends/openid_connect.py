@@ -1,11 +1,12 @@
 from datetime import datetime
-import json
 from urllib.parse import urlparse
 
 from jwkest.jws import alg2keytype
+from oic.oauth2 import rndstr
 from oic.oic.message import RegistrationResponse, ProviderConfigurationResponse
 from oic.utils.authn.authn_context import UNSPECIFIED
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
+
 from oic.utils.http_util import Redirect
 
 from oic.utils.keyio import KeyJar
@@ -13,6 +14,7 @@ from oic.utils.keyio import KeyJar
 from satosa.backends.base import BackendModule
 from satosa.backends.oidc import OIDCClients
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
+from satosa.state import State
 
 __author__ = 'danielevertsson'
 
@@ -39,15 +41,22 @@ class OpenIdBackend(BackendModule):
         self.config = config
         self.oidc_clients = OIDCClients(self.config)
 
-    def start_auth(self, context, request_info, original_state):
+    def start_auth(self, context, request_info, state):
         client = self.oidc_clients.dynamic_client(self.config.OP_URL)
-        state = {
+
+        nonce = rndstr()
+        state_data = {
             "op": client.provider_info["issuer"],
-            "original_state": original_state,
+            "nonce": nonce
         }
 
+        state.add(self.config.STATE_ID, state_data)
         try:
-            resp = client.create_authn_request(state, self.config.ACR_VALUES)
+            resp = client.create_authn_request(
+                state.urlstate(self.config.STATE_ENCRYPTION_KEY),
+                nonce,
+                self.config.ACR_VALUES
+            )
         except Exception:
             raise
         else:
@@ -71,10 +80,10 @@ class OpenIdBackend(BackendModule):
         return url_map
 
     def redirect_endpoint(self, context, *args):
-        state = json.loads(context.request['state'])
-
+        state = State(context.request['state'], self.config.STATE_ENCRYPTION_KEY)
+        backend_state = state.get(self.config.STATE_ID)
         try:
-            client = self.oidc_clients.client[state["op"]]
+            client = self.oidc_clients.client[backend_state["op"]]
         except KeyError:
             val = {
                 "srv_discovery_url": self.config.OP_URL,
@@ -114,9 +123,9 @@ class OpenIdBackend(BackendModule):
         return self.auth_callback_func(context,
                                        self._translate_response(
                                            result,
-                                           state["op"]
+                                           backend_state["op"]
                                        ),
-                                       state['original_state'])
+                                       state)
 
     def _translate_response(self, response, issuer):
 
