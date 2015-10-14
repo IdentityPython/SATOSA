@@ -4,6 +4,7 @@ Tests for the state class.
 import random
 import string
 from urllib.parse import quote_plus
+
 from satosa.state import State
 
 __author__ = 'haho0032'
@@ -89,8 +90,8 @@ def test_simple_test():
     state.add("my_dict_router", my_dict_router)
     state.add("my_dict_backend", my_dict_backend)
     urlstate = state.urlstate(enc_key)
-    #Some browsers only support 2000bytes, and since state is not the only parameter it should
-    #not be greater then half that size.
+    # Some browsers only support 2000bytes, and since state is not the only parameter it should
+    # not be greater then half that size.
     urlstate_len = len(quote_plus(urlstate))
     print("Size of state on the url is:%s" % urlstate_len)
     assert urlstate_len < 1000, "Urlstate is way to long!"

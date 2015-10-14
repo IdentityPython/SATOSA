@@ -2,11 +2,9 @@
 The module contains internal data representation in SATOSA and general converteras that can be used
 for converting from SAML/OAuth/OpenID connect to the internal representation.
 """
-from base64 import urlsafe_b64encode, urlsafe_b64decode
 import datetime
 from enum import Enum
 import hashlib
-import json
 
 __author__ = 'haho0032'
 
@@ -370,7 +368,6 @@ class UserIdHashType(Enum):
 
 
 class UserIdHasher():
-
     STATE_KEY = "IDHASHER"
 
     @staticmethod

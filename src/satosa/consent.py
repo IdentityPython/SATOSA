@@ -4,14 +4,17 @@ A consent module for the satosa proxy
 import hashlib
 from http.cookies import SimpleCookie
 import json
+from base64 import urlsafe_b64encode
+
 from jwkest.jws import JWS
 import requests
-from base64 import urlsafe_b64encode
 from saml2.httputil import Redirect, Response
+from jwkest.jwk import rsa_load
+
+from jwkest.jwk import RSAKey
+
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
 from satosa.state import State
-from jwkest.jwk import rsa_load
-from jwkest.jwk import RSAKey
 
 __author__ = 'mathiashedstrom'
 
@@ -25,7 +28,8 @@ class ConsentModule(object):
 
     def __init__(self, config, callback_func):
         self.callback_func = callback_func
-        self.enabled = "CONSENT" in config and ("enable" not in config.CONSENT or config.CONSENT["enable"])
+        self.enabled = "CONSENT" in config and (
+        "enable" not in config.CONSENT or config.CONSENT["enable"])
         if self.enabled:
             self.proxy_base = config.BASE
             self.state_enc_key = config.CONSENT["state_enc_key"]
@@ -70,9 +74,11 @@ class ConsentModule(object):
         saved_resp = consent_state["internal_resp"]
 
         # rebuild internal_response from state
-        auth_info = AuthenticationInformation(saved_resp["auth_info"]["auth_class_ref"], saved_resp["auth_info"]["timestamp"],
+        auth_info = AuthenticationInformation(saved_resp["auth_info"]["auth_class_ref"],
+                                              saved_resp["auth_info"]["timestamp"],
                                               saved_resp["auth_info"]["issuer"])
-        internal_response = InternalResponse(getattr(UserIdHashType, saved_resp["hash_type"]), auth_info=auth_info)
+        internal_response = InternalResponse(getattr(UserIdHashType, saved_resp["hash_type"]),
+                                             auth_info=auth_info)
         internal_response._attributes = saved_resp["attr"]
         internal_response.user_id = saved_resp["usr_id"]
 
@@ -145,7 +151,8 @@ class ConsentModule(object):
         consent_args_json = self._to_jws(consent_args)
 
         consent_redirect = "%s?jwt=%s" % (self.consent_redirect_url, consent_args_json)
-        return Redirect(consent_redirect, headers=[tuple(cookie.output().split(": ", 1))], content="text/html")
+        return Redirect(consent_redirect, headers=[tuple(cookie.output().split(": ", 1))],
+                        content="text/html")
 
     def _get_consent_id(self, requestor, user_id, filtered_attr):
         """
@@ -162,7 +169,8 @@ class ConsentModule(object):
         """
         filtered_attr.sort()
         id_string = "%s%s%s" % (requestor, user_id, json.dumps(filtered_attr))
-        return urlsafe_b64encode(hashlib.sha224(id_string.encode("utf-8")).hexdigest().encode("utf-8")).decode("utf-8")
+        return urlsafe_b64encode(
+            hashlib.sha224(id_string.encode("utf-8")).hexdigest().encode("utf-8")).decode("utf-8")
 
     def _verify_consent(self, id):
         """

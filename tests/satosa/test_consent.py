@@ -1,14 +1,18 @@
 import re
 from urllib.parse import urlparse, parse_qs
+
 from jwkest import jws
-from jwkest.jwk import rsa_load, RSAKey, import_rsa_key
+from jwkest.jwk import RSAKey, import_rsa_key
 from jwkest.jwt import JWT
 import pytest
 import responses
+
 from saml2.httputil import Redirect
+
 from satosa.consent import ConsentModule
 from satosa.context import Context
-from satosa.internal_data import InternalResponse, UserIdHashType, InternalRequest, AuthenticationInformation
+from satosa.internal_data import InternalResponse, UserIdHashType, InternalRequest, \
+    AuthenticationInformation
 from satosa.satosa_config import SATOSAConfig
 from satosa.state import State
 from tests.util import FileGenerator, private_to_public_key
@@ -141,7 +145,8 @@ def test_consent_flow():
 
     auth_info = AuthenticationInformation("auth_class_ref", "timestamp", "issuer")
     internal_response = InternalResponse(UserIdHashType.persistent, auth_info=auth_info)
-    internal_response.add_pysaml_attributes({"displayName": "Test", "co": "example", "sn": "removed_by_filter"})
+    internal_response.add_pysaml_attributes(
+        {"displayName": "Test", "co": "example", "sn": "removed_by_filter"})
     internal_response.user_id = "usrID"
 
     url_re = re.compile(r'%s/verify/.*' % consent_config.CONSENT["service.rest_uri"])

@@ -1,11 +1,9 @@
 #!/usr/bin/env python
-from base64 import urlsafe_b64encode, urlsafe_b64decode
 import copy
-import json
 import logging
 from urllib.parse import urlparse
-from saml2.config import IdPConfig
 
+from saml2.config import IdPConfig
 from saml2.httputil import ServiceError
 from saml2.httputil import Response
 from saml2.httputil import Redirect
@@ -14,10 +12,11 @@ from saml2.s_utils import UnknownPrincipal
 from saml2.s_utils import UnsupportedBinding
 from saml2.saml import NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT, NameID
 from saml2.samlp import authn_request_from_string
+
 from saml2.server import Server
+
 from satosa.frontends.base import FrontendModule
 from satosa.internal_data import UserIdHashType, InternalRequest
-
 import satosa.service as service
 from satosa.service import response
 from satosa.state import State
@@ -158,7 +157,8 @@ class SamlFrontend(FrontendModule):
 
             idp_policy = idp.config.getattr("policy", "idp")
             if idp_policy:
-                entity_categories = idp_policy.get_entity_categories(_dict["resp_args"]["sp_entity_id"], idp.metadata)
+                entity_categories = idp_policy.get_entity_categories(
+                    _dict["resp_args"]["sp_entity_id"], idp.metadata)
                 attribute_filter = list(entity_categories.keys())
                 internal_req.add_pysaml_attr_filter(attribute_filter)
 

@@ -1,23 +1,23 @@
 """
 Tests for the SAML frontend module src/backends/saml2.py.
 """
-from base64 import urlsafe_b64decode
-import json
 from urllib import parse
 import re
+
 from saml2 import BINDING_HTTP_POST
 from saml2.authn_context import PASSWORD
 from saml2.config import IdPConfig
 from saml2.entity_category.edugain import COC
 from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN, EU
 from saml2.extension.idpdisc import BINDING_DISCO
+
 from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
+
 from satosa.backends.saml2 import SamlBackend
 from satosa.context import Context
 from satosa.internal_data import UserIdHashType, InternalRequest
 from satosa.state import State
 from tests.users import USERS
-
 from tests.util import FileGenerator, FakeIdP
 
 __author__ = 'haho0032'
@@ -182,7 +182,6 @@ def test_start_auth_name_id_policy():
     assert "entityID" in disco_resp and disco_resp["entityID"][0] == sp_config["entityid"], \
         "Not a valid entity id in the call to the discovery server"
     info = parse.parse_qs(disco_resp["return"][0].replace(sp_disco_resp + "?", ""))
-
 
     request_info_tmp = State(info["state"][0], samlbackend.state_encryption_key)
     assert request_info_tmp.get(test_state_key) == "my_state", "Wrong state!"

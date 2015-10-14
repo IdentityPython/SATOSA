@@ -1,17 +1,13 @@
-#--- SATOSA Config ---#
-HOST: '130.239.200.190'
+HOST: '127.0.0.1'
 PORT: 8090
 HTTPS: Yes
 PLUGIN_PATH:
   - "plugins/backends"
   - "plugins/frontends"
-  - "plugins/micro_services"
 BACKEND_MODULES:
-  - "saml2_backend"
+  - "openid_backend"
 FRONTEND_MODULES:
   - "saml2_frontend"
-MICRO_SERVICES:
-  - "test_service"
 
 #--- Server Config ---#
 SERVER_CERT: 'pki/mycert.pem'

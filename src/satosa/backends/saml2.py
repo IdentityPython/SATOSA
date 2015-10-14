@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-from base64 import urlsafe_b64encode, urlsafe_b64decode
 import copy
-import json
 import logging
 from urllib.parse import urlparse
 
@@ -16,11 +14,12 @@ from saml2.response import VerificationError
 from saml2.s_utils import UnknownPrincipal
 from saml2.s_utils import UnsupportedBinding
 from saml2.saml import NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
+
 from saml2.samlp import NameIDPolicy
+
 from satosa.backends.base import BackendModule
 from satosa.internal_data import UserIdHashType, InternalRequest, InternalResponse, \
     AuthenticationInformation
-
 from satosa.service import BINDING_MAP, response
 import satosa.service as service
 from satosa.state import State
@@ -37,7 +36,6 @@ class MetadataResponse(Response):
 
 
 class SamlBackend(BackendModule):
-
     STATE_KEY = "Saml2B_76ASF"
 
     def __init__(self, outgoing, config):
@@ -172,7 +170,8 @@ class SamlBackend(BackendModule):
         except KeyError:
             return Unauthorized("You must chose an IdP")
         else:
-            request_info = InternalRequest(getattr(UserIdHashType, state.get(SamlBackend.STATE_KEY)), None)
+            request_info = InternalRequest(
+                getattr(UserIdHashType, state.get(SamlBackend.STATE_KEY)), None)
             return self.authn_request(context, entity_id, request_info, state)
 
     def _translate_response(self, response):

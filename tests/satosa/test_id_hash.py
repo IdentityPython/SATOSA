@@ -1,4 +1,3 @@
-import pytest
 from satosa.internal_data import InternalRequest, UserIdHashType, UserIdHasher, InternalResponse
 from satosa.state import State
 
