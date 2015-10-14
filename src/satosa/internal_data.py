@@ -113,6 +113,11 @@ SATOSA_ATTRIBUTES = {
     'noredupersonnin': True,
     'o': True,
     'objectclass': True,
+    'osihomeurl': True,
+    'osimiddlename': True,
+    'osiotheremail': True,
+    'osiotherhomephone': True,
+    'osiworkurl': True,
     'organizationname': True,
     'organizationalstatus': True,
     'organizationalunitname': True,
@@ -138,6 +143,8 @@ SATOSA_ATTRIBUTES = {
     'rfc822mailbox': True,
     'roleoccupant': True,
     'roomnumber': True,
+    'schacgender': True,
+    'schacdateofbirth': True,
     'soarecord': True,
     'searchguide': True,
     'secretary': True,
@@ -177,22 +184,22 @@ OIDC_TO_SATOSA = {
     'name': 'name',
     'given_name': 'givenname',
     'family_name': 'surname',
-    'middle_name': None,
+    'middle_name': 'osimiddlename',
     'nickname': 'edupersonnickname',
     'preferred_username': 'userid',
-    'profile_string': '',  # url of the end-user's profile page.
-    'picture': None,  # url of the end-user's profile picture.
-    'website': None,  # url of the end-user's web page or blog.
+    'profile_string': 'osihomeurl',
+    'picture': 'jpegphoto',
+    'website': 'osiworkurl',
     'email': 'email',
-    'email_verified': None,  # boolean - true if the end-user's e-mail address is verified;
-    'gender': None,  # end-user's gender.
-    'birthdate': None,  # end-user's birthday
-    'zoneinfo': None,  # time zone database representing the end-user's time zone.
-    'locale': None,  # end-user's locale
-    'phone_number': None,
-    'phone_number_verified': None,
-    'address': None,
-    'updated_at': None  # time the end-user's information was last updated.
+    'email_verified': 'osiotheremail',
+    'gender': 'schacgender',
+    'birthdate': 'schacdateofbirth',
+    'zoneinfo': 'osipreferredtimezone',
+    'locale': 'preferredlanguage',
+    'phone_number': 'hometelephonenumber',
+    'phone_number_verified': 'osiotherhomephone',
+    'address': 'postaladdress',
+    'updated_at': 'osiicardtimelastupdated'
 }
 
 SATOSA_TO_OIDC = dict((value, key) for key, value in OIDC_TO_SATOSA.items())
@@ -299,10 +306,15 @@ PYSAML_TO_SATOSA = {
     'norEduPersonLIN': 'noredupersonlin',
     'norEduPersonNIN': 'noredupersonnin',
     'o': 'o',
-    'objectClass': 'objectclass',
-    'organizationName': 'organizationname',
-    'organizationalStatus': 'organizationalstatus',
-    'organizationalUnitName': 'organizationalunitname',
+    'objectclass': 'objectclass',
+    'osihomeurl': 'osihomeurl',
+    'osimiddlename': 'osimiddlename',
+    'osiotheremail': 'osiotheremail',
+    'osiotherhomephone': 'osiotherhomephone',
+    'osiworkurl': 'osiworkurl',
+    'organizationname': 'organizationname',
+    'organizationalstatus': 'organizationalstatus',
+    'organizationalunitname': 'organizationalunitname',
     'otherMailbox': 'othermailbox',
     'ou': 'ou',
     'owner': 'owner',
@@ -325,6 +337,8 @@ PYSAML_TO_SATOSA = {
     'rfc822Mailbox': 'rfc822mailbox',
     'roleOccupant': 'roleoccupant',
     'roomNumber': 'roomnumber',
+    'schacgender': 'schacgender',
+    'schacdateofbirth': 'schacdateofbirth',
     'sOARecord': 'soarecord',
     'searchGuide': 'searchguide',
     'secretary': 'secretary',
