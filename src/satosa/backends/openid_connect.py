@@ -1,13 +1,14 @@
 from datetime import datetime
 import json
-
 from urllib.parse import urlparse
 
 from jwkest.jws import alg2keytype
-
+from oic.oic.message import RegistrationResponse, ProviderConfigurationResponse
 from oic.utils.authn.authn_context import UNSPECIFIED
-
+from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.http_util import Redirect
+
+from oic.utils.keyio import KeyJar
 
 from satosa.backends.base import BackendModule
 from satosa.backends.oidc import OIDCClients
@@ -27,19 +28,22 @@ def id_token_as_signed_jwt(client, id_token, alg="RS256"):
     return _signed_jwt
 
 
-class OpenidRP(BackendModule):
+class MissingUrlPath(Exception):
+    pass
+
+
+class OpenIdBackend(BackendModule):
     def __init__(self, auth_callback_func, config):
-        super(OpenidRP, self).__init__(auth_callback_func)
+        super(OpenIdBackend, self).__init__(auth_callback_func)
         self.auth_callback_func = auth_callback_func
         self.config = config
-        self.clients = OIDCClients(self.config)
+        self.oidc_clients = OIDCClients(self.config)
 
     def start_auth(self, context, request_info, original_state):
-        # entity_id = b64decode(entity_id).decode("utf-8")
-        client = self.clients.dynamic_client(self.config.OP_URL)
+        client = self.oidc_clients.dynamic_client(self.config.OP_URL)
         state = {
             "op": client.provider_info["issuer"],
-            "original_state": original_state
+            "original_state": original_state,
         }
 
         try:
@@ -52,11 +56,6 @@ class OpenidRP(BackendModule):
     def register_endpoints(self):
         url_map = []
 
-        # post_logout_redirect_uris = self.config.CLIENTS[""]["client_info"][
-        #     "post_logout_redirect_uris"]
-        # for uri in post_logout_redirect_uris:
-        #     url_map = self._add_endpoint_to_url_map(uri, url_map, self.logout_endpoint)
-
         redirect_uris = self.config.CLIENTS[""]["client_info"]["redirect_uris"]
         for uri in redirect_uris:
             url_map = self._add_endpoint_to_url_map(uri, url_map, self.redirect_endpoint)
@@ -65,41 +64,48 @@ class OpenidRP(BackendModule):
 
     def _add_endpoint_to_url_map(self, endpoint, url_map, function, binding=None):
         url = urlparse(endpoint)
-        url_map.append(("^%s?(.+?)$" % url.path[1:], (function, binding)))
-        url_map.append(("^%s$" % url.path[1:], (function, binding)))
+        if not url.path:
+            raise MissingUrlPath()
+        url_map.append(("%s?(.+?)" % url.path[1:], (function, binding)))
+        url_map.append(("%s" % url.path[1:], (function, binding)))
         return url_map
-
-    # def logout_endpoint(self, context):
-    #     # session = environ['beaker.session']
-    #     state = context.request['state']
-    #
-    #     client = self.clients[state['op']]
-    #     logout_url = client.end_session_endpoint
-    #     try:
-    #         # Specify to which URL the OP should return the user after
-    #         # log out. That URL must be registered with the OP at client
-    #         # registration.
-    #         logout_url += "?" + urlencode(
-    #             {"post_logout_redirect_uri": client.registration_response[
-    #                 "post_logout_redirect_uris"][0]})
-    #     except KeyError:
-    #         pass
-    #     else:
-    #         # If there is an ID token send it along as a id_token_hint
-    #         _idtoken = get_id_token(client, state)
-    #         if _idtoken:
-    #             logout_url += "&" + urlencode({
-    #                 "id_token_hint": id_token_as_signed_jwt(client, _idtoken,
-    #                                                         "HS256")})
-    #         # Also append the ACR values
-    #         logout_url += "&" + urlencode({"acr_values": self.config.ACR_VALUES},
-    #                                                True)
-    #     resp = Redirect(str(logout_url))
-    #     return resp
 
     def redirect_endpoint(self, context, *args):
         state = json.loads(context.request['state'])
-        client = self.clients[state["op"]]
+
+        try:
+            client = self.oidc_clients.client[state["op"]]
+        except KeyError:
+            val = {
+                "srv_discovery_url": self.config.OP_URL,
+                "client_registration": {
+                    "client_id": "client_1",
+                    "client_secret": "2222222222",
+                    "redirect_uris": ["%sauthz_cb" %
+                                      self.config.CLIENTS[""]["client_info"]["redirect_uris"][0]]
+                },
+                "behaviour": {
+                    "response_type": "code",
+                }
+            }
+            client = self.oidc_clients.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
+                                                  behaviour=val["behaviour"],
+                                                  verify_ssl=self.config.VERIFY_SSL)
+            client.token_endpoint = self.config.OP_URL + "token"
+            client.keyjar = KeyJar(verify_ssl=self.config.VERIFY_SSL)
+            pcr = ProviderConfigurationResponse()
+            pcr['jwks_uri'] = self.config.OP_URL + "static/jwks.json"
+            # client.keyjar.load_keys(pcr, self.config.OP_URL)
+            client.handle_provider_config(pcr, self.config.OP_URL)
+            for issuer, keybundle_list in client.keyjar.issuer_keys.items():
+                for kb in keybundle_list:
+                    if kb.remote:
+                        kb.do_remote()
+            client.store_registration_info(RegistrationResponse(
+                **val["client_registration"]))
+            client.userinfo_endpoint = self.config.OP_URL + "userinfo_endpoint"
+
+
         result = client.callback(context.request)
         if isinstance(result, Redirect):
             # TODO this should be handled in a correct way
@@ -114,7 +120,7 @@ class OpenidRP(BackendModule):
 
     def _translate_response(self, response, issuer):
 
-        subject_type = self.clients.config.CLIENTS[""]["client_info"]["subject_type"]
+        subject_type = self.oidc_clients.config.CLIENTS[""]["client_info"]["subject_type"]
         auth_info = AuthenticationInformation(UNSPECIFIED, str(datetime.now()), issuer)
 
         internal_resp = InternalResponse(
@@ -131,10 +137,3 @@ class OpenidRP(BackendModule):
         elif name_format == "pairwise":
             return UserIdHashType.pairwise
         return None
-
-        # def get_metadata_desc(self):
-        #     metadata_desciption = []
-        #     desc = {}
-        #     desc["entityid"] = b64encode(self.config.OP_URL.encode("utf-8")).decode("utf-8")
-        #     metadata_desciption.append(desc)
-        #     return metadata_desciption

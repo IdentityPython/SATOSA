@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import os.path
 
-from satosa.backends.openid_connect import OpenidRP
+from satosa.backends.openid_connect import OpenIdBackend
 from satosa.plugin_base.endpoint import BackendModulePlugin
 
 XMLSEC_PATH = '/usr/local/bin/xmlsec1'
@@ -14,14 +14,14 @@ def full_path(local_file):
 
 
 PROVIDER = "openid_connect"
-MODULE = OpenidRP
+MODULE = OpenIdBackend
 
 
 class OpenidPlugin(BackendModulePlugin):
     def __init__(self, base_url):
         module_base = "%s/%s/" % (base_url, PROVIDER)
         config = RpConfig(module_base)
-        super(OpenidPlugin, self).__init__(OpenidRP, PROVIDER, config)
+        super(OpenidPlugin, self).__init__(OpenIdBackend, PROVIDER, config)
 
 
 class RpConfig(object):

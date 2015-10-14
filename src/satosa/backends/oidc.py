@@ -29,20 +29,8 @@ class Client(oic.Client):
             self.behaviour = behaviour
 
     def create_authn_request(self, state, acr_value=None, **kwargs):
-        nonce = rndstr()
-        state["nonce"] = nonce
-        request_args = {
-            "response_type": self.behaviour["response_type"],
-            "scope": self.behaviour["scope"],
-            "state": json.dumps(state),
-            "nonce": nonce,
-            "redirect_uri": self.registration_response["redirect_uris"][0]
-        }
+        request_args = self.setup_authn_request_args(acr_value, kwargs, state)
 
-        if acr_value is not None:
-            request_args["acr_values"] = acr_value
-
-        request_args.update(kwargs)
         cis = self.construct_AuthorizationRequest(request_args=request_args)
         logger.debug("request: %s" % cis)
 
@@ -59,6 +47,21 @@ class Client(oic.Client):
             resp.headers.extend([(a, b) for a, b in ht_args.items()])
         logger.debug("resp_headers: %s" % resp.headers)
         return resp
+
+    def setup_authn_request_args(self, acr_value, kwargs, state):
+        nonce = rndstr()
+        state["nonce"] = nonce
+        request_args = {
+            "response_type": self.behaviour["response_type"],
+            "scope": self.behaviour["scope"],
+            "state": json.dumps(state),
+            "nonce": nonce,
+            "redirect_uri": self.registration_response["redirect_uris"][0]
+        }
+        if acr_value is not None:
+            request_args["acr_values"] = acr_value
+        request_args.update(kwargs)
+        return request_args
 
     def callback(self, response):
         """
