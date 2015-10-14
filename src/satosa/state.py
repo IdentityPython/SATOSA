@@ -3,12 +3,29 @@ This class contains all needed to keep a request state, without saving any infor
 server.
 """
 import base64
+from http.cookies import SimpleCookie
 import json
 import hashlib
 from lzma import LZMADecompressor, LZMACompressor
 
 from Crypto import Random
 from Crypto.Cipher import AES
+
+STATE_COOKIE_MAX_AGE = 600
+STATE_COOKIE_SECURE = True
+
+
+def state_to_cookie(state, name, path, encryption_key):
+    cookie = SimpleCookie()
+    cookie[name] = state.urlstate(encryption_key)
+    cookie[name]["secure"] = STATE_COOKIE_SECURE
+    cookie[name]["path"] = path
+    cookie[name]["max-age"] = STATE_COOKIE_MAX_AGE
+    return cookie
+
+
+def cookie_to_state(cookie_str, name, encryption_key):
+    return State(SimpleCookie(cookie_str)[name].value, encryption_key)
 
 
 class AESCipher(object):

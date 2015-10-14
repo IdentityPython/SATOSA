@@ -20,10 +20,9 @@ from saml2.samlp import NameIDPolicy
 from satosa.backends.base import BackendModule
 from satosa.internal_data import UserIdHashType, InternalRequest, InternalResponse, \
     AuthenticationInformation
-
-from satosa.service import BINDING_MAP, response
-import satosa.service as service
-from satosa.state import State
+from satosa.response import Redirect
+from satosa.service import rndstr
+from satosa.state import state_to_cookie, cookie_to_state
 
 LOGGER = logging.getLogger(__name__)
 
@@ -37,7 +36,6 @@ class MetadataResponse(Response):
 
 
 class SamlBackend(BackendModule):
-
     STATE_KEY = "Saml2B_76ASF"
 
     def __init__(self, outgoing, config):
@@ -95,14 +93,10 @@ class SamlBackend(BackendModule):
         disco_resp = _cli.config.getattr("endpoints", "sp")["discovery_response"]
         # The first value of the first tuple is the one I want
         ret = disco_resp[0][0]
-        # append it to the disco server URL
-        # TODO MAKE COOKIE !!!!!!
-        ret += "?state=%s" % state.urlstate(self.state_encryption_key)
-        # ret += "?%s" % disco_state
+        state_cookie = state_to_cookie(state, "saml2_backend_disco_state", "/", self.state_encryption_key)
         loc = _cli.create_discovery_service_request(self.discosrv, eid,
                                                     **{"return": ret})
-
-        return SeeOther(loc)
+        return Redirect(loc, state_cookie)
 
     def authn_request(self, context, entity_id, internal_req, state):
         _cli = self.sp
@@ -124,15 +118,27 @@ class SamlBackend(BackendModule):
             req_id, req = _cli.create_authn_request(destination,
                                                     binding=return_binding,
                                                     **req_args)
-
-            ht_args = _cli.apply_binding(_binding, "%s" % req, destination,
-                                         relay_state=state.urlstate(self.state_encryption_key))
+            relay_state = rndstr()
+            ht_args = _cli.apply_binding(_binding, "%s" % req, destination, relay_state=relay_state)
             LOGGER.debug("ht_args: %s" % ht_args)
         except Exception as exc:
             LOGGER.exception(exc)
             return ServiceError("Failed to construct the AuthnRequest: %s" % exc)
 
-        return response(_binding, ht_args)
+        state.add(SamlBackend.STATE_KEY, relay_state)
+
+        if _binding == BINDING_HTTP_REDIRECT:
+            state_cookie = state_to_cookie(state, "saml2_backend_state", "/", self.state_encryption_key)
+            for param, value in ht_args["headers"]:
+                if param == "Location":
+                    resp = Redirect(str(value), state_cookie)
+                    break
+            else:
+                resp = ServiceError("Parameter error")
+        else:
+            resp = Response(ht_args["data"], headers=ht_args["headers"])
+
+        return resp
 
     def authn_response(self, context, binding):
         _authn_response = context.request
@@ -141,7 +147,6 @@ class SamlBackend(BackendModule):
             LOGGER.info("Missing Response")
             return Unauthorized('Unknown user')
 
-        binding = service.INV_BINDING_MAP[binding]
         try:
             _response = self.sp.parse_authn_request_response(
                 _authn_response["SAMLResponse"], binding)
@@ -156,7 +161,11 @@ class SamlBackend(BackendModule):
         except Exception as err:
             return ServiceError("Other error: %s" % (err,))
 
-        state = State(_authn_response['RelayState'], self.state_encryption_key)
+        # TODO What if no cookie?
+        state = cookie_to_state(context.cookie, "saml2_backend_state", self.state_encryption_key)
+
+        # TODO What if the relay_state doesnt match the cookie state?
+        assert state.get(SamlBackend.STATE_KEY) == _authn_response['RelayState']
 
         return self.auth_callback_func(context,
                                        self._translate_response(_response),
@@ -164,9 +173,8 @@ class SamlBackend(BackendModule):
 
     def disco_response(self, context, *args):
         info = context.request
-        # TODO get from cookie
-        # state = urlsafe_b64decode(info["state"].encode("utf-8")).decode("utf-8")
-        state = State(info["state"], self.state_encryption_key)
+        # TODO What if no cookie?
+        state = cookie_to_state(context.cookie, "saml2_backend_disco_state", self.state_encryption_key)
         try:
             entity_id = info[self.idp_disco_query_param]
         except KeyError:
@@ -197,9 +205,9 @@ class SamlBackend(BackendModule):
         for endp, binding in sp_endpoints["assertion_consumer_service"]:
             parsed_endp = urlparse(endp)
             url_map.append(
-                ("^%s?(.*)$" % parsed_endp.path[1:], (self.authn_response, BINDING_MAP[binding])))
+                ("^%s?(.*)$" % parsed_endp.path[1:], (self.authn_response, binding)))
             url_map.append(
-                ("^%s$" % parsed_endp.path[1:], (self.authn_response, BINDING_MAP[binding])))
+                ("^%s$" % parsed_endp.path[1:], (self.authn_response, binding)))
 
         try:
             metadata_path = urlparse(self.config["publish_metadata"])
@@ -211,6 +219,6 @@ class SamlBackend(BackendModule):
             for endp, binding in sp_endpoints["discovery_response"]:
                 parsed_endp = urlparse(endp)
                 url_map.append(
-                    ("^%s$" % parsed_endp.path[1:], (self.disco_response, BINDING_MAP[binding])))
+                    ("^%s$" % parsed_endp.path[1:], (self.disco_response, binding)))
 
         return url_map
