@@ -41,7 +41,8 @@ class TestConfiguration(object):
                              "HTTPS": True,
                              "PLUGIN_PATH": [os.path.dirname(__file__)],
                              "BACKEND_MODULES": [inspect.getmodulename(__file__)],
-                             "FRONTEND_MODULES": [inspect.getmodulename(__file__)]}
+                             "FRONTEND_MODULES": [inspect.getmodulename(__file__)],
+                             "USER_ID_HASH_SALT": "qwerty"}
 
         self.proxy_config = SATOSAConfig(proxy_config_dict)
 
@@ -145,6 +146,7 @@ class Saml2BackendPlugin(BackendModulePlugin):
         """
         module_base = "%s/%s" % (base_url, Saml2BackendPlugin.provider)
         config = {
+            "encryption_key": "asd89673oeirds90",
             "idp_entity_id": "https://example.com/unittest_idp.xml",
             "entityid": "%s/proxy_sp.xml" % module_base,
             "service": {

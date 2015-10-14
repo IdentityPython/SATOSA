@@ -20,11 +20,14 @@ from satosa.internal_data import UserIdHashType, InternalRequest
 
 import satosa.service as service
 from satosa.service import response
+from satosa.state import State
 
 logger = logging.getLogger(__name__)
 
 
 class SamlFrontend(FrontendModule):
+    STATE_KEY = "SamlF_HY34CV"
+
     def __init__(self, auth_req_callback_func, conf):
         if conf is None:
             raise TypeError("conf can't be 'None'")
@@ -58,7 +61,7 @@ class SamlFrontend(FrontendModule):
                 "relay_state": _request["RelayState"]}
 
     def load_state(self, state):
-        return json.loads(urlsafe_b64decode(state.encode("UTF-8")).decode("UTF-8"))
+        return state.get(SamlFrontend.STATE_KEY)
 
     def _validate_config(self, config):
         mandatory_keys = ["idp_config", "endpoints", "base"]
@@ -146,12 +149,19 @@ class SamlFrontend(FrontendModule):
                 pass
 
             request_state = self.save_state(context, _dict, _request)
-
-            state = urlsafe_b64encode(json.dumps(request_state).encode("UTF-8")).decode(
-                "UTF-8")
+            # state = urlsafe_b64encode(json.dumps(request_state).encode("UTF-8")).decode("UTF-8")
+            state = State()
+            state.add(SamlFrontend.STATE_KEY, request_state)
 
             internal_req = InternalRequest(self.name_format_to_hash_type(_dict['req_args']['name_id_policy'].format),
                                            _dict["resp_args"]["sp_entity_id"])
+
+            idp_policy = idp.config.getattr("policy", "idp")
+            if idp_policy:
+                entity_categories = idp_policy.get_entity_categories(_dict["resp_args"]["sp_entity_id"], idp.metadata)
+                attribute_filter = list(entity_categories.keys())
+                internal_req.add_pysaml_attr_filter(attribute_filter)
+
             return self.auth_req_callback_func(context, internal_req, state)
 
     def handle_authn_request(self, context, binding_in):

@@ -1,14 +1,27 @@
 #--- SATOSA Config ---#
-HOST: 'localhost'
+HOST: '130.239.200.190'
 PORT: 8090
 HTTPS: Yes
 PLUGIN_PATH:
   - "plugins/backends"
   - "plugins/frontends"
+  - "plugins/micro_services"
 BACKEND_MODULES:
-  - "saml2_backend"
+  - "vopaas_saml2_backend"
 FRONTEND_MODULES:
-  - "saml2_frontend"
+  - "vopaas_saml2_frontend"
+MICRO_SERVICES:
+  - "test_service"
+USER_ID_HASH_SALT: "61a89d2db0b9e1e27d490d050b478fe71f352fddd3528a44157f43e339c6c62f2362fb413179937d96172bf84233317"
+CONSENT:
+  enable: Yes
+  service.verify: "https://localhost:8055/verify"
+  service.consent: "https://localhost:8055/consent"
+  endpoint: "handle_consent"
+  sign_key: "pki/mykey.pem"
+  state_enc_key: "7D1ZGckfoiQfxvsK3DLCQFGutA6KM0ZzoSnzB"
+  cookie_max-age: 300 # 5 min
+
 
 #--- Server Config ---#
 SERVER_CERT: 'pki/mycert.pem'

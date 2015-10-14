@@ -23,6 +23,7 @@ from satosa.internal_data import UserIdHashType, InternalRequest, InternalRespon
 
 from satosa.service import BINDING_MAP, response
 import satosa.service as service
+from satosa.state import State
 
 LOGGER = logging.getLogger(__name__)
 
@@ -36,10 +37,14 @@ class MetadataResponse(Response):
 
 
 class SamlBackend(BackendModule):
+
+    STATE_KEY = "Saml2B_76ASF"
+
     def __init__(self, outgoing, config):
         super(SamlBackend, self).__init__(outgoing)
         sp_config = SPConfig().load(copy.deepcopy(config), False)
 
+        self.state_encryption_key = config["encryption_key"]
         self.sp = Base(sp_config)
         self.idp_disco_query_param = "entityID"
         self.config = config
@@ -80,11 +85,8 @@ class SamlBackend(BackendModule):
             return self.disco_query(context, internal_req, state)
 
     def disco_query(self, context, internal_req, state):
-        disco_state = {"state": state, }
         if internal_req.user_id_hash_type:
-            disco_state["user_id_hash_type"] = internal_req.user_id_hash_type.name
-
-        disco_state = urlsafe_b64encode(json.dumps(disco_state).encode("utf-8")).decode("utf-8")
+            state.add(SamlBackend.STATE_KEY, internal_req.user_id_hash_type.name)
 
         _cli = self.sp
 
@@ -94,7 +96,8 @@ class SamlBackend(BackendModule):
         # The first value of the first tuple is the one I want
         ret = disco_resp[0][0]
         # append it to the disco server URL
-        ret += "?state=%s" % disco_state
+        # TODO MAKE COOKIE !!!!!!
+        ret += "?state=%s" % state.urlstate(self.state_encryption_key)
         # ret += "?%s" % disco_state
         loc = _cli.create_discovery_service_request(self.discosrv, eid,
                                                     **{"return": ret})
@@ -123,7 +126,7 @@ class SamlBackend(BackendModule):
                                                     **req_args)
 
             ht_args = _cli.apply_binding(_binding, "%s" % req, destination,
-                                         relay_state=state)
+                                         relay_state=state.urlstate(self.state_encryption_key))
             LOGGER.debug("ht_args: %s" % ht_args)
         except Exception as exc:
             LOGGER.exception(exc)
@@ -153,21 +156,24 @@ class SamlBackend(BackendModule):
         except Exception as err:
             return ServiceError("Other error: %s" % (err,))
 
+        state = State(_authn_response['RelayState'], self.state_encryption_key)
+
         return self.auth_callback_func(context,
                                        self._translate_response(_response),
-                                       _authn_response['RelayState'])
+                                       state)
 
     def disco_response(self, context, *args):
         info = context.request
-        state = urlsafe_b64decode(info["state"].encode("utf-8")).decode("utf-8")
+        # TODO get from cookie
+        # state = urlsafe_b64decode(info["state"].encode("utf-8")).decode("utf-8")
+        state = State(info["state"], self.state_encryption_key)
         try:
             entity_id = info[self.idp_disco_query_param]
         except KeyError:
             return Unauthorized("You must chose an IdP")
         else:
-            state = json.loads(state)
-            request_info = InternalRequest(getattr(UserIdHashType, state["user_id_hash_type"]), None)
-            return self.authn_request(context, entity_id, request_info, state["state"])
+            request_info = InternalRequest(getattr(UserIdHashType, state.get(SamlBackend.STATE_KEY)), None)
+            return self.authn_request(context, entity_id, request_info, state)
 
     def _translate_response(self, response):
         _authn_info = response.authn_info()[0]

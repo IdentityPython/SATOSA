@@ -24,6 +24,7 @@ setup(
     install_requires=["pysaml2 >= 3.0.0",
                       "pluginbase",
                       "future",
-                      "oic"],
+                      "oic",
+                      "pyjwkest"],
     zip_safe=False,
 )

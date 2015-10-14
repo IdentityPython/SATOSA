@@ -1,3 +1,4 @@
 CherryPy==3.8.0
 Beaker==1.7.0
 Werkzeug==0.10.4
+responses

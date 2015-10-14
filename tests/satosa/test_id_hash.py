@@ -1,22 +1,22 @@
 import pytest
 from satosa.internal_data import InternalRequest, UserIdHashType, UserIdHasher, InternalResponse
+from satosa.state import State
 
 __author__ = 'mathiashedstrom'
 
+SALT = "asdasdasdasdewr234"
 
 def _get_id(requestor, user_id, hash_type):
-    original_state = "original_state"
-
+    state = State()
     internal_request = InternalRequest(hash_type, requestor)
 
-    state = UserIdHasher.save_state(internal_request, original_state)
+    UserIdHasher.save_state(internal_request, state)
 
     internal_response = InternalResponse(hash_type)
     internal_response.user_id = user_id
 
-    internal_response, state = UserIdHasher.set_id(internal_response, state)
+    internal_response = UserIdHasher.set_id(SALT, internal_response, state)
 
-    assert state == original_state
     return internal_response.user_id
 
 
