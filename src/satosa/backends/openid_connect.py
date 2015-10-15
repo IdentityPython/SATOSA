@@ -4,10 +4,10 @@ from urllib.parse import urlparse
 from jwkest.jws import alg2keytype
 from oic.oauth2 import rndstr
 from oic.oic.message import RegistrationResponse, ProviderConfigurationResponse
-from oic.utils.authn.authn_context import UNSPECIFIED
-from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
-from oic.utils.http_util import Redirect
+from oic.utils.authn.authn_context import UNSPECIFIED
+
+from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
 from oic.utils.keyio import KeyJar
 
@@ -82,50 +82,50 @@ class OpenIdBackend(BackendModule):
     def redirect_endpoint(self, context, *args):
         state = State(context.request['state'], self.config.STATE_ENCRYPTION_KEY)
         backend_state = state.get(self.config.STATE_ID)
+
         try:
             client = self.oidc_clients.client[backend_state["op"]]
         except KeyError:
-            val = {
-                "srv_discovery_url": self.config.OP_URL,
-                "client_registration": {
-                    "client_id": "client_1",
-                    "client_secret": "2222222222",
-                    "redirect_uris": ["%sauthz_cb" %
-                                      self.config.CLIENTS[""]["client_info"]["redirect_uris"][0]]
-                },
-                "behaviour": {
-                    "response_type": "code",
-                }
-            }
-            client = self.oidc_clients.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
-                                                  behaviour=val["behaviour"],
-                                                  verify_ssl=self.config.VERIFY_SSL)
-            client.token_endpoint = self.config.OP_URL + "token"
-            client.keyjar = KeyJar(verify_ssl=self.config.VERIFY_SSL)
-            pcr = ProviderConfigurationResponse()
-            pcr['jwks_uri'] = self.config.OP_URL + "static/jwks.json"
-            # client.keyjar.load_keys(pcr, self.config.OP_URL)
-            client.handle_provider_config(pcr, self.config.OP_URL)
-            for issuer, keybundle_list in client.keyjar.issuer_keys.items():
-                for kb in keybundle_list:
-                    if kb.remote:
-                        kb.do_remote()
-            client.store_registration_info(RegistrationResponse(
-                **val["client_registration"]))
-            client.userinfo_endpoint = self.config.OP_URL + "userinfo_endpoint"
-
+            client = self.restore_state()
 
         result = client.callback(context.request)
-        if isinstance(result, Redirect):
-            # TODO this should be handled in a correct way
-            print("Hello")
-
         return self.auth_callback_func(context,
                                        self._translate_response(
                                            result,
                                            backend_state["op"]
                                        ),
                                        state)
+
+    # TODO not done yet. Info needs to be sent through state
+    def restore_state(self):
+        val = {
+            "srv_discovery_url": self.config.OP_URL,
+            "client_registration": {
+                "client_id": "client_1",
+                "client_secret": "2222222222",
+                "redirect_uris": ["%sauthz_cb" %
+                                  self.config.CLIENTS[""]["client_info"]["redirect_uris"][0]]
+            },
+            "behaviour": {
+                "response_type": "code",
+            }
+        }
+        client = self.oidc_clients.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
+                                              behaviour=val["behaviour"],
+                                              verify_ssl=self.config.VERIFY_SSL)
+        client.token_endpoint = self.config.OP_URL + "token"
+        client.keyjar = KeyJar(verify_ssl=self.config.VERIFY_SSL)
+        pcr = ProviderConfigurationResponse()
+        pcr['jwks_uri'] = self.config.OP_URL + "static/jwks.json"
+        client.handle_provider_config(pcr, self.config.OP_URL)
+        for issuer, keybundle_list in client.keyjar.issuer_keys.items():
+            for kb in keybundle_list:
+                if kb.remote:
+                    kb.do_remote()
+        client.store_registration_info(RegistrationResponse(
+            **val["client_registration"]))
+        client.userinfo_endpoint = self.config.OP_URL + "userinfo_endpoint"
+        return client
 
     def _translate_response(self, response, issuer):
 
