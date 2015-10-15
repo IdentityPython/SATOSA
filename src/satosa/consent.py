@@ -5,6 +5,7 @@ import hashlib
 import json
 from jwkest.jws import JWS
 import requests
+from requests.exceptions import ConnectionError
 from base64 import urlsafe_b64encode
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
 from satosa.response import Redirect
