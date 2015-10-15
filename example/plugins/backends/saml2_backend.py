@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os.path
+
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2 import BINDING_HTTP_POST
 from saml2.entity_category.edugain import COC
 from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, \
     SFS_1993_1153, NREN, EU
 from saml2.extension.idpdisc import BINDING_DISCO
-import os.path
+
 from satosa.backends.saml2 import SamlBackend
+
 
 # try:
 #     from saml2.sigver import get_xmlsec_binary
@@ -58,8 +61,7 @@ class Saml2BackendModulePlugin(BackendModulePlugin):
             "key_file": full_path("pki/new_server.key"),
             "cert_file": full_path("pki/new_server.crt"),
             "metadata": {
-                "local": ["/Users/mathiashedstrom/work/DIRG/pysaml2/example/idp2/idp.xml",
-                          "/Users/mathiashedstrom/work/DIRG/pysaml2/example/idp2/idp2.xml"],
+                "local": ["/Users/danielevertsson/projects/pysaml2/example/idp2/idp.xml"],
             },
             "organization": {
                 "display_name": "Example Identities",

@@ -1,11 +1,9 @@
 #!/usr/bin/env python
-from base64 import urlsafe_b64encode, urlsafe_b64decode
 import copy
-import json
 import logging
 from urllib.parse import urlparse
-from saml2.config import IdPConfig
 
+from saml2.config import IdPConfig
 from saml2.httputil import ServiceError
 from saml2.httputil import Response
 from saml2.httputil import Redirect
@@ -17,7 +15,6 @@ from saml2.samlp import name_id_policy_from_string
 from saml2.server import Server
 from satosa.frontends.base import FrontendModule
 from satosa.internal_data import UserIdHashType, InternalRequest
-
 import satosa.service as service
 from satosa.service import response
 from satosa.state import State

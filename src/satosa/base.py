@@ -81,7 +81,8 @@ class SATOSABase(object):
         """
 
         context.request = None
-        internal_response = UserIdHasher.set_id(self.config.USER_ID_HASH_SALT, internal_response, state)
+        internal_response = UserIdHasher.set_id(self.config.USER_ID_HASH_SALT, internal_response,
+                                                state)
         if self.response_micro_services:
             internal_response = self.response_micro_services.process_service_queue(context, internal_response, state)
         return self.consent_module.manage_consent(context, internal_response, state)

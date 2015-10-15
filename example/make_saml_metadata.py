@@ -3,16 +3,15 @@ import argparse
 import copy
 import os
 import sys
+
 from pluginbase import PluginBase
 from saml2.mdstore import MetaDataFile, MetadataStore
 from saml2.metadata import entity_descriptor, metadata_tostring_fix
 from saml2.metadata import entities_descriptor
 from saml2.metadata import sign_entity_descriptor
-
 from saml2.sigver import security_context
 from saml2.validate import valid_instance
 from saml2.config import Config
-
 from saml2 import saml
 from saml2 import md
 from saml2.attribute_converter import ac_factory
@@ -26,11 +25,15 @@ from saml2.extension import ui
 from saml2 import xmldsig
 from saml2 import xmlenc
 
+
+
+
+
+
 # =============================================================================
 # Script that creates a SAML2 metadata file from a pysaml2 entity configuration
 # file
 # =============================================================================
-from repoze.who.plugins.sql import make_metadata_plugin
 from satosa.backends.saml2 import SamlBackend
 from satosa.frontends.saml2 import SamlFrontend
 from satosa.plugin_loader import _load_plugins, backend_filter, frontend_filter
@@ -151,14 +154,16 @@ for filespec in args.config:
 
     metadata = {"backends": {}, "frontends": {}}
 
-    backend_plugins = _load_plugins(conf_mod.PLUGIN_PATH, conf_mod.BACKEND_MODULES, conf_mod.BASE, backend_filter)
-    frontend_plugins = _load_plugins(conf_mod.PLUGIN_PATH, conf_mod.FRONTEND_MODULES, conf_mod.BASE, frontend_filter)
+    backend_plugins = _load_plugins(conf_mod.PLUGIN_PATH, conf_mod.BACKEND_MODULES, backend_filter,
+                                    conf_mod.BASE)
+    frontend_plugins = _load_plugins(conf_mod.PLUGIN_PATH, conf_mod.FRONTEND_MODULES,
+                                     frontend_filter, conf_mod.BASE)
 
     providers = []
     for plugin in backend_plugins:
+        providers.append(plugin.name)
         if issubclass(plugin.module, SamlBackend):
             metadata["backends"][plugin.name] = _make_metadata(plugin.config)
-            providers.append(plugin.name)
 
     for plugin in frontend_plugins:
         if issubclass(plugin.module, SamlFrontend):

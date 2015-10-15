@@ -1,13 +1,15 @@
 import os
+
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
-from satosa.plugin_base.endpoint import FrontendModulePlugin
-from satosa.frontends.saml2 import SamlFrontend
 from saml2.entity_category.edugain import COC
 from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, \
     SFS_1993_1153, NREN, EU
 from saml2.saml import NAME_FORMAT_URI
 from saml2.saml import NAMEID_FORMAT_TRANSIENT
 from saml2.saml import NAMEID_FORMAT_PERSISTENT
+
+from satosa.plugin_base.endpoint import FrontendModulePlugin
+from satosa.frontends.saml2 import SamlFrontend
 
 __author__ = 'mathiashedstrom'
 
@@ -48,7 +50,7 @@ class Saml2FrontendModulePlugin(FrontendModulePlugin):
                             "lifetime": {"minutes": 15},
                             "attribute_restrictions": None,  # means all I have
                             "name_form": NAME_FORMAT_URI,
-                            "entity_categories": ["edugain"],
+                            # "entity_categories": ["edugain"],
                             "fail_on_missing_requested": False
                         },
                     },
@@ -62,7 +64,7 @@ class Saml2FrontendModulePlugin(FrontendModulePlugin):
             "key_file": full_path("pki/new_server.key"),
             "cert_file": full_path("pki/new_server.crt"),
             "metadata": {
-                "local": ["/Users/mathiashedstrom/work/DIRG/pysaml2/example/sp-wsgi/sp.xml"],
+                "local": ["/Users/danielevertsson/projects/pysaml2/example/sp-wsgi/sp_saas.xml"]
             },
             # This database holds the map between a subjects local identifier and
             # the identifier returned to a SP

@@ -72,9 +72,11 @@ class ConsentModule(object):
         saved_resp = consent_state["internal_resp"]
 
         # rebuild internal_response from state
-        auth_info = AuthenticationInformation(saved_resp["auth_info"]["auth_class_ref"], saved_resp["auth_info"]["timestamp"],
+        auth_info = AuthenticationInformation(saved_resp["auth_info"]["auth_class_ref"],
+                                              saved_resp["auth_info"]["timestamp"],
                                               saved_resp["auth_info"]["issuer"])
-        internal_response = InternalResponse(getattr(UserIdHashType, saved_resp["hash_type"]), auth_info=auth_info)
+        internal_response = InternalResponse(getattr(UserIdHashType, saved_resp["hash_type"]),
+                                             auth_info=auth_info)
         internal_response._attributes = saved_resp["attr"]
         internal_response.user_id = saved_resp["usr_id"]
 

@@ -1,8 +1,6 @@
 """
 Tests for the SAML frontend module src/backends/saml2.py.
 """
-from base64 import urlsafe_b64decode
-import json
 from urllib import parse
 import re
 from saml2 import BINDING_HTTP_POST
@@ -17,7 +15,6 @@ from satosa.context import Context
 from satosa.internal_data import UserIdHashType, InternalRequest
 from satosa.state import State, cookie_to_state
 from tests.users import USERS
-
 from tests.util import FileGenerator, FakeIdP
 
 __author__ = 'haho0032'

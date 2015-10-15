@@ -186,7 +186,8 @@ class SamlBackend(BackendModule):
         except KeyError:
             raise AuthenticationError(state, "You must chose an IdP")
         else:
-            request_info = InternalRequest(getattr(UserIdHashType, state.get(SamlBackend.STATE_KEY)), None)
+            request_info = InternalRequest(
+                getattr(UserIdHashType, state.get(SamlBackend.STATE_KEY)), None)
             return self.authn_request(context, entity_id, request_info, state)
 
     def _translate_response(self, response):

@@ -1,4 +1,5 @@
 import pytest
+
 from satosa.context import Context
 from satosa.routing import ModuleRouter
 from satosa.state import State
