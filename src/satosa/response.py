@@ -1,4 +1,3 @@
-from saml2.httputil import Redirect
 import six
 from urllib.parse import quote
 
@@ -12,7 +11,7 @@ class Response(object):
     _mako_template = None
     _mako_lookup = None
 
-    def __init__(self, message=None, **kwargs):
+    def __init__(self, message=None, cookie=None, **kwargs):
         self.status = kwargs.get('status', self._status)
         self.response = kwargs.get('response', self._response)
         self.template = kwargs.get('template', self._template)
@@ -22,6 +21,9 @@ class Response(object):
         self.message = message
 
         self.headers = kwargs.get('headers', [])
+        if cookie:
+            self.headers.append(tuple(cookie.output().split(": ", 1)))
+
         _content_type = kwargs.get('content', self._content_type)
         addContentType = True
         for header in self.headers:
@@ -58,12 +60,35 @@ class Redirect(Response):
     _status = '302 Found'
 
     def __init__(self, redirect_url, state_cookie, **kwargs):
-        super(Redirect, self).__init__(message=redirect_url, headers=[tuple(state_cookie.output().split(": ", 1))],
+        super(Redirect, self).__init__(message=redirect_url, cookie=state_cookie,
                                        **kwargs)
 
     def __call__(self, environ, start_response, **kwargs):
         location = self.message
         self.headers.append(('location', location))
+        start_response(self.status, self.headers)
+        return self.response((location, location, location))
+
+class SeeOther(Response):
+    _template = '<html>\n<head><title>Redirecting to %s</title></head>\n' \
+        '<body>\nYou are being redirected to <a href="%s">%s</a>\n' \
+        '</body>\n</html>'
+    _status = '303 See Other'
+
+    def __init__(self, redirect_url, state_cookie, **kwargs):
+        super(SeeOther, self).__init__(message=redirect_url, cookie=state_cookie,
+                                       **kwargs)
+
+    def __call__(self, environ, start_response, **kwargs):
+        location = ""
+        if self.message:
+            location = self.message
+            self.headers.append(('location', location))
+        else:
+            for param, item in self.headers:
+                if param == "location":
+                    location = item
+                    break
         start_response(self.status, self.headers)
         return self.response((location, location, location))
 

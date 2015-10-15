@@ -6,7 +6,6 @@ from urllib.parse import urlparse
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2 import BINDING_HTTP_POST
 from saml2.client_base import Base
-from saml2.httputil import Response
 from saml2.config import SPConfig
 from saml2.metadata import create_metadata_string
 from saml2.response import VerificationError
@@ -18,7 +17,7 @@ from satosa.backends.base import BackendModule
 from satosa.exception import AuthenticationError, SATOSAError
 from satosa.internal_data import UserIdHashType, InternalRequest, InternalResponse, \
     AuthenticationInformation
-from satosa.response import Redirect
+from satosa.response import SeeOther, Response
 from satosa.service import rndstr
 from satosa.state import state_to_cookie, cookie_to_state, StateError
 
@@ -94,7 +93,7 @@ class SamlBackend(BackendModule):
         state_cookie = state_to_cookie(state, "saml2_backend_disco_state", "/", self.state_encryption_key)
         loc = _cli.create_discovery_service_request(self.discosrv, eid,
                                                     **{"return": ret})
-        return Redirect(loc, state_cookie)
+        return SeeOther(loc, state_cookie)
 
     def authn_request(self, context, entity_id, internal_req, state):
         _cli = self.sp
@@ -125,16 +124,16 @@ class SamlBackend(BackendModule):
 
         state.add(SamlBackend.STATE_KEY, relay_state)
 
+        state_cookie = state_to_cookie(state, "saml2_backend_state", "/", self.state_encryption_key)
         if _binding == BINDING_HTTP_REDIRECT:
-            state_cookie = state_to_cookie(state, "saml2_backend_state", "/", self.state_encryption_key)
             for param, value in ht_args["headers"]:
                 if param == "Location":
-                    resp = Redirect(str(value), state_cookie)
+                    resp = SeeOther(str(value), state_cookie)
                     break
             else:
                 raise AuthenticationError(state, "Parameter error")
         else:
-            resp = Response(ht_args["data"], headers=ht_args["headers"])
+            resp = Response(ht_args["data"], cookie=state_cookie, headers=ht_args["headers"])
 
         return resp
 

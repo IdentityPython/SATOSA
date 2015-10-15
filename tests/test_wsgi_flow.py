@@ -256,6 +256,12 @@ class ProxyTest(helper.CPWebCase):
         url = "%s&entityID=%s" % (url, quote(target_id))
         status, headers, _ = self.getPage(url)
         assert status == '303 See Other'
+        cookie_header = None
+        for header in headers:
+            if header[0] == "Set-Cookie":
+                cookie_header = header[1]
+                break
+        assert cookie_header, "Did not save state in cookie!"
 
         url = self.get_redirect_location(headers)
         req = parse_qs(urlsplit(url).query)
@@ -266,8 +272,7 @@ class ProxyTest(helper.CPWebCase):
                                                 req['RelayState'][0],
                                                 BINDING_HTTP_REDIRECT,
                                                 'testuser1')
-        status, headers, body = self.getPage(action, method='POST',
-                                             body=urlencode(body))
+        status, headers, body = self.getPage(action, method='POST', body=urlencode(body), headers=[("Cookie", cookie_header)])
         assert status == '302 Found'
 
         url = self.get_redirect_location(headers)
