@@ -78,11 +78,8 @@ class ConsentModule(object):
         internal_response.user_id = saved_resp["usr_id"]
 
         requestor = consent_state["reqor"]
-        filtered_attr = []
-        for attr in internal_response._attributes:
-            filtered_attr.append(attr)
 
-        hash_id = self._get_consent_id(requestor, internal_response.user_id, filtered_attr)
+        hash_id = self._get_consent_id(requestor, internal_response.user_id, list(internal_response._attributes.keys()))
 
         try:
             consent_given = self._verify_consent(hash_id)

@@ -26,8 +26,14 @@ def state_to_cookie(state, name, path, encryption_key):
 
 
 def cookie_to_state(cookie_str, name, encryption_key):
-    return State(SimpleCookie(cookie_str)[name].value, encryption_key)
+    try:
+        return State(SimpleCookie(cookie_str)[name].value, encryption_key)
+    except KeyError:
+            raise StateError("No cookie named '{}'".format(name))
 
+
+class StateError(Exception):
+    pass
 
 class AESCipher(object):
     """

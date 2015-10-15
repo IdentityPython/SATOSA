@@ -1,16 +1,13 @@
 #!/usr/bin/env python
-from base64 import urlsafe_b64encode, urlsafe_b64decode
 import copy
-import json
 import logging
 from urllib.parse import urlparse
 
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2 import BINDING_HTTP_POST
 from saml2.client_base import Base
-from saml2.httputil import ServiceError, SeeOther, Response
+from saml2.httputil import Response
 from saml2.config import SPConfig
-from saml2.httputil import Unauthorized
 from saml2.metadata import create_metadata_string
 from saml2.response import VerificationError
 from saml2.s_utils import UnknownPrincipal
@@ -18,11 +15,12 @@ from saml2.s_utils import UnsupportedBinding
 from saml2.saml import NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
 from saml2.samlp import NameIDPolicy
 from satosa.backends.base import BackendModule
+from satosa.exception import AuthenticationError, SATOSAError
 from satosa.internal_data import UserIdHashType, InternalRequest, InternalResponse, \
     AuthenticationInformation
 from satosa.response import Redirect
 from satosa.service import rndstr
-from satosa.state import state_to_cookie, cookie_to_state
+from satosa.state import state_to_cookie, cookie_to_state, StateError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -123,7 +121,7 @@ class SamlBackend(BackendModule):
             LOGGER.debug("ht_args: %s" % ht_args)
         except Exception as exc:
             LOGGER.exception(exc)
-            return ServiceError("Failed to construct the AuthnRequest: %s" % exc)
+            raise AuthenticationError(state, "Failed to construct the AuthnRequest: %s" % exc)
 
         state.add(SamlBackend.STATE_KEY, relay_state)
 
@@ -134,7 +132,7 @@ class SamlBackend(BackendModule):
                     resp = Redirect(str(value), state_cookie)
                     break
             else:
-                resp = ServiceError("Parameter error")
+                raise AuthenticationError(state, "Parameter error")
         else:
             resp = Response(ht_args["data"], headers=ht_args["headers"])
 
@@ -143,29 +141,33 @@ class SamlBackend(BackendModule):
     def authn_response(self, context, binding):
         _authn_response = context.request
 
+        try:
+            state = cookie_to_state(context.cookie, "saml2_backend_state", self.state_encryption_key)
+        except StateError as error:
+            # TODO LOG
+            raise AuthenticationError(None, "Missing state in authn_response")
+
         if not _authn_response["SAMLResponse"]:
             LOGGER.info("Missing Response")
-            return Unauthorized('Unknown user')
+            raise AuthenticationError(state, 'Unknown user')
 
         try:
             _response = self.sp.parse_authn_request_response(
                 _authn_response["SAMLResponse"], binding)
         except UnknownPrincipal as excp:
             LOGGER.error("UnknownPrincipal: %s", excp)
-            return ServiceError("UnknownPrincipal: %s" % (excp,))
+            raise AuthenticationError(state, "UnknownPrincipal: %s" % (excp,))
         except UnsupportedBinding as excp:
             LOGGER.error("UnsupportedBinding: %s", excp)
-            return ServiceError("UnsupportedBinding: %s" % (excp,))
+            raise AuthenticationError(state, "UnsupportedBinding: %s" % (excp,))
         except VerificationError as err:
-            return ServiceError("Verification error: %s" % (err,))
+            raise AuthenticationError(state, "Verification error: %s" % (err,))
         except Exception as err:
-            return ServiceError("Other error: %s" % (err,))
+            raise AuthenticationError(state, "Other error: %s" % (err,))
 
-        # TODO What if no cookie?
-        state = cookie_to_state(context.cookie, "saml2_backend_state", self.state_encryption_key)
-
-        # TODO What if the relay_state doesnt match the cookie state?
-        assert state.get(SamlBackend.STATE_KEY) == _authn_response['RelayState']
+        # check if the relay_state matches the cookie state
+        if state.get(SamlBackend.STATE_KEY) != _authn_response['RelayState']:
+            raise AuthenticationError(state, "State did not match relay state")
 
         return self.auth_callback_func(context,
                                        self._translate_response(_response),
@@ -173,12 +175,17 @@ class SamlBackend(BackendModule):
 
     def disco_response(self, context, *args):
         info = context.request
-        # TODO What if no cookie?
-        state = cookie_to_state(context.cookie, "saml2_backend_disco_state", self.state_encryption_key)
+
+        try:
+            state = cookie_to_state(context.cookie, "saml2_backend_disco_state", self.state_encryption_key)
+        except StateError as error:
+            # TODO LOG
+            raise SATOSAError(None, "Missing state in disco_response")
+
         try:
             entity_id = info[self.idp_disco_query_param]
         except KeyError:
-            return Unauthorized("You must chose an IdP")
+            raise AuthenticationError(state, "You must chose an IdP")
         else:
             request_info = InternalRequest(getattr(UserIdHashType, state.get(SamlBackend.STATE_KEY)), None)
             return self.authn_request(context, entity_id, request_info, state)

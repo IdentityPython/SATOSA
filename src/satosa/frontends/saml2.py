@@ -13,7 +13,7 @@ from saml2.httputil import Unauthorized
 from saml2.s_utils import UnknownPrincipal
 from saml2.s_utils import UnsupportedBinding
 from saml2.saml import NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT, NameID
-from saml2.samlp import authn_request_from_string
+from saml2.samlp import name_id_policy_from_string
 from saml2.server import Server
 from satosa.frontends.base import FrontendModule
 from satosa.internal_data import UserIdHashType, InternalRequest
@@ -56,12 +56,18 @@ class SamlFrontend(FrontendModule):
             return NAMEID_FORMAT_PERSISTENT
         return None
 
-    def save_state(self, context, _dict, _request):
-        return {"origin_authn_req": _dict["authn_req"].to_string().decode("utf-8"),
+    def save_state(self, context, _dict, _request, idp):
+        resp_args = idp.response_args(_dict["authn_req"])
+        resp_args["name_id_policy"] = resp_args["name_id_policy"].to_string().decode("utf-8")
+        return {"resp_args": resp_args,
                 "relay_state": _request["RelayState"]}
 
     def load_state(self, state):
-        return state.get(SamlFrontend.STATE_KEY)
+        loaded_state = state.get(SamlFrontend.STATE_KEY)
+        if isinstance(loaded_state["resp_args"]["name_id_policy"], str):
+            loaded_state["resp_args"]["name_id_policy"] = name_id_policy_from_string(
+                loaded_state["resp_args"]["name_id_policy"])
+        return loaded_state
 
     def _validate_config(self, config):
         mandatory_keys = ["idp_config", "endpoints", "base"]
@@ -148,8 +154,7 @@ class SamlFrontend(FrontendModule):
             except KeyError:
                 pass
 
-            request_state = self.save_state(context, _dict, _request)
-            # state = urlsafe_b64encode(json.dumps(request_state).encode("UTF-8")).decode("UTF-8")
+            request_state = self.save_state(context, _dict, _request, idp)
             state = State()
             state.add(SamlFrontend.STATE_KEY, request_state)
 
@@ -169,11 +174,8 @@ class SamlFrontend(FrontendModule):
 
     def _handle_authn_response(self, context, internal_response, state, idp):
         request_state = self.load_state(state)
-        origin_authn_req = authn_request_from_string(request_state["origin_authn_req"])
 
-        # Diverse arguments needed to construct the response
-        resp_args = idp.response_args(origin_authn_req)
-
+        resp_args = request_state["resp_args"]
         ava = internal_response.get_pysaml_attributes()
         # TODO what about authn_auth in auth_info?
         auth_info = {"class_ref": internal_response.auth_info.auth_class_ref}
@@ -196,6 +198,23 @@ class SamlFrontend(FrontendModule):
 
     def handle_authn_response(self, context, internal_response, state):
         return self._handle_authn_response(context, internal_response, state, self.idp)
+
+    def handle_backend_error(self, exception):
+        return self._handle_backend_error(exception, self.idp)
+
+    def _handle_backend_error(self, exception, idp):
+        loaded_state = self.load_state(exception.state)
+        relay_state = loaded_state["relay_state"]
+        resp_args = loaded_state["resp_args"]
+        error_resp = idp.create_error_response(resp_args["in_response_to"], resp_args["destination"],
+                                               Exception("Authentication failed"))
+        http_args = idp.apply_binding(
+            resp_args["binding"], "%s" % error_resp,
+            resp_args["destination"],
+            relay_state, response=True)
+
+        logger.debug("HTTPargs: %s", http_args)
+        return response(resp_args["binding"], http_args)
 
     def construct_authn_response(self, idp, identity, name_id, authn,
                                  resp_args,
