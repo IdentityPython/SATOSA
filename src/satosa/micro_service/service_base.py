@@ -1,6 +1,8 @@
 """
 Micro service for SATOSA
 """
+from satosa.exception import AuthenticationError
+
 __author__ = 'mathiashedstrom'
 
 
@@ -12,21 +14,27 @@ class MicroService(object):
     def __init__(self):
         self._child_service = None
 
-    def process_service_queue(self, context, data):
+    def process_service_queue(self, context, data, state):
         """
         Processes the whole queue of micro services
 
         :type context: satosa.context.Context
         :type data: satosa.internal_data.InternalResponse | satosa.internal_data.InternalRequest
+        :type state: satosa.state.State
         :rtype: satosa.internal_data.InternalResponse | satosa.internal_data.InternalRequest
 
         :param context: The current context
         :param data: Data to be modified
+        :param state: The current state. Only used if there is a error
         :return: Modified data
         """
         if self._child_service:
-            data = self._child_service.process_service_queue(context, data)
-        return self.process(context, data)
+            data = self._child_service.process_service_queue(context, data, state)
+        try:
+            return self.process(context, data)
+        except Exception as error:
+            # TODO LOG
+            raise AuthenticationError(state, "Micro service error")
 
     def process(self, context, data):
         """

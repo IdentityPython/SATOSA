@@ -63,7 +63,7 @@ class SATOSABase(object):
         self.consent_module.save_state(internal_request, state)
         UserIdHasher.save_state(internal_request, state)
         if self.request_micro_services:
-            internal_request = self.request_micro_services.process_service_queue(context, internal_request)
+            internal_request = self.request_micro_services.process_service_queue(context, internal_request, state)
         return backend.start_auth(context, internal_request, state)
 
     def _auth_resp_callback_func(self, context, internal_response, state):
@@ -83,7 +83,7 @@ class SATOSABase(object):
         context.request = None
         internal_response = UserIdHasher.set_id(self.config.USER_ID_HASH_SALT, internal_response, state)
         if self.response_micro_services:
-            internal_response = self.response_micro_services.process_service_queue(context, internal_response)
+            internal_response = self.response_micro_services.process_service_queue(context, internal_response, state)
         return self.consent_module.manage_consent(context, internal_response, state)
 
     def _consent_resp_callback_func(self, context, internal_response, state):
