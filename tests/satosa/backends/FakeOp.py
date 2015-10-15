@@ -13,6 +13,7 @@ from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
 from oic.utils.http_util import Response
+
 from oic.utils.keyio import KeyJar, KeyBundle, UnknownKeyType
 
 from oic.utils.sdb import SessionDB, AuthnEvent
@@ -22,6 +23,7 @@ from oic.utils.userinfo import UserInfo
 from oic.utils.webfinger import WebFinger
 import responses
 
+from satosa.backends.openid_connect import StateKeys
 from satosa.context import Context
 from satosa.state import State
 from tests.util import FileGenerator
@@ -214,7 +216,7 @@ class FakeOP:
         resp = self.provider.userinfo_endpoint(request=uir.to_urlencoded())
         responses.add(
             responses.POST,
-            self.op_base + "userinfo_endpoint",
+            self.op_base + "userinfo",
             body=resp.message,
             status=200,
             content_type='application/json')
@@ -253,21 +255,31 @@ class FakeOP:
             status=200,
             content_type='application/json')
 
-    def setup_authentication_response(self):
+    def setup_authentication_response(self, state_as_url=None):
         context = Context()
         context.path = 'openid/authz_cb'
         op_base = TestConfiguration.get_instance().rp_config.OP_URL
+        if not state_as_url:
+            state_as_url = self.generate_state(op_base)
         context.request = {
             'code': 'F+R4uWbN46U+Bq9moQPC4lEvRd2De4o=',
-            'scope': 'openid profile email address phone', 'state': self.generate_state(op_base)}
+            'scope': 'openid profile email address phone',
+            'state': state_as_url}
         return context
 
     def generate_state(self, op_base):
         state = State()
         state_id = TestConfiguration.get_instance().rp_config.STATE_ID
         state_data = {
-            "op": op_base,
-            "nonce": "9YraWpJAmVp4L3NJ"
+            StateKeys.OP: op_base,
+            StateKeys.NONCE: "9YraWpJAmVp4L3NJ",
+            StateKeys.TOKEN_ENDPOINT: TestConfiguration.get_instance().rp_config.OP_URL + "token",
+            StateKeys.CLIENT_ID: "client_1",
+            StateKeys.CLIENT_SECRET: "2222222222",
+            StateKeys.JWKS_URI:
+                TestConfiguration.get_instance().rp_config.OP_URL + "static/jwks.json",
+            StateKeys.USERINFO_ENDPOINT:
+                TestConfiguration.get_instance().rp_config.OP_URL + "userinfo"
         }
         state.add(state_id, state_data)
         encryption_key = TestConfiguration.get_instance().rp_config.STATE_ENCRYPTION_KEY
@@ -291,6 +303,7 @@ class FakeOP:
 
     def setup_opienid_config_endpoint(self):
         self.provider.baseurl = self.op_base
+        self.provider.jwks_uri = self.publish_jwks()
         provider_info = self.provider.create_providerinfo()
         responses.add(
             responses.GET,
@@ -310,9 +323,11 @@ class FakeOP:
                       content_type='application/json')
 
     def publish_jwks(self):
+        jwks_uri = self.op_base + "static/jwks.json"
         responses.add(
             responses.GET,
-            self.op_base + "static/jwks.json",
+            jwks_uri,
             body=json.dumps(JWKS),
             status=200,
             content_type='application/json')
+        return jwks_uri

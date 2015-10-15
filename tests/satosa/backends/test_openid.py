@@ -23,8 +23,8 @@ def verify_object_types_callback(context, response, state):
 
 def verify_userinfo_callback(context, response, state):
     assert isinstance(response, InternalResponse)
-    for attibute in ["name", "email"]:
-        assert response._attributes[attibute] == USERDB[USERNAME][attibute]
+    for attribute in ["name", "email"]:
+        assert response._attributes[attribute] == USERDB[USERNAME][attribute]
 
 class TestOpenIdBackend:
     @pytest.fixture(autouse=True)
@@ -71,8 +71,8 @@ class TestOpenIdBackend:
         context = self.setup_fake_op_endpoints()
         openid_backend.redirect_endpoint(context)
 
-    def setup_fake_op_endpoints(self):
-        context = self.fake_op.setup_authentication_response()
+    def setup_fake_op_endpoints(self, state_as_url=None):
+        context = self.fake_op.setup_authentication_response(state_as_url)
         self.fake_op.provider.client_authn = MagicMock(return_value=CLIENT_ID)
         self.fake_op.publish_jwks()
         self.fake_op.setup_token_endpoint()
@@ -86,3 +86,16 @@ class TestOpenIdBackend:
         self.fake_op.setup_client_registration_endpoint()
         auth_response = self.openid_backend.start_auth(None, None, State())
         assert auth_response._status == Redirect._status
+
+    @responses.activate
+    def test_set_state_in_start_auth_and_use_in_redirect_endpoint(self):
+        self.fake_op.setup_webfinger_endpoint()
+        self.fake_op.setup_opienid_config_endpoint()
+        self.fake_op.setup_client_registration_endpoint()
+        state = State()
+        self.openid_backend.start_auth(None, None, state)
+        state_as_ulr = state.urlstate(
+            TestConfiguration.get_instance().rp_config.STATE_ENCRYPTION_KEY
+        )
+        context = self.setup_fake_op_endpoints(state_as_ulr)
+        self.openid_backend.redirect_endpoint(context)
