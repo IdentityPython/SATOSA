@@ -3,7 +3,6 @@ import re
 import pytest
 import responses
 from oic.utils.http_util import Redirect
-
 from mock import MagicMock
 
 from satosa.backends.openid_connect import OpenIdBackend
@@ -99,3 +98,18 @@ class TestOpenIdBackend:
         )
         context = self.setup_fake_op_endpoints(state_as_ulr)
         self.openid_backend.redirect_endpoint(context)
+
+    @responses.activate
+    def test_test_restore_state_with_separate_backends(self):
+        openid_backend_1 = OpenIdBackend(MagicMock, TestConfiguration.get_instance().rp_config)
+        openid_backend_2 = OpenIdBackend(MagicMock, TestConfiguration.get_instance().rp_config)
+        self.fake_op.setup_webfinger_endpoint()
+        self.fake_op.setup_opienid_config_endpoint()
+        self.fake_op.setup_client_registration_endpoint()
+        state = State()
+        openid_backend_1.start_auth(None, None, state)
+        state_as_ulr = state.urlstate(
+            TestConfiguration.get_instance().rp_config.STATE_ENCRYPTION_KEY
+        )
+        context = self.setup_fake_op_endpoints(state_as_ulr)
+        openid_backend_2.redirect_endpoint(context)
