@@ -2,11 +2,9 @@
 The module contains internal data representation in SATOSA and general converteras that can be used
 for converting from SAML/OAuth/OpenID connect to the internal representation.
 """
-from base64 import urlsafe_b64encode, urlsafe_b64decode
 import datetime
 from enum import Enum
 import hashlib
-import json
 
 __author__ = 'haho0032'
 
@@ -384,7 +382,6 @@ class UserIdHashType(Enum):
 
 
 class UserIdHasher():
-
     STATE_KEY = "IDHASHER"
 
     @staticmethod
@@ -478,6 +475,14 @@ class InternalResponse(InternalData):
         :return:
         """
         self.add_attributes(PYSAML_TO_SATOSA, dict)
+
+    def add_oidc_attributes(self, dict):
+        """
+        :type dict: dict[str, str]
+        :param dict:
+        :return:
+        """
+        self.add_attributes(OIDC_TO_SATOSA, dict)
 
     def get_pysaml_attributes(self):
         return self.get_attributes(SATOSA_TO_PYSAML)

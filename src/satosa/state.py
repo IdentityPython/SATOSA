@@ -3,12 +3,65 @@ This class contains all needed to keep a request state, without saving any infor
 server.
 """
 import base64
+import copy
+from http.cookies import SimpleCookie
 import json
 import hashlib
 from lzma import LZMADecompressor, LZMACompressor
 
 from Crypto import Random
 from Crypto.Cipher import AES
+
+STATE_COOKIE_MAX_AGE = 600
+STATE_COOKIE_SECURE = True
+
+
+def state_to_cookie(state, name, path, encryption_key):
+    """
+    Saves a state to a cookie
+
+    :type state: satosa.state.State
+    :type name: str
+    :type path: str
+    :type encryption_key: str
+    :rtype: http.cookies.SimpleCookie
+
+    :param state: The state to save
+    :param name: Name identifier of the cookie
+    :param path: Endpoint path the cookie will be associated to
+    :param encryption_key: Key to encrypt the state information
+    :return: A cookie
+    """
+    cookie = SimpleCookie()
+    cookie[name] = state.urlstate(encryption_key)
+    cookie[name]["secure"] = STATE_COOKIE_SECURE
+    cookie[name]["path"] = path
+    cookie[name]["max-age"] = STATE_COOKIE_MAX_AGE
+    return cookie
+
+
+def cookie_to_state(cookie_str, name, encryption_key):
+    """
+    Loads a state from a cookie
+
+    :type cookie_str: str
+    :type name: str
+    :type encryption_key: str
+    :rtype: satosa.state.State
+
+    :param cookie_str: string representation of cookie/s
+    :param name: Name identifier of the cookie
+    :param encryption_key: Key to encrypt the state information
+    :return: A state
+    """
+    try:
+        return State(SimpleCookie(cookie_str)[name].value, encryption_key)
+    except KeyError:
+        raise StateError("No cookie named '{}'".format(name))
+
+
+class StateError(Exception):
+    pass
 
 
 class AESCipher(object):
@@ -162,3 +215,15 @@ class State(object):
         urlstate_data += lzma.flush()
         urlstate_data = base64.urlsafe_b64encode(urlstate_data)
         return urlstate_data.decode("utf-8")
+
+    def copy(self):
+        """
+        Returns a deepcopy of the state
+
+        :rtype: satosa.state.State
+
+        :return: A copy of the state
+        """
+        state_copy = State()
+        state_copy._state_dict = copy.deepcopy(self._state_dict)
+        return state_copy

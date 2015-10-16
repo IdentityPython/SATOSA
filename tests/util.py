@@ -6,6 +6,7 @@ import random
 import tempfile
 import sys
 import re
+
 from Crypto.PublicKey import RSA
 from saml2 import server, BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.authn_context import AuthnBroker, authn_context_class_ref, PASSWORD

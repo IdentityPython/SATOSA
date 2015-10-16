@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 import logging
+import random
+import string
 from urllib.parse import parse_qs
 
 from saml2 import BINDING_HTTP_REDIRECT
@@ -73,22 +75,22 @@ def unpack_either(environ):
     return _dict
 
 
-def _operation(environ, start_response, func, _dict, binding):
-    LOGGER.debug("_operation: %s", _dict)
-    if not _dict:
-        resp = BadRequest('Error parsing request or no request')
-        return resp(environ, start_response)
-    else:
-        try:
-            _relay_state = _dict["RelayState"]
-        except KeyError:
-            _relay_state = ""
-        if "SAMLResponse" in _dict:
-            return func(_dict["SAMLResponse"], binding, _relay_state,
-                        mtype="response")
-        elif "SAMLRequest" in _dict:
-            return func(_dict["SAMLRequest"], binding, _relay_state,
-                        mtype="request")
+# def _operation(environ, start_response, func, _dict, binding):
+#     LOGGER.debug("_operation: %s", _dict)
+#     if not _dict:
+#         resp = BadRequest('Error parsing request or no request')
+#         return resp(environ, start_response)
+#     else:
+#         try:
+#             _relay_state = _dict["RelayState"]
+#         except KeyError:
+#             _relay_state = ""
+#         if "SAMLResponse" in _dict:
+#             return func(_dict["SAMLResponse"], binding, _relay_state,
+#                         mtype="response")
+#         elif "SAMLRequest" in _dict:
+#             return func(_dict["SAMLRequest"], binding, _relay_state,
+#                         mtype="request")
 
 
 def response(binding, http_args):
@@ -104,31 +106,42 @@ def response(binding, http_args):
 
     return resp
 
-
-def redirect(environ, start_response, func):
-    """ Expects a HTTP-redirect response """
-
-    _dict = unpack_redirect(environ)
-    return _operation(environ, start_response, func, _dict, BINDING_HTTP_REDIRECT)
-
-
-def post(environ, start_response, func):
-    """ Expects a HTTP-POST response """
-
-    _dict = unpack_post(environ)
-    return _operation(environ, start_response, func, _dict, BINDING_HTTP_POST)
-
-
-def soap(environ, start_response, func):
+def rndstr(size=16, alphabet=""):
     """
-    Single log out using HTTP_SOAP binding
+    Returns a string of random ascii characters or digits
+
+    :param size: The length of the string
+    :return: string
     """
-    LOGGER.debug("- SOAP -")
-    _dict = unpack_soap(environ)
-    LOGGER.debug("_dict: %s", _dict)
-    return _operation(environ, start_response, func, _dict, BINDING_SOAP)
+    rng = random.SystemRandom()
+    if not alphabet:
+        alphabet = string.ascii_letters[0:52] + string.digits
+    return type(alphabet)().join(rng.choice(alphabet) for _ in range(size))
+
+# def redirect(environ, start_response, func):
+#     """ Expects a HTTP-redirect response """
+#
+#     _dict = unpack_redirect(environ)
+#     return _operation(environ, start_response, func, _dict, BINDING_HTTP_REDIRECT)
 
 
-def uri(environ, start_response, func):
-    _dict = unpack_either(environ)
-    return _operation(environ, start_response, func, _dict, BINDING_SOAP)
+# def post(environ, start_response, func):
+#     """ Expects a HTTP-POST response """
+#
+#     _dict = unpack_post(environ)
+#     return _operation(environ, start_response, func, _dict, BINDING_HTTP_POST)
+
+
+# def soap(environ, start_response, func):
+#     """
+#     Single log out using HTTP_SOAP binding
+#     """
+#     LOGGER.debug("- SOAP -")
+#     _dict = unpack_soap(environ)
+#     LOGGER.debug("_dict: %s", _dict)
+#     return _operation(environ, start_response, func, _dict, BINDING_SOAP)
+
+
+# def uri(environ, start_response, func):
+#     _dict = unpack_either(environ)
+#     return _operation(environ, start_response, func, _dict, BINDING_SOAP)

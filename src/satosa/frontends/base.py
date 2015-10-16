@@ -35,6 +35,18 @@ class FrontendModule(object):
         """
         raise NotImplementedError()
 
+    def handle_backend_error(self, exception):
+        """
+        IF the backend gets an unexpected error, a suitable notice about the failure should be sent to the requestor.
+        This function is supposed to send a suitable error message to the requestor.
+
+        :type exception: satosa.exception.SATOSAError
+
+        :param exception: The raised exception
+        :return: response
+        """
+        raise NotImplementedError()
+
     def register_endpoints(self, providers):
         """
         Register frontend functions to endpoint urls.

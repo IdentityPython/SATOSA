@@ -1,9 +1,8 @@
 """
 Holds satosa routing logic
 """
-from base64 import urlsafe_b64decode, urlsafe_b64encode
-import json
 import re
+
 from satosa.context import BadContextError
 
 __author__ = 'mathiashedstrom'

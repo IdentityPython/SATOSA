@@ -2,8 +2,11 @@
 The SATOSA main module
 """
 from satosa.consent import ConsentModule
+from satosa.context import Context
+from satosa.exception import SATOSAError, AuthenticationError
 from satosa.internal_data import UserIdHasher
 from satosa.plugin_loader import load_backends, load_frontends, load_micro_services
+from satosa.response import Response
 from satosa.routing import ModuleRouter
 
 __author__ = 'mathiashedstrom'
@@ -60,7 +63,7 @@ class SATOSABase(object):
         self.consent_module.save_state(internal_request, state)
         UserIdHasher.save_state(internal_request, state)
         if self.request_micro_services:
-            internal_request = self.request_micro_services.process_service_queue(context, internal_request)
+            internal_request = self.request_micro_services.process_service_queue(context, internal_request, state)
         return backend.start_auth(context, internal_request, state)
 
     def _auth_resp_callback_func(self, context, internal_response, state):
@@ -78,15 +81,21 @@ class SATOSABase(object):
         """
 
         context.request = None
-        internal_response = UserIdHasher.set_id(self.config.USER_ID_HASH_SALT, internal_response, state)
+        internal_response = UserIdHasher.set_id(self.config.USER_ID_HASH_SALT, internal_response,
+                                                state)
         if self.response_micro_services:
-            internal_response = self.response_micro_services.process_service_queue(context, internal_response)
+            internal_response = self.response_micro_services.process_service_queue(context, internal_response, state)
         return self.consent_module.manage_consent(context, internal_response, state)
 
     def _consent_resp_callback_func(self, context, internal_response, state):
         context.request = None
         frontend = self.module_router.frontend_routing(context, state)
         return frontend.handle_authn_response(context, internal_response, state)
+
+    def _handle_satosa_error(self, error):
+        context = Context()
+        frontend = self.module_router.frontend_routing(context, error.state)
+        return frontend.handle_backend_error(error)
 
     def _run_bound_endpoint(self, context, spec):
         """
@@ -98,10 +107,16 @@ class SATOSABase(object):
         :param spec: bound endpoint function
         :return: response
         """
-        if isinstance(spec, tuple):
-            return spec[0](context, *spec[1:])
-        else:
-            return spec(context)
+        try:
+            if isinstance(spec, tuple):
+                return spec[0](context, *spec[1:])
+            else:
+                return spec(context)
+        except AuthenticationError as error:
+            return self._handle_satosa_error(error)
+        except SATOSAError as error:
+            # TODO
+            pass
 
     def run(self, context):
         """
@@ -113,4 +128,9 @@ class SATOSABase(object):
         :return: response
         """
         spec = self.module_router.endpoint_routing(context)
-        return self._run_bound_endpoint(context, spec)
+        try:
+            resp = self._run_bound_endpoint(context, spec)
+        except Exception as error:
+            # TODO Log error
+            resp = Response(error, status=500)
+        return resp
