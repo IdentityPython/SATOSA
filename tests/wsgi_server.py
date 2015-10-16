@@ -51,6 +51,7 @@ class WsgiApplication(object):
         context = Context()
         context.path = path
         context.request = unpack_either(environ)
+        context.cookie = environ.get("HTTP_COOKIE", "")
 
         try:
             resp = self.satosa.run(context)

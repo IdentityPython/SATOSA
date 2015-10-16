@@ -2,19 +2,16 @@
 A consent module for the satosa proxy
 """
 import hashlib
-from http.cookies import SimpleCookie
 import json
-from base64 import urlsafe_b64encode
-
 from jwkest.jws import JWS
 import requests
-from saml2.httputil import Redirect, Response
-from jwkest.jwk import rsa_load
-
-from jwkest.jwk import RSAKey
-
+from requests.exceptions import ConnectionError
+from base64 import urlsafe_b64encode
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
-from satosa.state import State
+from satosa.response import Redirect
+from satosa.state import state_to_cookie, cookie_to_state
+from jwkest.jwk import rsa_load
+from jwkest.jwk import RSAKey
 
 __author__ = 'mathiashedstrom'
 
@@ -28,15 +25,14 @@ class ConsentModule(object):
 
     def __init__(self, config, callback_func):
         self.callback_func = callback_func
-        self.enabled = "CONSENT" in config and (
-        "enable" not in config.CONSENT or config.CONSENT["enable"])
+        self.enabled = "CONSENT" in config and ("enable" not in config.CONSENT or config.CONSENT["enable"])
         if self.enabled:
             self.proxy_base = config.BASE
             self.state_enc_key = config.CONSENT["state_enc_key"]
             self.consent_uri = config.CONSENT["service.rest_uri"]
             self.consent_redirect_url = config.CONSENT["service.consent_redirect"]
             self.endpoint = config.CONSENT["endpoint"]
-            self.cookie_max_age = config.CONSENT["cookie_max-age"]
+            self.verify_ssl = config.CONSENT["verify_ssl"]
 
             _bkey = rsa_load(config.CONSENT["sign_key"])
             self.sign_key = RSAKey().load_key(_bkey)
@@ -69,7 +65,9 @@ class ConsentModule(object):
         """
         # Handle answer from consent service
         # load state
-        state = State(SimpleCookie(context.cookie)["consent_state"].value, self.state_enc_key)
+        # TODO What if no cookie?
+        state = cookie_to_state(context.cookie, "consent_state", self.state_enc_key)
+
         consent_state = state.get(ConsentModule.STATE_KEY)
         saved_resp = consent_state["internal_resp"]
 
@@ -83,17 +81,21 @@ class ConsentModule(object):
         internal_response.user_id = saved_resp["usr_id"]
 
         requestor = consent_state["reqor"]
-        filtered_attr = []
-        for attr in internal_response._attributes:
-            filtered_attr.append(attr)
 
-        hash_id = self._get_consent_id(requestor, internal_response.user_id, filtered_attr)
+        hash_id = self._get_consent_id(requestor, internal_response.user_id, list(internal_response._attributes.keys()))
 
-        if self._verify_consent(hash_id):
-            return self.callback_func(context, internal_response, state)
-        else:
-            # TODO What to send back?
-            return Response(message="consent was NOT given")
+        try:
+            consent_given = self._verify_consent(hash_id)
+        except ConnectionError as error:
+            # TODO LOG
+            # Send an internal_response without any attributes
+            consent_given = False
+
+        if not consent_given:
+            # If consent was not given, then don't send any attributes
+            internal_response._attributes = {}
+
+        return self.callback_func(context, internal_response, state)
 
     def manage_consent(self, context, internal_response, state):
         """
@@ -118,41 +120,49 @@ class ConsentModule(object):
         requestor = consent_state["reqor"]
 
         # filter attributes
-        filtered_attributes = []
+        filtered_data = {}
         for attr in filter:
             if attr in internal_response._attributes:
-                filtered_attributes.append(attr)
-
-        # update internal response
-        filtered_data = {}
-        for attr in filtered_attributes:
-            filtered_data[attr] = internal_response._attributes[attr]
+                data = internal_response._attributes[attr]
+                if not isinstance(data, list):
+                    data = [data]
+                filtered_data[attr] = data
+        # Update intenal response
         internal_response._attributes = filtered_data
 
-        id_hash = self._get_consent_id(requestor, internal_response.user_id, filtered_attributes)
+        id_hash = self._get_consent_id(requestor, internal_response.user_id, list(filtered_data.keys()))
 
-        # Check if consent is already given
-        if self._verify_consent(id_hash):
+        try:
+            # Check if consent is already given
+            if self._verify_consent(id_hash):
+                return self.callback_func(context, internal_response, state)
+        except ConnectionError as error:
+            # TODO LOG
+            # Send an internal_response without any attributes
+            internal_response._attributes = {}
             return self.callback_func(context, internal_response, state)
 
         consent_state["internal_resp"] = self._internal_resp_to_dict(internal_response)
         state.add(ConsentModule.STATE_KEY, consent_state)
 
         # Save state in cookie
-        cookie = SimpleCookie()
-        cookie["consent_state"] = state.urlstate(self.state_enc_key)
-        cookie["consent_state"]["secure"] = True
-        cookie["consent_state"]["path"] = "/consent/%s" % self.endpoint
-        cookie["consent_state"]["max-age"] = self.cookie_max_age
+        state_cookie = state_to_cookie(state, "consent_state", "/consent/%s" % self.endpoint, self.state_enc_key)
 
-        consent_args = {"attr": filtered_attributes,
+        consent_args = {"attr": filtered_data,
                         "id": id_hash,
                         "redirect_endpoint": "%s/consent/%s" % (self.proxy_base, self.endpoint)}
-        consent_args_json = self._to_jws(consent_args)
+        consent_args_jws = self._to_jws(consent_args)
 
-        consent_redirect = "%s?jwt=%s" % (self.consent_redirect_url, consent_args_json)
-        return Redirect(consent_redirect, headers=[tuple(cookie.output().split(": ", 1))],
-                        content="text/html")
+        try:
+            ticket = self._consent_registration(consent_args_jws)
+        except (ConnectionError, AssertionError) as error:
+            # TODO LOG
+            # Send an internal_response without any attributes
+            internal_response._attributes = {}
+            return self.callback_func(context, internal_response, state)
+
+        consent_redirect = "%s?ticket=%s" % (self.consent_redirect_url, ticket)
+        return Redirect(consent_redirect, state_cookie)
 
     def _get_consent_id(self, requestor, user_id, filtered_attr):
         """
@@ -169,25 +179,49 @@ class ConsentModule(object):
         """
         filtered_attr.sort()
         id_string = "%s%s%s" % (requestor, user_id, json.dumps(filtered_attr))
-        return urlsafe_b64encode(
-            hashlib.sha224(id_string.encode("utf-8")).hexdigest().encode("utf-8")).decode("utf-8")
+        return urlsafe_b64encode(hashlib.sha224(id_string.encode("utf-8")).hexdigest().encode("utf-8")).decode("utf-8")
+
+    def _consent_registration(self, jws):
+        """
+        Register a request at the consent service
+
+        :type jws: str
+        :type state: satosa.state.State
+        :rtype: str
+
+        :param jws: A jws containing id, redirect_endpoint and attr
+        :param state: The current state
+        :return: Ticket received from the consent service
+        """
+        try:
+            request = "{}/creq/{}".format(self.consent_uri, jws)
+            res = requests.get(request, verify=self.verify_ssl)
+        except ConnectionError as con_exc:
+            raise ConnectionError("Could not connect to consent service: {}".format(str(con_exc)))
+
+        assert res.status_code == 200, "Consent service: {}".format(res.status_code)
+
+        ticket = res.text
+        return ticket
 
     def _verify_consent(self, id):
         """
         Connects to the consent service using the REST api and checks if the user has given consent
 
         :type id: str
+        :type state: satosa.state.State
         :rtype: bool
 
         :param id: An id associated to the authenticated user, the calling requestor and attributes to be sent.
+        :param state: The current state
         :return: True if given consent, else False
         """
         try:
             request = "{}/verify/{}".format(self.consent_uri, id)
-            res = requests.get(request, verify=False)
+            res = requests.get(request, verify=self.verify_ssl)
         except ConnectionError as con_exc:
-            raise ConnectionError(
-                "Could not connect to consent service: {}".format(str(con_exc)))
+            raise ConnectionError("Could not connect to consent service: {}".format(str(con_exc)))
+
         return res.status_code == 200
 
     def _internal_resp_to_dict(self, internal_response):

@@ -94,7 +94,6 @@ def test_url_routing(router_fixture):
 
 def test_module_routing(router_fixture):
     router, frontends, backends = router_fixture
-    # original_state = "original_state"
     state = State()
 
     def test_routing(path, provider, receiver, _):
