@@ -25,6 +25,7 @@ setup(
                       "pluginbase",
                       "future",
                       "oic",
-                      "pyjwkest"],
+                      "pyjwkest",
+                      "requests"],
     zip_safe=False,
 )
