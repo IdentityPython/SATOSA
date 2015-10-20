@@ -58,15 +58,26 @@ class OpenIdBackend(BackendModule):
         super(OpenIdBackend, self).__init__(auth_callback_func)
         self.auth_callback_func = auth_callback_func
         self.config = config
-        self.oidc_clients = OIDCClients(self.config)
+        #self.oidc_clients = OIDCClients(self.config)
+
+    def get_oidc_clients(self):
+        return OIDCClients(self.config)
 
     def start_auth(self, context, request_info, state):
-        client = self.oidc_clients.dynamic_client(self.config.OP_URL)
+        oidc_clients = self.get_oidc_clients()
+        client_key = next (iter (oidc_clients.client.keys()))
+        if client_key:
+            client = oidc_clients[client_key]
+        else:
+            client = oidc_clients.dynamic_client(self.config.OP_URL)
 
         jwks_uri = ""
-        for issuer in client.keyjar.issuer_keys:
-            if issuer != "":
-                jwks_uri = client.keyjar.issuer_keys[issuer][0].source
+        try:
+            for issuer in client.keyjar.issuer_keys:
+                if issuer != "":
+                    jwks_uri = client.keyjar.issuer_keys[issuer][0].source
+        except:
+            pass
 
         nonce = rndstr()
         state_data = {
@@ -128,9 +139,16 @@ class OpenIdBackend(BackendModule):
     def register_endpoints(self):
         url_map = []
 
-        redirect_uris = self.config.CLIENTS[""]["client_info"]["redirect_uris"]
-        for uri in redirect_uris:
-            url_map = self._add_endpoint_to_url_map(uri, url_map, self.redirect_endpoint)
+        for key in self.config.CLIENTS:
+            try:
+                redirect_uris = self.config.CLIENTS[key]["client_info"]["redirect_uris"]
+            except:
+                try:
+                    redirect_uris = self.config.CLIENTS[key]["client_registration"]["redirect_uris"]
+                except:
+                    redirect_uris = []
+            for uri in redirect_uris:
+                url_map = self._add_endpoint_to_url_map(uri, url_map, self.redirect_endpoint)
 
         return url_map
 

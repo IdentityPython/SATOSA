@@ -61,7 +61,7 @@ class Saml2BackendModulePlugin(BackendModulePlugin):
             "key_file": full_path("pki/new_server.key"),
             "cert_file": full_path("pki/new_server.crt"),
             "metadata": {
-                "local": ["/Users/danielevertsson/projects/pysaml2/example/idp2/idp.xml"],
+                "local": ["/Users/haho0032/Develop/githubFork/pysaml2/example/idp2/idp_satosa.xml"],
             },
             "organization": {
                 "display_name": "Example Identities",

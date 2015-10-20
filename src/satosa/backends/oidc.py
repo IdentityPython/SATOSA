@@ -13,22 +13,7 @@ from satosa.state import state_to_cookie, cookie_to_state, StateError
 __author__ = 'haho0032'
 
 
-def get_consumer(user_id_hash_type, config):
-    """
-        :rtype: UserIdHashType
-    :return:
-    """
-    consumer = Consumer(
-        session_db=None,
-        client_config=config["client_config"],
-        server_info=config["server_info"],
-        authz_page=config["authz_page"],
-        response_type=config["response_type"])
-    consumer.client_secret = config["client_secret"]
-    return consumer
-
-
-class OAuthBackend(BackendModule):
+class OIDCBackend(BackendModule):
 
     def __init__(self, outgoing, config, get_consumer=get_consumer):
         super(OAuthBackend, self).__init__(outgoing)
@@ -109,52 +94,3 @@ class OAuthBackend(BackendModule):
 
     def user_information(self, access_token):
         raise NotImplementedError("Method user_information must be implemented!")
-
-
-class FacebookBackend(OAuthBackend):
-    STATE_COOKIE_NAME = "facebook_backend"
-    STATE_KEY = "facebook_backend"
-
-    def __init__(self, outgoing, config):
-        super(FacebookBackend, self).__init__(outgoing, config)
-        self.fields = None
-        self.convert_dict = None
-        if "state_cookie_name" not in self.config:
-            self.config["state_cookie_name"] = FacebookBackend.STATE_COOKIE_NAME
-        if "state_key" not in self.config:
-            self.config["state_key"] = FacebookBackend.STATE_KEY
-        if "verify_accesstoken_state" not in self.config:
-            self.config["verify_accesstoken_state"] = False
-        if "response_type" not in self.config:
-            self.config["response_type"] = "code"
-        if "fields" in self.config:
-            self.fields = self.config["fields"]
-
-    def auth_info(self, request):
-        auth_info = AuthenticationInformation(UNSPECIFIED,
-                                              None,
-                                              self.config["server_info"]["authorization_endpoint"])
-        return auth_info
-
-    def user_information(self, access_token):
-        payload = {'access_token': access_token}
-        url = "https://graph.facebook.com/v2.5/me"
-        if self.fields is not None:
-            #url += "?fields="
-            fields_str = ""
-            first = True
-            for field in self.fields:
-                if not first:
-                    #url += ","
-                    fields_str += ","
-                else:
-                    first = False
-                #url += field
-                fields_str += field
-            payload["fields"] = fields_str
-        r = requests.get(url, params=payload)
-        data = json.loads(r.text)
-        if "picture" in data and "data" in data["picture"] and "url" in data["picture"]["data"]:
-            picture_url = data["picture"]["data"]["url"]
-            data["picture"] = picture_url
-        return data
