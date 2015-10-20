@@ -8,7 +8,8 @@ from oic.oauth2 import rndstr
 
 from oic.utils.authn.authn_context import UNSPECIFIED
 from oic.utils.keyio import KeyJar
-from oic.utils.http_util import Redirect
+from satosa.exception import AuthenticationError
+from satosa.response import Redirect
 from oic.exception import MissingAttribute
 from oic import oic
 from oic.oauth2 import ErrorResponse
@@ -21,7 +22,7 @@ from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
 from satosa.backends.base import BackendModule
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
-from satosa.state import State
+from satosa.state import State, cookie_to_state, state_to_cookie
 
 __author__ = 'danielevertsson'
 
@@ -51,7 +52,9 @@ class StateKeys:
     CLIENT_SECRET = "client_secret"
     JWKS_URI = "remote_keys_sources"
     USERINFO_ENDPOINT = "userinfo_endpoint"
+    STATE="state"
 
+COOKIE_STATE_NAME = "openid_backend_state"
 
 class OpenIdBackend(BackendModule):
     def __init__(self, auth_callback_func, config):
@@ -85,6 +88,7 @@ class OpenIdBackend(BackendModule):
             pass
 
         nonce = rndstr()
+        oidc_state = rndstr()
         state_data = {
             StateKeys.OP: client_key,
             StateKeys.NONCE: nonce,
@@ -93,12 +97,20 @@ class OpenIdBackend(BackendModule):
             StateKeys.CLIENT_SECRET: client.client_secret,
             StateKeys.JWKS_URI: jwks_uri,
             StateKeys.USERINFO_ENDPOINT: client.userinfo_endpoint,
+            StateKeys.STATE: oidc_state
         }
 
         state.add(self.config.STATE_ID, state_data)
+        state_cookie = state_to_cookie(
+            state,
+            COOKIE_STATE_NAME,
+            "/",
+            self.config.STATE_ENCRYPTION_KEY
+        )
         try:
             resp = client.create_authn_request(
-                state.urlstate(self.config.STATE_ENCRYPTION_KEY),
+                state_cookie,
+                oidc_state,
                 nonce,
                 self.config.ACR_VALUES
             )
@@ -167,15 +179,16 @@ class OpenIdBackend(BackendModule):
 
     def redirect_endpoint(self, context, *args):
         oidc_clients = self.get_oidc_clients()
-        state = State(context.request['state'], self.config.STATE_ENCRYPTION_KEY)
+        state = cookie_to_state(context.cookie, COOKIE_STATE_NAME, self.config.STATE_ENCRYPTION_KEY)
         backend_state = state.get(self.config.STATE_ID)
-
+        if backend_state["state"] != context.request["state"]:
+            raise AuthenticationError(backend_state, "Missing or invalid state in authn response!")
         try:
             client = oidc_clients.client[backend_state["op"]]
         except KeyError:
             client = self.restore_state(backend_state)
 
-        result = client.callback(context.request)
+        result = client.callback(context.request, backend_state)
         return self.auth_callback_func(context,
                                        self._translate_response(
                                            result,
@@ -227,7 +240,7 @@ class Client(oic.Client):
         if behaviour:
             self.behaviour = behaviour
 
-    def create_authn_request(self, state, nonce, acr_value=None, **kwargs):
+    def create_authn_request(self, state_cookie, state, nonce, acr_value=None, **kwargs):
         request_args = self.setup_authn_request_args(acr_value, kwargs, state, nonce)
 
         cis = self.construct_AuthorizationRequest(request_args=request_args)
@@ -241,7 +254,7 @@ class Client(oic.Client):
         logger.info("URL: %s" % url)
         logger.debug("ht_args: %s" % ht_args)
 
-        resp = Redirect(str(url))
+        resp = Redirect(str(url), state_cookie)
         if ht_args:
             resp.headers.extend([(a, b) for a, b in ht_args.items()])
         logger.debug("resp_headers: %s" % resp.headers)
@@ -260,7 +273,7 @@ class Client(oic.Client):
         request_args.update(kwargs)
         return request_args
 
-    def callback(self, response):
+    def callback(self, response, backend_state):
         """
         This is the method that should be called when an AuthN response has been
         received from the OP.
@@ -275,10 +288,11 @@ class Client(oic.Client):
             if authresp["error"] == "login_required":
                 return self.create_authn_request(authresp["state"])
             else:
-                return OIDCError("Access denied")
+                return AuthenticationError(backend_state, "Access denied")
         try:
-            if authresp["id_token"] != authresp["state"]:
-                return OIDCError("Received nonce not the same as expected.")
+            if authresp["id_token"] != backend_state["nonce"]:
+                return AuthenticationError(backend_state,
+                                           "Received nonce not the same as expected.")
             self.id_token[authresp["state"]] = authresp["id_token"]
         except KeyError:
             pass

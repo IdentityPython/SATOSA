@@ -7,7 +7,7 @@ PLUGIN_PATH:
   - "plugins/frontends"
   - "plugins/micro_services"
 BACKEND_MODULES:
-  - "fb_backend_local"
+  - "google_backend_local"
 FRONTEND_MODULES:
   - "saml2_frontend"
 #MICRO_SERVICES:
