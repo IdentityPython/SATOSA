@@ -25,13 +25,13 @@ class OpenidPlugin(BackendModulePlugin):
 
 
 class RpConfig(object):
-    def __init__(self, module_base, PROVIDER):
+    def __init__(self, module_base, provider):
         self.CLIENTS = {
-            PROVIDER: {
+            provider: {
                 "srv_discovery_url": "https://accounts.google.com/",
                 "client_registration": {
-                    "client_id": "492986585079-oon1lphrlblru781m9ojcitt7ud8tf7n.apps.googleusercontent.com",
-                    "client_secret": "INqwvhksluxA79v1tV1cqEG0",
+                    "client_id": "",
+                    "client_secret": "",
                     "redirect_uris": ["%s" % module_base],
                 },
                 "behaviour": {
@@ -48,5 +48,5 @@ class RpConfig(object):
         self.ACR_VALUES = ["PASSWORD"]
         self.VERIFY_SSL = False
         self.OP_URL = "https://accounts.google.com"
-        self.STATE_ENCRYPTION_KEY = "Qrn9IQ5hr9uUnIdNQe2e0KxsmR3CusyARs3RKLjp"
-        self.STATE_ID = "OpenID_Qrn9R3Cus"
+        self.STATE_ENCRYPTION_KEY = ""
+        self.STATE_ID = ""

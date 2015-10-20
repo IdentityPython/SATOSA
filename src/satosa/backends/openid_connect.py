@@ -58,18 +58,23 @@ class OpenIdBackend(BackendModule):
         super(OpenIdBackend, self).__init__(auth_callback_func)
         self.auth_callback_func = auth_callback_func
         self.config = config
-        #self.oidc_clients = OIDCClients(self.config)
+        self.oidc_clients = OIDCClients(self.config)
 
     def get_oidc_clients(self):
-        return OIDCClients(self.config)
+        return self.oidc_clients
 
     def start_auth(self, context, request_info, state):
         oidc_clients = self.get_oidc_clients()
-        client_key = next (iter (oidc_clients.client.keys()))
+        try:
+            client_key = next(iter(oidc_clients.client.keys()))
+        except:
+            client_key=False
+
         if client_key:
             client = oidc_clients[client_key]
         else:
             client = oidc_clients.dynamic_client(self.config.OP_URL)
+            client_key = client.provider_info["issuer"]
 
         jwks_uri = ""
         try:
@@ -81,7 +86,7 @@ class OpenIdBackend(BackendModule):
 
         nonce = rndstr()
         state_data = {
-            StateKeys.OP: client.provider_info["issuer"],
+            StateKeys.OP: client_key,
             StateKeys.NONCE: nonce,
             StateKeys.TOKEN_ENDPOINT: client.token_endpoint,
             StateKeys.CLIENT_ID: client.client_id,
@@ -104,7 +109,8 @@ class OpenIdBackend(BackendModule):
 
     # TODO not done yet. Info needs to be sent through state
     def restore_state(self, state):
-        client = self.oidc_clients.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
+        oidc_clients = self.get_oidc_clients()
+        client = oidc_clients.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
                                               behaviour=self.config.CLIENTS[""]["behaviour"],
                                               verify_ssl=self.config.VERIFY_SSL)
         client.token_endpoint = state[StateKeys.TOKEN_ENDPOINT]
@@ -118,8 +124,7 @@ class OpenIdBackend(BackendModule):
             "client_registration": {
                 "client_id": state[StateKeys.CLIENT_ID],
                 "client_secret": state[StateKeys.CLIENT_SECRET],
-                "redirect_uris": ["%sauthz_cb" %
-                                  self.config.CLIENTS[""]["client_info"]["redirect_uris"][0]]
+                "redirect_uris": [self.config.CLIENTS[""]["client_info"]["redirect_uris"][0]]
             }
         }
         client.store_registration_info(RegistrationResponse(
@@ -161,11 +166,12 @@ class OpenIdBackend(BackendModule):
         return url_map
 
     def redirect_endpoint(self, context, *args):
+        oidc_clients = self.get_oidc_clients()
         state = State(context.request['state'], self.config.STATE_ENCRYPTION_KEY)
         backend_state = state.get(self.config.STATE_ID)
 
         try:
-            client = self.oidc_clients.client[backend_state["op"]]
+            client = oidc_clients.client[backend_state["op"]]
         except KeyError:
             client = self.restore_state(backend_state)
 
@@ -173,13 +179,23 @@ class OpenIdBackend(BackendModule):
         return self.auth_callback_func(context,
                                        self._translate_response(
                                            result,
-                                           backend_state["op"]
+                                           client.authorization_endpoint,
+                                           self.get_subject_type(client),
                                        ),
                                        state)
 
-    def _translate_response(self, response, issuer):
+    def get_subject_type(self, client):
+        try:
+            #oidc_clients.config.CLIENTS[""]["client_info"]["subject_type"]
+            supported = client.provider_info["subject_types_supported"]
+            return supported[0]
+        except:
+            pass
+        return "public"
 
-        subject_type = self.oidc_clients.config.CLIENTS[""]["client_info"]["subject_type"]
+    def _translate_response(self, response, issuer, subject_type):
+        oidc_clients = self.get_oidc_clients()
+        subject_type = subject_type
         auth_info = AuthenticationInformation(UNSPECIFIED, str(datetime.now()), issuer)
 
         internal_resp = InternalResponse(
@@ -289,6 +305,10 @@ class Client(oic.Client):
                 raise OIDCError("Invalid response %s." % atresp["error"])
 
         kwargs = {}
+        try:
+            kwargs = {"method": self.userinfo_request_method}
+        except AttributeError:
+            kwargs = {}
 
         inforesp = self.do_user_info_request(state=authresp["state"], **kwargs)
 
