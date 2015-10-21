@@ -116,6 +116,8 @@ SATOSA_ATTRIBUTES = {
     'osiotheremail': True,
     'osiotherhomephone': True,
     'osiworkurl': True,
+    'osiicardtimelastupdated': True,
+    'osipreferredtimezone': True,
     'organizationname': True,
     'organizationalstatus': True,
     'organizationalunitname': True,

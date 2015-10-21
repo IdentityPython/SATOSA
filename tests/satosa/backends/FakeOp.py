@@ -173,6 +173,8 @@ SYMKEY = rndstr(16)  # symmetric key used to encrypt cookie info
 
 
 class FakeOP:
+    STATE = "12345678"
+
     def __init__(self):
         op_base_url = TestConfiguration.get_instance().rp_config.OP_URL
         self.provider = Provider(
@@ -255,16 +257,17 @@ class FakeOP:
             status=200,
             content_type='application/json')
 
-    def setup_authentication_response(self, state_as_url=None):
+    def setup_authentication_response(self, state=None):
         context = Context()
         context.path = 'openid/authz_cb'
         op_base = TestConfiguration.get_instance().rp_config.OP_URL
-        if not state_as_url:
-            state_as_url = self.generate_state(op_base)
+        if not state:
+            state = rndstr()
         context.request = {
             'code': 'F+R4uWbN46U+Bq9moQPC4lEvRd2De4o=',
             'scope': 'openid profile email address phone',
-            'state': state_as_url}
+            'state': state}
+        context.cookie = 'openid_backend_state=%s' % self.generate_state(op_base)
         return context
 
     def generate_state(self, op_base):
@@ -279,7 +282,8 @@ class FakeOP:
             StateKeys.JWKS_URI:
                 TestConfiguration.get_instance().rp_config.OP_URL + "static/jwks.json",
             StateKeys.USERINFO_ENDPOINT:
-                TestConfiguration.get_instance().rp_config.OP_URL + "userinfo"
+                TestConfiguration.get_instance().rp_config.OP_URL + "userinfo",
+            StateKeys.STATE: FakeOP.STATE
         }
         state.add(state_id, state_data)
         encryption_key = TestConfiguration.get_instance().rp_config.STATE_ENCRYPTION_KEY

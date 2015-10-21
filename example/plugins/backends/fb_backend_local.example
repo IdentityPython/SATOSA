@@ -35,7 +35,7 @@ class FacebookPlugin(BackendModulePlugin):
             "state_encryption_key": "",
             "fields": ["id", "name", "first_name", "last_name", "middle_name", "picture",
                        "email", "verified", "gender", "timezone", "locale", "updated_time"],
-            "oauth_to_internal": {'gender': 'male',
+            "oauth_to_internal": {'gender': 'schacgender',
                                   'timezone': "osipreferredtimezone",
                                   'picture': "jpegphoto",
                                   'first_name': 'givenname',

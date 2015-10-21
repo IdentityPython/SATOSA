@@ -1,3 +1,6 @@
+"""
+This module contains classes to create OAuth 2 backends for SATOSA.
+"""
 import json
 from oic.utils.authn.authn_context import UNSPECIFIED
 import requests
@@ -15,8 +18,17 @@ __author__ = 'haho0032'
 
 def get_consumer(user_id_hash_type, config):
     """
-        :rtype: UserIdHashType
-    :return:
+    Creates a OAuth 2.0 consumer from a given configuration.
+
+    :param user_id_hash_type: Tells the OAuth consumer how to ask for user id. I oidc can pairwise
+    and public be used.
+    :param config: Contains all the configurations for a consumer. See OAuthBacken#__init__ for more
+    information.
+
+    :type user_id_hash_type: UserIdHashType
+    :type config: dict[str, str | dict[str, str]]
+    :rtype: Consumer
+    :return: An OAuth 2.0 consumer.
     """
     consumer = Consumer(
         session_db=None,
@@ -36,11 +48,11 @@ class OAuthBackend(BackendModule):
         self.redirect_url = "%s/%s" % (self.config["base_url"], self.config["authz_page"])
         self.get_consumer = get_consumer
 
-    def start_auth(self, context, internal_request, state):
+    def start_auth(self, context, internal_request, state, get_state=stateID):
         consumer = self.get_consumer(internal_request.user_id_hash_type, self.config)
         request_args = {}
         request_args["redirect_uri"] = self.redirect_url
-        request_args["state"] = stateID(self.config["base_url"], rndstr().encode())
+        request_args["state"] = get_state(self.config["base_url"], rndstr().encode())
         state_data = {
             "state": request_args["state"],
             "user_id_hash_type": internal_request.user_id_hash_type.name
@@ -115,8 +127,8 @@ class FacebookBackend(OAuthBackend):
     STATE_COOKIE_NAME = "facebook_backend"
     STATE_KEY = "facebook_backend"
 
-    def __init__(self, outgoing, config):
-        super(FacebookBackend, self).__init__(outgoing, config)
+    def __init__(self, outgoing, config, get_consumer=get_consumer):
+        super(FacebookBackend, self).__init__(outgoing, config, get_consumer)
         self.fields = None
         self.convert_dict = None
         if "state_cookie_name" not in self.config:
@@ -136,6 +148,10 @@ class FacebookBackend(OAuthBackend):
                                               self.config["server_info"]["authorization_endpoint"])
         return auth_info
 
+    def request_fb(self, url, payload):
+        r = requests.get(url, params=payload)
+        return r
+
     def user_information(self, access_token):
         payload = {'access_token': access_token}
         url = "https://graph.facebook.com/v2.5/me"
@@ -152,7 +168,7 @@ class FacebookBackend(OAuthBackend):
                 #url += field
                 fields_str += field
             payload["fields"] = fields_str
-        r = requests.get(url, params=payload)
+        r = self.request_fb(url, payload)
         data = json.loads(r.text)
         if "picture" in data and "data" in data["picture"] and "url" in data["picture"]["data"]:
             picture_url = data["picture"]["data"]["url"]
