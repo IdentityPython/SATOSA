@@ -37,7 +37,7 @@ class SamlBackend(BackendModule):
 
     def __init__(self, outgoing, config):
         super(SamlBackend, self).__init__(outgoing)
-        sp_config = SPConfig().load(copy.deepcopy(config), False)
+        sp_config = SPConfig().load(copy.deepcopy(config["config"]), False)
 
         self.state_encryption_key = config["encryption_key"]
         self.sp = Base(sp_config)
@@ -216,11 +216,9 @@ class SamlBackend(BackendModule):
             url_map.append(
                 ("^%s$" % parsed_endp.path[1:], (self.authn_response, binding)))
 
-        try:
+        if "publish_metadata" in self.config:
             metadata_path = urlparse(self.config["publish_metadata"])
             url_map.append(("^%s$" % metadata_path.path[1:], (self._metadata, "")))
-        except KeyError:
-            pass
 
         if self.discosrv:
             for endp, binding in sp_endpoints["discovery_response"]:

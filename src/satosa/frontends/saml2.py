@@ -254,9 +254,9 @@ class SamlFrontend(FrontendModule):
                     valid_providers = "{}|^{}".format(valid_providers, provider)
                 valid_providers = valid_providers.lstrip("|")
                 parsed_endp = urlparse(endp)
-                url_map.append(("%s/%s$" % (valid_providers, parsed_endp.path),
+                url_map.append(("(%s)/%s$" % (valid_providers, parsed_endp.path),
                                 (self.handle_authn_request, service.BINDING_MAP[binding])))
-                url_map.append(("%s/%s/(.*)$" % (valid_providers, parsed_endp.path),
+                url_map.append(("(%s)/%s/(.*)$" % (valid_providers, parsed_endp.path),
                                 (self.handle_authn_request, service.BINDING_MAP[binding])))
 
         return url_map
