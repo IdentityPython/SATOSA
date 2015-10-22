@@ -74,30 +74,32 @@ class TestConfiguration(object):
         sp_cert_file, sp_key_file = FileGenerator.get_instance().generate_cert("sp")
         self.sp_base = "http://example.com"
         self.spconfig = {
+            "config": {
+                "entityid": "{}/unittest_sp.xml".format(self.sp_base),
+                "service": {
+                    "sp": {
+                        "endpoints": {
+                            "assertion_consumer_service": [
+                                ("%s/acs/post" % self.sp_base, BINDING_HTTP_POST)
+                            ],
+                            "discovery_response": [("%s/disco" % self.sp_base, BINDING_DISCO)]
+                        },
+                        "allow_unsolicited": "true",
+                    },
+                },
+                "key_file": sp_key_file.name,
+                "cert_file": sp_cert_file.name,
+                "metadata": {
+                    "local": []
+                },
+                "xmlsec_binary": xmlsec_path,
+            },
             "encryption_key": "asduy234879dyisahkd2",
             "disco_srv": "https://my.dicso.com/role/idp.ds",
-            "entityid": "{}/unittest_sp.xml".format(self.sp_base),
-            "service": {
-                "sp": {
-                    "endpoints": {
-                        "assertion_consumer_service": [
-                            ("%s/acs/post" % self.sp_base, BINDING_HTTP_POST)
-                        ],
-                        "discovery_response": [("%s/disco" % self.sp_base, BINDING_DISCO)]
-                    },
-                    "allow_unsolicited": "true",
-                },
-            },
-            "key_file": sp_key_file.name,
-            "cert_file": sp_cert_file.name,
-            "metadata": {
-                "local": []
-            },
-            "xmlsec_binary": xmlsec_path,
         }
-        sp_metadata = FileGenerator.get_instance().create_metadata(self.spconfig, "sp_metadata")
+        sp_metadata = FileGenerator.get_instance().create_metadata(self.spconfig["config"], "sp_metadata")
         idp_metadata = FileGenerator.get_instance().create_metadata(self.idpconfig, "idp_metadata")
-        self.spconfig["metadata"]["local"].append(idp_metadata.name)
+        self.spconfig["config"]["metadata"]["local"].append(idp_metadata.name)
         self.idpconfig["metadata"]["local"].append(sp_metadata.name)
 
     @staticmethod
@@ -118,7 +120,7 @@ def test_register_endpoints():
         None,
         TestConfiguration.get_instance().spconfig)
     url_map = samlbackend.register_endpoints()
-    for k, v in TestConfiguration.get_instance().spconfig["service"]["sp"]["endpoints"].items():
+    for k, v in TestConfiguration.get_instance().spconfig["config"]["service"]["sp"]["endpoints"].items():
         for e in v:
             match = False
             for regex in url_map:
@@ -178,7 +180,7 @@ def test_start_auth_name_id_policy():
     assert cookie
     disco_resp = parse.parse_qs(resp.message.replace(
         TestConfiguration.get_instance().spconfig["disco_srv"] + "?", ""))
-    sp_config = TestConfiguration.get_instance().spconfig
+    sp_config = TestConfiguration.get_instance().spconfig["config"]
     sp_disco_resp = sp_config["service"]["sp"]["endpoints"]["discovery_response"][0][0]
     assert "return" in disco_resp and disco_resp["return"][0].startswith(sp_disco_resp), \
         "Not a valid return url in the call to the discovery server"
@@ -242,7 +244,7 @@ def test__start_auth_disco():
             cookie = header[1]
             break
     assert cookie
-    sp_disco_resp = spconfig["service"]["sp"]["endpoints"]["discovery_response"][0][0]
+    sp_disco_resp = spconfig["config"]["service"]["sp"]["endpoints"]["discovery_response"][0][0]
     disco_resp = parse.parse_qs(resp.message.replace(spconfig["disco_srv"] + "?", ""))
     info = parse.parse_qs(disco_resp["return"][0].replace(sp_disco_resp + "?", ""))
     info[samlbackend.idp_disco_query_param] = idpconfig["entityid"]
