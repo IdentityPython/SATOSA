@@ -1,5 +1,5 @@
 """
-This class contains all needed to keep a request state, without saving any information on the
+This module contains all needed to keep a request state, without saving any information on the
 server.
 """
 import base64

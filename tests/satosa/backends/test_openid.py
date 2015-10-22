@@ -46,7 +46,8 @@ class TestOpenIdBackend:
         response = {"given_name": "Bob", "family_name": "Devsson", "sub": sub}
         internal_response = self.openid_backend._translate_response(
             response,
-            TestConfiguration.get_instance().rp_config.OP_URL
+            TestConfiguration.get_instance().rp_config.OP_URL,
+            "public"
         )
         assert internal_response.user_id == sub
         attributes_keys = internal_response._attributes.keys()
@@ -58,7 +59,7 @@ class TestOpenIdBackend:
             verify_object_types_callback,
             TestConfiguration.get_instance().rp_config
         )
-        context = self.setup_fake_op_endpoints()
+        context = self.setup_fake_op_endpoints(FakeOP.STATE)
         openid_backend.redirect_endpoint(context)
 
     @responses.activate
@@ -67,11 +68,11 @@ class TestOpenIdBackend:
             verify_userinfo_callback,
             TestConfiguration.get_instance().rp_config
         )
-        context = self.setup_fake_op_endpoints()
+        context = self.setup_fake_op_endpoints(FakeOP.STATE)
         openid_backend.redirect_endpoint(context)
 
-    def setup_fake_op_endpoints(self, state_as_url=None):
-        context = self.fake_op.setup_authentication_response(state_as_url)
+    def setup_fake_op_endpoints(self, state=None):
+        context = self.fake_op.setup_authentication_response(state)
         self.fake_op.provider.client_authn = MagicMock(return_value=CLIENT_ID)
         self.fake_op.publish_jwks()
         self.fake_op.setup_token_endpoint()
@@ -96,7 +97,7 @@ class TestOpenIdBackend:
         state_as_ulr = state.urlstate(
             TestConfiguration.get_instance().rp_config.STATE_ENCRYPTION_KEY
         )
-        context = self.setup_fake_op_endpoints(state_as_ulr)
+        context = self.setup_fake_op_endpoints(FakeOP.STATE)
         self.openid_backend.redirect_endpoint(context)
 
     @responses.activate

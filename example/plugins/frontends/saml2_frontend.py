@@ -64,7 +64,7 @@ class Saml2FrontendModulePlugin(FrontendModulePlugin):
             "key_file": full_path("pki/new_server.key"),
             "cert_file": full_path("pki/new_server.crt"),
             "metadata": {
-                "local": ["/Users/danielevertsson/projects/pysaml2/example/sp-wsgi/sp_saas.xml"]
+                "local": ["/Users/haho0032/Develop/githubFork/pysaml2/example/sp-wsgi/sp_satosa.xml"]
             },
             # This database holds the map between a subjects local identifier and
             # the identifier returned to a SP

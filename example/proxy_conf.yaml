@@ -1,14 +1,26 @@
-HOST: '127.0.0.1'
-PORT: 8090
+#--- SATOSA Config ---#
+HOST: 'hashog.umdc.umu.se'
+PORT: 8091
 HTTPS: Yes
 PLUGIN_PATH:
   - "plugins/backends"
   - "plugins/frontends"
+  - "plugins/micro_services"
 BACKEND_MODULES:
-  - "openid_backend"
+  - "fb_backend_local"
 FRONTEND_MODULES:
   - "saml2_frontend"
-USER_ID_HASH_SALT: "61a89d2db0b9e1e27d490d050b478fe71f352fddd3528a44157f43e339c6c62f2362fb413179937d96172bf84233317"
+#MICRO_SERVICES:
+#  - "test_service"
+USER_ID_HASH_SALT: "61a89d2db0b9e1e27d490d050b478fe71f352fddd3528a44157f43e339c6c62d96172bf84233317"
+#CONSENT:
+#  enable: Yes
+#  service.rest_uri: "https://127.0.0.1:8166"
+#  service.consent_redirect: "https://localhost:8166/consent"
+#  endpoint: "handle_consent"
+#  sign_key: "pki/mykey.pem"
+#  state_enc_key: "7D1ZGckfoiQfxvsK3DLCQFGutA6KM0ZzoSnzB"
+#  verify_ssl: No
 
 
 #--- Server Config ---#
