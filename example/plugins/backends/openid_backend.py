@@ -20,14 +20,15 @@ MODULE = OpenIdBackend
 class OpenidPlugin(BackendModulePlugin):
     def __init__(self, base_url):
         module_base = "%s/%s/" % (base_url, PROVIDER)
-        config = RpConfig(module_base)
-        super(OpenidPlugin, self).__init__(OpenIdBackend, PROVIDER, config)
-
-
-class RpConfig(object):
-    def __init__(self, module_base):
-        self.CLIENTS = {
-            "": {
+        config = {
+            "authz_page": PROVIDER,
+            "acr_values": ["PASSWORD"],
+            "verify_ssl": False,
+            "op_url": "https://localhost:8092",
+            "state_encryption_key": "Qrn9IQ5hr9uUnIdNQe2e0KxsmR3CusyARs3RKLjp",
+            "state_id": "OpenID_Qrn9R3Cus",
+            "client": {
+                "userid": "https://localhost:8092",
                 "client_info": {
                     "application_type": "web",
                     "application_name": "SATOSA",
@@ -43,8 +44,4 @@ class RpConfig(object):
                 }
             },
         }
-        self.ACR_VALUES = ["PASSWORD"]
-        self.VERIFY_SSL = False
-        self.OP_URL = "https://localhost:8092"
-        self.STATE_ENCRYPTION_KEY = "Qrn9IQ5hr9uUnIdNQe2e0KxsmR3CusyARs3RKLjp"
-        self.STATE_ID = "OpenID_Qrn9R3Cus"
+        super(OpenidPlugin, self).__init__(OpenIdBackend, PROVIDER, config)

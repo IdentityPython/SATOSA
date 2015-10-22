@@ -56,17 +56,33 @@ class StateKeys:
 
 COOKIE_STATE_NAME = "openid_backend_state"
 
+
+class RpConfig(object):
+    def __init__(self, config):
+        self.CLIENTS = {
+            config["authz_page"]: config["client"]
+        }
+        self.ACR_VALUES = config["acr_values"]
+        self.VERIFY_SSL = config["verify_ssl"]
+        self.OP_URL = config["op_url"]
+        self.STATE_ENCRYPTION_KEY = config["state_encryption_key"]
+        self.STATE_ID = config["state_id"]
+
+
 class OpenIdBackend(BackendModule):
     def __init__(self, auth_callback_func, config):
         super(OpenIdBackend, self).__init__(auth_callback_func)
         self.auth_callback_func = auth_callback_func
-        self.config = config
-        self.oidc_clients = OIDCClients(self.config)
+        self.config = RpConfig(config)
+        self.oidc_clients = None#OIDCClients(self.config)
 
     def get_oidc_clients(self):
+        #if self.oidc_clients is None:
+        self.oidc_clients = OIDCClients(self.config)
         return self.oidc_clients
 
     def start_auth(self, context, request_info, state):
+
         oidc_clients = self.get_oidc_clients()
         try:
             client_key = next(iter(oidc_clients.client.keys()))
@@ -92,13 +108,20 @@ class OpenIdBackend(BackendModule):
         state_data = {
             StateKeys.OP: client_key,
             StateKeys.NONCE: nonce,
-            StateKeys.TOKEN_ENDPOINT: client.token_endpoint,
-            StateKeys.CLIENT_ID: client.client_id,
-            StateKeys.CLIENT_SECRET: client.client_secret,
-            StateKeys.JWKS_URI: jwks_uri,
-            StateKeys.USERINFO_ENDPOINT: client.userinfo_endpoint,
             StateKeys.STATE: oidc_state
         }
+
+        if "client_registration" not in self.config.CLIENTS[client_key]:
+            save_state_dict = {
+                StateKeys.TOKEN_ENDPOINT: client.token_endpoint,
+                StateKeys.CLIENT_ID: client.client_id,
+                StateKeys.CLIENT_SECRET: client.client_secret,
+                StateKeys.JWKS_URI: jwks_uri,
+                StateKeys.USERINFO_ENDPOINT: client.userinfo_endpoint
+            }
+        else:
+            save_state_dict = {}
+        state_data.update(save_state_dict)
 
         state.add(self.config.STATE_ID, state_data)
         state_cookie = state_to_cookie(
@@ -122,21 +145,32 @@ class OpenIdBackend(BackendModule):
     # TODO not done yet. Info needs to be sent through state
     def restore_state(self, state):
         oidc_clients = self.get_oidc_clients()
-        client = oidc_clients.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
-                                              behaviour=self.config.CLIENTS[""]["behaviour"],
-                                              verify_ssl=self.config.VERIFY_SSL)
-        client.token_endpoint = state[StateKeys.TOKEN_ENDPOINT]
-        client = self.fetch_op_keys(client, state)
-        self.load_client_registration_info(client, state)
-        client.userinfo_endpoint = state[StateKeys.USERINFO_ENDPOINT]
+        if state["op"] in oidc_clients.client:
+            key = state["op"]
+        else:
+            key = ""
+        if "client_registration" not in self.config.CLIENTS[key]:
+            client = oidc_clients.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
+                                                  behaviour=self.config.CLIENTS[key]["behaviour"],
+                                                  verify_ssl=self.config.VERIFY_SSL)
+            client.token_endpoint = state[StateKeys.TOKEN_ENDPOINT]
+            client = self.fetch_op_keys(client, state)
+            self.load_client_registration_info(client, state, key)
+            client.userinfo_endpoint = state[StateKeys.USERINFO_ENDPOINT]
+        else:
+            return oidc_clients[key]
         return client
 
-    def load_client_registration_info(self, client, state):
+    def load_client_registration_info(self, client, state, key):
+        try:
+            redirect_uris = self.config.CLIENTS[key]["client_info"]["redirect_uris"]
+        except:
+            redirect_uris = self.config.CLIENTS[key]["client_registration"]["redirect_uris"]
         val = {
             "client_registration": {
                 "client_id": state[StateKeys.CLIENT_ID],
                 "client_secret": state[StateKeys.CLIENT_SECRET],
-                "redirect_uris": [self.config.CLIENTS[""]["client_info"]["redirect_uris"][0]]
+                "redirect_uris": redirect_uris
             }
         }
         client.store_registration_info(RegistrationResponse(
@@ -178,16 +212,11 @@ class OpenIdBackend(BackendModule):
         return url_map
 
     def redirect_endpoint(self, context, *args):
-        oidc_clients = self.get_oidc_clients()
         state = cookie_to_state(context.cookie, COOKIE_STATE_NAME, self.config.STATE_ENCRYPTION_KEY)
         backend_state = state.get(self.config.STATE_ID)
         if backend_state["state"] != context.request["state"]:
             raise AuthenticationError(backend_state, "Missing or invalid state in authn response!")
-        try:
-            client = oidc_clients.client[backend_state["op"]]
-        except KeyError:
-            client = self.restore_state(backend_state)
-
+        client = self.restore_state(backend_state)
         result = client.callback(context.request, backend_state)
         return self.auth_callback_func(context,
                                        self._translate_response(

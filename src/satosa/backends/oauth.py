@@ -16,40 +16,38 @@ from satosa.state import state_to_cookie, cookie_to_state, StateError
 __author__ = 'haho0032'
 
 
-def get_consumer(user_id_hash_type, config):
-    """
-    Creates a OAuth 2.0 consumer from a given configuration.
-
-    :param user_id_hash_type: Tells the OAuth consumer how to ask for user id. I oidc can pairwise
-    and public be used.
-    :param config: Contains all the configurations for a consumer. See OAuthBacken#__init__ for more
-    information.
-
-    :type user_id_hash_type: UserIdHashType
-    :type config: dict[str, str | dict[str, str]]
-    :rtype: Consumer
-    :return: An OAuth 2.0 consumer.
-    """
-    consumer = Consumer(
-        session_db=None,
-        client_config=config["client_config"],
-        server_info=config["server_info"],
-        authz_page=config["authz_page"],
-        response_type=config["response_type"])
-    consumer.client_secret = config["client_secret"]
-    return consumer
-
-
 class OAuthBackend(BackendModule):
 
-    def __init__(self, outgoing, config, get_consumer=get_consumer):
+    def __init__(self, outgoing, config):
         super(OAuthBackend, self).__init__(outgoing)
         self.config = config
         self.redirect_url = "%s/%s" % (self.config["base_url"], self.config["authz_page"])
-        self.get_consumer = get_consumer
+
+    def get_consumer(self, user_id_hash_type):
+        """
+        Creates a OAuth 2.0 consumer from a given configuration.
+
+        :param user_id_hash_type: Tells the OAuth consumer how to ask for user id. I oidc can pairwise
+        and public be used.
+        :param config: Contains all the configurations for a consumer. See OAuthBacken#__init__ for more
+        information.
+
+        :type user_id_hash_type: UserIdHashType
+        :type config: dict[str, str | dict[str, str]]
+        :rtype: Consumer
+        :return: An OAuth 2.0 consumer.
+        """
+        consumer = Consumer(
+            session_db=None,
+            client_config=self.config["client_config"],
+            server_info=self.config["server_info"],
+            authz_page=self.config["authz_page"],
+            response_type=self.config["response_type"])
+        consumer.client_secret = self.config["client_secret"]
+        return consumer
 
     def start_auth(self, context, internal_request, state, get_state=stateID):
-        consumer = self.get_consumer(internal_request.user_id_hash_type, self.config)
+        consumer = self.get_consumer(internal_request.user_id_hash_type)
         request_args = {}
         request_args["redirect_uri"] = self.redirect_url
         request_args["state"] = get_state(self.config["base_url"], rndstr().encode())
@@ -90,7 +88,7 @@ class OAuthBackend(BackendModule):
             if "user_id_hash_type" in state_data:
                 enum_value = UserIdHashType[state_data["user_id_hash_type"]]
                 state_data["user_id_hash_type"] = enum_value
-            consumer = self.get_consumer(state_data["user_id_hash_type"], self.config)
+            consumer = self.get_consumer(state_data["user_id_hash_type"])
             request = context.request
             aresp = consumer.parse_response(AuthorizationResponse, info=json.dumps(request))
             self.verify_state(aresp, state_data, state)
@@ -127,8 +125,8 @@ class FacebookBackend(OAuthBackend):
     STATE_COOKIE_NAME = "facebook_backend"
     STATE_KEY = "facebook_backend"
 
-    def __init__(self, outgoing, config, get_consumer=get_consumer):
-        super(FacebookBackend, self).__init__(outgoing, config, get_consumer)
+    def __init__(self, outgoing, config):
+        super(FacebookBackend, self).__init__(outgoing, config)
         self.fields = None
         self.convert_dict = None
         if "state_cookie_name" not in self.config:

@@ -1,4 +1,5 @@
 import json
+import responses
 from mock.mock import MagicMock, Mock
 from oic.oauth2.message import AuthorizationRequest
 import pytest
@@ -149,9 +150,40 @@ class TestFacebook:
         }
         # context.request = json.dumps(context.request)
         self.fb_backend.auth_callback_func = self.verify_callback
-        tmp_consumer = self.fb_backend.get_consumer(UserIdHashType.transient, self.config)
+        tmp_consumer = self.fb_backend.get_consumer(UserIdHashType.transient)
         tmp_consumer.do_access_token_request = self.verify_do_access_token_request
         self.fb_backend.get_consumer = Mock()
         self.fb_backend.get_consumer.return_value = tmp_consumer
         self.fb_backend.request_fb = self.verify_request_fb
+        self.fb_backend.authn_response(context, "redirect")
+
+    @responses.activate
+    def test_with_pyoidc(self):
+        responses.add(responses.GET,
+                      "https://graph.facebook.com/v2.5/oauth/access_token",
+                      body=json.dumps({"access_token": "qwerty",
+                                       "token_type": "bearer",
+                                       "expires_in": 9999999999999}),
+                      adding_headers={"set-cookie": "TEST=testing; path=/"},
+                      status=200,
+                      content_type='application/json')
+        responses.add(responses.GET,
+                      "https://graph.facebook.com/v2.5/me",
+                      match_querystring=False,
+                      body=json.dumps(FB_RESPONSE),
+                      status=200,
+                      content_type='application/json')
+
+        context = Context()
+        context.path = 'facebook/sso/redirect'
+        internal_request = InternalRequest(UserIdHashType.transient, 'http://localhost:8087/sp.xml')
+        get_state = Mock()
+        get_state.return_value = STATE
+        resp = self.fb_backend.start_auth(context, internal_request, State(), get_state)
+        context.cookie = resp.headers[0][1]
+        context.request = {
+            "code": FB_RESPONSE_CODE,
+            "state": STATE
+        }
+        self.fb_backend.auth_callback_func = self.verify_callback
         self.fb_backend.authn_response(context, "redirect")

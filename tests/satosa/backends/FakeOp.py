@@ -1,5 +1,6 @@
 import json
 import time
+from urllib.parse import urlparse
 
 from jwkest.jwk import RSAKey
 from oic.oauth2 import rndstr
@@ -23,13 +24,14 @@ from oic.utils.userinfo import UserInfo
 from oic.utils.webfinger import WebFinger
 import responses
 
-from satosa.backends.openid_connect import StateKeys
+from satosa.backends.openid_connect import StateKeys, RpConfig
 from satosa.context import Context
 from satosa.state import State
 from tests.util import FileGenerator
-from six.moves.urllib.parse import urlparse
 
 __author__ = 'danielevertsson'
+
+PROVIDER = "testprovider"
 
 
 def keybundle_from_local_file(filename, typ, usage, kid):
@@ -60,29 +62,32 @@ class DummyAuthn(UserAuthnMethod):
         return {"uid": self.user}, time.time()
 
 
-class RpConfig(object):
-    def __init__(self, module_base):
-        self.CLIENTS = {
-            "": {
-                "client_info": {
-                    "application_type": "web",
-                    "application_name": "SATOSA",
-                    "contacts": ["ops@example.com"],
-                    "redirect_uris": ["%sauthz_cb" % module_base],
-                    "response_types": ["code"],
-                    "subject_type": "pairwise"
-                },
-                "behaviour": {
-                    "response_type": "code",
-                    "scope": ["openid", "profile", "email", "address", "phone"],
-                }
+def get_config(module_base, provider):
+    config = {
+        "authz_page": provider,
+        "acr_values": ["PASSWORD"],
+        "verify_ssl": False,
+        "op_url": "https://op.tester.se/",
+        "state_encryption_key": "Qrn9IQ5hr9uUnIdNQe2e0KxsmR3CusyARs3RKLjp",
+        "state_id": "OpenID_Qrn9R3Cus",
+        "client": {
+            "userid": "https://op.tester.se/",
+            "client_info": {
+                "application_type": "web",
+                "application_name": "SATOSA",
+                "contacts": ["ops@example.com"],
+                "redirect_uris": ["%sauthz_cb" % module_base],
+                "post_logout_redirect_uris": ["%slogout" % module_base],
+                "response_types": ["code"],
+                "subject_type": "pairwise"
+            },
+            "behaviour": {
+                "response_type": "code",
+                "scope": ["openid", "profile", "email", "address", "phone"],
             }
-        }
-        self.ACR_VALUES = ["PASSWORD"]
-        self.VERIFY_SSL = False
-        self.OP_URL = "https://op.tester.se/"
-        self.STATE_ENCRYPTION_KEY = "Qrn9IQ5hr9uUnIdNQe2e0KxsmR3CusyARs3RKLjp"
-        self.STATE_ID = "OpenID_Qrn9R3Cus"
+        },
+    }
+    return config
 
 
 class TestConfiguration(object):
@@ -96,7 +101,8 @@ class TestConfiguration(object):
     def __init__(self):
         self.op_config = {}
         self.rp_base = "https://rp.example.com/openid/"
-        self.rp_config = RpConfig(self.rp_base)
+        self.config = get_config(self.rp_base, PROVIDER)
+        self.rp_config = RpConfig(self.config)
 
     @staticmethod
     def get_instance():
@@ -191,7 +197,7 @@ class FakeOP:
         )
         self.provider.baseurl = TestConfiguration.get_instance().rp_config.OP_URL
         self.op_base = TestConfiguration.get_instance().rp_config.OP_URL
-        self.redirect_urls = TestConfiguration.get_instance().rp_config.CLIENTS[""]["client_info"][
+        self.redirect_urls = TestConfiguration.get_instance().rp_config.CLIENTS[PROVIDER]["client_info"][
             "redirect_uris"]
 
     def setup_userinfo_endpoint(self):
@@ -274,7 +280,7 @@ class FakeOP:
         state = State()
         state_id = TestConfiguration.get_instance().rp_config.STATE_ID
         state_data = {
-            StateKeys.OP: op_base,
+            StateKeys.OP: PROVIDER,
             StateKeys.NONCE: "9YraWpJAmVp4L3NJ",
             StateKeys.TOKEN_ENDPOINT: TestConfiguration.get_instance().rp_config.OP_URL + "token",
             StateKeys.CLIENT_ID: "client_1",
@@ -290,7 +296,7 @@ class FakeOP:
         return state.urlstate(encryption_key)
 
     def setup_client_registration_endpoint(self):
-        client_info = TestConfiguration.get_instance().rp_config.CLIENTS[""]["client_info"]
+        client_info = TestConfiguration.get_instance().rp_config.CLIENTS[PROVIDER]["client_info"]
         request = RegistrationRequest().deserialize(json.dumps(client_info), "json")
         _cinfo = self.provider.do_client_registration(request, CLIENT_ID)
         args = dict([(k, v) for k, v in _cinfo.items()
