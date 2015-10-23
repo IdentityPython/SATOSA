@@ -97,7 +97,7 @@ for filespec in args.config:
     for plugin in backend_plugins:
         providers.append(plugin.name)
         if issubclass(plugin.module, SamlBackend) and generate_backend:
-            metadata["backends"][plugin.name] = _make_metadata(plugin.config)
+            metadata["backends"][plugin.name] = _make_metadata(plugin.config["config"])
 
     if generate_frontend:
         for plugin in frontend_plugins:
