@@ -111,7 +111,7 @@ class TestConfiguration(object):
             Saml2FrontendPlugin(self.proxy_config.BASE).config["idp_config"],
             "frontend")
         backend_metadata_file = FileGenerator.get_instance().create_metadata(
-            Saml2BackendPlugin(self.proxy_config.BASE).config, "backend")
+            Saml2BackendPlugin(self.proxy_config.BASE).config["config"], "backend")
 
         self.fake_idp_metadata.append(fake_idp_metadata_file.name)
         self.fake_sp_metadata.append(fake_sp_metadata_file.name)
@@ -145,9 +145,7 @@ class Saml2BackendPlugin(BackendModulePlugin):
         :return: Object instance for this class.
         """
         module_base = "%s/%s" % (base_url, Saml2BackendPlugin.provider)
-        config = {
-            "encryption_key": "asd89673oeirds90",
-            "idp_entity_id": "https://example.com/unittest_idp.xml",
+        sp_config = {
             "entityid": "%s/proxy_sp.xml" % module_base,
             "service": {
                 "sp": {
@@ -168,6 +166,10 @@ class Saml2BackendPlugin(BackendModulePlugin):
 
             "xmlsec_binary": TestConfiguration.get_instance().xmlsec_path,
         }
+        config = {"config": sp_config,
+                  "encryption_key": "asd89673oeirds90",
+                  "idp_entity_id": "https://example.com/unittest_idp.xml",
+                  }
 
         super(Saml2BackendPlugin, self).__init__(SamlBackend, Saml2BackendPlugin.provider, config)
 

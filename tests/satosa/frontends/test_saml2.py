@@ -156,7 +156,8 @@ def test_handle_authn_request(conf, binding_in, providers, error):
             for provider in providers:
                 for s_key in conf["endpoints"]:
                     for b_key in conf["endpoints"][s_key]:
-                        if p.match(provider + "/" + conf["endpoints"][s_key][b_key]):
+                        if p.match(provider + "/" + conf["endpoints"][s_key][b_key]) or \
+                                p.match(provider + "/" + conf["endpoints"][s_key][b_key] + "/test"):
                             match = True
                             break
             assert match, "All regular expressions must match!"
