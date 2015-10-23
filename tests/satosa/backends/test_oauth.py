@@ -159,20 +159,20 @@ class TestFacebook:
 
     @responses.activate
     def test_with_pyoidc(self):
+        responses.add(responses.POST,
+              "https://graph.facebook.com/v2.5/oauth/access_token",
+              body=json.dumps({"access_token": "qwerty",
+                               "token_type": "bearer",
+                               "expires_in": 9999999999999}),
+              adding_headers={"set-cookie": "TEST=testing; path=/"},
+              status=200,
+              content_type='application/json')
         responses.add(responses.GET,
-                      "https://graph.facebook.com/v2.5/oauth/access_token",
-                      body=json.dumps({"access_token": "qwerty",
-                                       "token_type": "bearer",
-                                       "expires_in": 9999999999999}),
-                      adding_headers={"set-cookie": "TEST=testing; path=/"},
-                      status=200,
-                      content_type='application/json')
-        responses.add(responses.GET,
-                      "https://graph.facebook.com/v2.5/me",
-                      match_querystring=False,
-                      body=json.dumps(FB_RESPONSE),
-                      status=200,
-                      content_type='application/json')
+              "https://graph.facebook.com/v2.5/me",
+              match_querystring=False,
+              body=json.dumps(FB_RESPONSE),
+              status=200,
+              content_type='application/json')
 
         context = Context()
         context.path = 'facebook/sso/redirect'

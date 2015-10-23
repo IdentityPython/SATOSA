@@ -112,7 +112,8 @@ class OAuthBackend(BackendModule):
             if isinstance(error, SATOSAError):
                 raise error
             # TODO LOG
-            raise AuthenticationError(None, "Missing state in authn_response")
+            print(error)
+            raise AuthenticationError(None, "Not a valid authentication")
 
     def auth_info(self, request):
         raise NotImplementedError("Method user_information must be implemented!")
