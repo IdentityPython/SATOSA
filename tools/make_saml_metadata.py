@@ -30,7 +30,7 @@ parser.add_argument('-s', dest='sign', action='store_true', help="sign the metad
 parser.add_argument('-x', dest='xmlsec', help="xmlsec binaries to be used for the signing")
 parser.add_argument('-f', dest="frontend", help='generate frontend metadata', action="store_true")
 parser.add_argument('-b', dest="backend", help='generate backend metadata', action="store_true")
-parser.add_argument('-o', dest="output", help='output path', action="store_true")
+parser.add_argument('-o', dest="output", help='output path')
 parser.add_argument(dest="config", nargs="+")
 args = parser.parse_args()
 
