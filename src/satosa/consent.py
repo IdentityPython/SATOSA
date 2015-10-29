@@ -119,16 +119,17 @@ class ConsentModule(object):
         filter = consent_state["fr"]
         requestor = consent_state["reqor"]
 
-        # filter attributes
-        filtered_data = {}
-        for attr in filter:
-            if attr in internal_response._attributes:
-                data = internal_response._attributes[attr]
-                if not isinstance(data, list):
-                    data = [data]
-                filtered_data[attr] = data
-        # Update intenal response
-        internal_response._attributes = filtered_data
+        ##filter attributes
+        #filtered_data = {}
+        #for attr in filter:
+        #    if attr in internal_response._attributes:
+        #        data = internal_response._attributes[attr]
+        #        if not isinstance(data, list):
+        #            data = [data]
+        #        filtered_data[attr] = data
+        ##Update intenal response
+        #internal_response._attributes = filtered_data
+        filtered_data = internal_response._attributes
 
         id_hash = self._get_consent_id(requestor, internal_response.user_id, list(filtered_data.keys()))
 
