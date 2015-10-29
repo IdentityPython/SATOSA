@@ -23,8 +23,8 @@ def verify_object_types_callback(context, response, state):
 
 def verify_userinfo_callback(context, response, state):
     assert isinstance(response, InternalResponse)
-    for attribute in ["name", "email"]:
-        assert response._attributes[attribute] == USERDB[USERNAME][attribute]
+    for attribute in [("name", "name"), ("mail", "email")]:
+        assert response._attributes[attribute[0]] == USERDB[USERNAME][attribute[1]]
 
 class TestOpenIdBackend:
     @pytest.fixture(autouse=True)
