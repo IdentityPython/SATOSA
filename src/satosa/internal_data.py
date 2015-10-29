@@ -190,7 +190,7 @@ OIDC_TO_SATOSA = {
     'profile_string': 'osihomeurl',
     'picture': 'jpegphoto',
     'website': 'osiworkurl',
-    'email': 'email',
+    'email': 'mail',
     'email_verified': 'osiotheremail',
     'gender': 'schacgender',
     'birthdate': 'schacdateofbirth',
