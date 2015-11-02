@@ -113,7 +113,7 @@ class SATOSAConfig(object):
             config = SATOSAConfig._readfile(config)
             import json
             return json.loads(config)
-        except Exception:
+        except ValueError as e:  # not a json config
             pass
 
     @staticmethod
@@ -127,12 +127,10 @@ class SATOSAConfig(object):
         :param config: config to load. Can be file path or yaml string
         :return: Loaded config
         """
-        try:
-            config = SATOSAConfig._readfile(config)
-            import yaml
-            return yaml.load(config)
-        except Exception:
-            pass
+
+        config = SATOSAConfig._readfile(config)
+        import yaml
+        return yaml.load(config)
 
     @staticmethod
     def _readfile(config):
