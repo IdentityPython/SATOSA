@@ -22,6 +22,8 @@ setup(
                       "future",
                       "oic",
                       "pyjwkest",
-                      "requests"],
+                      "requests",
+                      "PyYAML",
+                      ],
     zip_safe=False,
 )
