@@ -83,7 +83,8 @@ def main():
 
     cherrypy.config.update({
         'server.socket_host': '0.0.0.0',
-        'server.socket_port': server_config.PORT
+        'server.socket_port': server_config.PORT,
+        'engine.autoreload.on': False
     })
     if server_config.HTTPS:
         cherrypy.config.update({
