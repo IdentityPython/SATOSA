@@ -23,7 +23,7 @@ Indices and tables
 Generate metadata
 -----------------
 
-To generate metadata for the SATOSA frontends and backends based on Saml2, use the script **make_saml_metadata.py**.
+To generate metadata for the SATOSA frontends and backends based on Saml2, use the script **tools/make_saml_metadata.py**.
 This will generate one saml2 metadata file for each frontend/backend. Use the proxy config file as parameter
 to the script.
 
