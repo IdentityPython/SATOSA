@@ -132,5 +132,5 @@ class SATOSABase(object):
             resp = self._run_bound_endpoint(context, spec)
         except Exception as error:
             # TODO Log error
-            resp = Response(error, status=500)
+            raise
         return resp
