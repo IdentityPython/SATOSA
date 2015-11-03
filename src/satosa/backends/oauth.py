@@ -88,9 +88,10 @@ class OAuthBackend(BackendModule):
                                     self.config["state_cookie_name"],
                                     self.config["state_encryption_key"])
             state_data = state.get(self.config["state_key"])
+            user_id_hash_type = UserIdHashType.pairwise
             if "user_id_hash_type" in state_data:
                 enum_value = UserIdHashType[state_data["user_id_hash_type"]]
-                state_data["user_id_hash_type"] = enum_value
+                user_id_hash_type = enum_value
             consumer = self.get_consumer(state_data["user_id_hash_type"])
             request = context.request
             aresp = consumer.parse_response(AuthorizationResponse, info=json.dumps(request))
@@ -103,9 +104,9 @@ class OAuthBackend(BackendModule):
                     self.config["verify_accesstoken_state"]):
                 self.verify_state(atresp, state_data, state)
             user_info = self.user_information(atresp["access_token"])
-            internal_response = InternalResponse(state_data["user_id_hash_type"],
+            internal_response = InternalResponse(user_id_hash_type,
                                                  auth_info=self.auth_info(request))
-            internal_response.add_attributes(self.converter(self.type, user_info))
+            internal_response.add_attributes(self.converter.to_internal(self.type, user_info))
             return self.auth_callback_func(context, internal_response, state)
         except Exception as error:
             if isinstance(error, SATOSAError):

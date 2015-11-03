@@ -424,7 +424,10 @@ class DataConverter(object):
                 internal_key = self.to_internal_attributes[type][external_key]
                 if internal_key not in internal_dict:
                     internal_dict[internal_key] = []
-                internal_dict[internal_key].append(external_dict[external_key])
+                if isinstance(external_dict[external_key], list):
+                    internal_dict[internal_key] += external_dict[external_key]
+                else:
+                    internal_dict[internal_key].append(external_dict[external_key])
         return internal_dict
 
     def from_internal(self, type, internal_dict, list=True, external_keys=None):
