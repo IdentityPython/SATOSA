@@ -12,6 +12,18 @@ PROVIDERS = ["Saml2SP", "VOPaaSSaml2SP"]
 FRONTEND_ENDPOINTS = ["sso/redirect", "sso/post"]
 BACKEND_ENDPOINTS = ["disco", "auth"]
 
+INTERNAL_ATTRIBUTES = {
+    'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
+                   'givenname': {'saml': ['givenName'], 'openid': ['given_name'],
+                                 'facebook': ['first_name']},
+                   'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
+                            'facebook': ['email']},
+                   'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
+                                           'facebook': ['id']},
+                   'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
+                   'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
+                   'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
+                               'facebook': ['last_name']}}, 'separator': '->'}
 
 def create_frontend_endpoint_func(receiver):
     def register_frontend_url(providers):
