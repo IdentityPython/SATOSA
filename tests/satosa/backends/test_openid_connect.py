@@ -14,6 +14,18 @@ from tests.satosa.backends.FakeOp import FakeOP, CLIENT_ID, TestConfiguration, U
 
 __author__ = 'danielevertsson'
 
+INTERNAL_ATTRIBUTES = {
+    'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
+                   'givenname': {'saml': ['givenName'], 'openid': ['given_name'],
+                                 'facebook': ['first_name']},
+                   'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
+                            'facebook': ['email']},
+                   'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
+                                           'facebook': ['id']},
+                   'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
+                   'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
+                   'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
+                               'facebook': ['last_name']}}, 'separator': '->'}
 
 def verify_object_types_callback(context, response, state):
     assert isinstance(context, Context)
@@ -24,12 +36,12 @@ def verify_object_types_callback(context, response, state):
 def verify_userinfo_callback(context, response, state):
     assert isinstance(response, InternalResponse)
     for attribute in [("name", "name"), ("mail", "email")]:
-        assert response._attributes[attribute[0]] == USERDB[USERNAME][attribute[1]]
+        assert response._attributes[attribute[0]][0] == USERDB[USERNAME][attribute[1]]
 
 class TestOpenIdBackend:
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.openid_backend = OpenIdBackend(MagicMock, TestConfiguration.get_instance().config)
+        self.openid_backend = OpenIdBackend(MagicMock, INTERNAL_ATTRIBUTES, TestConfiguration.get_instance().config)
         self.fake_op = FakeOP()
 
     def test_registered_endpoints(self):
@@ -65,6 +77,7 @@ class TestOpenIdBackend:
         self.fake_op.setup_client_registration_endpoint()
         openid_backend = OpenIdBackend(
             verify_object_types_callback,
+            INTERNAL_ATTRIBUTES,
             TestConfiguration.get_instance().config
         )
         context = self.setup_fake_op_endpoints(FakeOP.STATE)
@@ -77,6 +90,7 @@ class TestOpenIdBackend:
         self.fake_op.setup_client_registration_endpoint()
         openid_backend = OpenIdBackend(
             verify_userinfo_callback,
+            INTERNAL_ATTRIBUTES,
             TestConfiguration.get_instance().config
         )
         context = self.setup_fake_op_endpoints(FakeOP.STATE)
