@@ -30,7 +30,7 @@ class TestConfiguration(object):
 
     def __init__(self):
         idp_cert_file, idp_key_file = FileGenerator.get_instance().generate_cert("idp")
-        xmlsec_path = '/usr/local/bin/xmlsec1'
+        xmlsec_path = '/usr/bin/xmlsec1'
         idp_base = "http://test.tester.se"
 
         self.idpconfig = {

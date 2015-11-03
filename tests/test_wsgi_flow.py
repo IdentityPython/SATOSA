@@ -34,7 +34,7 @@ class TestConfiguration(object):
         # Add test directory to path to be able to import configurations
         sys.path.append(os.path.dirname(__file__))
 
-        self.xmlsec_path = "/usr/local/bin/xmlsec1"
+        self.xmlsec_path = "/usr/bin/xmlsec1"
 
         proxy_config_dict = {"HOST": 'localhost',
                              "PORT": 8090,
