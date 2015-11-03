@@ -103,7 +103,7 @@ for filespec in args.config:
     if generate_frontend:
         for plugin in frontend_plugins:
             if issubclass(plugin.module, SamlFrontend):
-                module = plugin.module(None, plugin.config)
+                module = plugin.module(None, None, plugin.config)
                 module.register_endpoints(providers)
                 metadata["frontends"][plugin.name] = _make_metadata(module.config)
 

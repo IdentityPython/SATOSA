@@ -16,7 +16,7 @@ from saml2.samlp import NameIDPolicy
 from satosa.backends.base import BackendModule
 from satosa.exception import AuthenticationError, SATOSAError
 from satosa.internal_data import UserIdHashType, InternalRequest, InternalResponse, \
-    AuthenticationInformation
+    AuthenticationInformation, DataConverter
 from satosa.response import SeeOther, Response
 from satosa.service import rndstr
 from satosa.state import state_to_cookie, cookie_to_state, StateError
@@ -35,8 +35,8 @@ class MetadataResponse(Response):
 class SamlBackend(BackendModule):
     STATE_KEY = "Saml2B_76ASF"
 
-    def __init__(self, outgoing, config):
-        super(SamlBackend, self).__init__(outgoing)
+    def __init__(self, outgoing, internal_attributes, config):
+        super(SamlBackend, self).__init__(outgoing, internal_attributes)
         sp_config = SPConfig().load(copy.deepcopy(config["config"]), False)
 
         self.state_encryption_key = config["encryption_key"]
@@ -45,6 +45,7 @@ class SamlBackend(BackendModule):
         self.config = config
         self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST]
         self.discosrv = None
+        self.converter = DataConverter(internal_attributes)
         try:
             self.discosrv = config["disco_srv"]
         except KeyError:
@@ -199,7 +200,8 @@ class SamlBackend(BackendModule):
 
         auth_info = AuthenticationInformation(auth_class_ref, timestamp, issuer)
         internal_resp = InternalResponse(user_id_hash_type, auth_info=auth_info)
-        internal_resp.add_pysaml_attributes(response.ava)
+
+        internal_resp.add_attributes(self.converter.to_internal("saml", response.ava))
         internal_resp.user_id = response.get_subject().text
         return internal_resp
 

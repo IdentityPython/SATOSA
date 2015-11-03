@@ -7,6 +7,7 @@ from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, \
 from saml2.saml import NAME_FORMAT_URI
 from saml2.saml import NAMEID_FORMAT_TRANSIENT
 from saml2.saml import NAMEID_FORMAT_PERSISTENT
+from satosa.internal_data import DataConverter
 
 from satosa.plugin_base.endpoint import FrontendModulePlugin
 from satosa.frontends.saml2 import SamlFrontend
@@ -26,15 +27,14 @@ RECEIVER = "Saml2IDP"
 ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
                                         BINDING_HTTP_POST: "sso/post"}}
 
-
 class Saml2FrontendModulePlugin(FrontendModulePlugin):
 
     def __init__(self, base_url):
         idpConfig = {
             "entityid": "%s/%s/proxy.xml" % (base_url, RECEIVER),
             "description": "A SAML2SAML proxy",
-            "entity_category": [COC, RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN,
-                                EU],
+            #"entity_category": [COC, RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN,
+            #                    EU],
             # "valid_for": 168,
             "service": {
                 "idp": {
@@ -81,7 +81,6 @@ class Saml2FrontendModulePlugin(FrontendModulePlugin):
 
         config = {"idp_config": idpConfig,
                   "endpoints": ENDPOINTS,
-                  "base": base_url,
+                  "base": base_url
                   }
-
         super(Saml2FrontendModulePlugin, self).__init__(MODULE, RECEIVER, config)

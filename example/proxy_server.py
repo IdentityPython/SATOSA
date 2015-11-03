@@ -59,7 +59,7 @@ class WsgiApplication(SATOSABase):
                 resp = ServiceError("%s" % err)
                 return resp(environ, start_response)
             else:
-                raise
+                raise err
 
 
 def main():
@@ -77,6 +77,21 @@ def main():
     sys.path.insert(0, os.getcwd())
 
     server_config = SATOSAConfig(args.proxy_config)
+
+    base_formatter = logging.Formatter("%(asctime)s %(name)s:%(levelname)s %(message)s")
+
+    satosa_logger = logging.getLogger("satosa")
+    hdlr = logging.FileHandler("satosa.log")
+    hdlr.setFormatter(base_formatter)
+    satosa_logger.addHandler(hdlr)
+    satosa_logger.setLevel(logging.DEBUG)
+
+    satosa_logger = logging.getLogger("cherrypy")
+    hdlr = logging.FileHandler("cherrypy.log")
+    hdlr.setFormatter(base_formatter)
+    satosa_logger.addHandler(hdlr)
+    satosa_logger.setLevel(logging.DEBUG)
+
     wsgi_app = WsgiApplication(server_config, args.debug).run_server
     if args.debug:
         wsgi_app = DebuggedApplication(wsgi_app)

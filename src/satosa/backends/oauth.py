@@ -8,7 +8,8 @@ from oic.oauth2.consumer import Consumer, stateID
 from oic.oauth2.message import AuthorizationRequest, AuthorizationResponse
 from satosa.backends.base import BackendModule
 from satosa.exception import AuthenticationError, SATOSAError
-from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
+from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType, \
+    DataConverter
 from satosa.response import Redirect
 from satosa.service import response, rndstr
 from satosa.state import state_to_cookie, cookie_to_state, StateError
@@ -18,10 +19,12 @@ __author__ = 'haho0032'
 
 class OAuthBackend(BackendModule):
 
-    def __init__(self, outgoing, config):
-        super(OAuthBackend, self).__init__(outgoing)
+    def __init__(self, outgoing, internal_attributes, config, type):
+        super(OAuthBackend, self).__init__(outgoing, internal_attributes)
         self.config = config
         self.redirect_url = "%s/%s" % (self.config["base_url"], self.config["authz_page"])
+        self.converter = DataConverter(internal_attributes)
+        self.type = type
 
     def get_consumer(self, user_id_hash_type):
         """
@@ -102,11 +105,7 @@ class OAuthBackend(BackendModule):
             user_info = self.user_information(atresp["access_token"])
             internal_response = InternalResponse(state_data["user_id_hash_type"],
                                                  auth_info=self.auth_info(request))
-            if "oauth_to_internal" not in self.config:
-                internal_response.add_oidc_attributes(user_info)
-            else:
-                internal_response.add_attributes(self.config["oauth_to_internal"],
-                                                 user_info)
+            internal_response.add_attributes(self.converter(self.type, user_info))
             return self.auth_callback_func(context, internal_response, state)
         except Exception as error:
             if isinstance(error, SATOSAError):
@@ -126,8 +125,8 @@ class FacebookBackend(OAuthBackend):
     STATE_COOKIE_NAME = "facebook_backend"
     STATE_KEY = "facebook_backend"
 
-    def __init__(self, outgoing, config):
-        super(FacebookBackend, self).__init__(outgoing, config)
+    def __init__(self, outgoing, internal_attributes, config):
+        super(FacebookBackend, self).__init__(outgoing, internal_attributes, config, "facebook")
         self.fields = None
         self.convert_dict = None
         if "state_cookie_name" not in self.config:

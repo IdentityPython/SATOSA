@@ -1,0 +1,50 @@
+separator: "->"
+attributes:
+  mail:
+    saml:
+      - "email"
+      - "emailAdress"
+      - "mail"
+    openid:
+      - "email"
+    facebook:
+      - "email"
+  address:
+    saml:
+      - "postaladdress"
+    openid:
+      - "address->street_address"
+  name:
+    saml:
+      - "cn"
+    openid:
+      - "name"
+    facebook:
+      - "name"
+  surname:
+    saml:
+      - "sn"
+      - "surname"
+    openid:
+      - "family_name"
+    facebook:
+      - "last_name"
+  givenname:
+    saml:
+      - "givenName"
+    openid:
+      - "given_name"
+    facebook:
+      - "first_name"
+  displayname:
+    saml:
+      - "displayName"
+    openid:
+      - "nickname"
+  edupersontargetedid:
+    saml:
+      - "eduPersonTargetedID"
+    openid:
+      - "sub"
+    facebook:
+      - "id"

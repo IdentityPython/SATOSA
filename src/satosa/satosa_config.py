@@ -11,7 +11,7 @@ class SATOSAConfig(object):
     A configuration class for the satosa proxy. Verifies that the given config holds all the necessary parameters.
     """
     mandatory_dict_keys = ["HOST", "PORT", "HTTPS", "PLUGIN_PATH", "BACKEND_MODULES",
-                           "FRONTEND_MODULES"]
+                           "FRONTEND_MODULES", "INTERNAL_ATTRIBUTES"]
 
     def __init__(self, config):
         """
@@ -31,6 +31,16 @@ class SATOSAConfig(object):
                 break
 
         self._verify_dict(self._config)
+        if "INTERNAL_ATTRIBUTES" in self._config:
+            internal_attr_file = self._config["INTERNAL_ATTRIBUTES"]
+            for parser in dict_parsers:
+                _internal_attributes = parser(internal_attr_file)
+                if _internal_attributes:
+                    break
+
+            self._config["INTERNAL_ATTRIBUTES"] = _internal_attributes
+        else:
+            self._config["INTERNAL_ATTRIBUTES"] = None
         https = ""
         if self._config["HTTPS"]:
             https = "s"
