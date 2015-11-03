@@ -10,3 +10,7 @@ class SATOSAError(Exception):
 
 class AuthenticationError(SATOSAError):
     pass
+
+
+class SATOSACriticalError(Exception):
+    pass

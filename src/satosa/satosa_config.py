@@ -31,10 +31,12 @@ class SATOSAConfig(object):
                 break
 
         self._verify_dict(self._config)
-        https = ""
-        if self._config["HTTPS"]:
-            https = "s"
-        self.BASE = "http%s://%s:%s" % (https, self.HOST, self.PORT)
+
+        if not hasattr(self, "BASE"):  # construct base url from host+port if not specified in config
+            scheme = "http"
+            if self._config["HTTPS"]:
+                scheme = "https"
+            self.BASE = "%s://%s:%s" % (scheme, self.HOST, self.PORT)
 
     @staticmethod
     def _verify_dict(conf):
@@ -113,7 +115,7 @@ class SATOSAConfig(object):
             config = SATOSAConfig._readfile(config)
             import json
             return json.loads(config)
-        except Exception:
+        except ValueError as e:  # not a json config
             pass
 
     @staticmethod
@@ -127,12 +129,10 @@ class SATOSAConfig(object):
         :param config: config to load. Can be file path or yaml string
         :return: Loaded config
         """
-        try:
-            config = SATOSAConfig._readfile(config)
-            import yaml
-            return yaml.load(config)
-        except Exception:
-            pass
+
+        config = SATOSAConfig._readfile(config)
+        import yaml
+        return yaml.load(config)
 
     @staticmethod
     def _readfile(config):

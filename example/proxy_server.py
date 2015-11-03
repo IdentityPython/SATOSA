@@ -46,6 +46,8 @@ class WsgiApplication(SATOSABase):
 
         try:
             resp = self.run(context)
+            if isinstance(resp, Exception):
+                raise resp
             return resp(environ, start_response)
         except NoBoundEndpointError:
             LOGGER.debug("unknown side: %s" % path)
@@ -82,8 +84,9 @@ def main():
         wsgi_app = DebuggedApplication(wsgi_app)
 
     cherrypy.config.update({
-        'server.socket_host': '0.0.0.0',
-        'server.socket_port': server_config.PORT
+        'server.socket_host': server_config.HOST,
+        'server.socket_port': server_config.PORT,
+        'engine.autoreload.on': False
     })
     if server_config.HTTPS:
         cherrypy.config.update({

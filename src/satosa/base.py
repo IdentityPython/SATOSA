@@ -112,11 +112,8 @@ class SATOSABase(object):
                 return spec[0](context, *spec[1:])
             else:
                 return spec(context)
-        except AuthenticationError as error:
-            return self._handle_satosa_error(error)
         except SATOSAError as error:
-            # TODO
-            pass
+            return self._handle_satosa_error(error)
 
     def run(self, context):
         """
@@ -132,5 +129,5 @@ class SATOSABase(object):
             resp = self._run_bound_endpoint(context, spec)
         except Exception as error:
             # TODO Log error
-            resp = Response(error, status=500)
+            raise
         return resp
