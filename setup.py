@@ -17,7 +17,7 @@ setup(
     packages=find_packages('src/'),
     package_dir={'': 'src'},
     scripts=["tools/make_saml_metadata.py"],
-    install_requires=["pysaml2 >= 3.0.0",
+    install_requires=["pysaml2 >= 3.0.2",
                       "pluginbase",
                       "future",
                       "oic",
