@@ -82,7 +82,7 @@ def main():
         wsgi_app = DebuggedApplication(wsgi_app)
 
     cherrypy.config.update({
-        'server.socket_host': '0.0.0.0',
+        'server.socket_host': server_config.HOST,
         'server.socket_port': server_config.PORT,
         'engine.autoreload.on': False
     })
