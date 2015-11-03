@@ -13,7 +13,8 @@ attributes:
     saml:
       - "postaladdress"
     openid:
-      - "address->street_address"
+      #- "address" Will create a json object of the whole address.
+      - "address->street_address" #Will match only one attriute in the dictionary.
   name:
     saml:
       - "cn"

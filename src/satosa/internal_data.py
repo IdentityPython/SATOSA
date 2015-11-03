@@ -5,6 +5,7 @@ for converting from SAML/OAuth/OpenID connect to the internal representation.
 import datetime
 from enum import Enum
 import hashlib
+import json
 
 __author__ = 'haho0032'
 #
@@ -418,9 +419,14 @@ class DataConverter(object):
         internal_dict = {}
         for external_key in external_dict.keys():
             if isinstance(external_dict[external_key], dict):
-                internal_dict.update(self.to_internal(type, self._get_attr_value_key(external_key, external_dict[external_key])))
-
-            if external_key in self.to_internal_attributes[type]:
+                if external_key in self.to_internal_attributes[type]:
+                    internal_key = self.to_internal_attributes[type][external_key]
+                    if internal_key not in internal_dict:
+                        internal_dict[internal_key] = []
+                    internal_dict[internal_key].append(json.dumps(external_dict[external_key]))
+                else:
+                    internal_dict.update(self.to_internal(type, self._get_attr_value_key(external_key, external_dict[external_key])))
+            elif external_key in self.to_internal_attributes[type]:
                 internal_key = self.to_internal_attributes[type][external_key]
                 if internal_key not in internal_dict:
                     internal_dict[internal_key] = []
