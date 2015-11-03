@@ -14,7 +14,7 @@ from saml2.s_utils import UnsupportedBinding
 from saml2.saml import NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
 from saml2.samlp import NameIDPolicy
 from satosa.backends.base import BackendModule
-from satosa.exception import AuthenticationError, SATOSAError
+from satosa.exception import AuthenticationError, SATOSACriticalError
 from satosa.internal_data import UserIdHashType, InternalRequest, InternalResponse, \
     AuthenticationInformation
 from satosa.response import SeeOther, Response
@@ -144,7 +144,7 @@ class SamlBackend(BackendModule):
             state = cookie_to_state(context.cookie, "saml2_backend_state", self.state_encryption_key)
         except StateError as error:
             # TODO LOG
-            raise AuthenticationError(None, "Missing state in authn_response")
+            raise SATOSACriticalError("Missing state in authn_response")
 
         if not _authn_response["SAMLResponse"]:
             LOGGER.info("Missing Response")
@@ -179,7 +179,7 @@ class SamlBackend(BackendModule):
             state = cookie_to_state(context.cookie, "saml2_backend_disco_state", self.state_encryption_key)
         except StateError as error:
             # TODO LOG
-            raise SATOSAError(None, "Missing state in disco_response")
+            raise SATOSACriticalError("Missing state in disco_response")
 
         try:
             entity_id = info[self.idp_disco_query_param]
