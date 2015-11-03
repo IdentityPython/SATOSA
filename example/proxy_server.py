@@ -46,6 +46,8 @@ class WsgiApplication(SATOSABase):
 
         try:
             resp = self.run(context)
+            if isinstance(resp, Exception):
+                raise resp
             return resp(environ, start_response)
         except NoBoundEndpointError:
             LOGGER.debug("unknown side: %s" % path)
