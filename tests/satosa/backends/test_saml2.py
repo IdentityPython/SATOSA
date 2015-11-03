@@ -3,13 +3,16 @@ Tests for the SAML frontend module src/backends/saml2.py.
 """
 from urllib import parse
 import re
+
 from saml2 import BINDING_HTTP_POST
 from saml2.authn_context import PASSWORD
 from saml2.config import IdPConfig
 from saml2.entity_category.edugain import COC
 from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN, EU
 from saml2.extension.idpdisc import BINDING_DISCO
+
 from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
+
 from satosa.backends.saml2 import SamlBackend
 from satosa.context import Context
 from satosa.internal_data import UserIdHashType, InternalRequest
@@ -18,6 +21,19 @@ from tests.users import USERS
 from tests.util import FileGenerator, FakeIdP
 
 __author__ = 'haho0032'
+
+INTERNAL_ATTRIBUTES = {
+    'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
+                   'givenname': {'saml': ['givenName'], 'openid': ['given_name'],
+                                 'facebook': ['first_name']},
+                   'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
+                            'facebook': ['email']},
+                   'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
+                                           'facebook': ['id']},
+                   'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
+                   'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
+                   'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
+                               'facebook': ['last_name']}}, 'separator': '->'}
 
 
 class TestConfiguration(object):
@@ -97,7 +113,8 @@ class TestConfiguration(object):
             "encryption_key": "asduy234879dyisahkd2",
             "disco_srv": "https://my.dicso.com/role/idp.ds",
         }
-        sp_metadata = FileGenerator.get_instance().create_metadata(self.spconfig["config"], "sp_metadata")
+        sp_metadata = FileGenerator.get_instance().create_metadata(self.spconfig["config"],
+                                                                   "sp_metadata")
         idp_metadata = FileGenerator.get_instance().create_metadata(self.idpconfig, "idp_metadata")
         self.spconfig["config"]["metadata"]["local"].append(idp_metadata.name)
         self.idpconfig["metadata"]["local"].append(sp_metadata.name)
@@ -118,9 +135,11 @@ def test_register_endpoints():
     """
     samlbackend = SamlBackend(
         None,
+        INTERNAL_ATTRIBUTES,
         TestConfiguration.get_instance().spconfig)
     url_map = samlbackend.register_endpoints()
-    for k, v in TestConfiguration.get_instance().spconfig["config"]["service"]["sp"]["endpoints"].items():
+    for k, v in TestConfiguration.get_instance().spconfig["config"]["service"]["sp"][
+        "endpoints"].items():
         for e in v:
             match = False
             for regex in url_map:
@@ -137,6 +156,7 @@ def test_start_auth_no_request_info():
     """
     samlbackend = SamlBackend(
         None,
+        INTERNAL_ATTRIBUTES,
         TestConfiguration.get_instance().spconfig)
 
     internal_data = InternalRequest(None, None)
@@ -161,6 +181,7 @@ def test_start_auth_name_id_policy():
     """
     samlbackend = SamlBackend(
         None,
+        INTERNAL_ATTRIBUTES,
         TestConfiguration.get_instance().spconfig)
 
     test_state_key = "sauyghj34589fdh"
@@ -187,7 +208,8 @@ def test_start_auth_name_id_policy():
     assert "entityID" in disco_resp and disco_resp["entityID"][0] == sp_config["entityid"], \
         "Not a valid entity id in the call to the discovery server"
 
-    request_info_tmp = cookie_to_state(cookie, "saml2_backend_disco_state", samlbackend.state_encryption_key)
+    request_info_tmp = cookie_to_state(cookie, "saml2_backend_disco_state",
+                                       samlbackend.state_encryption_key)
     assert request_info_tmp.get(test_state_key) == "my_state", "Wrong state!"
     assert request_info_tmp.get(SamlBackend.STATE_KEY) == UserIdHashType.transient.name
 
@@ -221,13 +243,16 @@ def test__start_auth_disco():
         assert state.get(test_state_key) == "my_state", "Not correct state!"
         assert internal_resp.auth_info.auth_class_ref == PASSWORD, "Not correct authentication!"
         assert internal_resp.user_id_hash_type == UserIdHashType.persistent, "Must be persistent!"
-        _dict = internal_resp.get_pysaml_attributes()
+        _dict = internal_resp._attributes
+        verify_dict = {'surname': ['Testsson 1'], 'mail': ['test@example.com'],
+                       'displayname': ['Test Testsson'], 'givenname': ['Test 1'],
+                       'edupersontargetedid': ['one!for!all']}
         for key in _dict:
-            assert key in _dict
-            assert USERS[internal_resp.user_id][key] == _dict[key]
+            assert verify_dict[key] == _dict[key]
 
     samlbackend = SamlBackend(
         auth_req_callback_func,
+        INTERNAL_ATTRIBUTES,
         spconfig)
 
     internal_req = InternalRequest(UserIdHashType.persistent, "example.se/sp.xml")
