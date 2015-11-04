@@ -18,6 +18,8 @@ from satosa.satosa_config import SATOSAConfig
 from tests.wsgi_server import WsgiApplication
 from tests.util import FakeSP, FakeIdP, FileGenerator
 from tests.users import USERS
+import os.path
+
 
 INTERNAL_ATTRIBUTES = {
     'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
@@ -46,7 +48,10 @@ class TestConfiguration(object):
         # Add test directory to path to be able to import configurations
         sys.path.append(os.path.dirname(__file__))
 
-        self.xmlsec_path = "/usr/bin/xmlsec1"
+        if os.path.isfile("/usr/bin/xmlsec1"):
+            self.xmlsec_path = "/usr/bin/xmlsec1"
+        elif os.path.isfile("/usr/local/bin/xmlsec1"):
+            self.xmlsec_path = "/usr/local/bin/xmlsec1"
 
         proxy_config_dict = {"HOST": 'localhost',
                              "PORT": 8090,

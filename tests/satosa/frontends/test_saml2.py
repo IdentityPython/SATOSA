@@ -17,6 +17,7 @@ from satosa.context import Context
 from satosa.internal_data import InternalResponse, AuthenticationInformation
 from tests.users import USERS
 from tests.util import FakeSP, FileGenerator
+import os.path
 
 INTERNAL_ATTRIBUTES = {
     'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
@@ -32,7 +33,12 @@ INTERNAL_ATTRIBUTES = {
                                'facebook': ['last_name']}}, 'separator': '->'}
 
 IDP_CERT_FILE, IDP_KEY_FILE = FileGenerator.get_instance().generate_cert()
-XMLSEC_PATH = '/usr/bin/xmlsec1'
+
+if os.path.isfile("/usr/bin/xmlsec1"):
+    XMLSEC_PATH = "/usr/bin/xmlsec1"
+elif os.path.isfile("/usr/local/bin/xmlsec1"):
+    XMLSEC_PATH = "/usr/local/bin/xmlsec1"
+
 IDP_BASE = "http://test.tester.se"
 RECEIVER = "Saml2IDP"
 ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
