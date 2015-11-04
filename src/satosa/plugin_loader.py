@@ -10,7 +10,7 @@ from satosa.plugin_base.endpoint import InterfaceModulePlugin, BackendModulePlug
 __author__ = 'mathiashedstrom'
 
 
-def load_backends(config, callback):
+def load_backends(config, callback, internal_attributes):
     """
     Load all backend modules specified in the config
 
@@ -24,10 +24,10 @@ def load_backends(config, callback):
     """
     return _load_endpoint_modules(
         _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter, config.BASE),
-        callback)
+        callback, internal_attributes)
 
 
-def load_frontends(config, callback):
+def load_frontends(config, callback, internal_attributes):
     """
     Load all frontend modules specified in the config
 
@@ -42,7 +42,7 @@ def load_frontends(config, callback):
     """
     return _load_endpoint_modules(
         _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter, config.BASE),
-        callback)
+        callback, internal_attributes)
 
 
 def _member_filter(member):
@@ -131,7 +131,7 @@ def _response_micro_service_filter(member):
     return _micro_service_filter(member) and issubclass(member, ResponseMicroService)
 
 
-def _load_endpoint_modules(plugins, callback):
+def _load_endpoint_modules(plugins, callback, internal_attributes=None):
     """
     Loads endpoint modules from plugins
 
@@ -145,7 +145,7 @@ def _load_endpoint_modules(plugins, callback):
     """
     endpoint_modules = {}
     for plugin in plugins:
-        module_inst = plugin.module(callback, plugin.config)
+        module_inst = plugin.module(callback, internal_attributes, plugin.config)
         endpoint_modules[plugin.name] = module_inst
 
     return endpoint_modules

@@ -9,12 +9,26 @@ import responses
 from satosa.response import Redirect
 from satosa.consent import ConsentModule
 from satosa.context import Context
-from satosa.internal_data import InternalResponse, UserIdHashType, InternalRequest, AuthenticationInformation
+from satosa.internal_data import InternalResponse, UserIdHashType, InternalRequest, AuthenticationInformation, \
+    DataConverter
 from satosa.satosa_config import SATOSAConfig
 from satosa.state import State
 from tests.util import FileGenerator, private_to_public_key
 
 __author__ = 'mathiashedstrom'
+
+INTERNAL_ATTRIBUTES = {
+    'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
+                   'givenname': {'saml': ['givenName'], 'openid': ['given_name'],
+                                 'facebook': ['first_name']},
+                   'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
+                            'facebook': ['email']},
+                   'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
+                                           'facebook': ['id']},
+                   'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
+                   'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
+                   'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
+                               'facebook': ['last_name']}}, 'separator': '->'}
 
 SATOSA_CONFIG = {"HOST": 'localhost',
                  "PORT": 8090,
@@ -22,7 +36,8 @@ SATOSA_CONFIG = {"HOST": 'localhost',
                  "PLUGIN_PATH": "",
                  "BACKEND_MODULES": "",
                  "FRONTEND_MODULES": "",
-                 "USER_ID_HASH_SALT": "qwerty"}
+                 "USER_ID_HASH_SALT": "qwerty",
+                 "INTERNAL_ATTRIBUTES": INTERNAL_ATTRIBUTES}
 
 CONSENT_CERT, CONSENT_KEY = FileGenerator.get_instance().generate_cert("consent")
 
@@ -40,7 +55,6 @@ CONSENT_CONFIG = {"CONSENT":
 CONSENT_CONFIG.update(SATOSA_CONFIG)
 
 FILTER = ["displayName", "co"]
-
 
 class ConsentService():
     def __init__(self):
@@ -126,12 +140,12 @@ def test_disable_consent(config):
     consent_module = ConsentModule(consent_config, callback)
     assert not consent_module.enabled
 
-    attributes = {"displayName": "test",
+    attributes = {"displayname": "test",
                   "co": "test_co"}
 
     context = Context()
     internal_response = InternalResponse(UserIdHashType.persistent)
-    internal_response.add_pysaml_attributes(attributes)
+    internal_response.add_attributes(attributes)
     state = State()
     consent_module.manage_consent(context, internal_response, state)
 
@@ -196,7 +210,7 @@ def test_consent_registration():
 def callback(context, internal_response, state):
     assert state, "state was None"
     assert context, "context was None"
-    saml_attr = internal_response.get_pysaml_attributes()
+    saml_attr = internal_response.get_attributes()
     #TODO FIX THE FILTER!!!
     #for attr in saml_attr:
     #    assert attr in FILTER, "Consent module did not filter the attributes"
@@ -213,7 +227,7 @@ def empty_callback(context, internal_response, state):
 def create_internal_response():
     auth_info = AuthenticationInformation("auth_class_ref", "timestamp", "issuer")
     internal_response = InternalResponse(UserIdHashType.persistent, auth_info=auth_info)
-    internal_response.add_pysaml_attributes({"displayName": "Test", "co": "example", "sn": "removed_by_filter"})
+    internal_response.add_attributes({"displayName": "Test", "co": "example", "sn": "removed_by_filter"})
     internal_response.user_id = "usrID"
     return internal_response
 
@@ -224,7 +238,7 @@ def consent_items():
     consent_module = ConsentModule(consent_config, callback)
     assert consent_module.enabled
     internal_request = InternalRequest(UserIdHashType.persistent, "example_requestor")
-    internal_request.add_pysaml_attr_filter(FILTER)
+    internal_request.add_filter(FILTER)
 
     return consent_module, internal_request, consent_config, ConsentService()
 

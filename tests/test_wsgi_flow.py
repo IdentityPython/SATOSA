@@ -19,6 +19,18 @@ from tests.wsgi_server import WsgiApplication
 from tests.util import FakeSP, FakeIdP, FileGenerator
 from tests.users import USERS
 
+INTERNAL_ATTRIBUTES = {
+    'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
+                   'givenname': {'saml': ['givenName'], 'openid': ['given_name'],
+                                 'facebook': ['first_name']},
+                   'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
+                            'facebook': ['email']},
+                   'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
+                                           'facebook': ['id']},
+                   'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
+                   'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
+                   'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
+                               'facebook': ['last_name']}}, 'separator': '->'}
 
 class TestConfiguration(object):
     """
@@ -42,7 +54,8 @@ class TestConfiguration(object):
                              "PLUGIN_PATH": [os.path.dirname(__file__)],
                              "BACKEND_MODULES": [inspect.getmodulename(__file__)],
                              "FRONTEND_MODULES": [inspect.getmodulename(__file__)],
-                             "USER_ID_HASH_SALT": "qwerty"}
+                             "USER_ID_HASH_SALT": "qwerty",
+                             "INTERNAL_ATTRIBUTES": INTERNAL_ATTRIBUTES}
 
         self.proxy_config = SATOSAConfig(proxy_config_dict)
 

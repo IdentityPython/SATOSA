@@ -24,11 +24,12 @@ class OpenidPlugin(BackendModulePlugin):
             "authz_page": PROVIDER,
             "acr_values": ["PASSWORD"],
             "verify_ssl": False,
-            "op_url": "https://localhost:8092",
+            #"op_url": "https://127.0.0.1:9086",
+            "op_url": "https://localhost:7092",
             "state_encryption_key": "Qrn9IQ5hr9uUnIdNQe2e0KxsmR3CusyARs3RKLjp",
             "state_id": "OpenID_Qrn9R3Cus",
             "client": {
-                "userid": "https://localhost:8092",
+                "userid": "https://localhost:7092",
                 "client_info": {
                     "application_type": "web",
                     "application_name": "SATOSA",

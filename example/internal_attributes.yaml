@@ -1,0 +1,51 @@
+separator: "->"
+attributes:
+  mail:
+    saml:
+      - "email"
+      - "emailAdress"
+      - "mail"
+    openid:
+      - "email"
+    facebook:
+      - "email"
+  address:
+    saml:
+      - "postaladdress"
+    openid:
+      #- "address" Will create a json object of the whole address.
+      - "address->street_address" #Will match only one attriute in the dictionary.
+  name:
+    saml:
+      - "cn"
+    openid:
+      - "name"
+    facebook:
+      - "name"
+  surname:
+    saml:
+      - "sn"
+      - "surname"
+    openid:
+      - "family_name"
+    facebook:
+      - "last_name"
+  givenname:
+    saml:
+      - "givenName"
+    openid:
+      - "given_name"
+    facebook:
+      - "first_name"
+  displayname:
+    saml:
+      - "displayName"
+    openid:
+      - "nickname"
+  edupersontargetedid:
+    saml:
+      - "eduPersonTargetedID"
+    openid:
+      - "sub"
+    facebook:
+      - "id"

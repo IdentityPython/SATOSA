@@ -21,7 +21,8 @@ from oic.oic import AuthorizationRequest
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
 from satosa.backends.base import BackendModule
-from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
+from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType, \
+    DataConverter
 from satosa.state import State, cookie_to_state, state_to_cookie
 
 __author__ = 'danielevertsson'
@@ -70,11 +71,12 @@ class RpConfig(object):
 
 
 class OpenIdBackend(BackendModule):
-    def __init__(self, auth_callback_func, config):
-        super(OpenIdBackend, self).__init__(auth_callback_func)
+    def __init__(self, auth_callback_func, internal_attributes, config):
+        super(OpenIdBackend, self).__init__(auth_callback_func, internal_attributes)
         self.auth_callback_func = auth_callback_func
         self.config = RpConfig(config)
         self.oidc_clients = None#OIDCClients(self.config)
+        self.converter = DataConverter(internal_attributes)
 
     def get_oidc_clients(self):
         #if self.oidc_clients is None:
@@ -244,7 +246,8 @@ class OpenIdBackend(BackendModule):
             self.name_format_to_hash_type(subject_type),
             auth_info=auth_info
         )
-        internal_resp.add_oidc_attributes(response)
+
+        internal_resp.add_attributes(self.converter.to_internal("openid", response))
         internal_resp.user_id = response["sub"]
         return internal_resp
 
