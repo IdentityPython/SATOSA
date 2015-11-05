@@ -21,7 +21,6 @@ hdlr.setFormatter(base_formatter)
 LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.DEBUG)
 
-
 class WsgiApplication(object):
     def __init__(self, config, debug=False):
         self.debug = debug
@@ -29,7 +28,7 @@ class WsgiApplication(object):
         if config is None:
             raise ValueError("Missing configuration")
 
-        self.satosa = SATOSABase(config)
+        self.config = config
 
     def run_server(self, environ, start_response):
         """
@@ -54,7 +53,9 @@ class WsgiApplication(object):
         context.cookie = environ.get("HTTP_COOKIE", "")
 
         try:
-            resp = self.satosa.run(context)
+            # Creates a new instance of the SATOSA proxy for every call to make sure the proxy is stateless
+            satosa_temporary_instance = SATOSABase(self.config)
+            resp = satosa_temporary_instance.run(context)
             return resp(environ, start_response)
         except NoBoundEndpointError:
             LOGGER.debug("unknown side: %s" % path)
