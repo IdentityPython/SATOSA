@@ -9,7 +9,7 @@ class BackendModule(object):
     Base class for a backend module.
     """
 
-    def __init__(self, auth_callback_func):
+    def __init__(self, auth_callback_func, internal_attributes):
         """
         :type auth_callback_func: (satosa.context.Context, satosa.internal_data.InternalResponse, satosa.state.State) -> Any
 
@@ -17,6 +17,7 @@ class BackendModule(object):
                                    the authorization in the backend is done.
         """
         self.auth_callback_func = auth_callback_func
+        self.internal_attributes = internal_attributes
 
     def start_auth(self, context, internal_request, state):
         """

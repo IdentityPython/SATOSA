@@ -283,8 +283,8 @@ class FakeBackend(BackendModule):
     """
     TODO comment
     """
-    def __init__(self, start_auth_func=None, register_endpoints_func=None):
-        super(FakeBackend, self).__init__(None)
+    def __init__(self, start_auth_func=None,internal_attributes=None, register_endpoints_func=None):
+        super(FakeBackend, self).__init__(None, internal_attributes)
 
         self.start_auth_func = start_auth_func
         self.register_endpoints_func = register_endpoints_func
@@ -317,9 +317,9 @@ class FakeFrontend(FrontendModule):
     """
     TODO comment
     """
-    def __init__(self, handle_authn_request_func=None, handle_authn_response_func=None,
+    def __init__(self, handle_authn_request_func=None,internal_attributes=None, handle_authn_response_func=None,
                  register_endpoints_func=None):
-        super(FakeFrontend, self).__init__(None)
+        super(FakeFrontend, self).__init__(None, internal_attributes)
         self.handle_authn_request_func = handle_authn_request_func
         self.handle_authn_response_func = handle_authn_response_func
         self.register_endpoints_func = register_endpoints_func

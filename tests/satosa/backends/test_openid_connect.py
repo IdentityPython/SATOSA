@@ -13,6 +13,18 @@ from tests.satosa.backends.FakeOp import FakeOP, CLIENT_ID, TestConfiguration, U
 
 __author__ = 'danielevertsson'
 
+INTERNAL_ATTRIBUTES = {
+    'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
+                   'givenname': {'saml': ['givenName'], 'openid': ['given_name'],
+                                 'facebook': ['first_name']},
+                   'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
+                            'facebook': ['email']},
+                   'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
+                                           'facebook': ['id']},
+                   'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
+                   'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
+                   'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
+                               'facebook': ['last_name']}}, 'separator': '->'}
 
 def verify_object_types_callback(context, response, state):
     assert isinstance(context, Context)
@@ -22,13 +34,13 @@ def verify_object_types_callback(context, response, state):
 
 def verify_userinfo_callback(context, response, state):
     assert isinstance(response, InternalResponse)
-    for attribute in ["name", "email"]:
-        assert response._attributes[attribute] == USERDB[USERNAME][attribute]
+    for attribute in [("name", "name"), ("mail", "email")]:
+        assert response._attributes[attribute[0]][0] == USERDB[USERNAME][attribute[1]]
 
 class TestOpenIdBackend:
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.openid_backend = OpenIdBackend(MagicMock, TestConfiguration.get_instance().rp_config)
+        self.openid_backend = OpenIdBackend(MagicMock, INTERNAL_ATTRIBUTES, TestConfiguration.get_instance().config)
         self.fake_op = FakeOP()
 
     def test_registered_endpoints(self):
@@ -41,7 +53,11 @@ class TestOpenIdBackend:
                     break
             assert match, "Not correct regular expression for endpoint: %s" % endpoint[0]
 
+    @responses.activate
     def test_translate_response_to_internal_response(self):
+        self.fake_op.setup_webfinger_endpoint()
+        self.fake_op.setup_opienid_config_endpoint()
+        self.fake_op.setup_client_registration_endpoint()
         sub = "123qweasd"
         response = {"given_name": "Bob", "family_name": "Devsson", "sub": sub}
         internal_response = self.openid_backend._translate_response(
@@ -55,18 +71,26 @@ class TestOpenIdBackend:
 
     @responses.activate
     def test_redirect_endpoint_returned_correct_object_types(self):
+        self.fake_op.setup_webfinger_endpoint()
+        self.fake_op.setup_opienid_config_endpoint()
+        self.fake_op.setup_client_registration_endpoint()
         openid_backend = OpenIdBackend(
             verify_object_types_callback,
-            TestConfiguration.get_instance().rp_config
+            INTERNAL_ATTRIBUTES,
+            TestConfiguration.get_instance().config
         )
         context = self.setup_fake_op_endpoints(FakeOP.STATE)
         openid_backend.redirect_endpoint(context)
 
     @responses.activate
     def test_redirect_endpoint_returned_correct_user_info(self):
+        self.fake_op.setup_webfinger_endpoint()
+        self.fake_op.setup_opienid_config_endpoint()
+        self.fake_op.setup_client_registration_endpoint()
         openid_backend = OpenIdBackend(
             verify_userinfo_callback,
-            TestConfiguration.get_instance().rp_config
+            INTERNAL_ATTRIBUTES,
+            TestConfiguration.get_instance().config
         )
         context = self.setup_fake_op_endpoints(FakeOP.STATE)
         openid_backend.redirect_endpoint(context)

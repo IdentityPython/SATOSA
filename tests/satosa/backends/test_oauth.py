@@ -1,27 +1,20 @@
 import json
-from mock.mock import MagicMock, Mock
-from oic.oauth2.message import AuthorizationRequest
+from urllib.parse import quote_plus, parse_qs
+
+import responses
+
+from mock.mock import Mock
 import pytest
+
 from satosa.backends.oauth import FacebookBackend
 from satosa.context import Context
 from satosa.internal_data import UserIdHashType, InternalRequest
-from urllib.parse import quote_plus, urlparse, parse_qs
 from satosa.state import State
 
 __author__ = 'haho0032'
 
-FB_RESPONSE_CHECK = {
-    "edupersontargetedid": "fb_id",
-    "name": "fb_name",
-    "givenname": "fb_first_name",
-    "surname": "fb_last_name",
-    "jpegphoto": "fb_picture",
-    "email": "fb_email",
-    "osiotheremail": True,
-    "schacgender": "fb_gender",
-    "osipreferredtimezone": 2,
-    "preferredlanguage": "sv_SE",
-    "osiicardtimelastupdated": "2015-10-15T07:04:10+0000"}
+FB_RESPONSE_CHECK = {'edupersontargetedid': ['fb_id'], 'surname': ['fb_last_name'],
+                     'name': ['fb_name'], 'mail': ['fb_email'], 'givenname': ['fb_first_name']}
 FB_RESPONSE = {
     "id": "fb_id",
     "name": "fb_name",
@@ -54,6 +47,18 @@ FB_REDIRECT_URL = "%s?client_id=%s&state=%s" \
                       quote_plus(BASE_URL),
                       quote_plus(AUTHZ_PAGE)
                   )
+INTERNAL_ATTRIBUTES = {
+    'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
+                   'givenname': {'saml': ['givenName'], 'openid': ['given_name'],
+                                 'facebook': ['first_name']},
+                   'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
+                            'facebook': ['email']},
+                   'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
+                                           'facebook': ['id']},
+                   'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
+                   'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
+                   'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
+                               'facebook': ['last_name']}}, 'separator': '->'}
 
 
 class TestFacebook:
@@ -63,19 +68,6 @@ class TestFacebook:
             'server_info':
                 {'authorization_endpoint': FB_AUTH_ENDPOINT,
                  'token_endpoint': 'https://graph.facebook.com/v2.5/oauth/access_token'},
-            'oauth_to_internal': {
-                'picture': 'jpegphoto',
-                'updated_time': 'osiicardtimelastupdated',
-                'first_name': 'givenname',
-                'verified': 'osiotheremail',
-                'timezone': 'osipreferredtimezone',
-                'name': 'name',
-                'locale': 'preferredlanguage',
-                'last_name': 'surname',
-                'gender': 'schacgender',
-                'email': 'email',
-                'id': 'edupersontargetedid'
-            },
             'client_secret': 'facebook_secret',
             'base_url': BASE_URL,
             'state_encryption_key': 'state_encryption_key',
@@ -85,7 +77,7 @@ class TestFacebook:
             'authz_page': AUTHZ_PAGE,
             'client_config': {'client_id': CLIENT_ID}
         }
-        self.fb_backend = FacebookBackend(None, self.config)
+        self.fb_backend = FacebookBackend(None, INTERNAL_ATTRIBUTES, self.config)
 
     def test_register_endpoints(self):
         resp_map = self.fb_backend.register_endpoints()
@@ -149,9 +141,40 @@ class TestFacebook:
         }
         # context.request = json.dumps(context.request)
         self.fb_backend.auth_callback_func = self.verify_callback
-        tmp_consumer = self.fb_backend.get_consumer(UserIdHashType.transient, self.config)
+        tmp_consumer = self.fb_backend.get_consumer(UserIdHashType.transient)
         tmp_consumer.do_access_token_request = self.verify_do_access_token_request
         self.fb_backend.get_consumer = Mock()
         self.fb_backend.get_consumer.return_value = tmp_consumer
         self.fb_backend.request_fb = self.verify_request_fb
+        self.fb_backend.authn_response(context, "redirect")
+
+    @responses.activate
+    def test_with_pyoidc(self):
+        responses.add(responses.POST,
+                      "https://graph.facebook.com/v2.5/oauth/access_token",
+                      body=json.dumps({"access_token": "qwerty",
+                                       "token_type": "bearer",
+                                       "expires_in": 9999999999999}),
+                      adding_headers={"set-cookie": "TEST=testing; path=/"},
+                      status=200,
+                      content_type='application/json')
+        responses.add(responses.GET,
+                      "https://graph.facebook.com/v2.5/me",
+                      match_querystring=False,
+                      body=json.dumps(FB_RESPONSE),
+                      status=200,
+                      content_type='application/json')
+
+        context = Context()
+        context.path = 'facebook/sso/redirect'
+        internal_request = InternalRequest(UserIdHashType.transient, 'http://localhost:8087/sp.xml')
+        get_state = Mock()
+        get_state.return_value = STATE
+        resp = self.fb_backend.start_auth(context, internal_request, State(), get_state)
+        context.cookie = resp.headers[0][1]
+        context.request = {
+            "code": FB_RESPONSE_CODE,
+            "state": STATE
+        }
+        self.fb_backend.auth_callback_func = self.verify_callback
         self.fb_backend.authn_response(context, "redirect")

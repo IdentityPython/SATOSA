@@ -3,21 +3,38 @@ Tests for the SAML frontend module src/backends/saml2.py.
 """
 from urllib import parse
 import re
+
 from saml2 import BINDING_HTTP_POST
 from saml2.authn_context import PASSWORD
 from saml2.config import IdPConfig
 from saml2.entity_category.edugain import COC
 from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN, EU
 from saml2.extension.idpdisc import BINDING_DISCO
+
 from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
+
 from satosa.backends.saml2 import SamlBackend
 from satosa.context import Context
 from satosa.internal_data import UserIdHashType, InternalRequest
 from satosa.state import State, cookie_to_state
 from tests.users import USERS
 from tests.util import FileGenerator, FakeIdP
+import os.path
 
 __author__ = 'haho0032'
+
+INTERNAL_ATTRIBUTES = {
+    'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
+                   'givenname': {'saml': ['givenName'], 'openid': ['given_name'],
+                                 'facebook': ['first_name']},
+                   'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
+                            'facebook': ['email']},
+                   'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
+                                           'facebook': ['id']},
+                   'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
+                   'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
+                   'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
+                               'facebook': ['last_name']}}, 'separator': '->'}
 
 
 class TestConfiguration(object):
@@ -30,7 +47,10 @@ class TestConfiguration(object):
 
     def __init__(self):
         idp_cert_file, idp_key_file = FileGenerator.get_instance().generate_cert("idp")
-        xmlsec_path = '/usr/local/bin/xmlsec1'
+        if os.path.isfile("/usr/bin/xmlsec1"):
+            xmlsec_path = "/usr/bin/xmlsec1"
+        elif os.path.isfile("/usr/local/bin/xmlsec1"):
+            xmlsec_path = "/usr/local/bin/xmlsec1"
         idp_base = "http://test.tester.se"
 
         self.idpconfig = {
@@ -74,30 +94,33 @@ class TestConfiguration(object):
         sp_cert_file, sp_key_file = FileGenerator.get_instance().generate_cert("sp")
         self.sp_base = "http://example.com"
         self.spconfig = {
+            "config": {
+                "entityid": "{}/unittest_sp.xml".format(self.sp_base),
+                "service": {
+                    "sp": {
+                        "endpoints": {
+                            "assertion_consumer_service": [
+                                ("%s/acs/post" % self.sp_base, BINDING_HTTP_POST)
+                            ],
+                            "discovery_response": [("%s/disco" % self.sp_base, BINDING_DISCO)]
+                        },
+                        "allow_unsolicited": "true",
+                    },
+                },
+                "key_file": sp_key_file.name,
+                "cert_file": sp_cert_file.name,
+                "metadata": {
+                    "local": []
+                },
+                "xmlsec_binary": xmlsec_path,
+            },
             "encryption_key": "asduy234879dyisahkd2",
             "disco_srv": "https://my.dicso.com/role/idp.ds",
-            "entityid": "{}/unittest_sp.xml".format(self.sp_base),
-            "service": {
-                "sp": {
-                    "endpoints": {
-                        "assertion_consumer_service": [
-                            ("%s/acs/post" % self.sp_base, BINDING_HTTP_POST)
-                        ],
-                        "discovery_response": [("%s/disco" % self.sp_base, BINDING_DISCO)]
-                    },
-                    "allow_unsolicited": "true",
-                },
-            },
-            "key_file": sp_key_file.name,
-            "cert_file": sp_cert_file.name,
-            "metadata": {
-                "local": []
-            },
-            "xmlsec_binary": xmlsec_path,
         }
-        sp_metadata = FileGenerator.get_instance().create_metadata(self.spconfig, "sp_metadata")
+        sp_metadata = FileGenerator.get_instance().create_metadata(self.spconfig["config"],
+                                                                   "sp_metadata")
         idp_metadata = FileGenerator.get_instance().create_metadata(self.idpconfig, "idp_metadata")
-        self.spconfig["metadata"]["local"].append(idp_metadata.name)
+        self.spconfig["config"]["metadata"]["local"].append(idp_metadata.name)
         self.idpconfig["metadata"]["local"].append(sp_metadata.name)
 
     @staticmethod
@@ -116,9 +139,11 @@ def test_register_endpoints():
     """
     samlbackend = SamlBackend(
         None,
+        INTERNAL_ATTRIBUTES,
         TestConfiguration.get_instance().spconfig)
     url_map = samlbackend.register_endpoints()
-    for k, v in TestConfiguration.get_instance().spconfig["service"]["sp"]["endpoints"].items():
+    for k, v in TestConfiguration.get_instance().spconfig["config"]["service"]["sp"][
+        "endpoints"].items():
         for e in v:
             match = False
             for regex in url_map:
@@ -135,6 +160,7 @@ def test_start_auth_no_request_info():
     """
     samlbackend = SamlBackend(
         None,
+        INTERNAL_ATTRIBUTES,
         TestConfiguration.get_instance().spconfig)
 
     internal_data = InternalRequest(None, None)
@@ -159,6 +185,7 @@ def test_start_auth_name_id_policy():
     """
     samlbackend = SamlBackend(
         None,
+        INTERNAL_ATTRIBUTES,
         TestConfiguration.get_instance().spconfig)
 
     test_state_key = "sauyghj34589fdh"
@@ -178,14 +205,15 @@ def test_start_auth_name_id_policy():
     assert cookie
     disco_resp = parse.parse_qs(resp.message.replace(
         TestConfiguration.get_instance().spconfig["disco_srv"] + "?", ""))
-    sp_config = TestConfiguration.get_instance().spconfig
+    sp_config = TestConfiguration.get_instance().spconfig["config"]
     sp_disco_resp = sp_config["service"]["sp"]["endpoints"]["discovery_response"][0][0]
     assert "return" in disco_resp and disco_resp["return"][0].startswith(sp_disco_resp), \
         "Not a valid return url in the call to the discovery server"
     assert "entityID" in disco_resp and disco_resp["entityID"][0] == sp_config["entityid"], \
         "Not a valid entity id in the call to the discovery server"
 
-    request_info_tmp = cookie_to_state(cookie, "saml2_backend_disco_state", samlbackend.state_encryption_key)
+    request_info_tmp = cookie_to_state(cookie, "saml2_backend_disco_state",
+                                       samlbackend.state_encryption_key)
     assert request_info_tmp.get(test_state_key) == "my_state", "Wrong state!"
     assert request_info_tmp.get(SamlBackend.STATE_KEY) == UserIdHashType.transient.name
 
@@ -219,13 +247,16 @@ def test__start_auth_disco():
         assert state.get(test_state_key) == "my_state", "Not correct state!"
         assert internal_resp.auth_info.auth_class_ref == PASSWORD, "Not correct authentication!"
         assert internal_resp.user_id_hash_type == UserIdHashType.persistent, "Must be persistent!"
-        _dict = internal_resp.get_pysaml_attributes()
+        _dict = internal_resp._attributes
+        verify_dict = {'surname': ['Testsson 1'], 'mail': ['test@example.com'],
+                       'displayname': ['Test Testsson'], 'givenname': ['Test 1'],
+                       'edupersontargetedid': ['one!for!all']}
         for key in _dict:
-            assert key in _dict
-            assert USERS[internal_resp.user_id][key] == _dict[key]
+            assert verify_dict[key] == _dict[key]
 
     samlbackend = SamlBackend(
         auth_req_callback_func,
+        INTERNAL_ATTRIBUTES,
         spconfig)
 
     internal_req = InternalRequest(UserIdHashType.persistent, "example.se/sp.xml")
@@ -242,7 +273,7 @@ def test__start_auth_disco():
             cookie = header[1]
             break
     assert cookie
-    sp_disco_resp = spconfig["service"]["sp"]["endpoints"]["discovery_response"][0][0]
+    sp_disco_resp = spconfig["config"]["service"]["sp"]["endpoints"]["discovery_response"][0][0]
     disco_resp = parse.parse_qs(resp.message.replace(spconfig["disco_srv"] + "?", ""))
     info = parse.parse_qs(disco_resp["return"][0].replace(sp_disco_resp + "?", ""))
     info[samlbackend.idp_disco_query_param] = idpconfig["entityid"]

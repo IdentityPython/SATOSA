@@ -14,9 +14,9 @@ from saml2.s_utils import UnsupportedBinding
 from saml2.saml import NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
 from saml2.samlp import NameIDPolicy
 from satosa.backends.base import BackendModule
-from satosa.exception import AuthenticationError, SATOSAError
+from satosa.exception import AuthenticationError, SATOSACriticalError
 from satosa.internal_data import UserIdHashType, InternalRequest, InternalResponse, \
-    AuthenticationInformation
+    AuthenticationInformation, DataConverter
 from satosa.response import SeeOther, Response
 from satosa.service import rndstr
 from satosa.state import state_to_cookie, cookie_to_state, StateError
@@ -35,9 +35,9 @@ class MetadataResponse(Response):
 class SamlBackend(BackendModule):
     STATE_KEY = "Saml2B_76ASF"
 
-    def __init__(self, outgoing, config):
-        super(SamlBackend, self).__init__(outgoing)
-        sp_config = SPConfig().load(copy.deepcopy(config), False)
+    def __init__(self, outgoing, internal_attributes, config):
+        super(SamlBackend, self).__init__(outgoing, internal_attributes)
+        sp_config = SPConfig().load(copy.deepcopy(config["config"]), False)
 
         self.state_encryption_key = config["encryption_key"]
         self.sp = Base(sp_config)
@@ -45,6 +45,7 @@ class SamlBackend(BackendModule):
         self.config = config
         self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST]
         self.discosrv = None
+        self.converter = DataConverter(internal_attributes)
         try:
             self.discosrv = config["disco_srv"]
         except KeyError:
@@ -144,7 +145,7 @@ class SamlBackend(BackendModule):
             state = cookie_to_state(context.cookie, "saml2_backend_state", self.state_encryption_key)
         except StateError as error:
             # TODO LOG
-            raise AuthenticationError(None, "Missing state in authn_response")
+            raise SATOSACriticalError("Missing state in authn_response")
 
         if not _authn_response["SAMLResponse"]:
             LOGGER.info("Missing Response")
@@ -179,7 +180,7 @@ class SamlBackend(BackendModule):
             state = cookie_to_state(context.cookie, "saml2_backend_disco_state", self.state_encryption_key)
         except StateError as error:
             # TODO LOG
-            raise SATOSAError(None, "Missing state in disco_response")
+            raise SATOSACriticalError("Missing state in disco_response")
 
         try:
             entity_id = info[self.idp_disco_query_param]
@@ -199,7 +200,8 @@ class SamlBackend(BackendModule):
 
         auth_info = AuthenticationInformation(auth_class_ref, timestamp, issuer)
         internal_resp = InternalResponse(user_id_hash_type, auth_info=auth_info)
-        internal_resp.add_pysaml_attributes(response.ava)
+
+        internal_resp.add_attributes(self.converter.to_internal("saml", response.ava))
         internal_resp.user_id = response.get_subject().text
         return internal_resp
 
@@ -216,11 +218,9 @@ class SamlBackend(BackendModule):
             url_map.append(
                 ("^%s$" % parsed_endp.path[1:], (self.authn_response, binding)))
 
-        try:
+        if "publish_metadata" in self.config:
             metadata_path = urlparse(self.config["publish_metadata"])
             url_map.append(("^%s$" % metadata_path.path[1:], (self._metadata, "")))
-        except KeyError:
-            pass
 
         if self.discosrv:
             for endp, binding in sp_endpoints["discovery_response"]:

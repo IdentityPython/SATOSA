@@ -30,6 +30,7 @@ parser.add_argument('-s', dest='sign', action='store_true', help="sign the metad
 parser.add_argument('-x', dest='xmlsec', help="xmlsec binaries to be used for the signing")
 parser.add_argument('-f', dest="frontend", help='generate frontend metadata', action="store_true")
 parser.add_argument('-b', dest="backend", help='generate backend metadata', action="store_true")
+parser.add_argument('-o', dest="output", default=".", help='output path')
 parser.add_argument(dest="config", nargs="+")
 args = parser.parse_args()
 
@@ -97,22 +98,22 @@ for filespec in args.config:
     for plugin in backend_plugins:
         providers.append(plugin.name)
         if issubclass(plugin.module, SamlBackend) and generate_backend:
-            metadata["backends"][plugin.name] = _make_metadata(plugin.config)
+            metadata["backends"][plugin.name] = _make_metadata(plugin.config["config"])
 
     if generate_frontend:
         for plugin in frontend_plugins:
             if issubclass(plugin.module, SamlFrontend):
-                module = plugin.module(None, plugin.config)
+                module = plugin.module(None, None, plugin.config)
                 module.register_endpoints(providers)
                 metadata["frontends"][plugin.name] = _make_metadata(module.config)
 
     if generate_backend:
         for backend, data in metadata["backends"].items():
-            file = open("%s_backend_metadata.xml" % backend, "w")
+            file = open("%s/%s_backend_metadata.xml" % (args.output, backend), "w")
             file.write(data)
             file.close()
     if generate_frontend:
         for frontend, data in metadata["frontends"].items():
-            file = open("%s_frontend_metadata.xml" % frontend, "w")
+            file = open("%s/%s_frontend_metadata.xml" % (args.output, frontend), "w")
             file.write(data)
             file.close()

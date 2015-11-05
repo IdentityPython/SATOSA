@@ -17,9 +17,28 @@ from satosa.context import Context
 from satosa.internal_data import InternalResponse, AuthenticationInformation
 from tests.users import USERS
 from tests.util import FakeSP, FileGenerator
+import os.path
+
+INTERNAL_ATTRIBUTES = {
+    'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
+                   'givenname': {'saml': ['givenName'], 'openid': ['given_name'],
+                                 'facebook': ['first_name']},
+                   'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
+                            'facebook': ['email']},
+                   'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
+                                           'facebook': ['id']},
+                   'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
+                   'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
+                   'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
+                               'facebook': ['last_name']}}, 'separator': '->'}
 
 IDP_CERT_FILE, IDP_KEY_FILE = FileGenerator.get_instance().generate_cert()
-XMLSEC_PATH = '/usr/local/bin/xmlsec1'
+
+if os.path.isfile("/usr/bin/xmlsec1"):
+    XMLSEC_PATH = "/usr/bin/xmlsec1"
+elif os.path.isfile("/usr/local/bin/xmlsec1"):
+    XMLSEC_PATH = "/usr/local/bin/xmlsec1"
+
 IDP_BASE = "http://test.tester.se"
 RECEIVER = "Saml2IDP"
 ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
@@ -129,7 +148,7 @@ def test_handle_authn_request(conf, binding_in, providers, error):
             assert internal_req.requestor == SPCONFIG["entityid"]
             auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
             internal_response = InternalResponse(internal_req.user_id_hash_type, auth_info=auth_info)
-            internal_response.add_pysaml_attributes(USERS["testuser1"])
+            internal_response.add_attributes(USERS["testuser1"])
 
             resp = samlfrontend.handle_authn_response(context, internal_response, state)
             resp_dict = parse.parse_qs(resp.message.split("?")[1])
@@ -139,7 +158,7 @@ def test_handle_authn_request(conf, binding_in, providers, error):
                 assert key in resp.ava
                 assert USERS["testuser1"][key] == resp.ava[key]
 
-        samlfrontend = SamlFrontend(auth_req_callback_func, conf)
+        samlfrontend = SamlFrontend(auth_req_callback_func,INTERNAL_ATTRIBUTES, conf)
     except Exception as exception:
         if error is None or not isinstance(exception, error):
             raise exception
@@ -156,7 +175,8 @@ def test_handle_authn_request(conf, binding_in, providers, error):
             for provider in providers:
                 for s_key in conf["endpoints"]:
                     for b_key in conf["endpoints"][s_key]:
-                        if p.match(provider + "/" + conf["endpoints"][s_key][b_key]):
+                        if p.match(provider + "/" + conf["endpoints"][s_key][b_key]) or \
+                                p.match(provider + "/" + conf["endpoints"][s_key][b_key] + "/test"):
                             match = True
                             break
             assert match, "All regular expressions must match!"

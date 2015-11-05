@@ -2,6 +2,7 @@
 import copy
 import logging
 from urllib.parse import urlparse
+from saml2.attribute_converter import from_local
 
 from saml2.config import IdPConfig
 from saml2.httputil import ServiceError
@@ -14,7 +15,7 @@ from saml2.saml import NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT, NameID
 from saml2.samlp import name_id_policy_from_string
 from saml2.server import Server
 from satosa.frontends.base import FrontendModule
-from satosa.internal_data import UserIdHashType, InternalRequest
+from satosa.internal_data import UserIdHashType, InternalRequest, DataConverter
 import satosa.service as service
 from satosa.service import response
 from satosa.state import State
@@ -25,12 +26,14 @@ logger = logging.getLogger(__name__)
 class SamlFrontend(FrontendModule):
     STATE_KEY = "SamlF_HY34CV"
 
-    def __init__(self, auth_req_callback_func, conf):
+    def __init__(self, auth_req_callback_func, internal_attributes, conf):
         if conf is None:
             raise TypeError("conf can't be 'None'")
         self._validate_config(conf)
 
-        super(SamlFrontend, self).__init__(auth_req_callback_func)
+        super(SamlFrontend, self).__init__(auth_req_callback_func, internal_attributes)
+        if internal_attributes is not None:
+            self.converter = DataConverter(internal_attributes)
         self.config = conf["idp_config"]
         self.endpoints = conf["endpoints"]
         self.base = conf["base"]
@@ -160,9 +163,23 @@ class SamlFrontend(FrontendModule):
 
             idp_policy = idp.config.getattr("policy", "idp")
             if idp_policy:
-                entity_categories = idp_policy.get_entity_categories(_dict["resp_args"]["sp_entity_id"], idp.metadata)
-                attribute_filter = list(entity_categories.keys())
-                internal_req.add_pysaml_attr_filter(attribute_filter)
+                sp_entity_id = _dict["resp_args"]["sp_entity_id"]
+
+                #entity_categories = idp_policy.get_entity_categories(_dict["resp_args"]["sp_entity_id"], idp.metadata)
+                name_format = idp_policy.get_name_form(sp_entity_id)
+                attrconvs = idp.config.attribute_converters
+                #del_keys = []
+                attribute_filter = []
+                for aconv in attrconvs:
+                    if aconv.name_format == name_format:
+                        attribute_filter = idp_policy.restrict(list(aconv._to.keys()), sp_entity_id, idp.metadata)
+                        # for key in attribute_filter.keys():
+                        #     if key not in aconv._to:
+                        #         del_keys.append(key)
+                # for key in del_keys:
+                #     del attribute_filter[key]
+                attribute_filter = self.converter.to_internal_filter("saml", attribute_filter, True)
+                internal_req.add_filter(attribute_filter)
 
             return self.auth_req_callback_func(context, internal_req, state)
 
@@ -173,7 +190,7 @@ class SamlFrontend(FrontendModule):
         request_state = self.load_state(state)
 
         resp_args = request_state["resp_args"]
-        ava = internal_response.get_pysaml_attributes()
+        ava = self.converter.from_internal("saml", internal_response.get_attributes())
         # TODO what about authn_auth in auth_info?
         auth_info = {"class_ref": internal_response.auth_info.auth_class_ref}
 
@@ -254,9 +271,9 @@ class SamlFrontend(FrontendModule):
                     valid_providers = "{}|^{}".format(valid_providers, provider)
                 valid_providers = valid_providers.lstrip("|")
                 parsed_endp = urlparse(endp)
-                url_map.append(("%s/%s$" % (valid_providers, parsed_endp.path),
+                url_map.append(("(%s)/%s$" % (valid_providers, parsed_endp.path),
                                 (self.handle_authn_request, service.BINDING_MAP[binding])))
-                url_map.append(("%s/%s/(.*)$" % (valid_providers, parsed_endp.path),
+                url_map.append(("(%s)/%s/(.*)$" % (valid_providers, parsed_endp.path),
                                 (self.handle_authn_request, service.BINDING_MAP[binding])))
 
         return url_map
@@ -267,9 +284,9 @@ class SamlFrontend(FrontendModule):
         for endp_category in self.endpoints.keys():
             for func, endpoint in self.endpoints[endp_category].items():
                 for provider in providers:
-                    endpoint = "{base}/{provider}/{endpoint}".format(
+                    _endpoint = "{base}/{provider}/{endpoint}".format(
                         base=self.base, provider=provider, endpoint=endpoint)
-                    idp_endpoints.append((endpoint, func))
+                    idp_endpoints.append((_endpoint, func))
             config["service"]["idp"]["endpoints"][endp_category] = idp_endpoints
 
         return config

@@ -18,7 +18,21 @@ from satosa.satosa_config import SATOSAConfig
 from tests.wsgi_server import WsgiApplication
 from tests.util import FakeSP, FakeIdP, FileGenerator
 from tests.users import USERS
+import os.path
 
+
+INTERNAL_ATTRIBUTES = {
+    'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
+                   'givenname': {'saml': ['givenName'], 'openid': ['given_name'],
+                                 'facebook': ['first_name']},
+                   'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
+                            'facebook': ['email']},
+                   'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
+                                           'facebook': ['id']},
+                   'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
+                   'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
+                   'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
+                               'facebook': ['last_name']}}, 'separator': '->'}
 
 class TestConfiguration(object):
     """
@@ -34,7 +48,10 @@ class TestConfiguration(object):
         # Add test directory to path to be able to import configurations
         sys.path.append(os.path.dirname(__file__))
 
-        self.xmlsec_path = "/usr/local/bin/xmlsec1"
+        if os.path.isfile("/usr/bin/xmlsec1"):
+            self.xmlsec_path = "/usr/bin/xmlsec1"
+        elif os.path.isfile("/usr/local/bin/xmlsec1"):
+            self.xmlsec_path = "/usr/local/bin/xmlsec1"
 
         proxy_config_dict = {"HOST": 'localhost',
                              "PORT": 8090,
@@ -42,7 +59,8 @@ class TestConfiguration(object):
                              "PLUGIN_PATH": [os.path.dirname(__file__)],
                              "BACKEND_MODULES": [inspect.getmodulename(__file__)],
                              "FRONTEND_MODULES": [inspect.getmodulename(__file__)],
-                             "USER_ID_HASH_SALT": "qwerty"}
+                             "USER_ID_HASH_SALT": "qwerty",
+                             "INTERNAL_ATTRIBUTES": INTERNAL_ATTRIBUTES}
 
         self.proxy_config = SATOSAConfig(proxy_config_dict)
 
@@ -111,7 +129,7 @@ class TestConfiguration(object):
             Saml2FrontendPlugin(self.proxy_config.BASE).config["idp_config"],
             "frontend")
         backend_metadata_file = FileGenerator.get_instance().create_metadata(
-            Saml2BackendPlugin(self.proxy_config.BASE).config, "backend")
+            Saml2BackendPlugin(self.proxy_config.BASE).config["config"], "backend")
 
         self.fake_idp_metadata.append(fake_idp_metadata_file.name)
         self.fake_sp_metadata.append(fake_sp_metadata_file.name)
@@ -145,9 +163,7 @@ class Saml2BackendPlugin(BackendModulePlugin):
         :return: Object instance for this class.
         """
         module_base = "%s/%s" % (base_url, Saml2BackendPlugin.provider)
-        config = {
-            "encryption_key": "asd89673oeirds90",
-            "idp_entity_id": "https://example.com/unittest_idp.xml",
+        sp_config = {
             "entityid": "%s/proxy_sp.xml" % module_base,
             "service": {
                 "sp": {
@@ -168,6 +184,10 @@ class Saml2BackendPlugin(BackendModulePlugin):
 
             "xmlsec_binary": TestConfiguration.get_instance().xmlsec_path,
         }
+        config = {"config": sp_config,
+                  "encryption_key": "asd89673oeirds90",
+                  "idp_entity_id": "https://example.com/unittest_idp.xml",
+                  }
 
         super(Saml2BackendPlugin, self).__init__(SamlBackend, Saml2BackendPlugin.provider, config)
 

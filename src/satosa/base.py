@@ -1,6 +1,7 @@
 """
 The SATOSA main module
 """
+import logging
 from satosa.consent import ConsentModule
 from satosa.context import Context
 from satosa.exception import SATOSAError, AuthenticationError
@@ -30,8 +31,10 @@ class SATOSABase(object):
             raise ValueError("Missing configuration")
 
         self.config = config
-        backends = load_backends(self.config, self._auth_resp_callback_func)
-        frontends = load_frontends(self.config, self._auth_req_callback_func)
+        backends = load_backends(self.config, self._auth_resp_callback_func,
+                                 self.config.INTERNAL_ATTRIBUTES)
+        frontends = load_frontends(self.config, self._auth_req_callback_func,
+                                   self.config.INTERNAL_ATTRIBUTES)
         self.consent_module = ConsentModule(config, self._consent_resp_callback_func)
         # TODO register consent_module endpoints to module_router. Just add to backend list?
         if self.consent_module.enabled:
@@ -112,11 +115,8 @@ class SATOSABase(object):
                 return spec[0](context, *spec[1:])
             else:
                 return spec(context)
-        except AuthenticationError as error:
-            return self._handle_satosa_error(error)
         except SATOSAError as error:
-            # TODO
-            pass
+            return self._handle_satosa_error(error)
 
     def run(self, context):
         """
@@ -132,5 +132,5 @@ class SATOSABase(object):
             resp = self._run_bound_endpoint(context, spec)
         except Exception as error:
             # TODO Log error
-            resp = Response(error, status=500)
+            raise
         return resp

@@ -46,6 +46,8 @@ class WsgiApplication(SATOSABase):
 
         try:
             resp = self.run(context)
+            if isinstance(resp, Exception):
+                raise resp
             return resp(environ, start_response)
         except NoBoundEndpointError:
             LOGGER.debug("unknown side: %s" % path)
@@ -59,7 +61,7 @@ class WsgiApplication(SATOSABase):
                 resp = ServiceError("%s" % err)
                 return resp(environ, start_response)
             else:
-                raise
+                raise err
 
 
 def main():
@@ -77,13 +79,29 @@ def main():
     sys.path.insert(0, os.getcwd())
 
     server_config = SATOSAConfig(args.proxy_config)
+
+    base_formatter = logging.Formatter("%(asctime)s %(name)s:%(levelname)s %(message)s")
+
+    satosa_logger = logging.getLogger("satosa")
+    hdlr = logging.FileHandler("satosa.log")
+    hdlr.setFormatter(base_formatter)
+    satosa_logger.addHandler(hdlr)
+    satosa_logger.setLevel(logging.DEBUG)
+
+    satosa_logger = logging.getLogger("cherrypy")
+    hdlr = logging.FileHandler("cherrypy.log")
+    hdlr.setFormatter(base_formatter)
+    satosa_logger.addHandler(hdlr)
+    satosa_logger.setLevel(logging.DEBUG)
+
     wsgi_app = WsgiApplication(server_config, args.debug).run_server
     if args.debug:
         wsgi_app = DebuggedApplication(wsgi_app)
 
     cherrypy.config.update({
-        'server.socket_host': '0.0.0.0',
-        'server.socket_port': server_config.PORT
+        'server.socket_host': server_config.HOST,
+        'server.socket_port': server_config.PORT,
+        'engine.autoreload.on': False
     })
     if server_config.HTTPS:
         cherrypy.config.update({
