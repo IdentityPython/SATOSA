@@ -10,10 +10,13 @@ from saml2.metadata import sign_entity_descriptor
 from saml2.sigver import security_context
 from saml2.validate import valid_instance
 from saml2.config import Config
+
 from satosa.backends.saml2 import SamlBackend
 from satosa.frontends.saml2 import SamlFrontend
+from satosa.image_converter import convert_to_base64
 from satosa.plugin_loader import _load_plugins, backend_filter, frontend_filter
 from satosa.satosa_config import SATOSAConfig
+
 
 # =============================================================================
 # Script that creates SAML2 metadata files from
@@ -52,6 +55,8 @@ if args.valid:
 def _make_metadata(config_dict):
     eds = []
     cnf = Config()
+
+    config_dict = _convert_logo_images(config_dict)
     cnf.load(copy.deepcopy(config_dict), metadata_construction=True)
 
     if valid_for:
@@ -82,6 +87,24 @@ def _make_metadata(config_dict):
             valid_instance(eid)
             xmldoc = metadata_tostring_fix(eid, nspair, xmldoc).decode()
             return xmldoc
+
+
+def _convert_logo_images(config_dict):
+    try:
+        logo_list = config_dict['service']['idp']['ui_info']['logo']
+        index = 0
+        for logo in logo_list:
+            try:
+                logo['text'] = convert_to_base64(logo['text'])
+                config_dict['service']['idp']['ui_info']['logo'][index] = logo
+            except KeyError:
+                pass
+            index += 1
+    except KeyError:
+        pass
+
+    return config_dict
+
 
 
 for filespec in args.config:
