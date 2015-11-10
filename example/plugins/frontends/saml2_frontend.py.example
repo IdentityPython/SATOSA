@@ -12,8 +12,6 @@ from satosa.internal_data import DataConverter
 from satosa.plugin_base.endpoint import FrontendModulePlugin
 from satosa.frontends.saml2 import SamlFrontend
 
-__author__ = 'mathiashedstrom'
-
 
 def full_path(local_file):
     basedir = os.path.abspath(os.path.dirname(__file__))
@@ -64,7 +62,7 @@ class Saml2FrontendModulePlugin(FrontendModulePlugin):
             "key_file": full_path("pki/new_server.key"),
             "cert_file": full_path("pki/new_server.crt"),
             "metadata": {
-                "local": ["/Users/haho0032/Develop/githubFork/pysaml2/example/sp-wsgi/sp_satosa.xml"]
+                "local": ["[somepath]/sp_metadata.xml"]
             },
             # This database holds the map between a subjects local identifier and
             # the identifier returned to a SP

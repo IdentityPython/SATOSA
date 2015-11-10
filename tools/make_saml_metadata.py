@@ -12,6 +12,7 @@ from saml2.validate import valid_instance
 from saml2.config import Config
 from satosa.backends.saml2 import SamlBackend
 from satosa.frontends.saml2 import SamlFrontend
+from satosa.plugin_base.endpoint import BackendModulePlugin, FrontendModulePlugin
 from satosa.plugin_loader import _load_plugins, backend_filter, frontend_filter
 from satosa.satosa_config import SATOSAConfig
 
@@ -91,8 +92,10 @@ for filespec in args.config:
 
     config = SATOSAConfig(fil)
     metadata = {"backends": {}, "frontends": {}}
-    backend_plugins = _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter, config.BASE)
-    frontend_plugins = _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter, config.BASE)
+    backend_plugins = _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter,
+                                    BackendModulePlugin.__name__, config.BASE)
+    frontend_plugins = _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter,
+                                     FrontendModulePlugin.__name__, config.BASE)
 
     providers = []
     for plugin in backend_plugins:

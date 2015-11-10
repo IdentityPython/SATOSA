@@ -1,0 +1,34 @@
+module: satosa.frontends.saml2.SamlFrontend
+plugin: FrontendModulePlugin
+name: Saml2IDP
+config:
+  base: <base_url>
+  endpoints:
+    single_sign_on_service: {'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST': sso/post,
+      'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect': sso/redirect}
+  idp_config:
+    cert_file: pki/new_server.crt
+    debug: 1
+    description: A SAML2SAML proxy
+    entityid: <base_url>/<name>/proxy.xml
+    key_file: pki/new_server.key
+    logger:
+      loglevel: debug
+      rotating: {backupCount: 5, filename: idp.log, maxBytes: 500000}
+    metadata:
+      local: [[somepath]/sp_metadata.xml]
+    service:
+      idp:
+        endpoints:
+          single_sign_on_service: []
+        name: Proxy IdP
+        name_id_format: ['urn:oasis:names:tc:SAML:2.0:nameid-format:persistent', 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient']
+        policy:
+          default:
+            attribute_restrictions: null
+            fail_on_missing_requested: false
+            lifetime: {minutes: 15}
+            name_form: urn:oasis:names:tc:SAML:2.0:attrname-format:uri
+        subject_data: ./idp.subject
+        want_authn_requests_signed: false
+    xmlsec_binary: /usr/local/bin/xmlsec1
