@@ -31,8 +31,8 @@
         }
       },
       "debug": 1,
-      "key_file": "pki/new_server.key",
-      "cert_file": "pki/new_server.crt",
+      "key_file": "plugins/frontends/pki/new_server.key",
+      "cert_file": "plugins/frontends/pki/new_server.crt",
       "metadata": {
         "local": [
           "[somepath]/sp_metadata.xml"
