@@ -1,8 +1,10 @@
+import logging
 import os
+import base64
 
 __author__ = 'danielevertsson'
 
-import base64
+LOGGER = logging.getLogger(__name__)
 
 
 class InvalidArgumentType(Exception):
@@ -14,6 +16,15 @@ class UnsupportedImageFormat(Exception):
 
 
 def convert_to_base64(image_path):
+    """
+    Converts an image to base64 raw data
+
+    :type image_path: str
+    :rtype: str
+
+    :param image_path: Path to the image file
+    :return: base64 data representation of the image
+    """
     if not isinstance(image_path, str):
         raise InvalidArgumentType()
 
@@ -28,6 +39,8 @@ def convert_to_base64(image_path):
             encoded_string = base64.b64encode(image_file.read())
             return "data:image/%s;base64,%s" % (file_extension, bytes.decode(encoded_string))
     except FileNotFoundError:
+        LOGGER.info("File not found or not a file path")
         return image_path
     except OSError:
+        LOGGER.info("File not found or not a file path")
         return image_path

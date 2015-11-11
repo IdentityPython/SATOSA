@@ -8,7 +8,7 @@ PLUGIN_PATH:
   - "plugins/frontends"
   - "plugins/micro_services"
 BACKEND_MODULES:
-  - "openid_backend"
+  - "saml2_backend"
 FRONTEND_MODULES:
   - "saml2_frontend"
 #MICRO_SERVICES:

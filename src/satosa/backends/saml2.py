@@ -51,8 +51,6 @@ class SamlBackend(BackendModule):
         except KeyError:
             pass
 
-        LOGGER.debug("--- SSO ---")
-
     @staticmethod
     def create_name_id_policy(usr_id_hash_type):
         nameid_format = None
@@ -144,11 +142,10 @@ class SamlBackend(BackendModule):
         try:
             state = cookie_to_state(context.cookie, "saml2_backend_state", self.state_encryption_key)
         except StateError as error:
-            # TODO LOG
             raise SATOSACriticalError("Missing state in authn_response")
 
         if not _authn_response["SAMLResponse"]:
-            LOGGER.info("Missing Response")
+            LOGGER.error("Missing Response")
             raise AuthenticationError(state, 'Unknown user')
 
         try:
@@ -161,8 +158,10 @@ class SamlBackend(BackendModule):
             LOGGER.error("UnsupportedBinding: %s", excp)
             raise AuthenticationError(state, "UnsupportedBinding: %s" % (excp,))
         except VerificationError as err:
+            LOGGER.error("%s", err)
             raise AuthenticationError(state, "Verification error: %s" % (err,))
         except Exception as err:
+            LOGGER.error("%s", err)
             raise AuthenticationError(state, "Other error: %s" % (err,))
 
         # check if the relay_state matches the cookie state
@@ -179,12 +178,13 @@ class SamlBackend(BackendModule):
         try:
             state = cookie_to_state(context.cookie, "saml2_backend_disco_state", self.state_encryption_key)
         except StateError as error:
-            # TODO LOG
+            LOGGER.error("Missing state in disco_response")
             raise SATOSACriticalError("Missing state in disco_response")
 
         try:
             entity_id = info[self.idp_disco_query_param]
         except KeyError:
+            LOGGER.error("No IDP chosen")
             raise AuthenticationError(state, "You must chose an IdP")
         else:
             request_info = InternalRequest(
@@ -206,6 +206,7 @@ class SamlBackend(BackendModule):
         return internal_resp
 
     def _metadata(self, context, *args):
+        LOGGER.debug("Sending metadata response")
         return MetadataResponse(self.sp.config)
 
     def register_endpoints(self):

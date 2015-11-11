@@ -3,6 +3,7 @@ A consent module for the satosa proxy
 """
 import hashlib
 import json
+import logging
 from jwkest.jws import JWS
 import requests
 from requests.exceptions import ConnectionError
@@ -15,6 +16,7 @@ from jwkest.jwk import RSAKey
 
 __author__ = 'mathiashedstrom'
 
+LOGGER = logging.getLogger(__name__)
 
 class ConsentModule(object):
     """
@@ -37,6 +39,9 @@ class ConsentModule(object):
             _bkey = rsa_load(config.CONSENT["sign_key"])
             self.sign_key = RSAKey().load_key(_bkey)
             self.sign_key.use = "sig"
+            LOGGER.info("Consent flow is active")
+        else:
+            LOGGER.info("Consent flow is not active")
 
     def save_state(self, internal_request, state):
         """
@@ -87,7 +92,7 @@ class ConsentModule(object):
         try:
             consent_given = self._verify_consent(hash_id)
         except ConnectionError as error:
-            # TODO LOG
+            LOGGER.warn("Consent service is not reachable, no consent given.")
             # Send an internal_response without any attributes
             consent_given = False
 
@@ -138,7 +143,7 @@ class ConsentModule(object):
             if self._verify_consent(id_hash):
                 return self.callback_func(context, internal_response, state)
         except ConnectionError as error:
-            # TODO LOG
+            LOGGER.warn("Consent service is not reachable, no consent given.")
             # Send an internal_response without any attributes
             internal_response._attributes = {}
             return self.callback_func(context, internal_response, state)
@@ -157,7 +162,7 @@ class ConsentModule(object):
         try:
             ticket = self._consent_registration(consent_args_jws)
         except (ConnectionError, AssertionError) as error:
-            # TODO LOG
+            LOGGER.warn("Consent service is not reachable, no consent given.")
             # Send an internal_response without any attributes
             internal_response._attributes = {}
             return self.callback_func(context, internal_response, state)

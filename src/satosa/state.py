@@ -7,10 +7,13 @@ import copy
 from http.cookies import SimpleCookie
 import json
 import hashlib
+import logging
 from lzma import LZMADecompressor, LZMACompressor
 
 from Crypto import Random
 from Crypto.Cipher import AES
+
+LOGGER = logging.getLogger(__name__)
 
 STATE_COOKIE_MAX_AGE = 600
 STATE_COOKIE_SECURE = True
@@ -32,6 +35,8 @@ def state_to_cookie(state, name, path, encryption_key):
     :param encryption_key: Key to encrypt the state information
     :return: A cookie
     """
+    LOGGER.debug("Saving state as cookie, secure: %s, max-age: %s, path: %s" %
+                 (STATE_COOKIE_SECURE, STATE_COOKIE_MAX_AGE, path))
     cookie = SimpleCookie()
     cookie[name] = state.urlstate(encryption_key)
     cookie[name]["secure"] = STATE_COOKIE_SECURE
@@ -55,8 +60,10 @@ def cookie_to_state(cookie_str, name, encryption_key):
     :return: A state
     """
     try:
+        LOGGER.debug("Loading state from cookie: %s")
         return State(SimpleCookie(cookie_str)[name].value, encryption_key)
     except KeyError:
+        LOGGER.error("Did not find cookie named '%s'" % name)
         raise StateError("No cookie named '{}'".format(name))
 
 

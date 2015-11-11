@@ -2,12 +2,15 @@
 Some help functions to load satosa backend and frontend modules
 """
 import inspect
+import logging
 from pluginbase import PluginBase
 from satosa.micro_service.service_base import MicroService, RequestMicroService, ResponseMicroService, \
     build_micro_service_queue
 from satosa.plugin_base.endpoint import InterfaceModulePlugin, BackendModulePlugin, FrontendModulePlugin
 
 __author__ = 'mathiashedstrom'
+
+LOGGER = logging.getLogger(__name__)
 
 
 def load_backends(config, callback, internal_attributes):
@@ -147,7 +150,7 @@ def _load_endpoint_modules(plugins, callback, internal_attributes=None):
     for plugin in plugins:
         module_inst = plugin.module(callback, internal_attributes, plugin.config)
         endpoint_modules[plugin.name] = module_inst
-
+    LOGGER.info("Loaded modules: %s" % list(endpoint_modules.keys()))
     return endpoint_modules
 
 
@@ -170,10 +173,13 @@ def _load_plugins(plugin_path, plugins, filter, *args):
     plugin_base = PluginBase(package='satosa_plugins')
     plugin_source = plugin_base.make_plugin_source(searchpath=plugin_path)
     loaded_plugins = []
+    loaded_plugins_name = []
     for module_file_name in plugins:
         module = plugin_source.load_plugin(module_file_name)
         for name, obj in inspect.getmembers(module, filter):
             loaded_plugins.append(obj(*args))
+            loaded_plugins_name.append(module_file_name)
+    LOGGER.info("Loaded plugins: %s" % loaded_plugins_name)
     return loaded_plugins
 
 

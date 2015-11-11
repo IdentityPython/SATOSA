@@ -20,7 +20,7 @@ import satosa.service as service
 from satosa.service import response
 from satosa.state import State
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 class SamlFrontend(FrontendModule):
@@ -76,15 +76,14 @@ class SamlFrontend(FrontendModule):
 
     def verify_request(self, idp, query, binding):
         if not query:
-            logger.info("Missing QUERY")
+            LOGGER.warn("Missing QUERY")
             resp = Unauthorized('Unknown user')
             return {"response": resp}
 
         req_info = idp.parse_authn_request(query, binding)
 
-        logger.info("parsed OK")
         _authn_req = req_info.message
-        logger.debug("%s", _authn_req)
+        LOGGER.debug("%s", _authn_req)
 
         # Check that I know where to send the reply to
         try:
@@ -93,19 +92,21 @@ class SamlFrontend(FrontendModule):
                 bindings=self.response_bindings,
                 entity_id=_authn_req.issuer.text, request=_authn_req)
         except Exception as err:
-            logger.error("Couldn't find receiver endpoint: %s", err)
+            LOGGER.error("Couldn't find receiver endpoint: %s", err)
             raise
 
-        logger.debug("Binding: %s, destination: %s", binding_out, destination)
+        LOGGER.debug("Binding: %s, destination: %s", binding_out, destination)
 
         resp_args = {}
         try:
             resp_args = idp.response_args(_authn_req)
             _resp = None
         except UnknownPrincipal as excp:
+            LOGGER.error("Unknown principal name: %s" % excp)
             _resp = idp.create_error_response(_authn_req.id,
                                               destination, excp)
         except UnsupportedBinding as excp:
+            LOGGER.error("Unknown unsupported binding: %s" % excp)
             _resp = idp.create_error_response(_authn_req.id,
                                               destination, excp)
 
@@ -132,10 +133,10 @@ class SamlFrontend(FrontendModule):
             _dict = self.verify_request(idp, _request["SAMLRequest"],
                                         _binding_in)
         except UnknownPrincipal as excp:
-            logger.error("UnknownPrincipal: %s", excp)
+            LOGGER.error("UnknownPrincipal: %s", excp)
             return ServiceError("UnknownPrincipal: %s" % (excp,))
         except UnsupportedBinding as excp:
-            logger.error("UnsupportedBinding: %s", excp)
+            LOGGER.error("UnsupportedBinding: %s", excp)
             return ServiceError("UnsupportedBinding: %s" % (excp,))
 
         _binding = _dict["resp_args"]["binding"]
@@ -145,7 +146,7 @@ class SamlFrontend(FrontendModule):
                 _dict["resp_args"]["destination"],
                 _request["RelayState"], response=True)
 
-            logger.debug("HTTPargs: %s", http_args)
+            LOGGER.debug("HTTPargs: %s", http_args)
             return response(_binding, http_args)
         else:
 
@@ -180,6 +181,7 @@ class SamlFrontend(FrontendModule):
                 #     del attribute_filter[key]
                 attribute_filter = self.converter.to_internal_filter("saml", attribute_filter, True)
                 internal_req.add_filter(attribute_filter)
+                LOGGER.debug("Filter: %s" % attribute_filter)
 
             return self.auth_req_callback_func(context, internal_req, state)
 
@@ -227,7 +229,7 @@ class SamlFrontend(FrontendModule):
             resp_args["destination"],
             relay_state, response=True)
 
-        logger.debug("HTTPargs: %s", http_args)
+        LOGGER.debug("HTTPargs: %s", http_args)
         return response(resp_args["binding"], http_args)
 
     def construct_authn_response(self, idp, identity, name_id, authn,
@@ -242,7 +244,7 @@ class SamlFrontend(FrontendModule):
             resp_args["binding"], "%s" % _resp, resp_args["destination"],
             relay_state, response=True)
 
-        logger.debug("HTTPargs: %s", http_args)
+        LOGGER.debug("HTTPargs: %s", http_args)
 
         resp = None
         if http_args["data"]:
@@ -253,13 +255,17 @@ class SamlFrontend(FrontendModule):
                     resp = Redirect(header[1])
 
         if not resp:
-            resp = ServiceError("Don't know how to return response")
+            msg = "Don't know how to return response"
+            LOGGER.error(msg)
+            resp = ServiceError(msg)
 
         return resp
 
     def _validate_providers(self, providers):
         if providers is None or not isinstance(providers, list):
-            raise TypeError("'providers' is not 'list' type")
+            msg = "'providers' is not 'list' type"
+            LOGGER.error(msg)
+            raise TypeError(msg)
 
     def _register_endpoints(self, providers):
         url_map = []

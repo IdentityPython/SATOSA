@@ -1,12 +1,14 @@
 """
 Holds satosa routing logic
 """
+import logging
 import re
 
 from satosa.context import BadContextError
 
 __author__ = 'mathiashedstrom'
 
+LOGGER = logging.getLogger(__name__)
 
 class NoBoundEndpointError(Exception):
     """
@@ -55,6 +57,9 @@ class ModuleRouter():
                                         "endpoints": frontends[frontend].register_endpoints(
                                             providers)}
 
+        LOGGER.debug("Loaded backends with endpoints: %s" % backends)
+        LOGGER.debug("Loaded frontends with endpoints: %s" % frontends)
+
     def backend_routing(self, context, state):
         """
         Returns the targeted backend and an updated state
@@ -67,7 +72,7 @@ class ModuleRouter():
         :param state: The current state
         :return: backend
         """
-
+        LOGGER.debug("Routing to backend: %s " % context._target_backend)
         backend = self.backends[context._target_backend]["instance"]
         state.add(ModuleRouter.STATE_KEY, context._target_frontend)
         return backend
@@ -86,6 +91,7 @@ class ModuleRouter():
         """
 
         target_frontend = state.get(ModuleRouter.STATE_KEY)
+        LOGGER.debug("Routing to backend: %s " % target_frontend)
         context._target_frontend = target_frontend
         frontend = self.frontends[context._target_frontend]["instance"]
         return frontend
@@ -102,8 +108,10 @@ class ModuleRouter():
         :return: None
         """
         if not context:
+            LOGGER.error("Context was None!")
             raise BadContextError("Context is None")
         if context.path is None:
+            LOGGER.error("Context did not contain a path!")
             raise BadContextError("Context did not contain any path")
 
     def endpoint_routing(self, context):
@@ -116,12 +124,14 @@ class ModuleRouter():
         :param context: The request context
         :return: registered endpoint and bound parameters
         """
+        LOGGER.debug("Routing path: %s" % context.path)
         self._validate_context(context)
 
         path_split = context.path.split('/')
         backend = path_split[0]
 
         if backend not in self.backends:
+            LOGGER.warn("Unknown backend %s" % backend)
             raise UnknownTargetBackend("Unknown backend {}".format(backend))
 
         context._target_backend = backend
@@ -139,5 +149,5 @@ class ModuleRouter():
             match = re.search(regex, context.path)
             if match is not None:
                 return spec
-
-        raise NoBoundEndpointError("{} not bound to anny function".format(context.path))
+        LOGGER.warn("%s not bound to any function" % context.path)
+        raise NoBoundEndpointError("{} not bound to any function".format(context.path))

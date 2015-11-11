@@ -1,10 +1,12 @@
 """
 This module contains methods to load, verify and build configurations for the satosa proxy.
 """
+import logging
 import os
 
 __author__ = 'mathiashedstrom'
 
+LOGGER = logging.getLogger(__name__)
 
 class SATOSAConfig(object):
     """
@@ -59,9 +61,15 @@ class SATOSAConfig(object):
         :param conf: config to verify
         :return: None
         """
-        assert conf is not None and isinstance(conf, dict), "Missing configuration or unknown format"
+        if not conf is not None and isinstance(conf, dict):
+            msg = "Missing configuration or unknown format"
+            LOGGER.critical(msg)
+            raise AssertionError(msg)
         for mand_key in SATOSAConfig.mandatory_dict_keys:
-            assert mand_key in conf, "Missing key '%s' in config" % mand_key
+            if mand_key not in conf:
+                msg = "Missing key '%s' in config" % mand_key
+                LOGGER.critical(msg)
+                raise AssertionError(msg)
 
     def __getattr__(self, item):
         """
@@ -142,6 +150,8 @@ class SATOSAConfig(object):
             config = SATOSAConfig._readfile(config)
             import yaml
             return yaml.load(config)
+        except ImportError:
+            LOGGER.warn("No YAML library installed")
         except Exception:
             pass
 

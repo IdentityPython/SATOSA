@@ -27,7 +27,7 @@ from satosa.state import State, cookie_to_state, state_to_cookie
 
 __author__ = 'danielevertsson'
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 def get_id_token(client, state):
@@ -276,20 +276,20 @@ class Client(oic.Client):
         request_args = self.setup_authn_request_args(acr_value, kwargs, state, nonce)
 
         cis = self.construct_AuthorizationRequest(request_args=request_args)
-        logger.debug("request: %s" % cis)
+        LOGGER.debug("request: %s" % cis)
 
         url, body, ht_args, cis = self.uri_and_body(AuthorizationRequest, cis,
                                                     method="GET",
                                                     request_args=request_args)
 
-        logger.debug("body: %s" % body)
-        logger.info("URL: %s" % url)
-        logger.debug("ht_args: %s" % ht_args)
+        LOGGER.debug("body: %s" % body)
+        LOGGER.info("URL: %s" % url)
+        LOGGER.debug("ht_args: %s" % ht_args)
 
         resp = Redirect(str(url), state_cookie)
         if ht_args:
             resp.headers.extend([(a, b) for a, b in ht_args.items()])
-        logger.debug("resp_headers: %s" % resp.headers)
+        LOGGER.debug("resp_headers: %s" % resp.headers)
         return resp
 
     def setup_authn_request_args(self, acr_value, kwargs, state, nonce):
@@ -344,11 +344,13 @@ class Client(oic.Client):
                     scope="openid", state=authresp["state"], request_args=args,
                     authn_method=self.registration_response["token_endpoint_auth_method"])
             except Exception as err:
-                logger.error("%s" % err)
+                LOGGER.exception("%s" % err)
                 raise
 
             if isinstance(atresp, ErrorResponse):
-                raise OIDCError("Invalid response %s." % atresp["error"])
+                msg = "Invalid response %s." % atresp["error"]
+                LOGGER.error(msg)
+                raise OIDCError(msg)
 
         kwargs = {}
         try:
@@ -359,11 +361,13 @@ class Client(oic.Client):
         inforesp = self.do_user_info_request(state=authresp["state"], **kwargs)
 
         if isinstance(inforesp, ErrorResponse):
+            msg = "Invalid response %s." % inforesp["error"]
+            LOGGER.error(msg)
             raise OIDCError("Invalid response %s." % inforesp["error"])
 
         userinfo = inforesp.to_dict()
 
-        logger.debug("UserInfo: %s" % inforesp)
+        LOGGER.debug("UserInfo: %s" % inforesp)
 
         return userinfo
 

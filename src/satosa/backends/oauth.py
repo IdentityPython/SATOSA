@@ -2,6 +2,7 @@
 This module contains classes to create OAuth 2 backends for SATOSA.
 """
 import json
+import logging
 from oic.utils.authn.authn_context import UNSPECIFIED
 import requests
 from oic.oauth2.consumer import Consumer, stateID
@@ -16,6 +17,7 @@ from satosa.state import state_to_cookie, cookie_to_state, StateError
 
 __author__ = 'haho0032'
 
+LOGGER = logging.getLogger(__name__)
 
 class OAuthBackend(BackendModule):
 
@@ -79,6 +81,7 @@ class OAuthBackend(BackendModule):
             if "state" in resp:
                 tmp_state = resp["state"]
 
+            LOGGER.error("Missing or invalid state [%s] in response!" % tmp_state)
             raise AuthenticationError(state,
                                       "Missing or invalid state [%s] in response!" % tmp_state)
 
@@ -111,8 +114,7 @@ class OAuthBackend(BackendModule):
         except Exception as error:
             if isinstance(error, SATOSAError):
                 raise error
-            # TODO LOG
-            print(error)
+            LOGGER.exception("Not a valid authentication")
             raise AuthenticationError(None, "Not a valid authentication")
 
     def auth_info(self, request):

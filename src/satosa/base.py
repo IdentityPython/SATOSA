@@ -12,6 +12,7 @@ from satosa.routing import ModuleRouter
 
 __author__ = 'mathiashedstrom'
 
+LOGGER = logging.getLogger(__name__)
 
 class SATOSABase(object):
     """
@@ -31,8 +32,10 @@ class SATOSABase(object):
             raise ValueError("Missing configuration")
 
         self.config = config
+        LOGGER.info("Loading backend modules...")
         backends = load_backends(self.config, self._auth_resp_callback_func,
                                  self.config.INTERNAL_ATTRIBUTES)
+        LOGGER.info("Loading frontend modules...")
         frontends = load_frontends(self.config, self._auth_req_callback_func,
                                    self.config.INTERNAL_ATTRIBUTES)
         self.consent_module = ConsentModule(config, self._consent_resp_callback_func)
@@ -40,6 +43,7 @@ class SATOSABase(object):
         if self.consent_module.enabled:
             backends["consent"] = self.consent_module
 
+        LOGGER.info("Loading micro services...")
         self.request_micro_services = None
         self.response_micro_services = None
         if "MICRO_SERVICES" in self.config:
@@ -91,11 +95,31 @@ class SATOSABase(object):
         return self.consent_module.manage_consent(context, internal_response, state)
 
     def _consent_resp_callback_func(self, context, internal_response, state):
+        """
+        This function is called by the consent module when the consent step is done
+
+        :type context: satosa.context.Context
+        :type internal_response: satosa.internal_data.InternalResponse
+        :type state: satosa.state.State
+
+        :param context: The response context
+        :param internal_response: The authentication response
+        :param state: The current state
+        :return: response
+        """
         context.request = None
         frontend = self.module_router.frontend_routing(context, state)
         return frontend.handle_authn_response(context, internal_response, state)
 
     def _handle_satosa_error(self, error):
+        """
+        Sends a response to the requestor about the error
+
+        :type error: satosa.exception.SATOSAError
+
+        :param error: The exception
+        :return: response
+        """
         context = Context()
         frontend = self.module_router.frontend_routing(context, error.state)
         return frontend.handle_backend_error(error)
@@ -116,6 +140,7 @@ class SATOSABase(object):
             else:
                 return spec(context)
         except SATOSAError as error:
+            LOGGER.exception(error.message)
             return self._handle_satosa_error(error)
 
     def run(self, context):
@@ -131,6 +156,6 @@ class SATOSABase(object):
         try:
             resp = self._run_bound_endpoint(context, spec)
         except Exception as error:
-            # TODO Log error
+            LOGGER.exception("uncaught exception: %s" % error)
             raise
         return resp

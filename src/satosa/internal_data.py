@@ -8,377 +8,17 @@ import hashlib
 import json
 
 __author__ = 'haho0032'
-#
-# SATOSA_ATTRIBUTES = {
-#     'arecord': True,
-#     'aliasedentryname': True,
-#     'aliasedobjectname': True,
-#     'associateddomain': True,
-#     'associatedname': True,
-#     'audio': True,
-#     'authorityrevocationlist': True,
-#     'buildingname': True,
-#     'businesscategory': True,
-#     'c': True,
-#     'cacertificate': True,
-#     'cnamerecord': True,
-#     'carlicense': True,
-#     'certificaterevocationlist': True,
-#     'cn': True,
-#     'co': True,
-#     'commonname': True,
-#     'countryname': True,
-#     'crosscertificatepair': True,
-#     'ditredirect': True,
-#     'dsaquality': True,
-#     'dc': True,
-#     'deltarevocationlist': True,
-#     'departmentnumber': True,
-#     'description': True,
-#     'destinationindicator': True,
-#     'displayname': True,
-#     'distinguishedname': True,
-#     'dmdname': True,
-#     'dnqualifier': True,
-#     'documentauthor': True,
-#     'documentidentifier': True,
-#     'documentlocation': True,
-#     'documentpublisher': True,
-#     'documenttitle': True,
-#     'documentversion': True,
-#     'domaincomponent': True,
-#     'drink': True,
-#     'eduorghomepageuri': True,
-#     'eduorgidentityauthnpolicyuri': True,
-#     'eduorglegalname': True,
-#     'eduorgsuperioruri': True,
-#     'eduorgwhitepagesuri': True,
-#     'edupersonaffiliation': True,
-#     'edupersonentitlement': True,
-#     'edupersonnickname': True,
-#     'edupersonorgdn': True,
-#     'edupersonorgunitdn': True,
-#     'edupersonprimaryaffiliation': True,
-#     'edupersonprimaryorgunitdn': True,
-#     'edupersonprincipalname': True,
-#     'edupersonscopedaffiliation': True,
-#     'edupersontargetedid': True,
-#     'email': True,
-#     'emailaddress': True,
-#     'employeenumber': True,
-#     'employeetype': True,
-#     'enhancedsearchguide': True,
-#     'facsimiletelephonenumber': True,
-#     'favouritedrink': True,
-#     'fax': True,
-#     'federationfeideschemaversion': True,
-#     'friendlycountryname': True,
-#     'generationqualifier': True,
-#     'givenname': True,
-#     'gn': True,
-#     'homephone': True,
-#     'homepostaladdress': True,
-#     'hometelephonenumber': True,
-#     'host': True,
-#     'houseidentifier': True,
-#     'info': True,
-#     'initials': True,
-#     'internationalisdnnumber': True,
-#     'janetmailbox': True,
-#     'jpegphoto': True,
-#     'knowledgeinformation': True,
-#     'l': True,
-#     'labeleduri': True,
-#     'localityname': True,
-#     'mdrecord': True,
-#     'mxrecord': True,
-#     'mail': True,
-#     'mailpreferenceoption': True,
-#     'manager': True,
-#     'member': True,
-#     'mobile': True,
-#     'mobiletelephonenumber': True,
-#     'nsrecord': True,
-#     'name': True,
-#     'noreduorgacronym': True,
-#     'noreduorgnin': True,
-#     'noreduorgschemaversion': True,
-#     'noreduorguniqueidentifier': True,
-#     'noreduorguniquenumber': True,
-#     'noreduorgunituniqueidentifier': True,
-#     'noreduorgunituniquenumber': True,
-#     'noredupersonbirthdate': True,
-#     'noredupersonlin': True,
-#     'noredupersonnin': True,
-#     'o': True,
-#     'objectclass': True,
-#     'osihomeurl': True,
-#     'osimiddlename': True,
-#     'osiotheremail': True,
-#     'osiotherhomephone': True,
-#     'osiworkurl': True,
-#     'osiicardtimelastupdated': True,
-#     'osipreferredtimezone': True,
-#     'organizationname': True,
-#     'organizationalstatus': True,
-#     'organizationalunitname': True,
-#     'othermailbox': True,
-#     'ou': True,
-#     'owner': True,
-#     'pager': True,
-#     'pagertelephonenumber': True,
-#     'personalsignature': True,
-#     'personaltitle': True,
-#     'photo': True,
-#     'physicaldeliveryofficename': True,
-#     'pkcs9email': True,
-#     'postofficebox': True,
-#     'postaladdress': True,
-#     'postalcode': True,
-#     'preferreddeliverymethod': True,
-#     'preferredlanguage': True,
-#     'presentationaddress': True,
-#     'protocolinformation': True,
-#     'pseudonym': True,
-#     'registeredaddress': True,
-#     'rfc822mailbox': True,
-#     'roleoccupant': True,
-#     'roomnumber': True,
-#     'schacgender': True,
-#     'schacdateofbirth': True,
-#     'soarecord': True,
-#     'searchguide': True,
-#     'secretary': True,
-#     'seealso': True,
-#     'serialnumber': True,
-#     'singlelevelquality': True,
-#     'sn': True,
-#     'st': True,
-#     'stateorprovincename': True,
-#     'street': True,
-#     'streetaddress': True,
-#     'subtreemaximumquality': True,
-#     'subtreeminimumquality': True,
-#     'supportedalgorithms': True,
-#     'supportedapplicationcontext': True,
-#     'surname': True,
-#     'telephonenumber': True,
-#     'teletexterminalidentifier': True,
-#     'telexnumber': True,
-#     'textencodedoraddress': True,
-#     'title': True,
-#     'uid': True,
-#     'uniqueidentifier': True,
-#     'uniquemember': True,
-#     'usercertificate': True,
-#     'userclass': True,
-#     'userpkcs12': True,
-#     'userpassword': True,
-#     'usersmimecertificate': True,
-#     'userid': True,
-#     'x121address': True,
-#     'x500uniqueidentifier': True
-# }
-#
-# OIDC_TO_SATOSA = {
-#     'sub': 'edupersontargetedid',
-#     'name': 'name',
-#     'given_name': 'givenname',
-#     'family_name': 'surname',
-#     'middle_name': 'osimiddlename',
-#     'nickname': 'edupersonnickname',
-#     'preferred_username': 'userid',
-#     'profile_string': 'osihomeurl',
-#     'picture': 'jpegphoto',
-#     'website': 'osiworkurl',
-#     'email': 'mail',
-#     'email_verified': 'osiotheremail',
-#     'gender': 'schacgender',
-#     'birthdate': 'schacdateofbirth',
-#     'zoneinfo': 'osipreferredtimezone',
-#     'locale': 'preferredlanguage',
-#     'phone_number': 'hometelephonenumber',
-#     'phone_number_verified': 'osiotherhomephone',
-#     'address': 'postaladdress',
-#     'updated_at': 'osiicardtimelastupdated'
-# }
-#
-# SATOSA_TO_OIDC = dict((value, key) for key, value in OIDC_TO_SATOSA.items())
-#
-# PYSAML_TO_SATOSA = {
-#     'aRecord': 'arecord',
-#     'aliasedEntryName': 'aliasedentryname',
-#     'aliasedObjectName': 'aliasedobjectname',
-#     'associatedDomain': 'associateddomain',
-#     'associatedName': 'associatedname',
-#     'audio': 'audio',
-#     'authorityRevocationList': 'authorityrevocationlist',
-#     'buildingName': 'buildingname',
-#     'businessCategory': 'businesscategory',
-#     'c': 'c',
-#     'cACertificate': 'cacertificate',
-#     'cNAMERecord': 'cnamerecord',
-#     'carLicense': 'carlicense',
-#     'certificateRevocationList': 'certificaterevocationlist',
-#     'cn': 'cn',
-#     'co': 'co',
-#     'commonName': 'commonname',
-#     'countryName': 'countryname',
-#     'crossCertificatePair': 'crosscertificatepair',
-#     'dITRedirect': 'ditredirect',
-#     'dSAQuality': 'dsaquality',
-#     'dc': 'dc',
-#     'deltaRevocationList': 'deltarevocationlist',
-#     'departmentNumber': 'departmentnumber',
-#     'description': 'description',
-#     'destinationIndicator': 'destinationindicator',
-#     'displayName': 'displayname',
-#     'distinguishedName': 'distinguishedname',
-#     'dmdName': 'dmdname',
-#     'dnQualifier': 'dnqualifier',
-#     'documentAuthor': 'documentauthor',
-#     'documentIdentifier': 'documentidentifier',
-#     'documentLocation': 'documentlocation',
-#     'documentPublisher': 'documentpublisher',
-#     'documentTitle': 'documenttitle',
-#     'documentVersion': 'documentversion',
-#     'domainComponent': 'domaincomponent',
-#     'drink': 'drink',
-#     'eduOrgHomePageURI': 'eduorghomepageuri',
-#     'eduOrgIdentityAuthNPolicyURI': 'eduorgidentityauthnpolicyuri',
-#     'eduOrgLegalName': 'eduorglegalname',
-#     'eduOrgSuperiorURI': 'eduorgsuperioruri',
-#     'eduOrgWhitePagesURI': 'eduorgwhitepagesuri',
-#     'eduPersonAffiliation': 'edupersonaffiliation',
-#     'eduPersonEntitlement': 'edupersonentitlement',
-#     'eduPersonNickname': 'edupersonnickname',
-#     'eduPersonOrgDN': 'edupersonorgdn',
-#     'eduPersonOrgUnitDN': 'edupersonorgunitdn',
-#     'eduPersonPrimaryAffiliation': 'edupersonprimaryaffiliation',
-#     'eduPersonPrimaryOrgUnitDN': 'edupersonprimaryorgunitdn',
-#     'eduPersonPrincipalName': 'edupersonprincipalname',
-#     'eduPersonScopedAffiliation': 'edupersonscopedaffiliation',
-#     'eduPersonTargetedID': 'edupersontargetedid',
-#     'email': 'email',
-#     'emailAddress': 'emailaddress',
-#     'employeeNumber': 'employeenumber',
-#     'employeeType': 'employeetype',
-#     'enhancedSearchGuide': 'enhancedsearchguide',
-#     'facsimileTelephoneNumber': 'facsimiletelephonenumber',
-#     'favouriteDrink': 'favouritedrink',
-#     'fax': 'fax',
-#     'federationFeideSchemaVersion': 'federationfeideschemaversion',
-#     'friendlyCountryName': 'friendlycountryname',
-#     'generationQualifier': 'generationqualifier',
-#     'givenName': 'givenname',
-#     'gn': 'gn',
-#     'homePhone': 'homephone',
-#     'homePostalAddress': 'homepostaladdress',
-#     'homeTelephoneNumber': 'hometelephonenumber',
-#     'host': 'host',
-#     'houseIdentifier': 'houseidentifier',
-#     'info': 'info',
-#     'initials': 'initials',
-#     'internationaliSDNNumber': 'internationalisdnnumber',
-#     'janetMailbox': 'janetmailbox',
-#     'jpegPhoto': 'jpegphoto',
-#     'knowledgeInformation': 'knowledgeinformation',
-#     'l': 'l',
-#     'labeledURI': 'labeleduri',
-#     'localityName': 'localityname',
-#     'mDRecord': 'mdrecord',
-#     'mXRecord': 'mxrecord',
-#     'mail': 'mail',
-#     'mailPreferenceOption': 'mailpreferenceoption',
-#     'manager': 'manager',
-#     'member': 'member',
-#     'mobile': 'mobile',
-#     'mobileTelephoneNumber': 'mobiletelephonenumber',
-#     'nSRecord': 'nsrecord',
-#     'name': 'name',
-#     'norEduOrgAcronym': 'noreduorgacronym',
-#     'norEduOrgNIN': 'noreduorgnin',
-#     'norEduOrgSchemaVersion': 'noreduorgschemaversion',
-#     'norEduOrgUniqueIdentifier': 'noreduorguniqueidentifier',
-#     'norEduOrgUniqueNumber': 'noreduorguniquenumber',
-#     'norEduOrgUnitUniqueIdentifier': 'noreduorgunituniqueidentifier',
-#     'norEduOrgUnitUniqueNumber': 'noreduorgunituniquenumber',
-#     'norEduPersonBirthDate': 'noredupersonbirthdate',
-#     'norEduPersonLIN': 'noredupersonlin',
-#     'norEduPersonNIN': 'noredupersonnin',
-#     'o': 'o',
-#     'objectclass': 'objectclass',
-#     'osihomeurl': 'osihomeurl',
-#     'osimiddlename': 'osimiddlename',
-#     'osiotheremail': 'osiotheremail',
-#     'osiotherhomephone': 'osiotherhomephone',
-#     'osiworkurl': 'osiworkurl',
-#     'organizationname': 'organizationname',
-#     'organizationalstatus': 'organizationalstatus',
-#     'organizationalunitname': 'organizationalunitname',
-#     'otherMailbox': 'othermailbox',
-#     'ou': 'ou',
-#     'owner': 'owner',
-#     'pager': 'pager',
-#     'pagerTelephoneNumber': 'pagertelephonenumber',
-#     'personalSignature': 'personalsignature',
-#     'personalTitle': 'personaltitle',
-#     'photo': 'photo',
-#     'physicalDeliveryOfficeName': 'physicaldeliveryofficename',
-#     'pkcs9email': 'pkcs9email',
-#     'postOfficeBox': 'postofficebox',
-#     'postalAddress': 'postaladdress',
-#     'postalCode': 'postalcode',
-#     'preferredDeliveryMethod': 'preferreddeliverymethod',
-#     'preferredLanguage': 'preferredlanguage',
-#     'presentationAddress': 'presentationaddress',
-#     'protocolInformation': 'protocolinformation',
-#     'pseudonym': 'pseudonym',
-#     'registeredAddress': 'registeredaddress',
-#     'rfc822Mailbox': 'rfc822mailbox',
-#     'roleOccupant': 'roleoccupant',
-#     'roomNumber': 'roomnumber',
-#     'schacgender': 'schacgender',
-#     'schacdateofbirth': 'schacdateofbirth',
-#     'sOARecord': 'soarecord',
-#     'searchGuide': 'searchguide',
-#     'secretary': 'secretary',
-#     'seeAlso': 'seealso',
-#     'serialNumber': 'serialnumber',
-#     'singleLevelQuality': 'singlelevelquality',
-#     'sn': 'sn',
-#     'st': 'st',
-#     'stateOrProvinceName': 'stateorprovincename',
-#     'street': 'street',
-#     'streetAddress': 'streetaddress',
-#     'subtreeMaximumQuality': 'subtreemaximumquality',
-#     'subtreeMinimumQuality': 'subtreeminimumquality',
-#     'supportedAlgorithms': 'supportedalgorithms',
-#     'supportedApplicationContext': 'supportedapplicationcontext',
-#     'surname': 'surname',
-#     'telephoneNumber': 'telephonenumber',
-#     'teletexTerminalIdentifier': 'teletexterminalidentifier',
-#     'telexNumber': 'telexnumber',
-#     'textEncodedORAddress': 'textencodedoraddress',
-#     'title': 'title',
-#     'uid': 'uid',
-#     'uniqueIdentifier': 'uniqueidentifier',
-#     'uniqueMember': 'uniquemember',
-#     'userCertificate': 'usercertificate',
-#     'userClass': 'userclass',
-#     'userPKCS12': 'userpkcs12',
-#     'userPassword': 'userpassword',
-#     'userSMIMECertificate': 'usersmimecertificate',
-#     'userid': 'userid',
-#     'x121Address': 'x121address',
-#     'x500UniqueIdentifier': 'x500uniqueidentifier',
-# }
-#
-# SATOSA_TO_PYSAML = dict((value, key) for key, value in PYSAML_TO_SATOSA.items())
 
 
 class DataConverter(object):
+    """
+    Converts between internal and external data format
+    """
     def __init__(self, internal_attributes):
+        """
+        :type internal_attributes: dict[str, dict[str, str]]
+        :param internal_attributes: A map of how to convert the attributes (dict[internal_name, dict[external_type, external_name]])
+        """
         self.to_internal_attributes = {}
         self.to_internal_attributes_lower = {}
         self.separator = internal_attributes["separator"]
@@ -393,6 +33,19 @@ class DataConverter(object):
                     self.to_internal_attributes_lower[type][external_key.lower()] = internal_key
 
     def to_internal_filter(self, type, external_keys, case_insensitive=False):
+        """
+        Converts attribute names from external "type" to internal
+
+        :type type: str
+        :type external_keys: list[str]
+        :type case_insensitive: bool
+        :rtype: list[str]
+
+        :param type: From which external type to convert (ex: oidc, saml, ...)
+        :param external_keys: A list of attribute names
+        :param case_insensitive: Create a case insensitive filter
+        :return: A list of attribute names in the internal format
+        """
         internal_keys = []
         for external_key in external_keys:
             if external_key in self.to_internal_attributes[type] or \
@@ -416,6 +69,17 @@ class DataConverter(object):
         return tmp_attributes
 
     def to_internal(self, type, external_dict):
+        """
+        Converts the external data from "type" to internal
+
+        :type type: str
+        :type external_dict: dict[str, str]
+        :rtype: dict[str, str]
+
+        :param type: From which external type to convert (ex: oidc, saml, ...)
+        :param external_dict: Attributes in the external format
+        :return: Attributes in the internal format
+        """
         internal_dict = {}
         for external_key in external_dict.keys():
             if isinstance(external_dict[external_key], dict):
@@ -437,6 +101,22 @@ class DataConverter(object):
         return internal_dict
 
     def from_internal(self, type, internal_dict, list=True, external_keys=None):
+        # TODO doc about external_keys
+        """
+        Converts the internal data to "type"
+
+        :type type: str
+        :type internal_dict: dict[str, str]
+        :type list: bool
+        :type external_keys:
+        :rtype: dict[str, str]
+
+        :param type: To which external type to convert (ex: oidc, saml, ...)
+        :param external_dict: Attributes in the internal format
+        :param list: Should all attribute values be in a list
+        :param external_keys:
+        :return: Attributes in the "type" format
+        """
         external_dict = {}
         for internal_key in internal_dict:
             if internal_key in self.from_internal_attributes:
@@ -465,6 +145,9 @@ class DataConverter(object):
 
 
 class UserIdHashType(Enum):
+    """
+    All different user id hash types
+    """
     transient = 1
     persistent = 2
     pairwise = 2
@@ -472,14 +155,38 @@ class UserIdHashType(Enum):
 
 
 class UserIdHasher():
+    """
+    Class for creating different user id types
+    """
     STATE_KEY = "IDHASHER"
 
     @staticmethod
     def save_state(internal_request, state):
+        """
+        Saves all necessary information needed by the UserIdHasher
+
+        :type internal_request: satosa.internal_data.InternalRequest
+
+        :param internal_request: The request
+        :param state: The current state
+        """
         state.add(UserIdHasher.STATE_KEY, internal_request.requestor)
 
     @staticmethod
     def set_id(salt, internal_response, state):
+        """
+        Sets a user id to the internal_response, in the format specified by the internal response
+
+        :type salt: str
+        :type internal_response: satosa.internal_data.InternalResponse
+        :type state: satosa.state.State
+        :rtype: internal_response: satosa.internal_data.InternalResponse
+
+        :param salt: A salt string for the ID hashing
+        :param internal_response:  The authentication response
+        :param state: The current state
+        :return: the internal_response containing the hashed user ID
+        """
         requestor = state.get(UserIdHasher.STATE_KEY)
         user_id = internal_response.user_id
         user_id_hash_type = internal_response.user_id_hash_type
@@ -503,13 +210,31 @@ class UserIdHasher():
 
 
 class AuthenticationInformation(object):
+    """
+    Class that holds information about the authentication
+    """
     def __init__(self, auth_class_ref, timestamp, issuer):
+        """
+        Initiate the data carrier
+
+        :type auth_class_ref: str
+        :type timestamp: str
+        :type issuer: str
+
+        :param auth_class_ref: What method that was used for the authentication
+        :param timestamp: Time when the authentication was done
+        :param issuer: Where the authentication was done
+        """
+        # TODO Should the auth_class_ref be replaced by a LOA attribute?
         self.auth_class_ref = auth_class_ref
         self.timestamp = timestamp
         self.issuer = issuer
 
 
 class InternalData(object):
+    """
+    A base class for the data carriers between frontends/backends
+    """
     def __init__(self, user_id_hash_type):
         self.user_id_hash_type = user_id_hash_type
 
@@ -528,10 +253,14 @@ class InternalRequest(InternalData):
         self.requestor = requestor
         self._attribute_filter = []
 
-    # def add_pysaml_attr_filter(self, filter_attr):
-    #     self.add_filter(PYSAML_TO_SATOSA, filter_attr)
-
     def add_filter(self, filter_attr):
+        """
+        Set a list of attributes that will pass through the attribute filter
+
+        :type filter_attr: list[str]
+
+        :param filter_attr: a list of attributes that can be sent to the requestor
+        """
         self._attribute_filter = filter_attr
 
 
@@ -544,7 +273,6 @@ class InternalResponse(InternalData):
     :type _user_id: str
     :type _attributes: dict[str, str]
     :type user_id_hash_type: UserIdHashType
-    :type internal_attributes: dict[str, str]
     :type auth_info: AuthenticationInformation
     """
 
@@ -555,13 +283,21 @@ class InternalResponse(InternalData):
         self.auth_info = auth_info
 
     def get_attributes(self):
+        """
+        Returns all user attributes received in the authentication
+
+        :rtype: dict[str, str]
+
+        :return: all attributes
+        """
         return self._attributes
 
     def add_attributes(self, dict):
         """
+        Add user attributes converted to the internal format
+
         :type dict: dict[str, str]
-        :param dict:
-        :return:
+        :param dict: A dictionary containing user attributes converted to the internal format
         """
         self._attributes= dict
 
