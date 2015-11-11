@@ -10,13 +10,12 @@ from saml2.metadata import sign_entity_descriptor
 from saml2.sigver import security_context
 from saml2.validate import valid_instance
 from saml2.config import Config
-
 from satosa.backends.saml2 import SamlBackend
 from satosa.frontends.saml2 import SamlFrontend
 from satosa.image_converter import convert_to_base64
+from satosa.plugin_base.endpoint import BackendModulePlugin, FrontendModulePlugin
 from satosa.plugin_loader import _load_plugins, backend_filter, frontend_filter
 from satosa.satosa_config import SATOSAConfig
-
 
 # =============================================================================
 # Script that creates SAML2 metadata files from
@@ -55,8 +54,6 @@ if args.valid:
 def _make_metadata(config_dict):
     eds = []
     cnf = Config()
-
-    config_dict = _convert_logo_images(config_dict)
     cnf.load(copy.deepcopy(config_dict), metadata_construction=True)
 
     if valid_for:
@@ -114,8 +111,10 @@ for filespec in args.config:
 
     config = SATOSAConfig(fil)
     metadata = {"backends": {}, "frontends": {}}
-    backend_plugins = _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter, config.BASE)
-    frontend_plugins = _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter, config.BASE)
+    backend_plugins = _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter,
+                                    BackendModulePlugin.__name__, config.BASE)
+    frontend_plugins = _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter,
+                                     FrontendModulePlugin.__name__, config.BASE)
 
     providers = []
     for plugin in backend_plugins:

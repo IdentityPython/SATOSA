@@ -1,0 +1,17 @@
+module: satosa.backends.oauth.FacebookBackend
+plugin: BackendModulePlugin
+name: facebook
+config:
+  authz_page: <name>
+  base_url: <base_url>
+  client_config: {client_id: ''}
+  client_secret:
+  encryption_key: ''
+  fields: [id, name, first_name, last_name, middle_name, picture, email, verified,
+    gender, timezone, locale, updated_time]
+  response_type: code
+  server_info: {authorization_endpoint: 'https://www.facebook.com/dialog/oauth', token_endpoint: 'https://graph.facebook.com/v2.5/oauth/access_token'}
+  state_cookie_name: facebook_backend
+  state_encryption_key:
+  state_key:
+  verify_accesstoken_state: false

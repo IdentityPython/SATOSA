@@ -2,12 +2,23 @@
 Some help functions to load satosa backend and frontend modules
 """
 import inspect
+import json
+import logging
+import os
+from pydoc import locate
+
 from pluginbase import PluginBase
-from satosa.micro_service.service_base import MicroService, RequestMicroService, ResponseMicroService, \
+import sys
+
+from satosa.micro_service.service_base import MicroService, RequestMicroService, \
+    ResponseMicroService, \
     build_micro_service_queue
-from satosa.plugin_base.endpoint import InterfaceModulePlugin, BackendModulePlugin, FrontendModulePlugin
+from satosa.plugin_base.endpoint import InterfaceModulePlugin, BackendModulePlugin, \
+    FrontendModulePlugin
 
 __author__ = 'mathiashedstrom'
+
+LOGGER = logging.getLogger(__name__)
 
 
 def load_backends(config, callback, internal_attributes):
@@ -23,7 +34,9 @@ def load_backends(config, callback, internal_attributes):
     :return: A list of backend modules
     """
     return _load_endpoint_modules(
-        _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter, config.BASE),
+        _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter,
+                      BackendModulePlugin.__name__,
+                      config.BASE),
         callback, internal_attributes)
 
 
@@ -41,7 +54,9 @@ def load_frontends(config, callback, internal_attributes):
     :return: A dict of frontend modules
     """
     return _load_endpoint_modules(
-        _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter, config.BASE),
+        _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter,
+                      FrontendModulePlugin.__name__,
+                      config.BASE),
         callback, internal_attributes)
 
 
@@ -99,7 +114,8 @@ def _micro_service_filter(member):
     :param member: A class object
     :return: True if match, else false
     """
-    return (inspect.isclass(member) and issubclass(member, MicroService) and member is not ResponseMicroService and
+    return (inspect.isclass(member) and issubclass(member,
+                                                   MicroService) and member is not ResponseMicroService and
             member is not RequestMicroService)
 
 
@@ -150,8 +166,86 @@ def _load_endpoint_modules(plugins, callback, internal_attributes=None):
 
     return endpoint_modules
 
+def _load_dict(config):
+    """
+    Load config from dict
 
-def _load_plugins(plugin_path, plugins, filter, *args):
+    :type config: dict
+    :rtype: dict
+
+    :param config: config to load
+    :return: Loaded config
+    """
+    if isinstance(config, dict):
+        return config
+
+
+def _load_json(config):
+    """
+    Load config from json file or string
+
+    :type config: str
+    :rtype: dict
+
+    :param config: config to load. Can be file path or json string
+    :return: Loaded config
+    """
+    try:
+        if not config.endswith('.json'):
+            config += ".json"
+        config = _readfile(config)
+        import json
+
+        return json.loads(config)
+    except ValueError as e:  # not a json config
+        pass
+
+
+def _load_yaml(config):
+    """
+    Load config from yaml file or string
+
+    :type config: str
+    :rtype: dict
+
+    :param config: config to load. Can be file path or yaml string
+    :return: Loaded config
+    """
+    try:
+        if not config.endswith('.yaml'):
+            config += ".yaml"
+        config = _readfile(config)
+        import yaml
+        _dict = yaml.load(config)
+        if isinstance(_dict, dict):
+            return _dict
+        return None
+    except Exception:
+        pass
+
+
+def _readfile(config):
+    """
+    Reads a file path and return the data.
+    If the path doesn't point to a file, the input will be used as return data.
+
+    :type config: str
+    :rtype: str
+
+    :param config: Path to file or config string
+    :return: File data
+    """
+    try:
+        if os.path.isfile(config):
+            config_file = open(config, "r")
+            config = config_file.read()
+            config_file.close()
+    except Exception:
+        pass
+    return config
+
+
+def _load_plugins(plugin_path, plugins, filter, filter_class, *args):
     """
     Loads endpoint plugins
 
@@ -171,9 +265,47 @@ def _load_plugins(plugin_path, plugins, filter, *args):
     plugin_source = plugin_base.make_plugin_source(searchpath=plugin_path)
     loaded_plugins = []
     for module_file_name in plugins:
-        module = plugin_source.load_plugin(module_file_name)
-        for name, obj in inspect.getmembers(module, filter):
-            loaded_plugins.append(obj(*args))
+        try:
+            module = plugin_source.load_plugin(module_file_name)
+            for name, obj in inspect.getmembers(module, filter):
+                loaded_plugins.append(obj(*args))
+        except:
+            module = None
+            dict_parsers = [_load_dict,
+                            _load_json,
+                            _load_yaml]
+            _config = None
+            for path in plugin_path:
+                done = False
+                for parser in dict_parsers:
+                    _config = parser("%s/%s" % (path,  module_file_name))
+                    if (_config and "plugin" in _config and _config["plugin"] == filter_class):
+                        done = True
+                        break
+                if done:
+                    break
+            if _config is not None:
+                try:
+                    if all(k in _config for k in ("name", "plugin", "module", "config")):
+                        plugin_class = getattr(sys.modules[__name__], _config["plugin"])
+                        module_class = locate(_config["module"])
+                        name = _config["name"]
+                        config = json.dumps(_config["config"])
+                        replace = [
+                            ("<base_url>", args[0]),
+                            ("<name>", _config["name"])
+                        ]
+                        for _replace in replace:
+                            config = config.replace(_replace[0], _replace[1])
+                        config = json.loads(config)
+                        module = plugin_class(module_class, name, config)
+                        loaded_plugins.append(module)
+                    else:
+                        LOGGER.warn("Missing mandatory configuration parameters in "
+                                    "the plugin %s (plugin, module, receiver and/or config)."
+                                    % module_file_name)
+                except:
+                    LOGGER.warn("Cannot create the module %s." % module_file_name)
     return loaded_plugins
 
 
@@ -190,6 +322,9 @@ def load_micro_services(plugin_path, plugins):
     :param plugins: A list with the name of the plugin files
     :return: (Request micro service, response micro service)
     """
-    request_services = _load_plugins(plugin_path, plugins, _request_micro_service_filter)
-    response_services = _load_plugins(plugin_path, plugins, _response_micro_service_filter)
-    return (build_micro_service_queue(request_services), build_micro_service_queue(response_services))
+    request_services = _load_plugins(plugin_path, plugins, _request_micro_service_filter,
+                                     RequestMicroService.__name__)
+    response_services = _load_plugins(plugin_path, plugins, _response_micro_service_filter,
+                                      ResponseMicroService.__name__)
+    return (
+    build_micro_service_queue(request_services), build_micro_service_queue(response_services))
