@@ -1,0 +1,33 @@
+config:
+  config:
+    cert_file: plugins/backends/pki/new_server.crt
+    contact_person:
+    - {contact_type: technical, email_address: technical@example.com, given_name: Technical}
+    - {contact_type: support, email_address: support@example.com, given_name: Support}
+    debug: 1
+    description: A SAML2 SP MODULE
+    entityid: <base_url>/<name>/proxy_saml2_backend.xml
+    key_file: plugins/backends/pki/new_server.key
+    logger:
+      loglevel: debug
+      rotating: {backupCount: 5, filename: idp.log, maxBytes: 500000}
+    metadata:
+      local: [[..]/idp_metadata.xml]
+    organization: {display_name: Example Identities, name: Example Identiteter, url: 'http://www.example.com'}
+    service:
+      sp:
+        allow_unsolicited: true
+        endpoints:
+          assertion_consumer_service:
+          - [<base_url>/<name>/acs/post, 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST']
+          - [<base_url>/<name>/acs/redirect, 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect']
+          discovery_response:
+          - [<base_url>/<name>/disco, 'urn:oasis:names:tc:SAML:profiles:SSO:idp-discovery-protocol']
+    valid_for: 168
+    xmlsec_binary: /usr/local/bin/xmlsec1
+  disco_srv: http://localhost:8080/role/idp.ds
+  encryption_key: INJxz3Seglf3
+  publish_metadata: <base_url>/<name>/metadata
+module: satosa.backends.saml2.SamlBackend
+name: Saml2
+plugin: BackendModulePlugin
