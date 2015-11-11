@@ -126,8 +126,8 @@ class TestOpenIdBackend:
 
     @responses.activate
     def test_test_restore_state_with_separate_backends(self):
-        openid_backend_1 = OpenIdBackend(MagicMock, TestConfiguration.get_instance().rp_config)
-        openid_backend_2 = OpenIdBackend(MagicMock, TestConfiguration.get_instance().rp_config)
+        openid_backend_1 = OpenIdBackend(MagicMock, INTERNAL_ATTRIBUTES, TestConfiguration.get_instance().config)
+        openid_backend_2 = OpenIdBackend(MagicMock, INTERNAL_ATTRIBUTES, TestConfiguration.get_instance().config)
         self.fake_op.setup_webfinger_endpoint()
         self.fake_op.setup_opienid_config_endpoint()
         self.fake_op.setup_client_registration_endpoint()
@@ -136,5 +136,5 @@ class TestOpenIdBackend:
         state_as_ulr = state.urlstate(
             TestConfiguration.get_instance().rp_config.STATE_ENCRYPTION_KEY
         )
-        context = self.setup_fake_op_endpoints(state_as_ulr)
+        context = self.setup_fake_op_endpoints(FakeOP.STATE)
         openid_backend_2.redirect_endpoint(context)
