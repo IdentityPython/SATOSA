@@ -291,7 +291,6 @@ def _load_plugins(plugin_path, plugins, filter, filter_class, *args):
     plugin_base = PluginBase(package='satosa_plugins')
     plugin_source = plugin_base.make_plugin_source(searchpath=plugin_path)
     loaded_plugins = []
-    loaded_plugins_name = []
     for module_file_name in plugins:
         try:
             module = plugin_source.load_plugin(module_file_name)
