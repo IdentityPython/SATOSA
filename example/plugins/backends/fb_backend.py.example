@@ -14,7 +14,7 @@ def full_path(local_file):
     return os.path.join(basedir, local_file)
 
 
-PROVIDER = "facebook"
+NAME = "facebook"
 MODULE = FacebookBackend
 
 
@@ -24,7 +24,7 @@ class FacebookPlugin(BackendModulePlugin):
         module_base = base_url
         config = {
             "base_url": module_base,
-            "authz_page": PROVIDER,
+            "authz_page": NAME,
             "client_config": {"client_id": ""},
             "server_info": {
                 "authorization_endpoint": "https://www.facebook.com/dialog/oauth",
@@ -34,17 +34,6 @@ class FacebookPlugin(BackendModulePlugin):
             "encryption_key": "",
             "state_encryption_key": "",
             "fields": ["id", "name", "first_name", "last_name", "middle_name", "picture",
-                       "email", "verified", "gender", "timezone", "locale", "updated_time"],
-            "oauth_to_internal": {'gender': 'schacgender',
-                                  'timezone': "osipreferredtimezone",
-                                  'picture': "jpegphoto",
-                                  'first_name': 'givenname',
-                                  'email': 'email',
-                                  'id': 'edupersontargetedid',
-                                  'last_name': 'surname',
-                                  'updated_time': 'osiicardtimelastupdated',
-                                  'verified': 'osiotheremail',
-                                  'name': 'name',
-                                  'locale': 'preferredlanguage'}
+                       "email", "verified", "gender", "timezone", "locale", "updated_time"]
         }
-        super(FacebookPlugin, self).__init__(MODULE, PROVIDER, config)
+        super(FacebookPlugin, self).__init__(MODULE, NAME, config)

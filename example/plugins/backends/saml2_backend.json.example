@@ -1,0 +1,73 @@
+{
+  "plugin": "BackendModulePlugin",
+  "module": "satosa.backends.saml2.SamlBackend",
+  "name": "Saml2",
+  "config": {
+    "config": {
+      "entityid": "<base_url>/<name>/proxy_saml2_backend.xml",
+      "description": "A SAML2 SP MODULE",
+      "valid_for": 168,
+      "service": {
+        "sp": {
+          "allow_unsolicited": true,
+          "endpoints": {
+            "assertion_consumer_service": [
+              [
+                "<base_url>/<name>/acs/post",
+                "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+              ],
+              [
+                "<base_url>/<name>/acs/redirect",
+                "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+              ]
+            ],
+            "discovery_response": [
+              [
+                "<base_url>/<name>/disco",
+                "urn:oasis:names:tc:SAML:profiles:SSO:idp-discovery-protocol"
+              ]
+            ]
+          }
+        }
+      },
+      "debug": 1,
+      "key_file": "plugins/backends/pki/new_server.key",
+      "cert_file": "plugins/backends/pki/new_server.crt",
+      "metadata": {
+        "local": [
+          "[..]/idp_metadata.xml"
+        ]
+      },
+      "organization": {
+        "display_name": "Example Identities",
+        "name": "Example Identiteter",
+        "url": "http://www.example.com"
+      },
+      "contact_person": [
+        {
+          "contact_type": "technical",
+          "given_name": "Technical",
+          "email_address": "technical@example.com"
+        },
+        {
+          "contact_type": "support",
+          "given_name": "Support",
+          "email_address": "support@example.com"
+        }
+      ],
+      "xmlsec_binary": "/usr/local/bin/xmlsec1",
+      "logger": {
+        "rotating": {
+          "filename": "idp.log",
+          "maxBytes": 500000,
+          "backupCount": 5
+        },
+        "loglevel": "debug"
+      }
+    },
+    "encryption_key": "INJxz3Seglf3",
+    "disco_srv": "http://localhost:8080/role/idp.ds",
+    "publish_metadata": "<base_url>/<name>/metadata"
+  }
+}
+

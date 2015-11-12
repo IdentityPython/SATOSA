@@ -1,0 +1,37 @@
+{
+  "plugin": "BackendModulePlugin",
+  "module": "satosa.backends.oauth.FacebookBackend",
+  "name": "facebook",
+  "config": {
+    "base_url": "<base_url>",
+    "authz_page": "<name>",
+    "client_config": {
+      "client_id": ""
+    },
+    "server_info": {
+      "authorization_endpoint": "https://www.facebook.com/dialog/oauth",
+      "token_endpoint": "https://graph.facebook.com/v2.5/oauth/access_token"
+    },
+    "response_type": "code",
+    "client_secret": "",
+    "state_cookie_name": "facebook_backend",
+    "encryption_key": "",
+    "state_key": "",
+    "state_encryption_key": "",
+    "verify_accesstoken_state": false,
+    "fields": [
+      "id",
+      "name",
+      "first_name",
+      "last_name",
+      "middle_name",
+      "picture",
+      "email",
+      "verified",
+      "gender",
+      "timezone",
+      "locale",
+      "updated_time"
+    ]
+  }
+}

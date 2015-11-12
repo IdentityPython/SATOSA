@@ -1,0 +1,59 @@
+{
+  "plugin": "FrontendModulePlugin",
+  "module": "satosa.frontends.saml2.SamlFrontend",
+  "name": "Saml2IDP",
+  "config": {
+    "idp_config": {
+      "entityid": "<base_url>/<name>/proxy.xml",
+      "description": "A SAML2SAML proxy",
+      "service": {
+        "idp": {
+          "name": "Proxy IdP",
+          "endpoints": {
+            "single_sign_on_service": []
+          },
+          "policy": {
+            "default": {
+              "lifetime": {
+                "minutes": 15
+              },
+              "attribute_restrictions": null,
+              "name_form": "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+              "fail_on_missing_requested": false
+            }
+          },
+          "subject_data": "./idp.subject",
+          "name_id_format": [
+              "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+              "urn:oasis:names:tc:SAML:2.0:nameid-format:transient"
+          ],
+          "want_authn_requests_signed": false
+        }
+      },
+      "debug": 1,
+      "key_file": "plugins/frontends/pki/new_server.key",
+      "cert_file": "plugins/frontends/pki/new_server.crt",
+      "metadata": {
+        "local": [
+          "[somepath]/sp_metadata.xml"
+        ]
+      },
+      "xmlsec_binary": "/usr/local/bin/xmlsec1",
+      "logger": {
+        "rotating": {
+          "filename": "idp.log",
+          "maxBytes": 500000,
+          "backupCount": 5
+        },
+        "loglevel": "debug"
+      }
+    },
+    "endpoints": {
+      "single_sign_on_service": {
+        "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect": "sso/redirect",
+        "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST": "sso/post"
+      }
+    },
+    "base": "<base_url>"
+  }
+}
