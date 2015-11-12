@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import copy
+import logging
 import os
 import sys
 
@@ -37,6 +38,13 @@ parser.add_argument('-o', dest="output", default=".", help='output path')
 parser.add_argument(dest="config", nargs="+")
 args = parser.parse_args()
 
+LOGGER = logging.getLogger("")
+handler = logging.StreamHandler()
+logFormatter = logging.Formatter("[%(name)-12.12s] [%(levelname)-5.5s]  %(message)s")
+handler.setFormatter(logFormatter)
+LOGGER.addHandler(handler)
+LOGGER.setLevel(logging.INFO)
+
 generate_frontend = args.frontend
 generate_backend = args.backend
 
@@ -45,12 +53,15 @@ if not (args.frontend or args.backend):
     generate_frontend = True
     generate_backend = True
 
+LOGGER.info("Generating: frontends: %s, backends: %s" % (generate_frontend, generate_backend))
+
 valid_for = 0
 nspair = {"xs": "http://www.w3.org/2001/XMLSchema"}
 
 if args.valid:
     # translate into hours
     valid_for = int(args.valid) * 24
+
 
 def _make_metadata(config_dict):
     eds = []
@@ -106,7 +117,6 @@ def _convert_logo_images(config_dict):
     return config_dict
 
 
-
 for filespec in args.config:
     bas, fil = os.path.split(filespec)
     if bas != "":
@@ -117,26 +127,37 @@ for filespec in args.config:
     backend_plugins = _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter, config.BASE)
     frontend_plugins = _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter, config.BASE)
 
+    LOGGER.info("Loaded backend modules: %s" % backend_plugins)
+    LOGGER.info("Loaded frontend modules: %s" % frontend_plugins)
+
     providers = []
     for plugin in backend_plugins:
         providers.append(plugin.name)
         if issubclass(plugin.module, SamlBackend) and generate_backend:
+            LOGGER.info("Generating saml backend '%s' metadata..." % plugin.name)
             metadata["backends"][plugin.name] = _make_metadata(plugin.config["config"])
+
+    LOGGER.info("Found backend modules: %s" % providers)
 
     if generate_frontend:
         for plugin in frontend_plugins:
             if issubclass(plugin.module, SamlFrontend):
+                LOGGER.info("Generating saml frontend '%s' metadata..." % plugin.name)
                 module = plugin.module(None, None, plugin.config)
                 module.register_endpoints(providers)
                 metadata["frontends"][plugin.name] = _make_metadata(module.config)
 
     if generate_backend:
         for backend, data in metadata["backends"].items():
-            file = open("%s/%s_backend_metadata.xml" % (args.output, backend), "w")
+            path = "%s/%s_backend_metadata.xml" % (args.output, backend)
+            LOGGER.info("Writing backend '%s' metadata to '%s'" % (backend, path))
+            file = open(path, "w")
             file.write(data)
             file.close()
     if generate_frontend:
         for frontend, data in metadata["frontends"].items():
-            file = open("%s/%s_frontend_metadata.xml" % (args.output, frontend), "w")
+            path = "%s/%s_frontend_metadata.xml" % (args.output, frontend)
+            LOGGER.info("Writing frontend '%s' metadata to '%s'" % (frontend, path))
+            file = open(path, "w")
             file.write(data)
             file.close()
