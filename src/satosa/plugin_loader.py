@@ -10,6 +10,7 @@ from pydoc import locate
 import logging
 from pluginbase import PluginBase
 import sys
+from satosa.exception import SATOSAConfigurationError
 
 from satosa.micro_service.service_base import MicroService, RequestMicroService, \
     ResponseMicroService, \
@@ -191,15 +192,27 @@ def _load_json(config):
     :param config: config to load. Can be file path or json string
     :return: Loaded config
     """
+    file_config = None
     try:
         if not config.endswith('.json'):
-            config += ".json"
-        config = _readfile(config)
-        import json
+            file_config = config + ".json"
+        else:
+            file_config = config
+        config = _readfile(file_config)
+        if config is not None:
+            import json
 
-        return json.loads(config)
-    except ValueError as e:  # not a json config
-        pass
+            _dict = json.loads(config)
+            if isinstance(_dict, dict):
+                return _dict
+            if file_config is not None and os.path.isfile(file_config):
+                LOGGER.exception("The configuration file %s is corrupt." % file_config)
+                raise SATOSAConfigurationError("The configuration file %s is corrupt." % file_config)
+            return None
+    except ValueError as exception:
+        if file_config is not None and os.path.isfile(file_config):
+            LOGGER.exception("The configuration file %s is corrupt." % file_config)
+            raise SATOSAConfigurationError("The configuration file %s is corrupt." % file_config)
 
 
 def _load_yaml(config):
@@ -212,17 +225,29 @@ def _load_yaml(config):
     :param config: config to load. Can be file path or yaml string
     :return: Loaded config
     """
+    file_config = None
     try:
-        if not config.endswith('.yaml'):
-            config += ".yaml"
-        config = _readfile(config)
-        import yaml
-        _dict = yaml.load(config)
-        if isinstance(_dict, dict):
-            return _dict
-        return None
-    except Exception:
-        pass
+        if not (config.endswith('.yaml') or config.endswith('.yml')):
+            if os.path.isfile(config + ".yaml"):
+                file_config = config + ".yaml"
+            elif os.path.isfile(config + ".yml"):
+                file_config = config + ".yml"
+        else:
+            file_config = config
+        if config is not None:
+            config = _readfile(file_config)
+            import yaml
+            _dict = yaml.load(config)
+            if isinstance(_dict, dict):
+                return _dict
+            if file_config is not None and os.path.isfile(file_config):
+                LOGGER.exception("The configuration file %s is corrupt." % file_config)
+                raise SATOSAConfigurationError("The configuration file %s is corrupt." % file_config)
+            return None
+    except Exception as exception:
+        if file_config is not None and os.path.isfile(file_config):
+            LOGGER.exception("The configuration file %s is corrupt." % file_config)
+            raise SATOSAConfigurationError("The configuration file %s is corrupt." % file_config)
 
 
 def _readfile(config):
@@ -241,9 +266,10 @@ def _readfile(config):
             config_file = open(config, "r")
             config = config_file.read()
             config_file.close()
+            return config
     except Exception:
         pass
-    return config
+    return None
 
 
 def _load_plugins(plugin_path, plugins, filter, filter_class, *args):
@@ -271,7 +297,7 @@ def _load_plugins(plugin_path, plugins, filter, filter_class, *args):
             module = plugin_source.load_plugin(module_file_name)
             for name, obj in inspect.getmembers(module, filter):
                 loaded_plugins.append(obj(*args))
-        except:
+        except ImportError as error:
             module = None
             dict_parsers = [_load_dict,
                             _load_json,
@@ -308,6 +334,9 @@ def _load_plugins(plugin_path, plugins, filter, filter_class, *args):
                                     % module_file_name)
                 except:
                     LOGGER.warn("Cannot create the module %s." % module_file_name)
+        except Exception as error:
+            LOGGER.exception("The configuration file %s is corrupt." % module_file_name)
+            raise SATOSAConfigurationError("The configuration file %s is corrupt." % module_file_name) from error
     return loaded_plugins
 
 
