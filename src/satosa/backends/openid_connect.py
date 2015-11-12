@@ -8,7 +8,7 @@ from oic.oauth2 import rndstr
 
 from oic.utils.authn.authn_context import UNSPECIFIED
 from oic.utils.keyio import KeyJar
-from satosa.exception import AuthenticationError
+from satosa.exception import SATOSAAuthenticationError
 from satosa.response import Redirect
 from oic.exception import MissingAttribute
 from oic import oic
@@ -217,7 +217,9 @@ class OpenIdBackend(BackendModule):
         state = cookie_to_state(context.cookie, COOKIE_STATE_NAME, self.config.STATE_ENCRYPTION_KEY)
         backend_state = state.get(self.config.STATE_ID)
         if backend_state["state"] != context.request["state"]:
-            raise AuthenticationError(backend_state, "Missing or invalid state in authn response!")
+            LOGGER.error("Missing or invalid state in authn response for state: %s" % backend_state)
+            raise SATOSAAuthenticationError(backend_state,
+                                            "Missing or invalid state in authn response!")
         client = self.restore_state(backend_state)
         result = client.callback(context.request, backend_state)
         return self.auth_callback_func(context,
@@ -320,11 +322,13 @@ class Client(oic.Client):
             if authresp["error"] == "login_required":
                 return self.create_authn_request(authresp["state"])
             else:
-                return AuthenticationError(backend_state, "Access denied")
+                LOGGER.warning("Access denied for state: %s" % backend_state)
+                raise SATOSAAuthenticationError(backend_state, "Access denied")
         try:
             if authresp["id_token"] != backend_state["nonce"]:
-                return AuthenticationError(backend_state,
-                                           "Received nonce not the same as expected.")
+                LOGGER.error("Invalid nonce. for state: %s" %
+                             backend_state)
+                raise SATOSAAuthenticationError(backend_state, "Access denied.")
             self.id_token[authresp["state"]] = authresp["id_token"]
         except KeyError:
             pass

@@ -4,7 +4,7 @@ The SATOSA main module
 import logging
 from satosa.consent import ConsentModule
 from satosa.context import Context
-from satosa.exception import SATOSAError, AuthenticationError
+from satosa.exception import SATOSAError, SATOSAAuthenticationError
 from satosa.internal_data import UserIdHasher
 from satosa.plugin_loader import load_backends, load_frontends, load_micro_services
 from satosa.response import Response

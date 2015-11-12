@@ -234,3 +234,6 @@ class State(object):
         state_copy = State()
         state_copy._state_dict = copy.deepcopy(self._state_dict)
         return state_copy
+
+    def __str__(self):
+        return str(self._state_dict)

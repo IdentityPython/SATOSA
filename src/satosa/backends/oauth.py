@@ -8,7 +8,7 @@ import requests
 from oic.oauth2.consumer import Consumer, stateID
 from oic.oauth2.message import AuthorizationRequest, AuthorizationResponse
 from satosa.backends.base import BackendModule
-from satosa.exception import AuthenticationError, SATOSAError
+from satosa.exception import SATOSAAuthenticationError, SATOSAError
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType, \
     DataConverter
 from satosa.response import Redirect
@@ -82,10 +82,10 @@ class OAuthBackend(BackendModule):
                 tmp_state = resp["state"]
 
             LOGGER.error("Missing or invalid state [%s] in response!" % tmp_state)
-            raise AuthenticationError(state,
-                                      "Missing or invalid state [%s] in response!" % tmp_state)
+            raise SATOSAAuthenticationError(state, "Access denied")
 
     def authn_response(self, context, binding):
+        state = None
         try:
             state = cookie_to_state(context.cookie,
                                     self.config["state_cookie_name"],
@@ -115,7 +115,9 @@ class OAuthBackend(BackendModule):
             if isinstance(error, SATOSAError):
                 raise error
             LOGGER.exception("Not a valid authentication")
-            raise AuthenticationError(None, "Not a valid authentication")
+            if state is not None:
+                raise SATOSAAuthenticationError(state, "Not a valid authentication") from error
+            raise
 
     def auth_info(self, request):
         raise NotImplementedError("Method user_information must be implemented!")
