@@ -24,6 +24,7 @@ class Context(object):
     :type _target_backend: str
     :type _target_frontend: str | None
     :type internal_data: dict
+    :type state: satosa.state.State
     """
 
     def __init__(self):
@@ -33,6 +34,7 @@ class Context(object):
         self._target_frontend = None
         self.internal_data = {}
         self.cookie = None
+        self.state = None
 
     @property
     def path(self):

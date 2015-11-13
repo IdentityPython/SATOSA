@@ -11,9 +11,9 @@ from satosa.backends.base import BackendModule
 from satosa.exception import SATOSAAuthenticationError, SATOSAError
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType, \
     DataConverter
+from satosa.logging import satosaLogging
 from satosa.response import Redirect
-from satosa.service import response, rndstr
-from satosa.state import state_to_cookie, cookie_to_state, SATOSAStateError
+from satosa.service import rndstr
 
 __author__ = 'haho0032'
 
@@ -51,7 +51,7 @@ class OAuthBackend(BackendModule):
         consumer.client_secret = self.config["client_secret"]
         return consumer
 
-    def start_auth(self, context, internal_request, state, get_state=stateID):
+    def start_auth(self, context, internal_request, get_state=stateID):
         consumer = self.get_consumer(internal_request.user_id_hash_type)
         request_args = {}
         request_args["redirect_uri"] = self.redirect_url
@@ -60,14 +60,13 @@ class OAuthBackend(BackendModule):
             "state": request_args["state"],
             "user_id_hash_type": internal_request.user_id_hash_type.name
         }
+        state = context.state
         state.add(self.config["state_key"], state_data)
         cis = consumer.construct_AuthorizationRequest(request_args=request_args)
         url, body, ht_args, cis = consumer.uri_and_body(AuthorizationRequest, cis,
                                                         method="GET",
                                                         request_args=request_args)
-        state_cookie = state_to_cookie(state, self.config["state_cookie_name"], "/",
-                                       self.config["state_encryption_key"])
-        return Redirect(url, state_cookie)
+        return Redirect(url)
 
     def register_endpoints(self):
         url_map = []
@@ -80,15 +79,13 @@ class OAuthBackend(BackendModule):
             tmp_state = ""
             if "state" in resp:
                 tmp_state = resp["state"]
-            LOGGER.debug("Missing or invalid state [%s] in response!" % tmp_state, exc_info=True)
+            satosaLogging(LOGGER, logging.DEBUG, "Missing or invalid state [%s] in response!" % tmp_state, state,
+                          exc_info=True)
             raise SATOSAAuthenticationError(state, "Missing or invalid state [%s] in response!" % tmp_state)
 
     def authn_response(self, context, binding):
-        state = None
+        state = context.state
         try:
-            state = cookie_to_state(context.cookie,
-                                    self.config["state_cookie_name"],
-                                    self.config["state_encryption_key"])
             state_data = state.get(self.config["state_key"])
             user_id_hash_type = UserIdHashType.pairwise
             if "user_id_hash_type" in state_data:
@@ -111,7 +108,7 @@ class OAuthBackend(BackendModule):
             internal_response.add_attributes(self.converter.to_internal(self.type, user_info))
             return self.auth_callback_func(context, internal_response, state)
         except Exception as error:
-            LOGGER.debug("Not a valid authentication", exc_info=True)
+            satosaLogging(LOGGER, logging.DEBUG, "Not a valid authentication", state, exc_info=True)
             if isinstance(error, SATOSAError):
                 raise error
             if state is not None:
@@ -126,15 +123,12 @@ class OAuthBackend(BackendModule):
 
 
 class FacebookBackend(OAuthBackend):
-    STATE_COOKIE_NAME = "facebook_backend"
     STATE_KEY = "facebook_backend"
 
     def __init__(self, outgoing, internal_attributes, config):
         super(FacebookBackend, self).__init__(outgoing, internal_attributes, config, "facebook")
         self.fields = None
         self.convert_dict = None
-        if "state_cookie_name" not in self.config:
-            self.config["state_cookie_name"] = FacebookBackend.STATE_COOKIE_NAME
         if "state_key" not in self.config:
             self.config["state_key"] = FacebookBackend.STATE_KEY
         if "verify_accesstoken_state" not in self.config:

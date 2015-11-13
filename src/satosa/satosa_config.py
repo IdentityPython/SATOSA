@@ -13,7 +13,7 @@ class SATOSAConfig(object):
     A configuration class for the satosa proxy. Verifies that the given config holds all the necessary parameters.
     """
     mandatory_dict_keys = ["HOST", "PORT", "HTTPS", "PLUGIN_PATH", "BACKEND_MODULES",
-                           "FRONTEND_MODULES", "INTERNAL_ATTRIBUTES"]
+                           "FRONTEND_MODULES", "INTERNAL_ATTRIBUTES", "COOKIE_STATE_NAME", "STATE_ENCRYPTION_KEY"]
 
     def __init__(self, config):
         """

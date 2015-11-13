@@ -63,40 +63,36 @@ class ModuleRouter():
         LOGGER.debug("Loaded backends with endpoints: %s" % backends)
         LOGGER.debug("Loaded frontends with endpoints: %s" % frontends)
 
-    def backend_routing(self, context, state):
+    def backend_routing(self, context):
         """
         Returns the targeted backend and an updated state
 
         :type context: satosa.context.Context
-        :type state: satosa.state.State
         :rtype satosa.backends.base.BackendModule
 
         :param context: The request context
-        :param state: The current state
         :return: backend
         """
-        # LOGGER.info("Routing to backend: %s " % context._target_backend)
+        state = context.state
         satosaLogging(LOGGER, logging.INFO, "Routing to backend: %s " % context._target_backend, state)
         backend = self.backends[context._target_backend]["instance"]
         state.add(ModuleRouter.STATE_KEY, context._target_frontend)
         return backend
 
-    def frontend_routing(self, context, state):
+    def frontend_routing(self, context):
         """
         Returns the targeted frontend and original state
 
         :type context: satosa.context.Context
-        :type state: satosa.state.State
         :rtype satosa.frontends.base.FrontendModule
 
         :param context: The response context
-        :param state: The state created in the incoming function
         :return: frontend
         """
 
+        state = context.state
         target_frontend = state.get(ModuleRouter.STATE_KEY)
         satosaLogging(LOGGER, logging.INFO, "Routing to frontend: %s " % target_frontend, state)
-        # LOGGER.info("Routing to frontend: %s " % target_frontend)
         context._target_frontend = target_frontend
         frontend = self.frontends[context._target_frontend]["instance"]
         return frontend
@@ -113,10 +109,10 @@ class ModuleRouter():
         :return: None
         """
         if not context:
-            LOGGER.debug("Context was None!")
+            satosaLogging(LOGGER, logging.DEBUG, "Context was None!", context.state)
             raise SATOSABadContextError("Context is None")
         if context.path is None:
-            LOGGER.debug("Context did not contain a path!")
+            satosaLogging(LOGGER, logging.DEBUG, "Context did not contain a path!", context.state)
             raise SATOSABadContextError("Context did not contain any path")
 
     def endpoint_routing(self, context):
@@ -129,14 +125,14 @@ class ModuleRouter():
         :param context: The request context
         :return: registered endpoint and bound parameters
         """
-        LOGGER.debug("Routing path: %s" % context.path)
+        satosaLogging(LOGGER, logging.DEBUG, "Routing path: %s" % context.path, context.state)
         self._validate_context(context)
 
         path_split = context.path.split('/')
         backend = path_split[0]
 
         if backend not in self.backends:
-            LOGGER.debug("Unknown backend %s" % backend)
+            satosaLogging(LOGGER, logging.DEBUG, "Unknown backend %s" % backend, context.state)
             raise SATOSAUnknownTargetBackend("Unknown backend {}".format(backend))
 
         context._target_backend = backend
@@ -147,18 +143,18 @@ class ModuleRouter():
                 match = re.search(regex, context.path)
                 if match is not None:
                     context._target_frontend = frontend
-                    LOGGER.info(
-                        "Frontend request. Module name:'{name}', endpoint: {endpoint}".format(name=frontend,
-                                                                                              endpoint=context.path))
+                    msg = "Frontend request. Module name:'{name}', endpoint: {endpoint}".format(name=frontend,
+                                                                                                endpoint=context.path)
+                    satosaLogging(LOGGER, logging.INFO, msg, context.state)
                     return spec
 
         # Search for backend endpoint
         for regex, spec in self.backends[backend]["endpoints"]:
             match = re.search(regex, context.path)
             if match is not None:
-                LOGGER.info(
-                    "Backend request. Module name:'{name}', endpoint: {endpoint}".format(name=backend,
-                                                                                         endpoint=context.path))
+                msg = "Backend request. Module name:'{name}', endpoint: {endpoint}".format(name=backend,
+                                                                                           endpoint=context.path)
+                satosaLogging(LOGGER, logging.INFO, msg, context.state)
                 return spec
-        LOGGER.debug("%s not bound to any function" % context.path)
+        satosaLogging(LOGGER, logging.DEBUG, "%s not bound to any function" % context.path, context.state)
         raise SATOSANoBoundEndpointError("'{}' not bound to any function".format(context.path))

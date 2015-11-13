@@ -3,6 +3,7 @@ Micro service for SATOSA
 """
 import logging
 from satosa.exception import SATOSAAuthenticationError
+from satosa.logging import satosaLogging
 
 __author__ = 'mathiashedstrom'
 
@@ -16,7 +17,7 @@ class MicroService(object):
     def __init__(self):
         self._child_service = None
 
-    def process_service_queue(self, context, data, state):
+    def process_service_queue(self, context, data):
         """
         Processes the whole queue of micro services
 
@@ -31,12 +32,12 @@ class MicroService(object):
         :return: Modified data
         """
         if self._child_service:
-            data = self._child_service.process_service_queue(context, data, state)
+            data = self._child_service.process_service_queue(context, data)
         try:
             return self.process(context, data)
         except Exception as err:
-            LOGGER.debug("Micro service error.", exc_info=True)
-            raise SATOSAAuthenticationError(state, "Micro service error") from err
+            satosaLogging(LOGGER, logging.DEBUG, "Micro service error.", context.state, exc_info=True)
+            raise SATOSAAuthenticationError(context.state, "Micro service error") from err
 
     def process(self, context, data):
         """

@@ -19,18 +19,16 @@ class BackendModule(object):
         self.auth_callback_func = auth_callback_func
         self.internal_attributes = internal_attributes
 
-    def start_auth(self, context, internal_request, state):
+    def start_auth(self, context, internal_request):
         """
         This is the start up function of the backend authorization.
 
         :type context: satosa.context.Context
         :type internal_request: satosa.internal_data.InternalRequest
-        :type state: satosa.state.State
         :rtype Any
 
         :param context: the request context
         :param internal_request: Information about the authorization request
-        :param state: current state
         :return: response
         """
         raise NotImplementedError()

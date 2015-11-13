@@ -13,9 +13,11 @@ from lzma import LZMADecompressor, LZMACompressor
 from Crypto import Random
 from Crypto.Cipher import AES
 from satosa.exception import SATOSAError
+from satosa.logging import satosaLogging
 
 LOGGER = logging.getLogger(__name__)
 
+# TODO MOVE TO CONFIG
 STATE_COOKIE_MAX_AGE = 600
 STATE_COOKIE_SECURE = True
 
@@ -40,8 +42,8 @@ def state_to_cookie(state, name, path, encryption_key):
     :param encryption_key: Key to encrypt the state information
     :return: A cookie
     """
-    LOGGER.debug("Saving state as cookie, secure: %s, max-age: %s, path: %s" %
-                 (STATE_COOKIE_SECURE, STATE_COOKIE_MAX_AGE, path))
+    satosaLogging(LOGGER, logging.DEBUG, "Saving state as cookie, secure: %s, max-age: %s, path: %s" %
+                 (STATE_COOKIE_SECURE, STATE_COOKIE_MAX_AGE, path), state)
     cookie = SimpleCookie()
     cookie[name] = state.urlstate(encryption_key)
     cookie[name]["secure"] = STATE_COOKIE_SECURE
@@ -65,11 +67,12 @@ def cookie_to_state(cookie_str, name, encryption_key):
     :return: A state
     """
     try:
-        LOGGER.debug("Loading state from cookie: %s")
-        return State(SimpleCookie(cookie_str)[name].value, encryption_key)
+        state = State(SimpleCookie(cookie_str)[name].value, encryption_key)
+        satosaLogging(LOGGER, logging.DEBUG, "Loading state from cookie: %s" % cookie_str, state)
+        return state
     except KeyError:
-        LOGGER.error("Did not find cookie named '%s'" % name)
-        raise SATOSAStateError("No cookie named '{}'".format(name))
+        LOGGER.debug("Did not find cookie named '%s' in cookie string '%s'" % (name, cookie_str))
+        raise SATOSAStateError("No cookie named '{}' in cookie string '{}'".format(name, cookie_str))
 
 
 class AESCipher(object):

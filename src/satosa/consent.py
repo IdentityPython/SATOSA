@@ -11,7 +11,6 @@ from base64 import urlsafe_b64encode
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
 from satosa.logging import satosaLogging
 from satosa.response import Redirect
-from satosa.state import state_to_cookie, cookie_to_state
 from jwkest.jwk import rsa_load
 from jwkest.jwk import RSAKey
 
@@ -70,10 +69,7 @@ class ConsentModule(object):
         :return: response
         """
         # Handle answer from consent service
-        # load state
-        # TODO What if no cookie?
-        state = cookie_to_state(context.cookie, "consent_state", self.state_enc_key)
-
+        state = context.state
         consent_state = state.get(ConsentModule.STATE_KEY)
         saved_resp = consent_state["internal_resp"]
 
@@ -94,40 +90,34 @@ class ConsentModule(object):
             consent_given = self._verify_consent(hash_id)
         except ConnectionError:
             satosaLogging(LOGGER, logging.ERROR, "Consent service is not reachable, no consent given.", state)
-            # LOGGER.error("Consent service is not reachable, no consent given.")
             # Send an internal_response without any attributes
             consent_given = False
 
         if not consent_given:
-            # LOGGER.info("Consent was NOT given")
             satosaLogging(LOGGER, logging.INFO, "Consent was NOT given", state)
             # If consent was not given, then don't send any attributes
             internal_response._attributes = {}
         else:
             satosaLogging(LOGGER, logging.INFO, "Consent was given", state)
-            # LOGGER.info("Consent was given")
 
-        return self.callback_func(context, internal_response, state)
+        return self.callback_func(context, internal_response)
 
-    def manage_consent(self, context, internal_response, state):
+    def manage_consent(self, context, internal_response):
         """
         Manage consent and attribute filtering
 
         :type context: satosa.context.Context
         :type internal_response: satosa.internal_data.InternalResponse
-        :type state: satosa.state.State
         :rtype: Any
 
         :param context: response context
         :param internal_response: the response
-        :param state: the current state
         :return: response
         """
-
+        state = context.state
         if not self.enabled:
-            # LOGGER.info("Consent flow not activated")
             satosaLogging(LOGGER, logging.INFO, "Consent flow not activated", state)
-            return self.callback_func(context, internal_response, state)
+            return self.callback_func(context, internal_response)
 
         consent_state = state.get(ConsentModule.STATE_KEY)
         filter = consent_state["filter"]
@@ -149,19 +139,15 @@ class ConsentModule(object):
         try:
             # Check if consent is already given
             if self._verify_consent(id_hash):
-                return self.callback_func(context, internal_response, state)
+                return self.callback_func(context, internal_response)
         except ConnectionError:
             satosaLogging(LOGGER, logging.ERROR, "Consent service is not reachable, no consent given.", state)
-            # LOGGER.error("Consent service is not reachable, no consent given.")
             # Send an internal_response without any attributes
             internal_response._attributes = {}
-            return self.callback_func(context, internal_response, state)
+            return self.callback_func(context, internal_response)
 
         consent_state["internal_resp"] = self._internal_resp_to_dict(internal_response)
         state.add(ConsentModule.STATE_KEY, consent_state)
-
-        # Save state in cookie
-        state_cookie = state_to_cookie(state, "consent_state", "/consent/%s" % self.endpoint, self.state_enc_key)
 
         consent_args = {"attr": filtered_data,
                         "id": id_hash,
@@ -172,13 +158,12 @@ class ConsentModule(object):
             ticket = self._consent_registration(consent_args_jws)
         except (ConnectionError, AssertionError):
             satosaLogging(LOGGER, logging.ERROR, "Consent service is not reachable, no consent given.", state)
-            # LOGGER.error("Consent service is not reachable, no consent given.")
             # Send an internal_response without any attributes
             internal_response._attributes = {}
-            return self.callback_func(context, internal_response, state)
+            return self.callback_func(context, internal_response)
 
         consent_redirect = "%s?ticket=%s" % (self.consent_redirect_url, ticket)
-        return Redirect(consent_redirect, state_cookie)
+        return Redirect(consent_redirect)
 
     def _get_consent_id(self, requestor, user_id, filtered_attr):
         """
@@ -225,11 +210,9 @@ class ConsentModule(object):
         Connects to the consent service using the REST api and checks if the user has given consent
 
         :type id: str
-        :type state: satosa.state.State
         :rtype: bool
 
         :param id: An id associated to the authenticated user, the calling requestor and attributes to be sent.
-        :param state: The current state
         :return: True if given consent, else False
         """
         try:

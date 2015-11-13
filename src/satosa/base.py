@@ -10,8 +10,9 @@ from satosa.exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnkno
 from satosa.internal_data import UserIdHasher
 from satosa.logging import satosaLogging
 from satosa.plugin_loader import load_backends, load_frontends, load_micro_services
-# from satosa.response import Response
+from satosa.response import Response
 from satosa.routing import ModuleRouter
+from satosa.state import cookie_to_state, SATOSAStateError, State, state_to_cookie
 
 __author__ = 'mathiashedstrom'
 
@@ -54,67 +55,62 @@ class SATOSABase(object):
                                                                                             self.config.MICRO_SERVICES)
         self.module_router = ModuleRouter(frontends, backends)
 
-    def _auth_req_callback_func(self, context, internal_request, state):
+    def _auth_req_callback_func(self, context, internal_request):
         """
         This function is called by a frontend module when an authorization request has been processed.
 
         :type context: satosa.context.Context
         :type internal_request: satosa.internal_data.InternalRequest
-        :type state: satosa.state.State
 
         :param context: The request context
         :param internal_request: request processed by the frontend
-        :param state: the current state
 
         :return: response
         """
+        state = context.state
         satosaLogging(LOGGER, logging.INFO, "Requesting provider: {}".format(internal_request.requestor), state)
-        # LOGGER.info("Requesting provider: {}".format(internal_request.requestor))
         context.request = None
-        backend = self.module_router.backend_routing(context, state)
+        backend = self.module_router.backend_routing(context)
         self.consent_module.save_state(internal_request, state)
         UserIdHasher.save_state(internal_request, state)
         if self.request_micro_services:
-            internal_request = self.request_micro_services.process_service_queue(context, internal_request, state)
-        return backend.start_auth(context, internal_request, state)
+            internal_request = self.request_micro_services.process_service_queue(context, internal_request)
+        return backend.start_auth(context, internal_request)
 
-    def _auth_resp_callback_func(self, context, internal_response, state):
+    def _auth_resp_callback_func(self, context, internal_response):
         """
         This function is called by a backend module when the authorization is complete.
 
         :type context: satosa.context.Context
         :type internal_response: satosa.internal_data.InternalResponse
-        :type state: satosa.state.State
 
         :param context: The request context
         :param internal_response: The authentication response
-        :param state: The current state
         :return: response
         """
 
         context.request = None
+        state = context.state
         internal_response = UserIdHasher.set_id(self.config.USER_ID_HASH_SALT, internal_response,
                                                 state)
         if self.response_micro_services:
-            internal_response = self.response_micro_services.process_service_queue(context, internal_response, state)
-        return self.consent_module.manage_consent(context, internal_response, state)
+            internal_response = self.response_micro_services.process_service_queue(context, internal_response)
+        return self.consent_module.manage_consent(context, internal_response)
 
-    def _consent_resp_callback_func(self, context, internal_response, state):
+    def _consent_resp_callback_func(self, context, internal_response):
         """
         This function is called by the consent module when the consent step is done
 
         :type context: satosa.context.Context
         :type internal_response: satosa.internal_data.InternalResponse
-        :type state: satosa.state.State
 
         :param context: The response context
         :param internal_response: The authentication response
-        :param state: The current state
         :return: response
         """
         context.request = None
-        frontend = self.module_router.frontend_routing(context, state)
-        return frontend.handle_authn_response(context, internal_response, state)
+        frontend = self.module_router.frontend_routing(context)
+        return frontend.handle_authn_response(context, internal_response)
 
     def _handle_satosa_error(self, error):
         """
@@ -149,28 +145,54 @@ class SATOSABase(object):
             msg = "ERROR_ID [{err_id}]\nSTATE:\n{state}".format(err_id=error.error_id,
                                                                            state=json.dumps(error.state._state_dict,
                                                                                             indent=4))
-            satosaLogging(LOGGER, logging.ERROR, msg, error.state, exc_info=1)
-            # LOGGER.exception("ERROR_ID [{err_id}]\nSTATE:\n{state}".format(err_id=error.error_id,
-            #                                                                state=json.dumps(error.state._state_dict,
-            #                                                                                 indent=4)))
+            satosaLogging(LOGGER, logging.ERROR, msg, error.state, exc_info=True)
             return self._handle_satosa_error(error)
 
+    def _load_state(self, context):
+        """
+        Load a state to the context
+
+        :type context: satosa.context.Context
+        :param context: Session context
+        """
+        try:
+            state = cookie_to_state(context.cookie, self.config.COOKIE_STATE_NAME, self.config.STATE_ENCRYPTION_KEY)
+        except SATOSAStateError:
+            state = State()
+        context.state = state
+
+    def _save_state(self, resp, context):
+        """
+        Saves a state from context to cookie
+
+        :type resp: satosa.response.Response
+        :type context: satosa.context.Context
+
+        :param resp: The response
+        :param context: Session context
+        """
+        if isinstance(resp, Response):
+            resp.addCookie(state_to_cookie(context.state, self.config.COOKIE_STATE_NAME, "/",
+                                           self.config.STATE_ENCRYPTION_KEY))
     def run(self, context):
         """
         Runs the satosa proxy with the given context.
 
         :type context: satosa.context.Context
+        :rtype: satosa.response.Response
 
         :param context: The request context
         :return: response
         """
         try:
+            self._load_state(context)
             spec = self.module_router.endpoint_routing(context)
             resp = self._run_bound_endpoint(context, spec)
+            self._save_state(resp, context)
         except SATOSAError:
-            LOGGER.exception("uncaught SATOSA error")
+            satosaLogging(LOGGER, logging.ERROR, "Uncaught SATOSA error", context.state, exc_info=True)
             raise
         except Exception as err:
-            LOGGER.exception("uncaught exception")
+            satosaLogging(LOGGER, logging.ERROR, "Uncaught exception", context.state, exc_info=True)
             raise SATOSAUnknownError("Unknown error") from err
         return resp

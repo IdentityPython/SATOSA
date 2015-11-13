@@ -11,7 +11,7 @@ class Response(object):
     _mako_template = None
     _mako_lookup = None
 
-    def __init__(self, message=None, cookie=None, **kwargs):
+    def __init__(self, message=None, **kwargs):
         self.status = kwargs.get('status', self._status)
         self.response = kwargs.get('response', self._response)
         self.template = kwargs.get('template', self._template)
@@ -21,8 +21,6 @@ class Response(object):
         self.message = message
 
         self.headers = kwargs.get('headers', [])
-        if cookie:
-            self.headers.append(tuple(cookie.output().split(": ", 1)))
 
         _content_type = kwargs.get('content', self._content_type)
         addContentType = True
@@ -31,6 +29,9 @@ class Response(object):
                 addContentType = False
         if addContentType:
             self.headers.append(('Content-type', _content_type))
+
+    def addCookie(self, cookie):
+        self.headers.append(tuple(cookie.output().split(": ", 1)))
 
     def __call__(self, environ, start_response, **kwargs):
         try:
@@ -59,9 +60,8 @@ class Redirect(Response):
                 '</body>\n</html>'
     _status = '302 Found'
 
-    def __init__(self, redirect_url, state_cookie, **kwargs):
-        super(Redirect, self).__init__(message=redirect_url, cookie=state_cookie,
-                                       **kwargs)
+    def __init__(self, redirect_url, **kwargs):
+        super(Redirect, self).__init__(message=redirect_url, **kwargs)
 
     def __call__(self, environ, start_response, **kwargs):
         location = self.message
@@ -75,9 +75,8 @@ class SeeOther(Response):
         '</body>\n</html>'
     _status = '303 See Other'
 
-    def __init__(self, redirect_url, state_cookie, **kwargs):
-        super(SeeOther, self).__init__(message=redirect_url, cookie=state_cookie,
-                                       **kwargs)
+    def __init__(self, redirect_url, **kwargs):
+        super(SeeOther, self).__init__(message=redirect_url, **kwargs)
 
     def __call__(self, environ, start_response, **kwargs):
         location = ""
