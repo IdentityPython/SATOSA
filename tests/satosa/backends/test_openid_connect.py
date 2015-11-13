@@ -26,13 +26,13 @@ INTERNAL_ATTRIBUTES = {
                    'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
                                'facebook': ['last_name']}}, 'separator': '->'}
 
-def verify_object_types_callback(context, response, state):
+
+def verify_object_types_callback(context, response):
     assert isinstance(context, Context)
     assert isinstance(response, InternalResponse)
-    assert isinstance(state, State)
 
 
-def verify_userinfo_callback(context, response, state):
+def verify_userinfo_callback(context, response):
     assert isinstance(response, InternalResponse)
     for attribute in [("name", "name"), ("mail", "email")]:
         assert response._attributes[attribute[0]][0] == USERDB[USERNAME][attribute[1]]
@@ -108,7 +108,9 @@ class TestOpenIdBackend:
         self.fake_op.setup_webfinger_endpoint()
         self.fake_op.setup_opienid_config_endpoint()
         self.fake_op.setup_client_registration_endpoint()
-        auth_response = self.openid_backend.start_auth(None, None, State())
+        context = Context()
+        context.state = State()
+        auth_response = self.openid_backend.start_auth(context, None)
         assert auth_response._status == Redirect._status
 
     @responses.activate
@@ -116,11 +118,9 @@ class TestOpenIdBackend:
         self.fake_op.setup_webfinger_endpoint()
         self.fake_op.setup_opienid_config_endpoint()
         self.fake_op.setup_client_registration_endpoint()
-        state = State()
-        self.openid_backend.start_auth(None, None, state)
-        state_as_ulr = state.urlstate(
-            TestConfiguration.get_instance().rp_config.STATE_ENCRYPTION_KEY
-        )
+        context = Context()
+        context.state = State()
+        self.openid_backend.start_auth(context, None)
         context = self.setup_fake_op_endpoints(FakeOP.STATE)
         self.openid_backend.redirect_endpoint(context)
 
@@ -131,10 +131,8 @@ class TestOpenIdBackend:
         self.fake_op.setup_webfinger_endpoint()
         self.fake_op.setup_opienid_config_endpoint()
         self.fake_op.setup_client_registration_endpoint()
-        state = State()
-        openid_backend_1.start_auth(None, None, state)
-        state_as_ulr = state.urlstate(
-            TestConfiguration.get_instance().rp_config.STATE_ENCRYPTION_KEY
-        )
+        context = Context()
+        context.state = State()
+        openid_backend_1.start_auth(context, None)
         context = self.setup_fake_op_endpoints(FakeOP.STATE)
         openid_backend_2.redirect_endpoint(context)
