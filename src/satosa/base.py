@@ -1,13 +1,16 @@
 """
 The SATOSA main module
 """
+import json
 import logging
+import random
 from satosa.consent import ConsentModule
 from satosa.context import Context
-from satosa.exception import SATOSAError, SATOSAAuthenticationError
+from satosa.exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
 from satosa.internal_data import UserIdHasher
+from satosa.logging import satosaLogging
 from satosa.plugin_loader import load_backends, load_frontends, load_micro_services
-from satosa.response import Response
+# from satosa.response import Response
 from satosa.routing import ModuleRouter
 
 __author__ = 'mathiashedstrom'
@@ -65,6 +68,8 @@ class SATOSABase(object):
 
         :return: response
         """
+        satosaLogging(LOGGER, logging.INFO, "Requesting provider: {}".format(internal_request.requestor), state)
+        # LOGGER.info("Requesting provider: {}".format(internal_request.requestor))
         context.request = None
         backend = self.module_router.backend_routing(context, state)
         self.consent_module.save_state(internal_request, state)
@@ -139,8 +144,15 @@ class SATOSABase(object):
                 return spec[0](context, *spec[1:])
             else:
                 return spec(context)
-        except SATOSAError as error:
-            LOGGER.exception(error.message)
+        except SATOSAAuthenticationError as error:
+            error.error_id = random.getrandbits(50)
+            msg = "ERROR_ID [{err_id}]\nSTATE:\n{state}".format(err_id=error.error_id,
+                                                                           state=json.dumps(error.state._state_dict,
+                                                                                            indent=4))
+            satosaLogging(LOGGER, logging.ERROR, msg, error.state, exc_info=1)
+            # LOGGER.exception("ERROR_ID [{err_id}]\nSTATE:\n{state}".format(err_id=error.error_id,
+            #                                                                state=json.dumps(error.state._state_dict,
+            #                                                                                 indent=4)))
             return self._handle_satosa_error(error)
 
     def run(self, context):
@@ -152,10 +164,13 @@ class SATOSABase(object):
         :param context: The request context
         :return: response
         """
-        spec = self.module_router.endpoint_routing(context)
         try:
+            spec = self.module_router.endpoint_routing(context)
             resp = self._run_bound_endpoint(context, spec)
-        except Exception as error:
-            LOGGER.exception("uncaught exception: %s" % error)
+        except SATOSAError:
+            LOGGER.exception("uncaught SATOSA error")
             raise
+        except Exception as err:
+            LOGGER.exception("uncaught exception")
+            raise SATOSAUnknownError("Unknown error") from err
         return resp

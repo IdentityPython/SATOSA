@@ -9,6 +9,7 @@ import requests
 from requests.exceptions import ConnectionError
 from base64 import urlsafe_b64encode
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
+from satosa.logging import satosaLogging
 from satosa.response import Redirect
 from satosa.state import state_to_cookie, cookie_to_state
 from jwkest.jwk import rsa_load
@@ -56,8 +57,8 @@ class ConsentModule(object):
         :return: None
         """
         if self.enabled:
-            state.add(ConsentModule.STATE_KEY, {"fr": internal_request._attribute_filter,
-                                                "reqor": internal_request.requestor})
+            state.add(ConsentModule.STATE_KEY, {"filter": internal_request._attribute_filter,
+                                                "requestor": internal_request.requestor})
 
     def _handle_consent_response(self, context):
         """
@@ -85,20 +86,26 @@ class ConsentModule(object):
         internal_response._attributes = saved_resp["attr"]
         internal_response.user_id = saved_resp["usr_id"]
 
-        requestor = consent_state["reqor"]
+        requestor = consent_state["requestor"]
 
         hash_id = self._get_consent_id(requestor, internal_response.user_id, list(internal_response._attributes.keys()))
 
         try:
             consent_given = self._verify_consent(hash_id)
-        except ConnectionError as error:
-            LOGGER.warn("Consent service is not reachable, no consent given.")
+        except ConnectionError:
+            satosaLogging(LOGGER, logging.ERROR, "Consent service is not reachable, no consent given.", state)
+            # LOGGER.error("Consent service is not reachable, no consent given.")
             # Send an internal_response without any attributes
             consent_given = False
 
         if not consent_given:
+            # LOGGER.info("Consent was NOT given")
+            satosaLogging(LOGGER, logging.INFO, "Consent was NOT given", state)
             # If consent was not given, then don't send any attributes
             internal_response._attributes = {}
+        else:
+            satosaLogging(LOGGER, logging.INFO, "Consent was given", state)
+            # LOGGER.info("Consent was given")
 
         return self.callback_func(context, internal_response, state)
 
@@ -118,13 +125,15 @@ class ConsentModule(object):
         """
 
         if not self.enabled:
+            # LOGGER.info("Consent flow not activated")
+            satosaLogging(LOGGER, logging.INFO, "Consent flow not activated", state)
             return self.callback_func(context, internal_response, state)
 
         consent_state = state.get(ConsentModule.STATE_KEY)
-        filter = consent_state["fr"]
-        requestor = consent_state["reqor"]
+        filter = consent_state["filter"]
+        requestor = consent_state["requestor"]
 
-        #filter attributes
+        # filter attributes
         filtered_data = {}
         for attr in filter:
            if attr in internal_response._attributes:
@@ -132,9 +141,8 @@ class ConsentModule(object):
                if not isinstance(data, list):
                    data = [data]
                filtered_data[attr] = data
-        #Update intenal response
+        # Update internal response
         internal_response._attributes = filtered_data
-        #filtered_data = internal_response._attributes
 
         id_hash = self._get_consent_id(requestor, internal_response.user_id, list(filtered_data.keys()))
 
@@ -142,8 +150,9 @@ class ConsentModule(object):
             # Check if consent is already given
             if self._verify_consent(id_hash):
                 return self.callback_func(context, internal_response, state)
-        except ConnectionError as error:
-            LOGGER.warn("Consent service is not reachable, no consent given.")
+        except ConnectionError:
+            satosaLogging(LOGGER, logging.ERROR, "Consent service is not reachable, no consent given.", state)
+            # LOGGER.error("Consent service is not reachable, no consent given.")
             # Send an internal_response without any attributes
             internal_response._attributes = {}
             return self.callback_func(context, internal_response, state)
@@ -161,8 +170,9 @@ class ConsentModule(object):
 
         try:
             ticket = self._consent_registration(consent_args_jws)
-        except (ConnectionError, AssertionError) as error:
-            LOGGER.warn("Consent service is not reachable, no consent given.")
+        except (ConnectionError, AssertionError):
+            satosaLogging(LOGGER, logging.ERROR, "Consent service is not reachable, no consent given.", state)
+            # LOGGER.error("Consent service is not reachable, no consent given.")
             # Send an internal_response without any attributes
             internal_response._attributes = {}
             return self.callback_func(context, internal_response, state)
@@ -203,7 +213,7 @@ class ConsentModule(object):
             request = "{}/creq/{}".format(self.consent_uri, jws)
             res = requests.get(request, verify=self.verify_ssl)
         except ConnectionError as con_exc:
-            raise ConnectionError("Could not connect to consent service: {}".format(str(con_exc)))
+            raise ConnectionError("Could not connect to consent service") from con_exc
 
         assert res.status_code == 200, "Consent service: {}".format(res.status_code)
 
@@ -226,7 +236,7 @@ class ConsentModule(object):
             request = "{}/verify/{}".format(self.consent_uri, id)
             res = requests.get(request, verify=self.verify_ssl)
         except ConnectionError as con_exc:
-            raise ConnectionError("Could not connect to consent service: {}".format(str(con_exc)))
+            raise ConnectionError("Could not connect to consent service") from con_exc
 
         return res.status_code == 200
 

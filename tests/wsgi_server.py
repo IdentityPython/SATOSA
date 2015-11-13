@@ -9,7 +9,7 @@ from saml2.httputil import NotFound
 from saml2.httputil import ServiceError
 from satosa.base import SATOSABase
 from satosa.context import Context
-from satosa.routing import NoBoundEndpointError
+from satosa.routing import SATOSANoBoundEndpointError
 from satosa.service import unpack_either
 
 LOGGER = logging.getLogger("")
@@ -57,7 +57,7 @@ class WsgiApplication(object):
             satosa_temporary_instance = SATOSABase(self.config)
             resp = satosa_temporary_instance.run(context)
             return resp(environ, start_response)
-        except NoBoundEndpointError:
+        except SATOSANoBoundEndpointError:
             LOGGER.debug("unknown side: %s" % path)
             resp = NotFound("Couldn't find the side you asked for!")
             return resp(environ, start_response)

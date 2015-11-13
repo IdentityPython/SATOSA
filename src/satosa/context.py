@@ -1,10 +1,12 @@
 """
 Holds methods for sending internal data through the satosa proxy
 """
+from satosa.exception import SATOSAError
+
 __author__ = 'mathiashedstrom'
 
 
-class BadContextError(Exception):
+class SATOSABadContextError(SATOSAError):
     """
     Raise this exception if validating the Context and failing.
     """

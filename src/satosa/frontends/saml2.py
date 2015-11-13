@@ -133,10 +133,10 @@ class SamlFrontend(FrontendModule):
             _dict = self.verify_request(idp, _request["SAMLRequest"],
                                         _binding_in)
         except UnknownPrincipal as excp:
-            LOGGER.error("UnknownPrincipal: %s", excp)
+            LOGGER.exception("UnknownPrincipal")
             return ServiceError("UnknownPrincipal: %s" % (excp,))
         except UnsupportedBinding as excp:
-            LOGGER.error("UnsupportedBinding: %s", excp)
+            LOGGER.exception("UnsupportedBinding")
             return ServiceError("UnsupportedBinding: %s" % (excp,))
 
         _binding = _dict["resp_args"]["binding"]
@@ -161,24 +161,15 @@ class SamlFrontend(FrontendModule):
 
             internal_req = InternalRequest(self.name_format_to_hash_type(_dict['req_args']['name_id_policy'].format),
                                            _dict["resp_args"]["sp_entity_id"])
-
             idp_policy = idp.config.getattr("policy", "idp")
             if idp_policy:
                 sp_entity_id = _dict["resp_args"]["sp_entity_id"]
-
-                #entity_categories = idp_policy.get_entity_categories(_dict["resp_args"]["sp_entity_id"], idp.metadata)
                 name_format = idp_policy.get_name_form(sp_entity_id)
                 attrconvs = idp.config.attribute_converters
-                #del_keys = []
                 attribute_filter = []
                 for aconv in attrconvs:
                     if aconv.name_format == name_format:
-                        attribute_filter = idp_policy.restrict(list(aconv._to.keys()), sp_entity_id, idp.metadata)
-                        # for key in attribute_filter.keys():
-                        #     if key not in aconv._to:
-                        #         del_keys.append(key)
-                # for key in del_keys:
-                #     del attribute_filter[key]
+                        attribute_filter = list(idp_policy.restrict(aconv._to, sp_entity_id, idp.metadata).keys())
                 attribute_filter = self.converter.to_internal_filter("saml", attribute_filter, True)
                 internal_req.add_filter(attribute_filter)
                 LOGGER.debug("Filter: %s" % attribute_filter)
@@ -223,7 +214,7 @@ class SamlFrontend(FrontendModule):
         relay_state = loaded_state["relay_state"]
         resp_args = loaded_state["resp_args"]
         error_resp = idp.create_error_response(resp_args["in_response_to"], resp_args["destination"],
-                                               Exception("Authentication failed"))
+                                               Exception(exception.message))
         http_args = idp.apply_binding(
             resp_args["binding"], "%s" % error_resp,
             resp_args["destination"],

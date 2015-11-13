@@ -35,7 +35,7 @@ class MicroService(object):
         try:
             return self.process(context, data)
         except Exception as err:
-            LOGGER.exception("Micro service error.")
+            LOGGER.debug("Micro service error.", exc_info=True)
             raise SATOSAAuthenticationError(state, "Micro service error") from err
 
     def process(self, context, data):

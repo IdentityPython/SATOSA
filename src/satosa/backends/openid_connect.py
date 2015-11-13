@@ -217,11 +217,10 @@ class OpenIdBackend(BackendModule):
         state = cookie_to_state(context.cookie, COOKIE_STATE_NAME, self.config.STATE_ENCRYPTION_KEY)
         backend_state = state.get(self.config.STATE_ID)
         if backend_state["state"] != context.request["state"]:
-            LOGGER.error("Missing or invalid state in authn response for state: %s" % backend_state)
-            raise SATOSAAuthenticationError(backend_state,
-                                            "Missing or invalid state in authn response!")
+            LOGGER.debug("Missing or invalid state in authn response for state: %s" % backend_state)
+            raise SATOSAAuthenticationError(state, "Missing or invalid state in authn response")
         client = self.restore_state(backend_state)
-        result = client.callback(context.request, backend_state)
+        result = client.callback(context.request, state, backend_state)
         return self.auth_callback_func(context,
                                        self._translate_response(
                                            result,
@@ -307,7 +306,7 @@ class Client(oic.Client):
         request_args.update(kwargs)
         return request_args
 
-    def callback(self, response, backend_state):
+    def callback(self, response, state, backend_state):
         """
         This is the method that should be called when an AuthN response has been
         received from the OP.
@@ -322,13 +321,12 @@ class Client(oic.Client):
             if authresp["error"] == "login_required":
                 return self.create_authn_request(authresp["state"])
             else:
-                LOGGER.warning("Access denied for state: %s" % backend_state)
-                raise SATOSAAuthenticationError(backend_state, "Access denied")
+                LOGGER.debug("Access denied for state: %s" % backend_state)
+                raise SATOSAAuthenticationError(state, "Access denied")
         try:
             if authresp["id_token"] != backend_state["nonce"]:
-                LOGGER.error("Invalid nonce. for state: %s" %
-                             backend_state)
-                raise SATOSAAuthenticationError(backend_state, "Access denied.")
+                LOGGER.debug("Invalid nonce. for state: %s" % backend_state)
+                raise SATOSAAuthenticationError(state, "Invalid nonce")
             self.id_token[authresp["state"]] = authresp["id_token"]
         except KeyError:
             pass

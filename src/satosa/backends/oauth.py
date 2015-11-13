@@ -13,7 +13,7 @@ from satosa.internal_data import InternalResponse, AuthenticationInformation, Us
     DataConverter
 from satosa.response import Redirect
 from satosa.service import response, rndstr
-from satosa.state import state_to_cookie, cookie_to_state, StateError
+from satosa.state import state_to_cookie, cookie_to_state, SATOSAStateError
 
 __author__ = 'haho0032'
 
@@ -80,9 +80,8 @@ class OAuthBackend(BackendModule):
             tmp_state = ""
             if "state" in resp:
                 tmp_state = resp["state"]
-
-            LOGGER.error("Missing or invalid state [%s] in response!" % tmp_state)
-            raise SATOSAAuthenticationError(state, "Access denied")
+            LOGGER.debug("Missing or invalid state [%s] in response!" % tmp_state, exc_info=True)
+            raise SATOSAAuthenticationError(state, "Missing or invalid state [%s] in response!" % tmp_state)
 
     def authn_response(self, context, binding):
         state = None
@@ -112,9 +111,9 @@ class OAuthBackend(BackendModule):
             internal_response.add_attributes(self.converter.to_internal(self.type, user_info))
             return self.auth_callback_func(context, internal_response, state)
         except Exception as error:
+            LOGGER.debug("Not a valid authentication", exc_info=True)
             if isinstance(error, SATOSAError):
                 raise error
-            LOGGER.exception("Not a valid authentication")
             if state is not None:
                 raise SATOSAAuthenticationError(state, "Not a valid authentication") from error
             raise

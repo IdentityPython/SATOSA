@@ -1,17 +1,18 @@
 import logging
 import os
 import base64
+from satosa.exception import SATOSAError
 
 __author__ = 'danielevertsson'
 
 LOGGER = logging.getLogger(__name__)
 
 
-class InvalidArgumentType(Exception):
+class SATOSAInvalidArgumentType(SATOSAError):
     pass
 
 
-class UnsupportedImageFormat(Exception):
+class SATOSAUnsupportedImageFormat(SATOSAError):
     pass
 
 
@@ -26,7 +27,7 @@ def convert_to_base64(image_path):
     :return: base64 data representation of the image
     """
     if not isinstance(image_path, str):
-        raise InvalidArgumentType()
+        raise SATOSAInvalidArgumentType()
 
     filename, file_extension = os.path.splitext(image_path)
     file_extension = file_extension.replace(".", "")
@@ -35,7 +36,7 @@ def convert_to_base64(image_path):
     try:
         with open(image_path, "rb") as image_file:
             if file_extension not in ["jpeg", "gif", "png"]:
-                raise UnsupportedImageFormat()
+                raise SATOSAUnsupportedImageFormat()
             encoded_string = base64.b64encode(image_file.read())
             return "data:image/%s;base64,%s" % (file_extension, bytes.decode(encoded_string))
     except FileNotFoundError:

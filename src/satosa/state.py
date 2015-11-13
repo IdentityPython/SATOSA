@@ -12,11 +12,16 @@ from lzma import LZMADecompressor, LZMACompressor
 
 from Crypto import Random
 from Crypto.Cipher import AES
+from satosa.exception import SATOSAError
 
 LOGGER = logging.getLogger(__name__)
 
 STATE_COOKIE_MAX_AGE = 600
 STATE_COOKIE_SECURE = True
+
+
+class SATOSAStateError(SATOSAError):
+    pass
 
 
 def state_to_cookie(state, name, path, encryption_key):
@@ -64,11 +69,7 @@ def cookie_to_state(cookie_str, name, encryption_key):
         return State(SimpleCookie(cookie_str)[name].value, encryption_key)
     except KeyError:
         LOGGER.error("Did not find cookie named '%s'" % name)
-        raise StateError("No cookie named '{}'".format(name))
-
-
-class StateError(Exception):
-    pass
+        raise SATOSAStateError("No cookie named '{}'".format(name))
 
 
 class AESCipher(object):
@@ -236,4 +237,4 @@ class State(object):
         return state_copy
 
     def __str__(self):
-        return str(self._state_dict)
+        return self._state_dict

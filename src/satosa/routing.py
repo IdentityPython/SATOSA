@@ -4,20 +4,23 @@ Holds satosa routing logic
 import logging
 import re
 
-from satosa.context import BadContextError
+from satosa.context import SATOSABadContextError
+from satosa.exception import SATOSAError
+from satosa.logging import satosaLogging
 
 __author__ = 'mathiashedstrom'
 
 LOGGER = logging.getLogger(__name__)
 
-class NoBoundEndpointError(Exception):
+
+class SATOSANoBoundEndpointError(SATOSAError):
     """
     Raised when a given url path is not bound to any endpoint function
     """
     pass
 
 
-class UnknownTargetBackend(Exception):
+class SATOSAUnknownTargetBackend(SATOSAError):
     """
     Raised when targeting an unknown backend
     """
@@ -72,7 +75,8 @@ class ModuleRouter():
         :param state: The current state
         :return: backend
         """
-        LOGGER.debug("Routing to backend: %s " % context._target_backend)
+        # LOGGER.info("Routing to backend: %s " % context._target_backend)
+        satosaLogging(LOGGER, logging.INFO, "Routing to backend: %s " % context._target_backend, state)
         backend = self.backends[context._target_backend]["instance"]
         state.add(ModuleRouter.STATE_KEY, context._target_frontend)
         return backend
@@ -91,7 +95,8 @@ class ModuleRouter():
         """
 
         target_frontend = state.get(ModuleRouter.STATE_KEY)
-        LOGGER.debug("Routing to backend: %s " % target_frontend)
+        satosaLogging(LOGGER, logging.INFO, "Routing to frontend: %s " % target_frontend, state)
+        # LOGGER.info("Routing to frontend: %s " % target_frontend)
         context._target_frontend = target_frontend
         frontend = self.frontends[context._target_frontend]["instance"]
         return frontend
@@ -108,11 +113,11 @@ class ModuleRouter():
         :return: None
         """
         if not context:
-            LOGGER.error("Context was None!")
-            raise BadContextError("Context is None")
+            LOGGER.debug("Context was None!")
+            raise SATOSABadContextError("Context is None")
         if context.path is None:
-            LOGGER.error("Context did not contain a path!")
-            raise BadContextError("Context did not contain any path")
+            LOGGER.debug("Context did not contain a path!")
+            raise SATOSABadContextError("Context did not contain any path")
 
     def endpoint_routing(self, context):
         """
@@ -131,8 +136,8 @@ class ModuleRouter():
         backend = path_split[0]
 
         if backend not in self.backends:
-            LOGGER.warn("Unknown backend %s" % backend)
-            raise UnknownTargetBackend("Unknown backend {}".format(backend))
+            LOGGER.debug("Unknown backend %s" % backend)
+            raise SATOSAUnknownTargetBackend("Unknown backend {}".format(backend))
 
         context._target_backend = backend
 
@@ -142,12 +147,18 @@ class ModuleRouter():
                 match = re.search(regex, context.path)
                 if match is not None:
                     context._target_frontend = frontend
+                    LOGGER.info(
+                        "Frontend request. Module name:'{name}', endpoint: {endpoint}".format(name=frontend,
+                                                                                              endpoint=context.path))
                     return spec
 
         # Search for backend endpoint
         for regex, spec in self.backends[backend]["endpoints"]:
             match = re.search(regex, context.path)
             if match is not None:
+                LOGGER.info(
+                    "Backend request. Module name:'{name}', endpoint: {endpoint}".format(name=backend,
+                                                                                         endpoint=context.path))
                 return spec
-        LOGGER.warn("%s not bound to any function" % context.path)
-        raise NoBoundEndpointError("{} not bound to any function".format(context.path))
+        LOGGER.debug("%s not bound to any function" % context.path)
+        raise SATOSANoBoundEndpointError("'{}' not bound to any function".format(context.path))

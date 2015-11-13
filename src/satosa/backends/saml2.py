@@ -19,7 +19,7 @@ from satosa.internal_data import UserIdHashType, InternalRequest, InternalRespon
     AuthenticationInformation, DataConverter
 from satosa.response import SeeOther, Response
 from satosa.service import rndstr
-from satosa.state import state_to_cookie, cookie_to_state, StateError
+from satosa.state import state_to_cookie, cookie_to_state, SATOSAStateError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -118,7 +118,7 @@ class SamlBackend(BackendModule):
             ht_args = _cli.apply_binding(_binding, "%s" % req, destination, relay_state=relay_state)
             LOGGER.debug("ht_args: %s" % ht_args)
         except Exception as exc:
-            LOGGER.exception("Failed to construct the AuthnRequest for state: %s" % state)
+            LOGGER.debug("Failed to construct the AuthnRequest for state: %s" % state, exc_info=True)
             raise SATOSAAuthenticationError(state, "Failed to construct the AuthnRequest") from exc
 
         state.add(SamlBackend.STATE_KEY, relay_state)
@@ -130,7 +130,7 @@ class SamlBackend(BackendModule):
                     resp = SeeOther(str(value), state_cookie)
                     break
             else:
-                LOGGER.exception("Parameter error for state: %s" % state)
+                LOGGER.debug("Parameter error for state: %s" % state)
                 raise SATOSAAuthenticationError(state, "Parameter error")
         else:
             resp = Response(ht_args["data"], cookie=state_cookie, headers=ht_args["headers"])
@@ -142,23 +142,23 @@ class SamlBackend(BackendModule):
 
         try:
             state = cookie_to_state(context.cookie, "saml2_backend_state", self.state_encryption_key)
-        except StateError as error:
+        except SATOSAStateError as error:
             raise SATOSACriticalError("Missing state in authn_response") from error
 
         if not _authn_response["SAMLResponse"]:
-            LOGGER.error("Missing Response for state: %s" % state)
-            raise SATOSAAuthenticationError(state, 'Unknown user')
+            LOGGER.debug("Missing Response for state: %s" % state)
+            raise SATOSAAuthenticationError(state, "Missing Response")
 
         try:
             _response = self.sp.parse_authn_request_response(
                 _authn_response["SAMLResponse"], binding)
         except Exception as err:
-            LOGGER.exception("Failed to parse authn request for state: %s", state)
+            LOGGER.debug("Failed to parse authn request for state: %s" % state, exc_info=True)
             raise SATOSAAuthenticationError(state, "Failed to parse authn request") from err
 
         # check if the relay_state matches the cookie state
         if state.get(SamlBackend.STATE_KEY) != _authn_response['RelayState']:
-            LOGGER.error("State did not match relay state for state: %s" % state)
+            LOGGER.debug("State did not match relay state for state: %s" % state)
             raise SATOSAAuthenticationError(state, "State did not match relay state")
 
         return self.auth_callback_func(context,
@@ -170,15 +170,15 @@ class SamlBackend(BackendModule):
 
         try:
             state = cookie_to_state(context.cookie, "saml2_backend_disco_state", self.state_encryption_key)
-        except StateError as error:
+        except SATOSAStateError as error:
             LOGGER.error("Missing state in disco_response")
             raise SATOSACriticalError("Missing state in disco_response")
 
         try:
             entity_id = info[self.idp_disco_query_param]
         except KeyError as err:
-            LOGGER.error("No IDP chosen for state %s", state)
-            raise SATOSAAuthenticationError(state, "You must chose an IdP") from err
+            LOGGER.debug("No IDP chosen for state %s" % state, exc_info=True)
+            raise SATOSAAuthenticationError(state, "No IDP chosen") from err
         else:
             request_info = InternalRequest(
                 getattr(UserIdHashType, state.get(SamlBackend.STATE_KEY)), None)
