@@ -291,11 +291,13 @@ def _load_plugins(plugin_path, plugins, filter, filter_class, *args):
     plugin_base = PluginBase(package='satosa_plugins')
     plugin_source = plugin_base.make_plugin_source(searchpath=plugin_path)
     loaded_plugins = []
+    loaded_plugin_names = []
     for module_file_name in plugins:
         try:
             module = plugin_source.load_plugin(module_file_name)
             for name, obj in inspect.getmembers(module, filter):
                 loaded_plugins.append(obj(*args))
+                loaded_plugin_names.append(module_file_name)
         except ImportError as error:
             module = None
             dict_parsers = [_load_dict,
@@ -327,6 +329,7 @@ def _load_plugins(plugin_path, plugins, filter, filter_class, *args):
                         config = json.loads(config)
                         module = plugin_class(module_class, name, config)
                         loaded_plugins.append(module)
+                        loaded_plugin_names.append(module_file_name)
                     else:
                         LOGGER.warn("Missing mandatory configuration parameters in "
                                     "the plugin %s (plugin, module, receiver and/or config)."
@@ -336,6 +339,7 @@ def _load_plugins(plugin_path, plugins, filter, filter_class, *args):
         except Exception as error:
             LOGGER.exception("The configuration file %s is corrupt." % module_file_name)
             raise SATOSAConfigurationError("The configuration file %s is corrupt." % module_file_name) from error
+    LOGGER.debug("Loaded plugins: {}".format(loaded_plugin_names))
     return loaded_plugins
 
 
