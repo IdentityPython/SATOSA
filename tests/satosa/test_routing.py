@@ -84,6 +84,7 @@ def test_url_routing(router_fixture):
 
     def test_frontend(path, provider, receiver, endpoint):
         context = Context()
+        context.state = State()
         context.path = path
         spec = router.endpoint_routing(context)
         assert spec[0] == receiver
@@ -111,12 +112,13 @@ def test_module_routing(router_fixture):
     def test_routing(path, provider, receiver, _):
         context = Context()
         context.path = path
+        context.state = state
         router.endpoint_routing(context)
 
-        backend = router.backend_routing(context, state)
+        backend = router.backend_routing(context)
         assert backend == backends[provider]
 
-        frontend = router.frontend_routing(context, state)
+        frontend = router.frontend_routing(context)
         assert frontend == frontends[receiver]
         assert context._target_frontend == receiver
 

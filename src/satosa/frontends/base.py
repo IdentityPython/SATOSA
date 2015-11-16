@@ -11,7 +11,7 @@ class FrontendModule(object):
 
     def __init__(self, auth_req_callback_func, internal_attrbitues):
         """
-        :type auth_req_callback_func: (satosa.context.Context, satosa.internal_data.InternalData) -> Any
+        :type auth_req_callback_func: (satosa.context.Context, satosa.internal_data.InternalData) -> satosa.response.Response
         :type data_converters: list[satosa.internal_data.DataConverter]
 
         :param auth_req_callback_func: Callback should be called by the module after the authorization response
@@ -27,7 +27,7 @@ class FrontendModule(object):
 
         :type context: satosa.context.Context
         :type internal_resp: satosa.internal_data.InternalResponse
-        :rtype Any
+        :rtype satosa.response.Response
 
         :param context: The request context
         :param internal_resp: Attributes from the authorization
@@ -41,6 +41,7 @@ class FrontendModule(object):
         This function is supposed to send a suitable error message to the requestor.
 
         :type exception: satosa.exception.SATOSAError
+        :rtype: satosa.response.Response
 
         :param exception: The raised exception
         :return: response

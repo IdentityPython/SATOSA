@@ -8,7 +8,7 @@ from satosa.consent import ConsentModule
 from satosa.context import Context
 from satosa.exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
 from satosa.internal_data import UserIdHasher
-from satosa.logging import satosaLogging
+from satosa.logging import satosa_logging
 from satosa.plugin_loader import load_backends, load_frontends, load_micro_services
 from satosa.response import Response
 from satosa.routing import ModuleRouter
@@ -37,8 +37,7 @@ class SATOSABase(object):
 
         self.config = config
         LOGGER.info("Loading backend modules...")
-        backends = load_backends(self.config, self._auth_resp_callback_func,
-                                 self.config.INTERNAL_ATTRIBUTES)
+        backends = load_backends(self.config, self._auth_resp_callback_func, self.config.INTERNAL_ATTRIBUTES)
         LOGGER.info("Loading frontend modules...")
         frontends = load_frontends(self.config, self._auth_req_callback_func,
                                    self.config.INTERNAL_ATTRIBUTES)
@@ -61,6 +60,7 @@ class SATOSABase(object):
 
         :type context: satosa.context.Context
         :type internal_request: satosa.internal_data.InternalRequest
+        :rtype: satosa.response.Response
 
         :param context: The request context
         :param internal_request: request processed by the frontend
@@ -68,7 +68,7 @@ class SATOSABase(object):
         :return: response
         """
         state = context.state
-        satosaLogging(LOGGER, logging.INFO, "Requesting provider: {}".format(internal_request.requestor), state)
+        satosa_logging(LOGGER, logging.INFO, "Requesting provider: {}".format(internal_request.requestor), state)
         context.request = None
         backend = self.module_router.backend_routing(context)
         self.consent_module.save_state(internal_request, state)
@@ -83,6 +83,7 @@ class SATOSABase(object):
 
         :type context: satosa.context.Context
         :type internal_response: satosa.internal_data.InternalResponse
+        :rtype: satosa.response.Response
 
         :param context: The request context
         :param internal_response: The authentication response
@@ -112,24 +113,26 @@ class SATOSABase(object):
         frontend = self.module_router.frontend_routing(context)
         return frontend.handle_authn_response(context, internal_response)
 
-    def _handle_satosa_error(self, error):
+    def _handle_satosa_authentication_error(self, error):
         """
         Sends a response to the requestor about the error
 
-        :type error: satosa.exception.SATOSAError
+        :type error: satosa.exception.SATOSAAuthenticationError
+        :rtype: satosa.response.Response
 
         :param error: The exception
         :return: response
         """
         context = Context()
-        frontend = self.module_router.frontend_routing(context, error.state)
+        context.state = error.state
+        frontend = self.module_router.frontend_routing(context)
         return frontend.handle_backend_error(error)
 
     def _run_bound_endpoint(self, context, spec):
         """
 
         :type context: satosa.context.Context
-        :type spec: ((satosa.context.Context, Any) -> Any, Any) | (satosa.context.Context, Any) -> Any
+        :type spec: ((satosa.context.Context, Any) -> satosa.response.Response, Any) | (satosa.context.Context) -> satosa.response.Response
 
         :param context: The request context
         :param spec: bound endpoint function
@@ -145,8 +148,8 @@ class SATOSABase(object):
             msg = "ERROR_ID [{err_id}]\nSTATE:\n{state}".format(err_id=error.error_id,
                                                                            state=json.dumps(error.state._state_dict,
                                                                                             indent=4))
-            satosaLogging(LOGGER, logging.ERROR, msg, error.state, exc_info=True)
-            return self._handle_satosa_error(error)
+            satosa_logging(LOGGER, logging.ERROR, msg, error.state, exc_info=True)
+            return self._handle_satosa_authentication_error(error)
 
     def _load_state(self, context):
         """
@@ -190,9 +193,9 @@ class SATOSABase(object):
             resp = self._run_bound_endpoint(context, spec)
             self._save_state(resp, context)
         except SATOSAError:
-            satosaLogging(LOGGER, logging.ERROR, "Uncaught SATOSA error", context.state, exc_info=True)
+            satosa_logging(LOGGER, logging.ERROR, "Uncaught SATOSA error", context.state, exc_info=True)
             raise
         except Exception as err:
-            satosaLogging(LOGGER, logging.ERROR, "Uncaught exception", context.state, exc_info=True)
+            satosa_logging(LOGGER, logging.ERROR, "Uncaught exception", context.state, exc_info=True)
             raise SATOSAUnknownError("Unknown error") from err
         return resp

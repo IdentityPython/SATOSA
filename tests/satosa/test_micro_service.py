@@ -32,8 +32,8 @@ def test_micro_service():
     service_queue = build_micro_service_queue(service_list)
     test_data = "test_data"
     context = Context()
-    state = State()
-    data = service_queue.process_service_queue(context, test_data, state)
+    context.state = State()
+    data = service_queue.process_service_queue(context, test_data)
 
     for d in data_list:
         test_data = "{}{}".format(test_data, d)
@@ -60,7 +60,7 @@ def test_mirco_service_error():
     service_queue = build_micro_service_queue(service_list)
     test_data = "test_data"
     context = Context()
-    state = State()
+    context.state = State()
 
     with pytest.raises(SATOSAAuthenticationError):
-        service_queue.process_service_queue(context, test_data, state)
+        service_queue.process_service_queue(context, test_data)

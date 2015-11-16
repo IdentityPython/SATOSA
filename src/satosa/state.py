@@ -13,7 +13,7 @@ from lzma import LZMADecompressor, LZMACompressor
 from Crypto import Random
 from Crypto.Cipher import AES
 from satosa.exception import SATOSAError
-from satosa.logging import satosaLogging
+from satosa.logging import satosa_logging
 
 LOGGER = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ def state_to_cookie(state, name, path, encryption_key):
     :param encryption_key: Key to encrypt the state information
     :return: A cookie
     """
-    satosaLogging(LOGGER, logging.DEBUG, "Saving state as cookie, secure: %s, max-age: %s, path: %s" %
+    satosa_logging(LOGGER, logging.DEBUG, "Saving state as cookie, secure: %s, max-age: %s, path: %s" %
                  (STATE_COOKIE_SECURE, STATE_COOKIE_MAX_AGE, path), state)
     cookie = SimpleCookie()
     cookie[name] = state.urlstate(encryption_key)
@@ -68,7 +68,7 @@ def cookie_to_state(cookie_str, name, encryption_key):
     """
     try:
         state = State(SimpleCookie(cookie_str)[name].value, encryption_key)
-        satosaLogging(LOGGER, logging.DEBUG, "Loading state from cookie: %s" % cookie_str, state)
+        satosa_logging(LOGGER, logging.DEBUG, "Loading state from cookie: %s" % cookie_str, state)
         return state
     except KeyError:
         LOGGER.debug("Did not find cookie named '%s' in cookie string '%s'" % (name, cookie_str))

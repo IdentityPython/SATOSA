@@ -14,7 +14,7 @@ from satosa.backends.base import BackendModule
 from satosa.exception import SATOSAAuthenticationError
 from satosa.internal_data import UserIdHashType, InternalRequest, InternalResponse, \
     AuthenticationInformation, DataConverter
-from satosa.logging import satosaLogging
+from satosa.logging import satosa_logging
 from satosa.response import SeeOther, Response
 from satosa.service import rndstr
 
@@ -102,7 +102,7 @@ class SamlBackend(BackendModule):
             _binding, destination = _cli.pick_binding(
                 "single_sign_on_service", self.bindings, "idpsso",
                 entity_id=entity_id)
-            satosaLogging(LOGGER, logging.DEBUG, "binding: %s, destination: %s" % (_binding, destination), state)
+            satosa_logging(LOGGER, logging.DEBUG, "binding: %s, destination: %s" % (_binding, destination), state)
             # Binding here is the response binding that is which binding the
             # IDP should use to return the response.
             acs = _cli.config.getattr("endpoints", "sp")[
@@ -114,9 +114,9 @@ class SamlBackend(BackendModule):
                                                     **req_args)
             relay_state = rndstr()
             ht_args = _cli.apply_binding(_binding, "%s" % req, destination, relay_state=relay_state)
-            satosaLogging(LOGGER, logging.DEBUG, "ht_args: %s" % ht_args, state)
+            satosa_logging(LOGGER, logging.DEBUG, "ht_args: %s" % ht_args, state)
         except Exception as exc:
-            satosaLogging(LOGGER, logging.DEBUG, "Failed to construct the AuthnRequest for state: %s" % state, state,
+            satosa_logging(LOGGER, logging.DEBUG, "Failed to construct the AuthnRequest for state: %s" % state, state,
                           exc_info=True)
             raise SATOSAAuthenticationError(state, "Failed to construct the AuthnRequest") from exc
 
@@ -128,7 +128,7 @@ class SamlBackend(BackendModule):
                     resp = SeeOther(str(value))
                     break
             else:
-                satosaLogging(LOGGER, logging.DEBUG, "Parameter error for state: %s" % state, state)
+                satosa_logging(LOGGER, logging.DEBUG, "Parameter error for state: %s" % state, state)
                 raise SATOSAAuthenticationError(state, "Parameter error")
         else:
             resp = Response(ht_args["data"], headers=ht_args["headers"])
@@ -141,25 +141,23 @@ class SamlBackend(BackendModule):
         state = context.state
 
         if not _authn_response["SAMLResponse"]:
-            satosaLogging(LOGGER, logging.DEBUG, "Missing Response for state: %s" % state, state)
+            satosa_logging(LOGGER, logging.DEBUG, "Missing Response for state: %s" % state, state)
             raise SATOSAAuthenticationError(state, "Missing Response")
 
         try:
             _response = self.sp.parse_authn_request_response(
                 _authn_response["SAMLResponse"], binding)
         except Exception as err:
-            satosaLogging(LOGGER, logging.DEBUG, "Failed to parse authn request for state: %s" % state, state,
+            satosa_logging(LOGGER, logging.DEBUG, "Failed to parse authn request for state: %s" % state, state,
                           exc_info=True)
             raise SATOSAAuthenticationError(state, "Failed to parse authn request") from err
 
         # check if the relay_state matches the cookie state
         if state.get(SamlBackend.STATE_KEY) != _authn_response['RelayState']:
-            satosaLogging(LOGGER, logging.DEBUG, "State did not match relay state for state: %s" % state, state)
+            satosa_logging(LOGGER, logging.DEBUG, "State did not match relay state for state: %s" % state, state)
             raise SATOSAAuthenticationError(state, "State did not match relay state")
 
-        return self.auth_callback_func(context,
-                                       self._translate_response(_response),
-                                       state)
+        return self.auth_callback_func(context, self._translate_response(_response))
 
     def disco_response(self, context, *args):
         info = context.request
@@ -169,7 +167,7 @@ class SamlBackend(BackendModule):
         try:
             entity_id = info[self.idp_disco_query_param]
         except KeyError as err:
-            satosaLogging(LOGGER, logging.DEBUG, "No IDP chosen for state %s" % state, state, exc_info=True)
+            satosa_logging(LOGGER, logging.DEBUG, "No IDP chosen for state %s" % state, state, exc_info=True)
             raise SATOSAAuthenticationError(state, "No IDP chosen") from err
         else:
             request_info = InternalRequest(
@@ -191,7 +189,7 @@ class SamlBackend(BackendModule):
         return internal_resp
 
     def _metadata(self, context, *args):
-        satosaLogging(LOGGER, logging.DEBUG, "Sending metadata response", context.state)
+        satosa_logging(LOGGER, logging.DEBUG, "Sending metadata response", context.state)
         return MetadataResponse(self.sp.config)
 
     def register_endpoints(self):

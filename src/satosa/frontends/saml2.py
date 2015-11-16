@@ -15,7 +15,7 @@ from saml2.samlp import name_id_policy_from_string
 from saml2.server import Server
 from satosa.frontends.base import FrontendModule
 from satosa.internal_data import UserIdHashType, InternalRequest, DataConverter
-from satosa.logging import satosaLogging
+from satosa.logging import satosa_logging
 import satosa.service as service
 from satosa.service import response
 
@@ -75,14 +75,14 @@ class SamlFrontend(FrontendModule):
 
     def verify_request(self, idp, query, binding, state):
         if not query:
-            satosaLogging(LOGGER, logging.WARN, "Missing QUERY", state)
+            satosa_logging(LOGGER, logging.WARN, "Missing QUERY", state)
             resp = Unauthorized('Unknown user')
             return {"response": resp}
 
         req_info = idp.parse_authn_request(query, binding)
 
         _authn_req = req_info.message
-        satosaLogging(LOGGER, logging.DEBUG, "%s" % _authn_req, state)
+        satosa_logging(LOGGER, logging.DEBUG, "%s" % _authn_req, state)
 
         # Check that I know where to send the reply to
         try:
@@ -91,21 +91,21 @@ class SamlFrontend(FrontendModule):
                 bindings=self.response_bindings,
                 entity_id=_authn_req.issuer.text, request=_authn_req)
         except Exception as err:
-            satosaLogging(LOGGER, logging.ERROR, "Couldn't find receiver endpoint", state, exc_info=True)
+            satosa_logging(LOGGER, logging.ERROR, "Couldn't find receiver endpoint", state, exc_info=True)
             raise
 
-        satosaLogging(LOGGER, logging.DEBUG, "Binding: %s, destination: %s" % (binding_out, destination), state)
+        satosa_logging(LOGGER, logging.DEBUG, "Binding: %s, destination: %s" % (binding_out, destination), state)
 
         resp_args = {}
         try:
             resp_args = idp.response_args(_authn_req)
             _resp = None
         except UnknownPrincipal as excp:
-            satosaLogging(LOGGER, logging.ERROR, "Unknown principal name: %s" % excp, state)
+            satosa_logging(LOGGER, logging.ERROR, "Unknown principal name: %s" % excp, state)
             _resp = idp.create_error_response(_authn_req.id,
                                               destination, excp)
         except UnsupportedBinding as excp:
-            satosaLogging(LOGGER, logging.ERROR, "Unknown unsupported binding: %s" % excp, state)
+            satosa_logging(LOGGER, logging.ERROR, "Unknown unsupported binding: %s" % excp, state)
             _resp = idp.create_error_response(_authn_req.id,
                                               destination, excp)
 
@@ -132,10 +132,10 @@ class SamlFrontend(FrontendModule):
             _dict = self.verify_request(idp, _request["SAMLRequest"],
                                         _binding_in, context.state)
         except UnknownPrincipal as excp:
-            satosaLogging(LOGGER, logging.ERROR, "UnknownPrincipal", context.state, exc_info=True)
+            satosa_logging(LOGGER, logging.ERROR, "UnknownPrincipal", context.state, exc_info=True)
             return ServiceError("UnknownPrincipal: %s" % (excp,))
         except UnsupportedBinding as excp:
-            satosaLogging(LOGGER, logging.ERROR, "UnsupportedBinding", context.state, exc_info=True)
+            satosa_logging(LOGGER, logging.ERROR, "UnsupportedBinding", context.state, exc_info=True)
             return ServiceError("UnsupportedBinding: %s" % (excp,))
 
         _binding = _dict["resp_args"]["binding"]
@@ -145,7 +145,7 @@ class SamlFrontend(FrontendModule):
                 _dict["resp_args"]["destination"],
                 _request["RelayState"], response=True)
 
-            satosaLogging(LOGGER, logging.DEBUG, "HTTPargs: %s" % http_args, context.state, exc_info=True)
+            satosa_logging(LOGGER, logging.DEBUG, "HTTPargs: %s" % http_args, context.state, exc_info=True)
             return response(_binding, http_args)
         else:
 
@@ -170,7 +170,7 @@ class SamlFrontend(FrontendModule):
                         attribute_filter = list(idp_policy.restrict(aconv._to, sp_entity_id, idp.metadata).keys())
                 attribute_filter = self.converter.to_internal_filter("saml", attribute_filter, True)
                 internal_req.add_filter(attribute_filter)
-                satosaLogging(LOGGER, logging.DEBUG, "Filter: %s" % attribute_filter, context.state)
+                satosa_logging(LOGGER, logging.DEBUG, "Filter: %s" % attribute_filter, context.state)
 
             return self.auth_req_callback_func(context, internal_req)
 
@@ -219,7 +219,7 @@ class SamlFrontend(FrontendModule):
             resp_args["destination"],
             relay_state, response=True)
 
-        satosaLogging(LOGGER, logging.DEBUG, "HTTPargs: %s" % http_args, exception.state)
+        satosa_logging(LOGGER, logging.DEBUG, "HTTPargs: %s" % http_args, exception.state)
         return response(resp_args["binding"], http_args)
 
     def construct_authn_response(self, idp, state, identity, name_id, authn,
@@ -234,7 +234,7 @@ class SamlFrontend(FrontendModule):
             resp_args["binding"], "%s" % _resp, resp_args["destination"],
             relay_state, response=True)
 
-        satosaLogging(LOGGER, logging.DEBUG, "HTTPargs: %s" % http_args, state)
+        satosa_logging(LOGGER, logging.DEBUG, "HTTPargs: %s" % http_args, state)
 
         resp = None
         if http_args["data"]:
@@ -246,7 +246,7 @@ class SamlFrontend(FrontendModule):
 
         if not resp:
             msg = "Don't know how to return response"
-            satosaLogging(LOGGER, logging.ERROR, msg, state)
+            satosa_logging(LOGGER, logging.ERROR, msg, state)
             resp = ServiceError(msg)
 
         return resp

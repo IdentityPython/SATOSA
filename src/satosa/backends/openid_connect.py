@@ -9,7 +9,7 @@ from oic.oauth2 import rndstr
 from oic.utils.authn.authn_context import UNSPECIFIED
 from oic.utils.keyio import KeyJar
 from satosa.exception import SATOSAAuthenticationError
-from satosa.logging import satosaLogging
+from satosa.logging import satosa_logging
 from satosa.response import Redirect
 from oic.exception import MissingAttribute
 from oic import oic
@@ -24,7 +24,6 @@ from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from satosa.backends.base import BackendModule
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType, \
     DataConverter
-from satosa.state import State, cookie_to_state, state_to_cookie
 
 __author__ = 'danielevertsson'
 
@@ -212,7 +211,7 @@ class OpenIdBackend(BackendModule):
         state = context.state
         backend_state = state.get(self.config.STATE_ID)
         if backend_state["state"] != context.request["state"]:
-            satosaLogging(LOGGER, logging.DEBUG,
+            satosa_logging(LOGGER, logging.DEBUG,
                           "Missing or invalid state in authn response for state: %s" % backend_state, state)
             raise SATOSAAuthenticationError(state, "Missing or invalid state in authn response")
         client = self.restore_state(backend_state)
@@ -272,20 +271,20 @@ class Client(oic.Client):
         request_args = self.setup_authn_request_args(acr_value, kwargs, oidc_state, nonce)
 
         cis = self.construct_AuthorizationRequest(request_args=request_args)
-        satosaLogging(LOGGER, logging.DEBUG, "request: %s" % cis, state)
+        satosa_logging(LOGGER, logging.DEBUG, "request: %s" % cis, state)
 
         url, body, ht_args, cis = self.uri_and_body(AuthorizationRequest, cis,
                                                     method="GET",
                                                     request_args=request_args)
 
-        satosaLogging(LOGGER, logging.DEBUG, "body: %s" % body, state)
-        satosaLogging(LOGGER, logging.INFO, "URL: %s" % url, state)
-        satosaLogging(LOGGER, logging.DEBUG, "ht_args: %s" % ht_args, state)
+        satosa_logging(LOGGER, logging.DEBUG, "body: %s" % body, state)
+        satosa_logging(LOGGER, logging.INFO, "URL: %s" % url, state)
+        satosa_logging(LOGGER, logging.DEBUG, "ht_args: %s" % ht_args, state)
 
         resp = Redirect(str(url))
         if ht_args:
             resp.headers.extend([(a, b) for a, b in ht_args.items()])
-        satosaLogging(LOGGER, logging.DEBUG, "resp_headers: %s" % resp.headers, state)
+        satosa_logging(LOGGER, logging.DEBUG, "resp_headers: %s" % resp.headers, state)
         return resp
 
     def setup_authn_request_args(self, acr_value, kwargs, state, nonce):
@@ -316,11 +315,11 @@ class Client(oic.Client):
             if authresp["error"] == "login_required":
                 return self.create_authn_request(state, authresp["state"])
             else:
-                satosaLogging(LOGGER, logging.DEBUG, "Access denied for state: %s" % backend_state, state)
+                satosa_logging(LOGGER, logging.DEBUG, "Access denied for state: %s" % backend_state, state)
                 raise SATOSAAuthenticationError(state, "Access denied")
         try:
             if authresp["id_token"] != backend_state["nonce"]:
-                satosaLogging(LOGGER, logging.DEBUG, "Invalid nonce. for state: %s" % backend_state, state)
+                satosa_logging(LOGGER, logging.DEBUG, "Invalid nonce. for state: %s" % backend_state, state)
                 raise SATOSAAuthenticationError(state, "Invalid nonce")
             self.id_token[authresp["state"]] = authresp["id_token"]
         except KeyError:
@@ -341,12 +340,12 @@ class Client(oic.Client):
                     scope="openid", state=authresp["state"], request_args=args,
                     authn_method=self.registration_response["token_endpoint_auth_method"])
             except Exception as err:
-                satosaLogging(LOGGER, logging.ERROR, "%s" % err, state, exc_info=True)
+                satosa_logging(LOGGER, logging.ERROR, "%s" % err, state, exc_info=True)
                 raise
 
             if isinstance(atresp, ErrorResponse):
                 msg = "Invalid response %s." % atresp["error"]
-                satosaLogging(LOGGER, logging.ERROR, msg, state)
+                satosa_logging(LOGGER, logging.ERROR, msg, state)
                 raise OIDCError(msg)
 
         kwargs = {}
@@ -359,12 +358,12 @@ class Client(oic.Client):
 
         if isinstance(inforesp, ErrorResponse):
             msg = "Invalid response %s." % inforesp["error"]
-            satosaLogging(LOGGER, logging.ERROR, msg, state)
+            satosa_logging(LOGGER, logging.ERROR, msg, state)
             raise OIDCError("Invalid response %s." % inforesp["error"])
 
         userinfo = inforesp.to_dict()
 
-        satosaLogging(LOGGER, logging.DEBUG, "UserInfo: %s" % inforesp, state)
+        satosa_logging(LOGGER, logging.DEBUG, "UserInfo: %s" % inforesp, state)
 
         return userinfo
 

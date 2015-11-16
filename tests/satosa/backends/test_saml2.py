@@ -231,7 +231,7 @@ def test__start_auth_disco():
         TestConfiguration.get_instance().idpconfig,
         metadata_construction=False))
 
-    def auth_req_callback_func(context, internal_resp, state):
+    def auth_req_callback_func(context, internal_resp):
         """
         Callback function.
         :type context:
@@ -244,7 +244,7 @@ def test__start_auth_disco():
         :return:
         """
         assert isinstance(context, Context), "Not correct instance!"
-        assert state.get(test_state_key) == "my_state", "Not correct state!"
+        assert context.state.get(test_state_key) == "my_state", "Not correct state!"
         assert internal_resp.auth_info.auth_class_ref == PASSWORD, "Not correct authentication!"
         assert internal_resp.user_id_hash_type == UserIdHashType.persistent, "Must be persistent!"
         _dict = internal_resp._attributes

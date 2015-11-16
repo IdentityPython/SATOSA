@@ -56,6 +56,8 @@ class TestConfiguration(object):
         proxy_config_dict = {"HOST": 'localhost',
                              "PORT": 8090,
                              "HTTPS": True,
+                             "COOKIE_STATE_NAME": "TEST_STATE",
+                             "STATE_ENCRYPTION_KEY": "ASDasd123",
                              "PLUGIN_PATH": [os.path.dirname(__file__)],
                              "BACKEND_MODULES": [inspect.getmodulename(__file__)],
                              "FRONTEND_MODULES": [inspect.getmodulename(__file__)],

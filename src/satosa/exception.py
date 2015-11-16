@@ -1,6 +1,3 @@
-import json
-
-
 class SATOSAError(Exception):
     pass
 
@@ -12,8 +9,10 @@ class SATOSAConfigurationError(SATOSAError):
 class SATOSACriticalError(SATOSAError):
     pass
 
+
 class SATOSAUnknownError(SATOSAError):
     pass
+
 
 class SATOSAAuthenticationError(SATOSAError):
     def __init__(self, state, message, *args, **kwargs):
