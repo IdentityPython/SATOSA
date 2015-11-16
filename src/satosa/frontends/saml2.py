@@ -2,7 +2,6 @@
 import copy
 import logging
 from urllib.parse import urlparse
-from saml2.attribute_converter import from_local
 
 from saml2.config import IdPConfig
 from saml2.httputil import ServiceError
@@ -14,6 +13,7 @@ from saml2.s_utils import UnsupportedBinding
 from saml2.saml import NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT, NameID
 from saml2.samlp import name_id_policy_from_string
 from saml2.server import Server
+
 from satosa.frontends.base import FrontendModule
 from satosa.internal_data import UserIdHashType, InternalRequest, DataConverter
 import satosa.service as service
@@ -158,8 +158,23 @@ class SamlFrontend(FrontendModule):
             state = State()
             state.add(SamlFrontend.STATE_KEY, request_state)
 
-            internal_req = InternalRequest(self.name_format_to_hash_type(_dict['req_args']['name_id_policy'].format),
-                                           _dict["resp_args"]["sp_entity_id"])
+            extensions = idp.metadata.extension(
+                _dict['resp_args']['sp_entity_id'],
+                'spsso_descriptor',
+                'urn:oasis:names:tc:SAML:metadata:ui&UIInfo'
+            )
+
+            requester_name = None
+            try:
+                requester_name = extensions[0]['display_name']
+            except IndexError:
+                pass
+
+            internal_req = InternalRequest(
+                self.name_format_to_hash_type(_dict['req_args']['name_id_policy'].format),
+                _dict["resp_args"]["sp_entity_id"],
+                requester_name
+            )
 
             idp_policy = idp.config.getattr("policy", "idp")
             if idp_policy:

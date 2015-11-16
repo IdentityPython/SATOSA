@@ -515,7 +515,7 @@ class InternalData(object):
 
 
 class InternalRequest(InternalData):
-    def __init__(self, user_id_hash_type, requestor):
+    def __init__(self, user_id_hash_type, requestor, requester_name=None):
         """
 
         :param user_id_hash_type:
@@ -526,6 +526,10 @@ class InternalRequest(InternalData):
         """
         super(InternalRequest, self).__init__(user_id_hash_type)
         self.requestor = requestor
+        if requester_name:  # TODO do you need to validate this?
+            self.requester_name = requester_name
+        else:
+            self.requester_name = [{"text": requestor, "lang": "en"}]
         self._attribute_filter = []
 
     # def add_pysaml_attr_filter(self, filter_attr):

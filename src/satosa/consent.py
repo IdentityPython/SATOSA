@@ -3,15 +3,18 @@ A consent module for the satosa proxy
 """
 import hashlib
 import json
+from base64 import urlsafe_b64encode
+
 from jwkest.jws import JWS
 import requests
 from requests.exceptions import ConnectionError
-from base64 import urlsafe_b64encode
+from jwkest.jwk import rsa_load
+
+from jwkest.jwk import RSAKey
+
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
 from satosa.response import Redirect
 from satosa.state import state_to_cookie, cookie_to_state
-from jwkest.jwk import rsa_load
-from jwkest.jwk import RSAKey
 
 __author__ = 'mathiashedstrom'
 
@@ -52,7 +55,8 @@ class ConsentModule(object):
         """
         if self.enabled:
             state.add(ConsentModule.STATE_KEY, {"fr": internal_request._attribute_filter,
-                                                "reqor": internal_request.requestor})
+                                                "reqor": internal_request.requestor,
+                                                "requester_name": internal_request.requester_name})
 
     def _handle_consent_response(self, context):
         """
@@ -118,6 +122,7 @@ class ConsentModule(object):
         consent_state = state.get(ConsentModule.STATE_KEY)
         filter = consent_state["fr"]
         requestor = consent_state["reqor"]
+        requester_name = consent_state["requester_name"]
 
         #filter attributes
         filtered_data = {}
@@ -151,7 +156,8 @@ class ConsentModule(object):
 
         consent_args = {"attr": filtered_data,
                         "id": id_hash,
-                        "redirect_endpoint": "%s/consent/%s" % (self.proxy_base, self.endpoint)}
+                        "redirect_endpoint": "%s/consent/%s" % (self.proxy_base, self.endpoint),
+                        "requester_name": requester_name}
         consent_args_jws = self._to_jws(consent_args)
 
         try:
