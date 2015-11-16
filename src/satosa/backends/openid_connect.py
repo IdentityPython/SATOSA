@@ -3,14 +3,9 @@ from urllib.parse import urlparse
 import logging
 
 from jwkest.jws import alg2keytype
-
 from oic.oauth2 import rndstr
-
 from oic.utils.authn.authn_context import UNSPECIFIED
 from oic.utils.keyio import KeyJar
-from satosa.exception import SATOSAAuthenticationError
-from satosa.logging import satosa_logging
-from satosa.response import Redirect
 from oic.exception import MissingAttribute
 from oic import oic
 from oic.oauth2 import ErrorResponse
@@ -21,6 +16,9 @@ from oic.oic import AuthorizationRequest
 
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
+from satosa.exception import SATOSAAuthenticationError
+from satosa.logging import satosa_logging
+from satosa.response import Redirect
 from satosa.backends.base import BackendModule
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType, \
     DataConverter
@@ -53,7 +51,8 @@ class StateKeys:
     CLIENT_SECRET = "client_secret"
     JWKS_URI = "remote_keys_sources"
     USERINFO_ENDPOINT = "userinfo_endpoint"
-    STATE="state"
+    STATE = "state"
+
 
 COOKIE_STATE_NAME = "openid_backend_state"
 
@@ -75,11 +74,11 @@ class OpenIdBackend(BackendModule):
         super(OpenIdBackend, self).__init__(auth_callback_func, internal_attributes)
         self.auth_callback_func = auth_callback_func
         self.config = RpConfig(config)
-        self.oidc_clients = None#OIDCClients(self.config)
+        self.oidc_clients = None  # OIDCClients(self.config)
         self.converter = DataConverter(internal_attributes)
 
     def get_oidc_clients(self):
-        #if self.oidc_clients is None:
+        # if self.oidc_clients is None:
         self.oidc_clients = OIDCClients(self.config)
         return self.oidc_clients
 
@@ -89,7 +88,7 @@ class OpenIdBackend(BackendModule):
         try:
             client_key = next(iter(oidc_clients.client.keys()))
         except:
-            client_key=False
+            client_key = False
 
         if client_key:
             client = oidc_clients[client_key]
@@ -147,8 +146,8 @@ class OpenIdBackend(BackendModule):
             key = ""
         if "client_registration" not in self.config.CLIENTS[key]:
             client = oidc_clients.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
-                                                  behaviour=self.config.CLIENTS[key]["behaviour"],
-                                                  verify_ssl=self.config.VERIFY_SSL)
+                                             behaviour=self.config.CLIENTS[key]["behaviour"],
+                                             verify_ssl=self.config.VERIFY_SSL)
             client.token_endpoint = state[StateKeys.TOKEN_ENDPOINT]
             client = self.fetch_op_keys(client, state)
             self.load_client_registration_info(client, state, key)
@@ -212,7 +211,9 @@ class OpenIdBackend(BackendModule):
         backend_state = state.get(self.config.STATE_ID)
         if backend_state["state"] != context.request["state"]:
             satosa_logging(LOGGER, logging.DEBUG,
-                          "Missing or invalid state in authn response for state: %s" % backend_state, state)
+                           "Missing or invalid state in authn response for state: %s" %
+                           backend_state,
+                           state)
             raise SATOSAAuthenticationError(state, "Missing or invalid state in authn response")
         client = self.restore_state(backend_state)
         result = client.callback(context.request, state, backend_state)
@@ -225,7 +226,7 @@ class OpenIdBackend(BackendModule):
 
     def get_subject_type(self, client):
         try:
-            #oidc_clients.config.CLIENTS[""]["client_info"]["subject_type"]
+            # oidc_clients.config.CLIENTS[""]["client_info"]["subject_type"]
             supported = client.provider_info["subject_types_supported"]
             return supported[0]
         except:
@@ -313,13 +314,17 @@ class Client(oic.Client):
 
         if isinstance(authresp, ErrorResponse):
             if authresp["error"] == "login_required":
-                return self.create_authn_request(state, authresp["state"])
+                satosa_logging(LOGGER, logging.WARN, "Access denied for state: %s" % backend_state,
+                               state)
+                raise SATOSAAuthenticationError(state, "Access denied")
             else:
-                satosa_logging(LOGGER, logging.DEBUG, "Access denied for state: %s" % backend_state, state)
+                satosa_logging(LOGGER, logging.DEBUG, "Access denied for state: %s" % backend_state,
+                               state)
                 raise SATOSAAuthenticationError(state, "Access denied")
         try:
             if authresp["id_token"] != backend_state["nonce"]:
-                satosa_logging(LOGGER, logging.DEBUG, "Invalid nonce. for state: %s" % backend_state, state)
+                satosa_logging(LOGGER, logging.DEBUG,
+                               "Invalid nonce. for state: %s" % backend_state, state)
                 raise SATOSAAuthenticationError(state, "Invalid nonce")
             self.id_token[authresp["state"]] = authresp["id_token"]
         except KeyError:
@@ -352,7 +357,7 @@ class Client(oic.Client):
         try:
             kwargs = {"method": self.userinfo_request_method}
         except AttributeError:
-            kwargs = {}
+            pass
 
         inforesp = self.do_user_info_request(state=authresp["state"], **kwargs)
 

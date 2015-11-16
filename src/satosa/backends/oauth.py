@@ -3,10 +3,14 @@ This module contains classes to create OAuth 2 backends for SATOSA.
 """
 import json
 import logging
+
 from oic.utils.authn.authn_context import UNSPECIFIED
 import requests
+
 from oic.oauth2.consumer import Consumer, stateID
+
 from oic.oauth2.message import AuthorizationRequest, AuthorizationResponse
+
 from satosa.backends.base import BackendModule
 from satosa.exception import SATOSAAuthenticationError, SATOSAError
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType, \
@@ -19,26 +23,23 @@ __author__ = 'haho0032'
 
 LOGGER = logging.getLogger(__name__)
 
-class OAuthBackend(BackendModule):
 
-    def __init__(self, outgoing, internal_attributes, config, type):
+class OAuthBackend(BackendModule):
+    def __init__(self, outgoing, internal_attributes, config, external_type):
         super(OAuthBackend, self).__init__(outgoing, internal_attributes)
         self.config = config
         self.redirect_url = "%s/%s" % (self.config["base_url"], self.config["authz_page"])
         self.converter = DataConverter(internal_attributes)
-        self.type = type
+        self.external_type = external_type
 
     def get_consumer(self, user_id_hash_type):
         """
         Creates a OAuth 2.0 consumer from a given configuration.
 
-        :param user_id_hash_type: Tells the OAuth consumer how to ask for user id. I oidc can pairwise
-        and public be used.
-        :param config: Contains all the configurations for a consumer. See OAuthBacken#__init__ for more
-        information.
+        :param user_id_hash_type: Tells the OAuth consumer how to ask for user id. I oidc can
+        pairwise and public be used.
 
         :type user_id_hash_type: UserIdHashType
-        :type config: dict[str, str | dict[str, str]]
         :rtype: Consumer
         :return: An OAuth 2.0 consumer.
         """
@@ -53,9 +54,8 @@ class OAuthBackend(BackendModule):
 
     def start_auth(self, context, internal_request, get_state=stateID):
         consumer = self.get_consumer(internal_request.user_id_hash_type)
-        request_args = {}
-        request_args["redirect_uri"] = self.redirect_url
-        request_args["state"] = get_state(self.config["base_url"], rndstr().encode())
+        request_args = {"redirect_uri": self.redirect_url,
+                        "state": get_state(self.config["base_url"], rndstr().encode())}
         state_data = {
             "state": request_args["state"],
             "user_id_hash_type": internal_request.user_id_hash_type.name
@@ -69,9 +69,8 @@ class OAuthBackend(BackendModule):
         return Redirect(url)
 
     def register_endpoints(self):
-        url_map = []
-        url_map.append(("^%s?(.*)$" % self.config["authz_page"], (self.authn_response, "redirect")))
-        url_map.append(("^%s$" % self.config["authz_page"], (self.authn_response, "redirect")))
+        url_map = [("^%s?(.*)$" % self.config["authz_page"], (self.authn_response, "redirect")),
+                   ("^%s$" % self.config["authz_page"], (self.authn_response, "redirect"))]
         return url_map
 
     def verify_state(self, resp, state_data, state):
@@ -79,9 +78,12 @@ class OAuthBackend(BackendModule):
             tmp_state = ""
             if "state" in resp:
                 tmp_state = resp["state"]
-            satosa_logging(LOGGER, logging.DEBUG, "Missing or invalid state [%s] in response!" % tmp_state, state,
-                          exc_info=True)
-            raise SATOSAAuthenticationError(state, "Missing or invalid state [%s] in response!" % tmp_state)
+            satosa_logging(LOGGER, logging.DEBUG,
+                           "Missing or invalid state [%s] in response!" % tmp_state, state,
+                           exc_info=True)
+            raise SATOSAAuthenticationError(state,
+                                            "Missing or invalid state [%s] in response!" %
+                                            tmp_state)
 
     def authn_response(self, context, binding):
         state = context.state
@@ -95,9 +97,8 @@ class OAuthBackend(BackendModule):
             request = context.request
             aresp = consumer.parse_response(AuthorizationResponse, info=json.dumps(request))
             self.verify_state(aresp, state_data, state)
-            rargs = {"code": aresp["code"]}
-            rargs["redirect_uri"] = self.redirect_url
-            rargs["state"] = state_data["state"]
+            rargs = {"code": aresp["code"], "redirect_uri": self.redirect_url,
+                     "state": state_data["state"]}
             atresp = consumer.do_access_token_request(request_args=rargs, state=aresp["state"])
             if ("verify_accesstoken_state" not in self.config or
                     self.config["verify_accesstoken_state"]):
@@ -105,10 +106,12 @@ class OAuthBackend(BackendModule):
             user_info = self.user_information(atresp["access_token"])
             internal_response = InternalResponse(user_id_hash_type,
                                                  auth_info=self.auth_info(request))
-            internal_response.add_attributes(self.converter.to_internal(self.type, user_info))
+            internal_response.add_attributes(self.converter.to_internal(self.external_type,
+                                                                        user_info))
             return self.auth_callback_func(context, internal_response)
         except Exception as error:
-            satosa_logging(LOGGER, logging.DEBUG, "Not a valid authentication", state, exc_info=True)
+            satosa_logging(LOGGER, logging.DEBUG, "Not a valid authentication", state,
+                           exc_info=True)
             if isinstance(error, SATOSAError):
                 raise error
             if state is not None:
@@ -152,16 +155,16 @@ class FacebookBackend(OAuthBackend):
         payload = {'access_token': access_token}
         url = "https://graph.facebook.com/v2.5/me"
         if self.fields is not None:
-            #url += "?fields="
+            # url += "?fields="
             fields_str = ""
             first = True
             for field in self.fields:
                 if not first:
-                    #url += ","
+                    # url += ","
                     fields_str += ","
                 else:
                     first = False
-                #url += field
+                # url += field
                 fields_str += field
             payload["fields"] = fields_str
         r = self.request_fb(url, payload)

@@ -1,6 +1,7 @@
 import logging
 import os
 import base64
+
 from satosa.exception import SATOSAError
 
 __author__ = 'danielevertsson'

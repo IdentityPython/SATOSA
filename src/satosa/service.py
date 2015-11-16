@@ -12,7 +12,6 @@ from saml2.httputil import get_post
 from saml2.httputil import SeeOther
 from saml2.httputil import ServiceError
 from saml2.httputil import Response
-from saml2.httputil import BadRequest
 
 LOGGER = logging.getLogger(__name__)
 

@@ -17,12 +17,10 @@ class Context(object):
     """
     Holds information about the current request.
 
-    :param internal_data: This dict is a data carrier between frontend and backend modules.
-
     :type _path: str
     :type request: dict
-    :type _target_backend: str
-    :type _target_frontend: str | None
+    :type target_backend: str
+    :type target_frontend: str | None
     :type internal_data: dict
     :type state: satosa.state.State
     """
@@ -32,9 +30,26 @@ class Context(object):
         self.request = None
         self._target_backend = None
         self._target_frontend = None
+        # This dict is a data carrier between frontend and backend modules.
         self.internal_data = {}
         self.cookie = None
         self.state = None
+
+    @property
+    def target_backend(self):
+        return self._target_backend
+
+    @target_backend.setter
+    def target_backend(self, t):
+        self._target_backend = t
+
+    @property
+    def target_frontend(self):
+        return self._target_frontend
+
+    @target_frontend.setter
+    def target_frontend(self, t):
+        self._target_frontend = t
 
     @property
     def path(self):

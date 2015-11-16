@@ -1,5 +1,6 @@
-import six
 from urllib.parse import quote
+
+import six
 
 __author__ = 'mathiashedstrom'
 
@@ -23,14 +24,14 @@ class Response(object):
         self.headers = kwargs.get('headers', [])
 
         _content_type = kwargs.get('content', self._content_type)
-        addContentType = True
+        addcontenttype = True
         for header in self.headers:
             if 'content-type' == header[0].lower():
-                addContentType = False
-        if addContentType:
+                addcontenttype = False
+        if addcontenttype:
             self.headers.append(('Content-type', _content_type))
 
-    def addCookie(self, cookie):
+    def add_cookie(self, cookie):
         self.headers.append(tuple(cookie.output().split(": ", 1)))
 
     def __call__(self, environ, start_response, **kwargs):
@@ -69,10 +70,11 @@ class Redirect(Response):
         start_response(self.status, self.headers)
         return self.response((location, location, location))
 
+
 class SeeOther(Response):
     _template = '<html>\n<head><title>Redirecting to %s</title></head>\n' \
-        '<body>\nYou are being redirected to <a href="%s">%s</a>\n' \
-        '</body>\n</html>'
+                '<body>\nYou are being redirected to <a href="%s">%s</a>\n' \
+                '</body>\n</html>'
     _status = '303 See Other'
 
     def __init__(self, redirect_url, **kwargs):

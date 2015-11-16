@@ -8,12 +8,15 @@ __author__ = 'mathiashedstrom'
 
 LOGGER = logging.getLogger(__name__)
 
+
 class SATOSAConfig(object):
     """
-    A configuration class for the satosa proxy. Verifies that the given config holds all the necessary parameters.
+    A configuration class for the satosa proxy. Verifies that the given config holds all the
+    necessary parameters.
     """
     mandatory_dict_keys = ["HOST", "PORT", "HTTPS", "PLUGIN_PATH", "BACKEND_MODULES",
-                           "FRONTEND_MODULES", "INTERNAL_ATTRIBUTES", "COOKIE_STATE_NAME", "STATE_ENCRYPTION_KEY"]
+                           "FRONTEND_MODULES", "INTERNAL_ATTRIBUTES", "COOKIE_STATE_NAME",
+                           "STATE_ENCRYPTION_KEY"]
 
     def __init__(self, config):
         """
@@ -33,6 +36,7 @@ class SATOSAConfig(object):
                 break
 
         self._verify_dict(self._config)
+        _internal_attributes = None
         if "INTERNAL_ATTRIBUTES" in self._config:
             internal_attr_file = self._config["INTERNAL_ATTRIBUTES"]
             for parser in dict_parsers:
@@ -43,7 +47,8 @@ class SATOSAConfig(object):
             self._config["INTERNAL_ATTRIBUTES"] = _internal_attributes
         else:
             self._config["INTERNAL_ATTRIBUTES"] = None
-        if not hasattr(self, "BASE"):  # construct base url from host+port if not specified in config
+        if not hasattr(self,
+                       "BASE"):  # construct base url from host+port if not specified in config
             scheme = "http"
             if self._config["HTTPS"]:
                 scheme = "https"
@@ -61,7 +66,7 @@ class SATOSAConfig(object):
         :param conf: config to verify
         :return: None
         """
-        if not conf is not None and isinstance(conf, dict):
+        if not (conf is not None and isinstance(conf, dict)):
             msg = "Missing configuration or unknown format"
             LOGGER.critical(msg)
             raise AssertionError(msg)
@@ -131,8 +136,9 @@ class SATOSAConfig(object):
         try:
             config = SATOSAConfig._readfile(config)
             import json
+
             return json.loads(config)
-        except ValueError as e:  # not a json config
+        except ValueError as error:  # not a json config
             pass
 
     @staticmethod

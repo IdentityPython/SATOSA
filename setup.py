@@ -24,6 +24,7 @@ setup(
                       "pyjwkest",
                       "requests",
                       "PyYAML",
+                      "pycrypto",
                       ],
     zip_safe=False,
 )

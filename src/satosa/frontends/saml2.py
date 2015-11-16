@@ -11,8 +11,11 @@ from saml2.httputil import Unauthorized
 from saml2.s_utils import UnknownPrincipal
 from saml2.s_utils import UnsupportedBinding
 from saml2.saml import NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT, NameID
+
 from saml2.samlp import name_id_policy_from_string
+
 from saml2.server import Server
+
 from satosa.frontends.base import FrontendModule
 from satosa.internal_data import UserIdHashType, InternalRequest, DataConverter
 from satosa.logging import satosa_logging
@@ -90,11 +93,13 @@ class SamlFrontend(FrontendModule):
                 "assertion_consumer_service",
                 bindings=self.response_bindings,
                 entity_id=_authn_req.issuer.text, request=_authn_req)
-        except Exception as err:
-            satosa_logging(LOGGER, logging.ERROR, "Couldn't find receiver endpoint", state, exc_info=True)
+        except Exception as error:
+            satosa_logging(LOGGER, logging.ERROR, "Couldn't find receiver endpoint", state,
+                           exc_info=True)
             raise
 
-        satosa_logging(LOGGER, logging.DEBUG, "Binding: %s, destination: %s" % (binding_out, destination), state)
+        satosa_logging(LOGGER, logging.DEBUG,
+                       "Binding: %s, destination: %s" % (binding_out, destination), state)
 
         resp_args = {}
         try:
@@ -135,7 +140,8 @@ class SamlFrontend(FrontendModule):
             satosa_logging(LOGGER, logging.ERROR, "UnknownPrincipal", context.state, exc_info=True)
             return ServiceError("UnknownPrincipal: %s" % (excp,))
         except UnsupportedBinding as excp:
-            satosa_logging(LOGGER, logging.ERROR, "UnsupportedBinding", context.state, exc_info=True)
+            satosa_logging(LOGGER, logging.ERROR, "UnsupportedBinding", context.state,
+                           exc_info=True)
             return ServiceError("UnsupportedBinding: %s" % (excp,))
 
         _binding = _dict["resp_args"]["binding"]
@@ -145,7 +151,8 @@ class SamlFrontend(FrontendModule):
                 _dict["resp_args"]["destination"],
                 _request["RelayState"], response=True)
 
-            satosa_logging(LOGGER, logging.DEBUG, "HTTPargs: %s" % http_args, context.state, exc_info=True)
+            satosa_logging(LOGGER, logging.DEBUG, "HTTPargs: %s" % http_args, context.state,
+                           exc_info=True)
             return response(_binding, http_args)
         else:
 
@@ -157,8 +164,9 @@ class SamlFrontend(FrontendModule):
             request_state = self.save_state(context, _dict, _request, idp)
             context.state.add(SamlFrontend.STATE_KEY, request_state)
 
-            internal_req = InternalRequest(self.name_format_to_hash_type(_dict['req_args']['name_id_policy'].format),
-                                           _dict["resp_args"]["sp_entity_id"])
+            internal_req = InternalRequest(
+                self.name_format_to_hash_type(_dict['req_args']['name_id_policy'].format),
+                _dict["resp_args"]["sp_entity_id"])
             idp_policy = idp.config.getattr("policy", "idp")
             if idp_policy:
                 sp_entity_id = _dict["resp_args"]["sp_entity_id"]
@@ -167,10 +175,12 @@ class SamlFrontend(FrontendModule):
                 attribute_filter = []
                 for aconv in attrconvs:
                     if aconv.name_format == name_format:
-                        attribute_filter = list(idp_policy.restrict(aconv._to, sp_entity_id, idp.metadata).keys())
+                        attribute_filter = list(
+                            idp_policy.restrict(aconv._to, sp_entity_id, idp.metadata).keys())
                 attribute_filter = self.converter.to_internal_filter("saml", attribute_filter, True)
                 internal_req.add_filter(attribute_filter)
-                satosa_logging(LOGGER, logging.DEBUG, "Filter: %s" % attribute_filter, context.state)
+                satosa_logging(LOGGER, logging.DEBUG, "Filter: %s" % attribute_filter,
+                               context.state)
 
             return self.auth_req_callback_func(context, internal_req)
 
@@ -212,7 +222,8 @@ class SamlFrontend(FrontendModule):
         loaded_state = self.load_state(exception.state)
         relay_state = loaded_state["relay_state"]
         resp_args = loaded_state["resp_args"]
-        error_resp = idp.create_error_response(resp_args["in_response_to"], resp_args["destination"],
+        error_resp = idp.create_error_response(resp_args["in_response_to"],
+                                               resp_args["destination"],
                                                Exception(exception.message))
         http_args = idp.apply_binding(
             resp_args["binding"], "%s" % error_resp,

@@ -2,12 +2,14 @@
 Micro service for SATOSA
 """
 import logging
+
 from satosa.exception import SATOSAAuthenticationError
 from satosa.logging import satosa_logging
 
 __author__ = 'mathiashedstrom'
 
 LOGGER = logging.getLogger(__name__)
+
 
 class MicroService(object):
     """
@@ -23,12 +25,10 @@ class MicroService(object):
 
         :type context: satosa.context.Context
         :type data: satosa.internal_data.InternalResponse | satosa.internal_data.InternalRequest
-        :type state: satosa.state.State
         :rtype: satosa.internal_data.InternalResponse | satosa.internal_data.InternalRequest
 
         :param context: The current context
         :param data: Data to be modified
-        :param state: The current state. Only used if there is a error
         :return: Modified data
         """
         if self._child_service:
@@ -36,7 +36,8 @@ class MicroService(object):
         try:
             return self.process(context, data)
         except Exception as err:
-            satosa_logging(LOGGER, logging.DEBUG, "Micro service error.", context.state, exc_info=True)
+            satosa_logging(LOGGER, logging.DEBUG, "Micro service error.", context.state,
+                           exc_info=True)
             raise SATOSAAuthenticationError(context.state, "Micro service error") from err
 
     def process(self, context, data):
@@ -58,22 +59,34 @@ class ResponseMicroService(MicroService):
     """
     Base class for response micro services
     """
-    pass
+
+    def process(self, context, data):
+        """
+        @see MicroService#process
+        """
+        raise NotImplementedError
 
 
 class RequestMicroService(MicroService):
     """
     Base class for request micro services
     """
-    pass
+
+    def process(self, context, data):
+        """
+        @see MicroService#process
+        """
+        raise NotImplementedError
 
 
 def build_micro_service_queue(services):
     """
     Builds a micro service queue from a list of micro services
 
-    :type services: list[satosa.micro_service.service_base.ResponseMicroService| satosa.micro_service.service_base.RequestMicroService]
-    :rtype: satosa.micro_service.service_base.ResponseMicroService| satosa.micro_service.service_base.RequestMicroService
+    :type services: list[satosa.micro_service.service_base.ResponseMicroService|
+    satosa.micro_service.service_base.RequestMicroService]
+    :rtype: satosa.micro_service.service_base.ResponseMicroService|
+    satosa.micro_service.service_base.RequestMicroService
 
     :param services: A list of micro services
     :return: A micro service queue

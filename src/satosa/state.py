@@ -11,7 +11,9 @@ import logging
 from lzma import LZMADecompressor, LZMACompressor
 
 from Crypto import Random
+
 from Crypto.Cipher import AES
+
 from satosa.exception import SATOSAError
 from satosa.logging import satosa_logging
 
@@ -42,8 +44,9 @@ def state_to_cookie(state, name, path, encryption_key):
     :param encryption_key: Key to encrypt the state information
     :return: A cookie
     """
-    satosa_logging(LOGGER, logging.DEBUG, "Saving state as cookie, secure: %s, max-age: %s, path: %s" %
-                 (STATE_COOKIE_SECURE, STATE_COOKIE_MAX_AGE, path), state)
+    satosa_logging(LOGGER, logging.DEBUG,
+                   "Saving state as cookie, secure: %s, max-age: %s, path: %s" %
+                   (STATE_COOKIE_SECURE, STATE_COOKIE_MAX_AGE, path), state)
     cookie = SimpleCookie()
     cookie[name] = state.urlstate(encryption_key)
     cookie[name]["secure"] = STATE_COOKIE_SECURE
@@ -72,7 +75,8 @@ def cookie_to_state(cookie_str, name, encryption_key):
         return state
     except KeyError:
         LOGGER.debug("Did not find cookie named '%s' in cookie string '%s'" % (name, cookie_str))
-        raise SATOSAStateError("No cookie named '{}' in cookie string '{}'".format(name, cookie_str))
+        raise SATOSAStateError(
+            "No cookie named '{}' in cookie string '{}'".format(name, cookie_str))
 
 
 class AESCipher(object):
@@ -199,7 +203,7 @@ class State(object):
 
 
         :type key: str
-        :rtype: object
+        :rtype: Any
 
         :param key:
         :return: A python object generated from a json string. So dictionary/list containing
@@ -241,3 +245,7 @@ class State(object):
 
     def __str__(self):
         return self._state_dict
+
+    @property
+    def state_dict(self):
+        return copy.deepcopy(self._state_dict)

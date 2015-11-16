@@ -4,19 +4,24 @@ A consent module for the satosa proxy
 import hashlib
 import json
 import logging
+from base64 import urlsafe_b64encode
+
 from jwkest.jws import JWS
 import requests
 from requests.exceptions import ConnectionError
-from base64 import urlsafe_b64encode
+
+from jwkest.jwk import rsa_load
+
+from jwkest.jwk import RSAKey
+
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
 from satosa.logging import satosa_logging
 from satosa.response import Redirect
-from jwkest.jwk import rsa_load
-from jwkest.jwk import RSAKey
 
 __author__ = 'mathiashedstrom'
 
 LOGGER = logging.getLogger(__name__)
+
 
 class ConsentModule(object):
     """
@@ -27,7 +32,8 @@ class ConsentModule(object):
 
     def __init__(self, config, callback_func):
         self.callback_func = callback_func
-        self.enabled = "CONSENT" in config and ("enable" not in config.CONSENT or config.CONSENT["enable"])
+        self.enabled = \
+            "CONSENT" in config and ("enable" not in config.CONSENT or config.CONSENT["enable"])
         if self.enabled:
             self.proxy_base = config.BASE
             self.state_enc_key = config.CONSENT["state_enc_key"]
@@ -56,7 +62,7 @@ class ConsentModule(object):
         :return: None
         """
         if self.enabled:
-            state.add(ConsentModule.STATE_KEY, {"filter": internal_request._attribute_filter,
+            state.add(ConsentModule.STATE_KEY, {"filter": internal_request.get_filter(),
                                                 "requestor": internal_request.requestor})
 
     def _handle_consent_response(self, context):
@@ -77,18 +83,21 @@ class ConsentModule(object):
         auth_info = AuthenticationInformation(saved_resp["auth_info"]["auth_class_ref"],
                                               saved_resp["auth_info"]["timestamp"],
                                               saved_resp["auth_info"]["issuer"])
-        internal_response = InternalResponse(getattr(UserIdHashType, saved_resp["hash_type"]), auth_info=auth_info)
+        internal_response = InternalResponse(getattr(UserIdHashType, saved_resp["hash_type"]),
+                                             auth_info=auth_info)
         internal_response._attributes = saved_resp["attr"]
         internal_response.user_id = saved_resp["usr_id"]
 
         requestor = consent_state["requestor"]
 
-        hash_id = self._get_consent_id(requestor, internal_response.user_id, list(internal_response._attributes.keys()))
+        hash_id = self._get_consent_id(requestor, internal_response.user_id,
+                                       list(internal_response.get_attributes().keys()))
 
         try:
             consent_given = self._verify_consent(hash_id)
         except ConnectionError:
-            satosa_logging(LOGGER, logging.ERROR, "Consent service is not reachable, no consent given.", state)
+            satosa_logging(LOGGER, logging.ERROR,
+                           "Consent service is not reachable, no consent given.", state)
             # Send an internal_response without any attributes
             consent_given = False
 
@@ -119,28 +128,30 @@ class ConsentModule(object):
             return self.callback_func(context, internal_response)
 
         consent_state = state.get(ConsentModule.STATE_KEY)
-        filter = consent_state["filter"]
+        attr_filter = consent_state["filter"]
         requestor = consent_state["requestor"]
 
         # filter attributes
         filtered_data = {}
-        for attr in filter:
-           if attr in internal_response._attributes:
-               data = internal_response._attributes[attr]
-               if not isinstance(data, list):
-                   data = [data]
-               filtered_data[attr] = data
+        for attr in attr_filter:
+            if attr in internal_response.get_attributes():
+                data = internal_response.get_attributes()[attr]
+                if not isinstance(data, list):
+                    data = [data]
+                filtered_data[attr] = data
         # Update internal response
         internal_response._attributes = filtered_data
 
-        id_hash = self._get_consent_id(requestor, internal_response.user_id, list(filtered_data.keys()))
+        id_hash = self._get_consent_id(requestor, internal_response.user_id,
+                                       list(filtered_data.keys()))
 
         try:
             # Check if consent is already given
             if self._verify_consent(id_hash):
                 return self.callback_func(context, internal_response)
         except ConnectionError:
-            satosa_logging(LOGGER, logging.ERROR, "Consent service is not reachable, no consent given.", state)
+            satosa_logging(LOGGER, logging.ERROR,
+                           "Consent service is not reachable, no consent given.", state)
             # Send an internal_response without any attributes
             internal_response._attributes = {}
             return self.callback_func(context, internal_response)
@@ -156,7 +167,8 @@ class ConsentModule(object):
         try:
             ticket = self._consent_registration(consent_args_jws)
         except (ConnectionError, AssertionError):
-            satosa_logging(LOGGER, logging.ERROR, "Consent service is not reachable, no consent given.", state)
+            satosa_logging(LOGGER, logging.ERROR,
+                           "Consent service is not reachable, no consent given.", state)
             # Send an internal_response without any attributes
             internal_response._attributes = {}
             return self.callback_func(context, internal_response)
@@ -179,18 +191,17 @@ class ConsentModule(object):
         """
         filtered_attr.sort()
         id_string = "%s%s%s" % (requestor, user_id, json.dumps(filtered_attr))
-        return urlsafe_b64encode(hashlib.sha224(id_string.encode("utf-8")).hexdigest().encode("utf-8")).decode("utf-8")
+        return urlsafe_b64encode(
+            hashlib.sha224(id_string.encode("utf-8")).hexdigest().encode("utf-8")).decode("utf-8")
 
     def _consent_registration(self, jws):
         """
         Register a request at the consent service
 
         :type jws: str
-        :type state: satosa.state.State
         :rtype: str
 
         :param jws: A jws containing id, redirect_endpoint and attr
-        :param state: The current state
         :return: Ticket received from the consent service
         """
         try:
@@ -204,18 +215,19 @@ class ConsentModule(object):
         ticket = res.text
         return ticket
 
-    def _verify_consent(self, id):
+    def _verify_consent(self, consent_id):
         """
         Connects to the consent service using the REST api and checks if the user has given consent
 
-        :type id: str
+        :type consent_id: str
         :rtype: bool
 
-        :param id: An id associated to the authenticated user, the calling requestor and attributes to be sent.
+        :param consent_id: An id associated to the authenticated user, the calling requestor and
+        attributes to be sent.
         :return: True if given consent, else False
         """
         try:
-            request = "{}/verify/{}".format(self.consent_uri, id)
+            request = "{}/verify/{}".format(self.consent_uri, consent_id)
             res = requests.get(request, verify=self.verify_ssl)
         except ConnectionError as con_exc:
             raise ConnectionError("Could not connect to consent service") from con_exc
@@ -234,7 +246,7 @@ class ConsentModule(object):
         # TODO move to InternalResponse?
         auth_info = internal_response.auth_info
         response_state = {"usr_id": internal_response.user_id,
-                          "attr": internal_response._attributes,
+                          "attr": internal_response.get_attributes(),
                           "hash_type": internal_response.user_id_hash_type.name,
                           "auth_info": {"issuer": auth_info.issuer,
                                         "timestamp": auth_info.timestamp,

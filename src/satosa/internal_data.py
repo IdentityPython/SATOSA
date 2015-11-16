@@ -14,46 +14,49 @@ class DataConverter(object):
     """
     Converts between internal and external data format
     """
+
     def __init__(self, internal_attributes):
         """
         :type internal_attributes: dict[str, dict[str, str]]
-        :param internal_attributes: A map of how to convert the attributes (dict[internal_name, dict[external_type, external_name]])
+        :param internal_attributes: A map of how to convert the attributes
+        (dict[internal_name, dict[external_type, external_name]])
         """
         self.to_internal_attributes = {}
         self.to_internal_attributes_lower = {}
         self.separator = internal_attributes["separator"]
         self.from_internal_attributes = internal_attributes["attributes"]
         for internal_key in self.from_internal_attributes:
-            for type in self.from_internal_attributes[internal_key]:
-                if type not in self.to_internal_attributes:
-                    self.to_internal_attributes[type] = {}
-                    self.to_internal_attributes_lower[type] = {}
-                for external_key in self.from_internal_attributes[internal_key][type]:
-                    self.to_internal_attributes[type][external_key] = internal_key
-                    self.to_internal_attributes_lower[type][external_key.lower()] = internal_key
+            for tmp_type in self.from_internal_attributes[internal_key]:
+                if tmp_type not in self.to_internal_attributes:
+                    self.to_internal_attributes[tmp_type] = {}
+                    self.to_internal_attributes_lower[tmp_type] = {}
+                for external_key in self.from_internal_attributes[internal_key][tmp_type]:
+                    self.to_internal_attributes[tmp_type][external_key] = internal_key
+                    self.to_internal_attributes_lower[tmp_type][external_key.lower()] = internal_key
 
-    def to_internal_filter(self, type, external_keys, case_insensitive=False):
+    def to_internal_filter(self, external_type, external_keys, case_insensitive=False):
         """
         Converts attribute names from external "type" to internal
 
-        :type type: str
+        :type external_type: str
         :type external_keys: list[str]
         :type case_insensitive: bool
         :rtype: list[str]
 
-        :param type: From which external type to convert (ex: oidc, saml, ...)
+        :param external_type: From which external type to convert (ex: oidc, saml, ...)
         :param external_keys: A list of attribute names
         :param case_insensitive: Create a case insensitive filter
         :return: A list of attribute names in the internal format
         """
         internal_keys = []
         for external_key in external_keys:
-            if external_key in self.to_internal_attributes[type] or \
-                    (case_insensitive and external_key in self.to_internal_attributes_lower[type]):
+            if external_key in self.to_internal_attributes[external_type] or \
+                    (case_insensitive and external_key in
+                        self.to_internal_attributes_lower[external_type]):
                 if case_insensitive:
-                    internal_key = self.to_internal_attributes_lower[type][external_key]
+                    internal_key = self.to_internal_attributes_lower[external_type][external_key]
                 else:
-                    internal_key = self.to_internal_attributes[type][external_key]
+                    internal_key = self.to_internal_attributes[external_type][external_key]
                 if internal_key not in internal_keys:
                     internal_keys.append(internal_key)
         return internal_keys
@@ -68,30 +71,33 @@ class DataConverter(object):
                 tmp_attributes[new_key] = my_dict[tmp_key]
         return tmp_attributes
 
-    def to_internal(self, type, external_dict):
+    def to_internal(self, external_type, external_dict):
         """
         Converts the external data from "type" to internal
 
-        :type type: str
+        :type external_type: str
         :type external_dict: dict[str, str]
         :rtype: dict[str, str]
 
-        :param type: From which external type to convert (ex: oidc, saml, ...)
+        :param external_type: From which external type to convert (ex: oidc, saml, ...)
         :param external_dict: Attributes in the external format
         :return: Attributes in the internal format
         """
         internal_dict = {}
         for external_key in external_dict.keys():
             if isinstance(external_dict[external_key], dict):
-                if external_key in self.to_internal_attributes[type]:
-                    internal_key = self.to_internal_attributes[type][external_key]
+                if external_key in self.to_internal_attributes[external_type]:
+                    internal_key = self.to_internal_attributes[external_type][external_key]
                     if internal_key not in internal_dict:
                         internal_dict[internal_key] = []
                     internal_dict[internal_key].append(json.dumps(external_dict[external_key]))
                 else:
-                    internal_dict.update(self.to_internal(type, self._get_attr_value_key(external_key, external_dict[external_key])))
-            elif external_key in self.to_internal_attributes[type]:
-                internal_key = self.to_internal_attributes[type][external_key]
+                    internal_dict.update(
+                        self.to_internal(external_type,
+                                         self._get_attr_value_key(external_key,
+                                                                  external_dict[external_key])))
+            elif external_key in self.to_internal_attributes[external_type]:
+                internal_key = self.to_internal_attributes[external_type][external_key]
                 if internal_key not in internal_dict:
                     internal_dict[internal_key] = []
                 if isinstance(external_dict[external_key], list):
@@ -100,27 +106,26 @@ class DataConverter(object):
                     internal_dict[internal_key].append(external_dict[external_key])
         return internal_dict
 
-    def from_internal(self, type, internal_dict, list=True, external_keys=None):
+    def from_internal(self, external_type, internal_dict, attr_list=True, external_keys=None):
         # TODO doc about external_keys
         """
         Converts the internal data to "type"
 
-        :type type: str
+        :type external_type: str
         :type internal_dict: dict[str, str]
-        :type list: bool
+        :type attr_list: bool
         :type external_keys:
         :rtype: dict[str, str]
 
-        :param type: To which external type to convert (ex: oidc, saml, ...)
-        :param external_dict: Attributes in the internal format
-        :param list: Should all attribute values be in a list
+        :param external_type: To which external type to convert (ex: oidc, saml, ...)
+        :param attr_list: Should all attribute values be in a list
         :param external_keys:
         :return: Attributes in the "type" format
         """
         external_dict = {}
         for internal_key in internal_dict:
             if internal_key in self.from_internal_attributes:
-                _external_keys = self.from_internal_attributes[internal_key][type]
+                _external_keys = self.from_internal_attributes[internal_key][external_type]
                 if _external_keys:
                     _external_key = None
                     if external_keys:
@@ -136,7 +141,7 @@ class DataConverter(object):
                             if _tmp_key not in _external_dict:
                                 _external_dict[_tmp_key] = {}
                             _external_dict = _external_dict[_tmp_key]
-                    if list:
+                    if attr_list:
                         _external_dict[_external_key] = internal_dict[internal_key]
                     else:
                         if internal_dict[internal_key]:
@@ -154,7 +159,7 @@ class UserIdHashType(Enum):
     public = 3
 
 
-class UserIdHasher():
+class UserIdHasher(object):
     """
     Class for creating different user id types
     """
@@ -213,6 +218,7 @@ class AuthenticationInformation(object):
     """
     Class that holds information about the authentication
     """
+
     def __init__(self, auth_class_ref, timestamp, issuer):
         """
         Initiate the data carrier
@@ -235,6 +241,7 @@ class InternalData(object):
     """
     A base class for the data carriers between frontends/backends
     """
+
     def __init__(self, user_id_hash_type):
         self.user_id_hash_type = user_id_hash_type
 
@@ -263,12 +270,13 @@ class InternalRequest(InternalData):
         """
         self._attribute_filter = filter_attr
 
+    def get_filter(self):
+        return self._attribute_filter
+
 
 class InternalResponse(InternalData):
     """
     Holds internal representation of service related data.
-
-    :param _attributes: This dict is a data carrier between frontend and backend modules.
 
     :type _user_id: str
     :type _attributes: dict[str, str]
@@ -279,6 +287,7 @@ class InternalResponse(InternalData):
     def __init__(self, user_id_hash_type, auth_info=None):
         super(InternalResponse, self).__init__(user_id_hash_type)
         self._user_id = None
+        #This dict is a data carrier between frontend and backend modules.
         self._attributes = {}
         self.auth_info = auth_info
 
@@ -292,14 +301,14 @@ class InternalResponse(InternalData):
         """
         return self._attributes
 
-    def add_attributes(self, dict):
+    def add_attributes(self, attr_dict):
         """
         Add user attributes converted to the internal format
 
-        :type dict: dict[str, str]
-        :param dict: A dictionary containing user attributes converted to the internal format
+        :type attr_dict: dict[str, str]
+        :param attr_dict: A dictionary containing user attributes converted to the internal format
         """
-        self._attributes= dict
+        self._attributes = attr_dict
 
     @property
     def user_id(self):
