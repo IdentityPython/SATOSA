@@ -16,7 +16,6 @@ config:
     srv_discovery_url: https://accounts.google.com/
     userinfo_request_method: GET
   op_url: https://accounts.google.com
-  state_encryption_key:
   state_id:
   verify_ssl: false
 

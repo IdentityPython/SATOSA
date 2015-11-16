@@ -18,6 +18,5 @@ config:
       subject_type: pairwise
     userid: https://localhost:7092
   op_url: https://localhost:7092
-  state_encryption_key:
   state_id:
   verify_ssl: false

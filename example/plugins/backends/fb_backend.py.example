@@ -31,8 +31,6 @@ class FacebookPlugin(BackendModulePlugin):
                 "token_endpoint": "https://graph.facebook.com/v2.5/oauth/access_token"
             },
             "client_secret": "",
-            "encryption_key": "",
-            "state_encryption_key": "",
             "fields": ["id", "name", "first_name", "last_name", "middle_name", "picture",
                        "email", "verified", "gender", "timezone", "locale", "updated_time"]
         }

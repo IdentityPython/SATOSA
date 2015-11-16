@@ -9,7 +9,6 @@
         ],
         "verify_ssl": false,
         "op_url": "https://accounts.google.com",
-        "state_encryption_key": "",
         "state_id": "",
         "client": {
             "srv_discovery_url": "https://accounts.google.com/",
