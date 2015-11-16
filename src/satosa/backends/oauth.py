@@ -106,7 +106,7 @@ class OAuthBackend(BackendModule):
             internal_response = InternalResponse(user_id_hash_type,
                                                  auth_info=self.auth_info(request))
             internal_response.add_attributes(self.converter.to_internal(self.type, user_info))
-            return self.auth_callback_func(context, internal_response, state)
+            return self.auth_callback_func(context, internal_response)
         except Exception as error:
             satosaLogging(LOGGER, logging.DEBUG, "Not a valid authentication", state, exc_info=True)
             if isinstance(error, SATOSAError):
