@@ -21,7 +21,7 @@ from satosa.service import unpack_either
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 's2s.log'
 hdlr = logging.FileHandler(LOGFILE_NAME)
-base_formatter = logging.Formatter("%(asctime)s %(name)s:%(levelname)s %(message)s")
+base_formatter = logging.Formatter("[%(asctime)-19.19s] [%(levelname)-5.5s]: %(message)s")
 
 hdlr.setFormatter(base_formatter)
 LOGGER.addHandler(hdlr)
@@ -79,7 +79,7 @@ def main():
 
     server_config = SATOSAConfig(args.proxy_config)
 
-    base_formatter = logging.Formatter("%(asctime)s %(name)s:%(levelname)s %(message)s")
+    base_formatter = logging.Formatter("[%(asctime)-19.19s] [%(levelname)-5.5s]: %(message)s")
 
     satosa_logger = logging.getLogger("satosa")
     hdlr = logging.FileHandler("satosa.log")
