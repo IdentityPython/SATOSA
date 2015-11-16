@@ -4,6 +4,7 @@ The SATOSA main module
 import json
 import logging
 import random
+from uuid import uuid4
 from satosa.consent import ConsentModule
 from satosa.context import Context
 from satosa.exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
@@ -144,7 +145,7 @@ class SATOSABase(object):
             else:
                 return spec(context)
         except SATOSAAuthenticationError as error:
-            error.error_id = random.getrandbits(50)
+            error.error_id = uuid4().urn
             msg = "ERROR_ID [{err_id}]\nSTATE:\n{state}".format(err_id=error.error_id,
                                                                            state=json.dumps(error.state._state_dict,
                                                                                             indent=4))

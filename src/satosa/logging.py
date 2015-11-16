@@ -1,4 +1,5 @@
 import random
+from uuid import uuid4
 
 __author__ = 'mathiashedstrom'
 
@@ -27,6 +28,6 @@ def satosa_logging(logger, level, message, state, **kwargs):
         try:
             session_id = state.get(LOGGER_STATE_KEY)
         except KeyError:
-            session_id = random.getrandbits(50)
+            session_id = uuid4().urn
             state.add(LOGGER_STATE_KEY, session_id)
     logger.log(level, "[{id}] {msg}".format(id=session_id, msg=message), **kwargs)

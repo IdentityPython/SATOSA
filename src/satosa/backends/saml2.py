@@ -36,7 +36,6 @@ class SamlBackend(BackendModule):
         super(SamlBackend, self).__init__(outgoing, internal_attributes)
         sp_config = SPConfig().load(copy.deepcopy(config["config"]), False)
 
-        self.state_encryption_key = config["encryption_key"]
         self.sp = Base(sp_config)
         self.idp_disco_query_param = "entityID"
         self.config = config

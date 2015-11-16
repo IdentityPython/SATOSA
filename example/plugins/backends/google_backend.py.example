@@ -25,7 +25,6 @@ class OpenidPlugin(BackendModulePlugin):
             "acr_values": ["PASSWORD"],
             "verify_ssl": False,
             "op_url": "https://accounts.google.com",
-            "state_encryption_key": "",
             "state_id": "",
             "client": {
                 "srv_discovery_url": "https://accounts.google.com/",

@@ -14,10 +14,7 @@
     },
     "response_type": "code",
     "client_secret": "",
-    "state_cookie_name": "facebook_backend",
-    "encryption_key": "",
     "state_key": "",
-    "state_encryption_key": "",
     "verify_accesstoken_state": false,
     "fields": [
       "id",
