@@ -115,7 +115,7 @@ TESTDATA_HANDLE_AUTHN_REQUEST = \
      (CONFIG_ERR3, None, None, AssertionError),
      (CONFIG, None, None, TypeError),
      (CONFIG, "whatever", None, TypeError),
-     (CONFIG, "redirect", ["qwerty", "ytrewq"], None)]
+     (CONFIG, BINDING_HTTP_REDIRECT, ["qwerty", "ytrewq"], None)]
 
 
 @pytest.mark.parametrize("conf, binding_in, providers, error", TESTDATA_HANDLE_AUTHN_REQUEST)
