@@ -81,8 +81,8 @@ class TestFacebook:
 
     def test_register_endpoints(self):
         resp_map = self.fb_backend.register_endpoints()
-        test_map = [('^facebook?(.*)$', (self.fb_backend.authn_response)),
-                    ('^facebook$', (self.fb_backend.authn_response, 'redirect'))]
+        test_map = [('^facebook?(.*)$', self.fb_backend.authn_response),
+                    ('^facebook$', self.fb_backend.authn_response)]
         assert len(resp_map) == len(test_map), "The endpoint registration is not working!"
         for idx, val in enumerate(resp_map):
             assert val == test_map[idx], "The endpoint registration is not working!"
