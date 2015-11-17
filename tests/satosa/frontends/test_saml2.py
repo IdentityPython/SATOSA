@@ -157,7 +157,7 @@ def test_handle_authn_request(conf, binding_in, providers, error):
                 assert key in resp.ava
                 assert USERS["testuser1"][key] == resp.ava[key]
 
-        samlfrontend = SamlFrontend(auth_req_callback_func,INTERNAL_ATTRIBUTES, conf)
+        samlfrontend = SamlFrontend(auth_req_callback_func, INTERNAL_ATTRIBUTES, conf)
     except Exception as exception:
         if error is None or not isinstance(exception, error):
             raise exception
