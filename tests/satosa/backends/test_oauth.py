@@ -81,8 +81,8 @@ class TestFacebook:
 
     def test_register_endpoints(self):
         resp_map = self.fb_backend.register_endpoints()
-        test_map = [('^facebook?(.*)$', (self.fb_backend.authn_response, 'redirect')),
-                    ('^facebook$', (self.fb_backend.authn_response, 'redirect'))]
+        test_map = [('^facebook?(.*)$', self.fb_backend.authn_response),
+                    ('^facebook$', self.fb_backend.authn_response)]
         assert len(resp_map) == len(test_map), "The endpoint registration is not working!"
         for idx, val in enumerate(resp_map):
             assert val == test_map[idx], "The endpoint registration is not working!"
@@ -148,7 +148,7 @@ class TestFacebook:
         self.fb_backend.get_consumer = Mock()
         self.fb_backend.get_consumer.return_value = tmp_consumer
         self.fb_backend.request_fb = self.verify_request_fb
-        self.fb_backend.authn_response(context, "redirect")
+        self.fb_backend.authn_response(context)
 
     @responses.activate
     def test_with_pyoidc(self):
@@ -180,4 +180,4 @@ class TestFacebook:
             "state": STATE
         }
         self.fb_backend.auth_callback_func = self.verify_callback
-        self.fb_backend.authn_response(context, "redirect")
+        self.fb_backend.authn_response(context)
