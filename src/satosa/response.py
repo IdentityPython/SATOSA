@@ -157,11 +157,13 @@ def geturl(environ, query=True, path=True, use_server_name=False):
     server_name and server_port instead of http_host in some case.
     The parameter use_server_name allows you to chose.
 
+    :type environ: any
     :type query: str
     :type path: str
     :type use_server_name: bool
     :rtype: str
 
+    :param environ: whiskey app environment
     :param query: Is QUERY_STRING included in URI (default: True)
     :param path: Is path included in URI (default: True)
     :param use_server_name: If SERVER_NAME/_HOST should be used instead of

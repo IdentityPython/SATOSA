@@ -5,7 +5,6 @@ from datetime import datetime
 from urllib.parse import urlparse
 import logging
 
-from jwkest.jws import alg2keytype
 from oic.oauth2 import rndstr
 from oic.utils.authn.authn_context import UNSPECIFIED
 from oic.utils.keyio import KeyJar
@@ -61,6 +60,9 @@ class RpConfig(object):
 
 
 class OpenIdBackend(BackendModule):
+    """
+    OIDC module
+    """
     def __init__(self, auth_callback_func, internal_attributes, config):
         """
         OIDC backend module.
@@ -352,6 +354,9 @@ class OpenIdBackend(BackendModule):
 
 
 class Client(oic.Client):
+    """
+    OIDC client
+    """
     def __init__(self, client_id=None, ca_certs=None,
                  client_prefs=None, client_authn_method=None, keyjar=None,
                  verify_ssl=True, behaviour=None):
@@ -486,7 +491,7 @@ class Client(oic.Client):
             if isinstance(atresp, ErrorResponse):
                 msg = "Invalid response %s." % atresp["error"]
                 satosa_logging(LOGGER, logging.ERROR, msg, state)
-                raise SATOSAAuthenticationError(msg)
+                raise SATOSAAuthenticationError(state, msg)
 
         kwargs = {}
         try:
@@ -499,7 +504,7 @@ class Client(oic.Client):
         if isinstance(inforesp, ErrorResponse):
             msg = "Invalid response %s." % inforesp["error"]
             satosa_logging(LOGGER, logging.ERROR, msg, state)
-            raise SATOSAAuthenticationError("Invalid response %s." % inforesp["error"])
+            raise SATOSAAuthenticationError(state, "Invalid response %s." % inforesp["error"])
 
         userinfo = inforesp.to_dict()
 
@@ -652,4 +657,7 @@ class OIDCClients(object):
             return self.dynamic_client(item)
 
     def keys(self):
+        """
+        :return: A list with keys.
+        """
         return list(self.client.keys())

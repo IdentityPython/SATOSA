@@ -19,7 +19,7 @@ from satosa.internal_data import UserIdHashType, InternalRequest, InternalRespon
     AuthenticationInformation, DataConverter
 from satosa.logging import satosa_logging
 from satosa.response import SeeOther, Response
-from satosa.service import rndstr, get_saml_name_id_format, saml_name_format_to_hash_type
+from satosa.util import rndstr, get_saml_name_id_format, saml_name_format_to_hash_type
 
 LOGGER = logging.getLogger(__name__)
 

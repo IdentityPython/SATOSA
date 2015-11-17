@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+Python package file for util functions.
+"""
 import logging
 import random
 import string
@@ -47,6 +50,12 @@ def get_saml_name_id_format(hash_type):
 
 
 def unpack(environ, binding):
+    """
+    Unpacks a request query string.
+    :param environ: whiskey application environment.
+    :param binding: Binding
+    :return: A dictionary with parameters.
+    """
     if binding == "redirect":
         return unpack_redirect(environ)
     elif binding == "post":
@@ -58,6 +67,11 @@ def unpack(environ, binding):
 
 
 def unpack_redirect(environ):
+    """
+    Unpacks a redirect request query string.
+    :param environ: whiskey application environment.
+    :return: A dictionary with parameters.
+    """
     if "QUERY_STRING" in environ:
         _qs = environ["QUERY_STRING"]
         return dict([(k, v[0]) for k, v in parse_qs(_qs).items()])
@@ -66,6 +80,11 @@ def unpack_redirect(environ):
 
 
 def unpack_post(environ):
+    """
+    Unpacks a post request query string.
+    :param environ: whiskey application environment.
+    :return: A dictionary with parameters.
+    """
     post_body = get_post(environ).decode("utf-8")
     _dict = parse_qs(post_body)
     LOGGER.debug("unpack_post:: %s", _dict)
@@ -76,6 +95,11 @@ def unpack_post(environ):
 
 
 def unpack_soap(environ):
+    """
+    Unpacks a SAML soap request query string.
+    :param environ: whiskey application environment.
+    :return: A dictionary with parameters.
+    """
     try:
         query = get_post(environ)
         return {"SAMLResponse": query, "RelayState": ""}
@@ -84,6 +108,11 @@ def unpack_soap(environ):
 
 
 def unpack_either(environ):
+    """
+    Unpacks a get or post request query string.
+    :param environ: whiskey application environment.
+    :return: A dictionary with parameters.
+    """
     if environ["REQUEST_METHOD"] == "GET":
         _dict = unpack_redirect(environ)
     elif environ["REQUEST_METHOD"] == "POST":
@@ -95,6 +124,12 @@ def unpack_either(environ):
 
 
 def response(binding, http_args):
+    """
+    Creates a response.
+    :param binding: Bindin
+    :param http_args: http arguments
+    :return: Response
+    """
     if binding == BINDING_HTTP_REDIRECT:
         for param, value in http_args["headers"]:
             if param == "Location":
@@ -111,8 +146,10 @@ def response(binding, http_args):
 def rndstr(size=16, alphabet=""):
     """
     Returns a string of random ascii characters or digits
-
+    :type size: int
+    :type alphabet: str
     :param size: The length of the string
+    :param alphabet: A string with characters.
     :return: string
     """
     rng = random.SystemRandom()

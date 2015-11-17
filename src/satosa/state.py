@@ -14,7 +14,7 @@ from Crypto import Random
 
 from Crypto.Cipher import AES
 
-from satosa.exception import SATOSAError
+from satosa.exception import SATOSAStateError
 from satosa.logging import satosa_logging
 
 LOGGER = logging.getLogger(__name__)
@@ -22,10 +22,6 @@ LOGGER = logging.getLogger(__name__)
 # TODO MOVE TO CONFIG
 STATE_COOKIE_MAX_AGE = 600
 STATE_COOKIE_SECURE = True
-
-
-class SATOSAStateError(SATOSAError):
-    pass
 
 
 def state_to_cookie(state, name, path, encryption_key):
@@ -248,4 +244,8 @@ class State(object):
 
     @property
     def state_dict(self):
+        """
+        :rtype: dict[str, any]
+        :return: A copy of the state as dictionary.
+        """
         return copy.deepcopy(self._state_dict)

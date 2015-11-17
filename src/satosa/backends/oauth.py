@@ -17,7 +17,7 @@ from satosa.internal_data import InternalResponse, AuthenticationInformation, Us
     DataConverter
 from satosa.logging import satosa_logging
 from satosa.response import Redirect
-from satosa.service import rndstr
+from satosa.util import rndstr
 
 __author__ = 'haho0032'
 

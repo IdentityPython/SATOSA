@@ -247,6 +247,9 @@ class InternalData(object):
 
 
 class InternalRequest(InternalData):
+    """
+    Internal request for SATOSA.
+    """
     def __init__(self, user_id_hash_type, requestor):
         """
 
@@ -271,6 +274,11 @@ class InternalRequest(InternalData):
         self._attribute_filter = filter_attr
 
     def get_filter(self):
+        """
+        A list with all approved attributes.
+        :rtype: list[str]
+        :return: Attribute filter
+        """
         return self._attribute_filter
 
 
@@ -323,6 +331,11 @@ class InternalResponse(InternalData):
 
     @user_id.setter
     def user_id(self, user_id):
+        """
+        Set the user identification.
+        :type user_id: str
+        :param user_id: User identification.
+        """
         if not user_id:
             raise ValueError("user_id can't be set to None")
         elif user_id.startswith('/'):

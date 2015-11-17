@@ -1,6 +1,7 @@
+"""
+Python logging package
+"""
 from uuid import uuid4
-
-__author__ = 'mathiashedstrom'
 
 # The state key for saving the session id in the state
 LOGGER_STATE_KEY = "SESSION_ID"

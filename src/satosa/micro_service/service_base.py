@@ -63,6 +63,9 @@ class ResponseMicroService(MicroService):
     def process(self, context, data):
         """
         @see MicroService#process
+        :type context: satosa.context.Context
+        :type data: satosa.internal_data.InternalResponse
+        :rtype: satosa.internal_data.InternalResponse
         """
         raise NotImplementedError
 
@@ -75,6 +78,9 @@ class RequestMicroService(MicroService):
     def process(self, context, data):
         """
         @see MicroService#process
+        :type context: satosa.context.Context
+        :type data: satosa.internal_data.InternalRequest
+        :rtype: satosa.internal_data.InternalRequest
         """
         raise NotImplementedError
 

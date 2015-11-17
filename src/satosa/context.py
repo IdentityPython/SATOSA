@@ -3,8 +3,6 @@ Holds methods for sending internal data through the satosa proxy
 """
 from satosa.exception import SATOSAError
 
-__author__ = 'mathiashedstrom'
-
 
 class SATOSABadContextError(SATOSAError):
     """
@@ -16,13 +14,6 @@ class SATOSABadContextError(SATOSAError):
 class Context(object):
     """
     Holds information about the current request.
-
-    :type _path: str
-    :type request: dict
-    :type target_backend: str
-    :type target_frontend: str | None
-    :type internal_data: dict
-    :type state: satosa.state.State
     """
 
     def __init__(self):
@@ -37,18 +28,36 @@ class Context(object):
 
     @property
     def target_backend(self):
+        """
+        :rtype: str
+        :return: Target backend
+        """
         return self._target_backend
 
     @target_backend.setter
     def target_backend(self, t):
+        """
+        Set target backend
+        :type t: str
+        :param t: Target backend
+        """
         self._target_backend = t
 
     @property
     def target_frontend(self):
+        """
+        :rtype: str
+        :return: Target frontend
+        """
         return self._target_frontend
 
     @target_frontend.setter
     def target_frontend(self, t):
+        """
+        Set target frontend
+        :type t: str
+        :param t: Target frontend
+        """
         self._target_frontend = t
 
     @property

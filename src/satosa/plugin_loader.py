@@ -29,6 +29,7 @@ def load_backends(config, callback, internal_attributes):
     :type config: satosa.satosa_config.SATOSAConfig
     :type callback:
     (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
+    :type internal_attributes: dict[string, dict[str, str | list[str]]]
     :rtype: dict[str, satosa.backends.base.BackendModule]
 
     :param config: The configuration of the satosa proxy
@@ -49,7 +50,7 @@ def load_frontends(config, callback, internal_attributes):
     :type config: satosa.satosa_config.SATOSAConfig
     :type callback:
     (satosa.context.Context, satosa.internal_data.InternalRequest) -> satosa.response.Response
-    :rtype: dict[str, satosa.frontends.base.FrontendModule]
+    :type internal_attributes: dict[string, dict[str, str | list[str]]]
     :rtype: dict[str, satosa.frontends.base.FrontendModule]
 
     :param config: The configuration of the satosa proxy
