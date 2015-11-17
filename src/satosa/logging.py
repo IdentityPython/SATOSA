@@ -1,3 +1,6 @@
+"""
+Module for logging in SATOSA
+"""
 from uuid import uuid4
 
 __author__ = 'mathiashedstrom'
