@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+A saml2 backend module for the satosa proxy
+"""
 import copy
 import logging
 from urllib.parse import urlparse
@@ -8,9 +11,6 @@ from saml2 import BINDING_HTTP_POST
 from saml2.client_base import Base
 from saml2.config import SPConfig
 from saml2.metadata import create_metadata_string
-
-from saml2.saml import NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
-
 from saml2.samlp import NameIDPolicy
 
 from satosa.backends.base import BackendModule
@@ -19,13 +19,22 @@ from satosa.internal_data import UserIdHashType, InternalRequest, InternalRespon
     AuthenticationInformation, DataConverter
 from satosa.logging import satosa_logging
 from satosa.response import SeeOther, Response
-from satosa.service import rndstr
+from satosa.service import rndstr, get_saml_name_id_format, saml_name_format_to_hash_type
 
 LOGGER = logging.getLogger(__name__)
 
 
 class MetadataResponse(Response):
+    """
+    A response containing metadata for the saml backend
+    """
+
     def __init__(self, config):
+        """
+        Creates a response containing the metadata generated from the SP config.
+        :type config: dict[str, Any]
+        :param config: The SP config
+        """
         metadata_string = create_metadata_string(None, config, 4, None, None, None, None,
                                                  None).decode("utf-8")
         resp = {"content": "text/xml"}
@@ -33,9 +42,23 @@ class MetadataResponse(Response):
 
 
 class SamlBackend(BackendModule):
+    """
+    A saml2 backend module
+    """
     STATE_KEY = "Saml2B_76ASF"
 
     def __init__(self, outgoing, internal_attributes, config):
+        """
+        :type outgoing:
+        (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
+        :type internal_attributes: dict[str, dict[str, list[str] | str]]
+        :type config: dict[str, Any]
+
+        :param outgoing: Callback should be called by the module after
+                                   the authorization in the backend is done.
+        :param internal_attributes: Internal attribute map
+        :param config: The module config
+        """
         super(SamlBackend, self).__init__(outgoing, internal_attributes)
         sp_config = SPConfig().load(copy.deepcopy(config["config"]), False)
 
@@ -52,25 +75,26 @@ class SamlBackend(BackendModule):
 
     @staticmethod
     def create_name_id_policy(usr_id_hash_type):
-        nameid_format = None
-        if UserIdHashType.transient == usr_id_hash_type:
-            nameid_format = NAMEID_FORMAT_TRANSIENT
-        elif UserIdHashType.persistent == usr_id_hash_type:
-            nameid_format = NAMEID_FORMAT_PERSISTENT
+        """
+        Creates a name id policy
 
+        :type usr_id_hash_type: satosa.internal_data.UserIdHashType
+        :rtype: saml2.samlp.NameIDPolicy
+
+        :param usr_id_hash_type: The internal id hash type
+        :return: A name id policy
+        """
+        nameid_format = get_saml_name_id_format(usr_id_hash_type)
         name_id_policy = NameIDPolicy(format=nameid_format)
         return name_id_policy
 
-    @staticmethod
-    def name_format_to_hash_type(name_format):
-        if name_format == NAMEID_FORMAT_TRANSIENT:
-            return UserIdHashType.transient
-        elif name_format == NAMEID_FORMAT_PERSISTENT:
-            return UserIdHashType.persistent
-        return None
-
     def start_auth(self, context, internal_req):
-
+        """
+        See super class method satosa.backends.base.BackendModule#start_auth
+        :type context: satosa.context.Context
+        :type internal_req: satosa.internal_data.InternalRequest
+        :rtype: satosa.response.Response
+        """
         try:
             entity_id = context.internal_data["saml2.target_entity_id"]
             return self.authn_request(context, entity_id, internal_req)
@@ -78,6 +102,17 @@ class SamlBackend(BackendModule):
             return self.disco_query(context, internal_req)
 
     def disco_query(self, context, internal_req):
+        """
+        Makes a request to the discovery server
+
+        :type context: satosa.context.Context
+        :type internal_req: satosa.internal_data.InternalRequest
+        :rtype: satosa.response.SeeOther
+
+        :param context: The current context
+        :param internal_req: The request
+        :return: Response
+        """
         state = context.state
         if internal_req.user_id_hash_type:
             state.add(SamlBackend.STATE_KEY, internal_req.user_id_hash_type.name)
@@ -94,6 +129,20 @@ class SamlBackend(BackendModule):
         return SeeOther(loc)
 
     def authn_request(self, context, entity_id, internal_req):
+        """
+        Do an authorization request on idp with given entity id.
+        This is the start of the authorization.
+
+        :type context: satosa.context.Context
+        :type entity_id: str
+        :type internal_req: satosa.internal_data.InternalRequest
+        :rtype: satosa.response.Response
+
+        :param context: The curretn context
+        :param entity_id: Target IDP entity id
+        :param internal_req: The request
+        :return: Response
+        """
         _cli = self.sp
         req_args = {"name_id_policy": self.create_name_id_policy(internal_req.user_id_hash_type)}
 
@@ -141,6 +190,16 @@ class SamlBackend(BackendModule):
         return resp
 
     def authn_response(self, context, binding):
+        """
+        Endpoint for the idp response
+        :type context: satosa.context,Context
+        :type binding: str
+        :rtype: satosa.response.Response
+
+        :param context: The current context
+        :param binding: The saml binding type
+        :return: response
+        """
         _authn_response = context.request
 
         state = context.state
@@ -166,7 +225,16 @@ class SamlBackend(BackendModule):
 
         return self.auth_callback_func(context, self._translate_response(_response))
 
-    def disco_response(self, context, *args):
+    def disco_response(self, context):
+        """
+        Endpoint for the discovery server response
+
+        :type context: satosa.context.Context
+        :rtype: satosa.response.Response
+
+        :param context: The current context
+        :return: response
+        """
         info = context.request
 
         state = context.state
@@ -183,8 +251,16 @@ class SamlBackend(BackendModule):
             return self.authn_request(context, entity_id, request_info)
 
     def _translate_response(self, response):
+        """
+        Translates a saml authorization response to an internal response
+
+        :type response: saml2.response.AuthnResponse
+        :rtype: satosa.internal_data.InternalResponse
+        :param response: The saml authorization response
+        :return: A translated internal response
+        """
         _authn_info = response.authn_info()[0]
-        user_id_hash_type = self.name_format_to_hash_type(response.name_id.format)
+        user_id_hash_type = saml_name_format_to_hash_type(response.name_id.format)
         timestamp = response.assertion.authn_statement[0].authn_instant
         issuer = _authn_info[1][0]
         auth_class_ref = _authn_info[0]
@@ -196,11 +272,23 @@ class SamlBackend(BackendModule):
         internal_resp.user_id = response.get_subject().text
         return internal_resp
 
-    def _metadata(self, context, *args):
+    def _metadata(self, context):
+        """
+        Endpoint for retrieving the backend metadata
+        :type context: satosa.context.Context
+        :rtype: satosa.backends.saml2.MetadataResponse
+
+        :param context: The current context
+        :return: response with metadata
+        """
         satosa_logging(LOGGER, logging.DEBUG, "Sending metadata response", context.state)
         return MetadataResponse(self.sp.config)
 
     def register_endpoints(self):
+        """
+        See super class method satosa.backends.base.BackendModule#register_endpoints
+        :rtype list[(str, ((satosa.context.Context, Any) -> Any, Any))]
+        """
         url_map = []
         sp_endpoints = self.sp.config.getattr("endpoints", "sp")
         for endp, binding in sp_endpoints["assertion_consumer_service"]:
@@ -212,12 +300,12 @@ class SamlBackend(BackendModule):
 
         if "publish_metadata" in self.config:
             metadata_path = urlparse(self.config["publish_metadata"])
-            url_map.append(("^%s$" % metadata_path.path[1:], (self._metadata, "")))
+            url_map.append(("^%s$" % metadata_path.path[1:], self._metadata))
 
         if self.discosrv:
             for endp, binding in sp_endpoints["discovery_response"]:
                 parsed_endp = urlparse(endp)
                 url_map.append(
-                    ("^%s$" % parsed_endp.path[1:], (self.disco_response, binding)))
+                    ("^%s$" % parsed_endp.path[1:], self.disco_response))
 
         return url_map

@@ -1,3 +1,6 @@
+"""
+Converter for transforming image files to bas64 raw data
+"""
 import logging
 import os
 import base64
@@ -10,10 +13,16 @@ LOGGER = logging.getLogger(__name__)
 
 
 class SATOSAInvalidArgumentType(SATOSAError):
+    """
+    If the input to the converter is invalid
+    """
     pass
 
 
 class SATOSAUnsupportedImageFormat(SATOSAError):
+    """
+    If the image format is not supported by the converter.
+    """
     pass
 
 

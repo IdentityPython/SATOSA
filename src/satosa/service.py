@@ -3,27 +3,47 @@ import logging
 import random
 import string
 from urllib.parse import parse_qs
-
 from saml2 import BINDING_HTTP_REDIRECT
-from saml2 import BINDING_SOAP
-from saml2 import BINDING_HTTP_POST
-from saml2.extension.idpdisc import BINDING_DISCO
 from saml2.httputil import get_post
 from saml2.httputil import SeeOther
 from saml2.httputil import ServiceError
 from saml2.httputil import Response
+from saml2.saml import NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
+from satosa.internal_data import UserIdHashType
 
 LOGGER = logging.getLogger(__name__)
 
-BINDING_MAP = {
-    BINDING_HTTP_POST: "post",
-    BINDING_HTTP_REDIRECT: "redirect",
-    # BINDING_HTTP_ARTIFACT: "artifact",
-    BINDING_SOAP: "soap",
-    BINDING_DISCO: "disco"
-}
 
-INV_BINDING_MAP = {v: k for k, v in BINDING_MAP.items()}
+def saml_name_format_to_hash_type(name_format):
+    """
+    Translate pySAML2 name format to statosa format
+
+    :type name_format: str
+    :rtype: satosa.internal_data.UserIdHashType
+    :param name_format: SAML2 name format
+    :return: satosa format
+    """
+    if name_format == NAMEID_FORMAT_TRANSIENT:
+        return UserIdHashType.transient
+    elif name_format == NAMEID_FORMAT_PERSISTENT:
+        return UserIdHashType.persistent
+    return None
+
+
+def get_saml_name_id_format(hash_type):
+    """
+    Translate satosa format to pySAML2 name format
+
+    :type hash_type: satosa.internal_data.UserIdHashType
+    :rtype: str
+    :param hash_type: satosa format
+    :return: pySAML2 name format
+    """
+    if hash_type == UserIdHashType.transient:
+        return NAMEID_FORMAT_TRANSIENT
+    elif hash_type == UserIdHashType.persistent:
+        return NAMEID_FORMAT_PERSISTENT
+    return None
 
 
 def unpack(environ, binding):
