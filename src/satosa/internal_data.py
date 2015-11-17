@@ -287,7 +287,7 @@ class InternalResponse(InternalData):
     def __init__(self, user_id_hash_type, auth_info=None):
         super(InternalResponse, self).__init__(user_id_hash_type)
         self._user_id = None
-        #This dict is a data carrier between frontend and backend modules.
+        # This dict is a data carrier between frontend and backend modules.
         self._attributes = {}
         self.auth_info = auth_info
 

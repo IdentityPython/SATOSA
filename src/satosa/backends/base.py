@@ -13,9 +13,13 @@ class BackendModule(object):
         """
         :type auth_callback_func:
         (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
+        :type internal_attributes: dict[string, dict[str, str | list[str]]]
 
         :param auth_callback_func: Callback should be called by the module after
                                    the authorization in the backend is done.
+        :param internal_attributes: Mapping dictionary between SATOSA internal attribute names and
+        the names returned by underlying IdP's/OP's as well as what attributes the calling SP's and
+        RP's expects namevice.
         """
         self.auth_callback_func = auth_callback_func
         self.internal_attributes = internal_attributes
