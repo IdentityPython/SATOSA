@@ -336,6 +336,7 @@ class SamlFrontend(FrontendModule):
 
         :type exception: satosa.exception.SATOSAAuthenticationError
         :type idp: saml.server.Server
+        :rtype: satosa.response.Response
 
         :param exception: The SATOSAAuthenticationError
         :param idp: The saml frontend idp server
