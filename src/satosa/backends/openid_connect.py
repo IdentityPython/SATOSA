@@ -55,7 +55,6 @@ class RpConfig(object):
         self.ACR_VALUES = config["acr_values"]
         self.VERIFY_SSL = config["verify_ssl"]
         self.OP_URL = config["op_url"]
-        self.STATE_ENCRYPTION_KEY = config["state_encryption_key"]
         self.STATE_ID = config["state_id"]
 
 

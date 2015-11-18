@@ -10,7 +10,7 @@ from saml2.httputil import ServiceError
 from satosa.base import SATOSABase
 from satosa.context import Context
 from satosa.routing import SATOSANoBoundEndpointError
-from satosa.service import unpack_either
+from satosa.util import unpack_either
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 's2s.log'
@@ -20,6 +20,7 @@ base_formatter = logging.Formatter("%(asctime)s %(name)s:%(levelname)s %(message
 hdlr.setFormatter(base_formatter)
 LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.DEBUG)
+
 
 class WsgiApplication(object):
     def __init__(self, config, debug=False):
