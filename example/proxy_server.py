@@ -16,7 +16,7 @@ from satosa.satosa_config import SATOSAConfig
 from satosa.base import SATOSABase
 from satosa.context import Context
 from satosa.routing import SATOSANoBoundEndpointError
-from satosa.service import unpack_either
+from satosa.util import unpack_either
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 's2s.log'
