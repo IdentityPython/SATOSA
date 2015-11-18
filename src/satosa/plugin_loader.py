@@ -307,6 +307,7 @@ def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, *args):
                 loaded_plugins.append(obj(*args))
                 loaded_plugin_names.append(module_file_name)
         except ImportError as error:
+            LOGGER.debug("Not a py file or import error '%s': %s", module_file_name, error)
             dict_parsers = [_load_dict,
                             _load_json,
                             _load_yaml]
