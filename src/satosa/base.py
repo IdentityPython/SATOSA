@@ -4,6 +4,7 @@ The SATOSA main module
 import json
 import logging
 from uuid import uuid4
+from satosa.account_linking import AccountLinkingModule
 
 from satosa.consent import ConsentModule
 from satosa.context import Context
@@ -45,9 +46,13 @@ class SATOSABase(object):
         frontends = load_frontends(self.config, self._auth_req_callback_func,
                                    self.config.INTERNAL_ATTRIBUTES)
         self.consent_module = ConsentModule(config, self._consent_resp_callback_func)
+        self.account_linking_module = AccountLinkingModule(config,
+                                                           self._account_linking_callback_func)
         # TODO register consent_module endpoints to module_router. Just add to backend list?
         if self.consent_module.enabled:
             backends["consent"] = self.consent_module
+        if self.account_linking_module.enabled:
+            backends["account_linking"] = self.account_linking_module
 
         LOGGER.info("Loading micro services...")
         self.request_micro_services = None
@@ -104,6 +109,20 @@ class SATOSABase(object):
         if self.response_micro_services:
             internal_response = \
                 self.response_micro_services.process_service_queue(context, internal_response)
+        return self.account_linking_module.manage_al(context, internal_response)
+
+    def _account_linking_callback_func(self, context, internal_response):
+        """
+        This function is called by the account linking module when the linking step is done
+
+        :type context: satosa.context.Context
+        :type internal_response: satosa.internal_data.InternalResponse
+        :rtype: satosa.response.Response
+
+        :param context: The response context
+        :param internal_response: The authentication response
+        :return: response
+        """
         return self.consent_module.manage_consent(context, internal_response)
 
     def _consent_resp_callback_func(self, context, internal_response):
@@ -112,6 +131,7 @@ class SATOSABase(object):
 
         :type context: satosa.context.Context
         :type internal_response: satosa.internal_data.InternalResponse
+        :rtype: satosa.response.Response
 
         :param context: The response context
         :param internal_response: The authentication response

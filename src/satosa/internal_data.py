@@ -236,6 +236,28 @@ class AuthenticationInformation(object):
         self.timestamp = timestamp
         self.issuer = issuer
 
+    @staticmethod
+    def from_dict(auth_info_dict):
+        """
+        :type auth_info_dict: dict[str, str]
+        :rtype: satosa.internal_data.AuthenticationInformation
+        :param auth_info_dict: A dict representation of an AuthenticationInformation object
+        :return: An AuthenticationInformation object
+        """
+        return AuthenticationInformation(auth_info_dict["auth_class_ref"],
+                                         auth_info_dict["timestamp"],
+                                         auth_info_dict["issuer"])
+
+    def to_dict(self):
+        """
+        Converts an AuthenticationInformation object to a dict
+        :rtype: dict[str, str]
+        :return: A dict representation of the object
+        """
+        return {"issuer": self.issuer,
+                "timestamp": self.timestamp,
+                "auth_class_ref": self.auth_class_ref, }
+
 
 class InternalData(object):
     """
@@ -341,3 +363,29 @@ class InternalResponse(InternalData):
         elif user_id.startswith('/'):
             raise ValueError("user_id can't start with '/'")
         self._user_id = user_id
+
+    @staticmethod
+    def from_dict(int_resp_dict):
+        """
+        :type int_resp_dict: dict[str, dict[str, str] | str]
+        :rtype: satosa.internal_data.InternalResponse
+        :param int_resp_dict: A dict representation of an InternalResponse object
+        :return: An InternalResponse object
+        """
+        auth_info = AuthenticationInformation.from_dict(int_resp_dict["auth_info"])
+        internal_response = InternalResponse(getattr(UserIdHashType, int_resp_dict["hash_type"]),
+                                             auth_info=auth_info)
+        internal_response._attributes = int_resp_dict["attr"]
+        internal_response.user_id = int_resp_dict["usr_id"]
+        return internal_response
+
+    def to_dict(self):
+        """
+        Converts an InternalResponse object to a dict
+        :rtype: dict[str, dict[str, str] | str]
+        :return: A dict representation of the object
+        """
+        return {"usr_id": self.user_id,
+                "attr": self.get_attributes(),
+                "hash_type": self.user_id_hash_type.name,
+                "auth_info": self.auth_info.to_dict()}

@@ -4,21 +4,15 @@ A consent module for the satosa proxy
 import hashlib
 import json
 import logging
-from base64 import urlsafe_b64encode
-
-from jwkest.jws import JWS
 import requests
 from requests.exceptions import ConnectionError
-
+from base64 import urlsafe_b64encode
+from jwkest.jws import JWS
 from jwkest.jwk import rsa_load
-
 from jwkest.jwk import RSAKey
-
-from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
+from satosa.internal_data import InternalResponse
 from satosa.logging import satosa_logging
 from satosa.response import Redirect
-
-__author__ = 'mathiashedstrom'
 
 LOGGER = logging.getLogger(__name__)
 
@@ -36,7 +30,6 @@ class ConsentModule(object):
             "CONSENT" in config and ("enable" not in config.CONSENT or config.CONSENT["enable"])
         if self.enabled:
             self.proxy_base = config.BASE
-            self.state_enc_key = config.CONSENT["state_enc_key"]
             self.consent_uri = config.CONSENT["service.rest_uri"]
             self.consent_redirect_url = config.CONSENT["service.consent_redirect"]
             self.endpoint = config.CONSENT["endpoint"]
@@ -80,13 +73,7 @@ class ConsentModule(object):
         saved_resp = consent_state["internal_resp"]
 
         # rebuild internal_response from state
-        auth_info = AuthenticationInformation(saved_resp["auth_info"]["auth_class_ref"],
-                                              saved_resp["auth_info"]["timestamp"],
-                                              saved_resp["auth_info"]["issuer"])
-        internal_response = InternalResponse(getattr(UserIdHashType, saved_resp["hash_type"]),
-                                             auth_info=auth_info)
-        internal_response._attributes = saved_resp["attr"]
-        internal_response.user_id = saved_resp["usr_id"]
+        internal_response = InternalResponse.from_dict(saved_resp)
 
         requestor = consent_state["requestor"]
 
@@ -156,7 +143,7 @@ class ConsentModule(object):
             internal_response._attributes = {}
             return self.callback_func(context, internal_response)
 
-        consent_state["internal_resp"] = self._internal_resp_to_dict(internal_response)
+        consent_state["internal_resp"] = internal_response.to_dict()
         state.add(ConsentModule.STATE_KEY, consent_state)
 
         consent_args = {"attr": filtered_data,
@@ -233,25 +220,6 @@ class ConsentModule(object):
             raise ConnectionError("Could not connect to consent service") from con_exc
 
         return res.status_code == 200
-
-    def _internal_resp_to_dict(self, internal_response):
-        """
-        Converts an InternalResponse object to a dict
-
-        :type internal_response: satosa.internal_data.InternalResponse
-
-        :param internal_response: The incoming response
-        :return: A dict representation of internal_response
-        """
-        # TODO move to InternalResponse?
-        auth_info = internal_response.auth_info
-        response_state = {"usr_id": internal_response.user_id,
-                          "attr": internal_response.get_attributes(),
-                          "hash_type": internal_response.user_id_hash_type.name,
-                          "auth_info": {"issuer": auth_info.issuer,
-                                        "timestamp": auth_info.timestamp,
-                                        "auth_class_ref": auth_info.auth_class_ref, }}
-        return response_state
 
     def _to_jws(self, data):
         """
