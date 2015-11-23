@@ -103,9 +103,11 @@ class SATOSABase(object):
         """
 
         context.request = None
-        state = context.state
-        internal_response = UserIdHasher.set_id(self.config.USER_ID_HASH_SALT, internal_response,
-                                                state)
+        # Hash the user id
+        user_id = UserIdHasher.hash_data(self.config.USER_ID_HASH_SALT,
+                                         internal_response.get_user_id())
+        internal_response.set_user_id(user_id)
+
         if self.response_micro_services:
             internal_response = \
                 self.response_micro_services.process_service_queue(context, internal_response)
@@ -123,6 +125,19 @@ class SATOSABase(object):
         :param internal_response: The authentication response
         :return: response
         """
+        user_id = UserIdHasher.hash_id(self.config.USER_ID_HASH_SALT,
+                                       internal_response.get_user_id(),
+                                       internal_response.user_id_hash_type,
+                                       context.state)
+        internal_response.set_user_id(user_id)
+
+        # Hash all attributes specified in INTERNAL_ATTRIBUTES["hash]
+        hash_attributes = self.config.INTERNAL_ATTRIBUTES.get("hash", [])
+        internal_attributes = internal_response.get_attributes()
+        for attribute in hash_attributes:
+            internal_attributes[attribute] = UserIdHasher.hash_data(self.config.USER_ID_HASH_SALT,
+                                                                    internal_attributes[attribute])
+
         return self.consent_module.manage_consent(context, internal_response)
 
     def _consent_resp_callback_func(self, context, internal_response):

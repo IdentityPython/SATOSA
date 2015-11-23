@@ -79,7 +79,7 @@ class AccountLinkingModule(object):
             return self.callback_func(context, internal_response)
 
         issuer = internal_response.auth_info.issuer
-        id = internal_response.user_id
+        id = internal_response.get_user_id()
         status_code, message = self._get_uuid(context, issuer, id)
 
         if status_code == 200:

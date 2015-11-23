@@ -6,6 +6,7 @@ import datetime
 from enum import Enum
 import hashlib
 import json
+from satosa.exception import SATOSAError
 
 __author__ = 'haho0032'
 
@@ -178,23 +179,29 @@ class UserIdHasher(object):
         state.add(UserIdHasher.STATE_KEY, internal_request.requestor)
 
     @staticmethod
-    def set_id(salt, internal_response, state):
+    def hash_data(salt, value):
+        if not isinstance(value, str):
+            value = json.dumps(value)
+        return hashlib.sha512((value + salt).encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def hash_id(salt, user_id, user_id_hash_type, state):
         """
         Sets a user id to the internal_response, in the format specified by the internal response
 
         :type salt: str
-        :type internal_response: satosa.internal_data.InternalResponse
+        :type user_id: str
+        :type user_id_hash_type: satosa.internal_data.UserIdHashType
         :type state: satosa.state.State
-        :rtype: internal_response: satosa.internal_data.InternalResponse
+        :rtype: str
 
         :param salt: A salt string for the ID hashing
-        :param internal_response:  The authentication response
+        :param user_id:  the user id
+        :param user_id_hash_type: Hashing type
         :param state: The current state
         :return: the internal_response containing the hashed user ID
         """
         requestor = state.get(UserIdHasher.STATE_KEY)
-        user_id = internal_response.user_id
-        user_id_hash_type = internal_response.user_id_hash_type
 
         if user_id_hash_type == UserIdHashType.transient:
             timestamp = datetime.datetime.now().time()
@@ -208,10 +215,7 @@ class UserIdHasher(object):
         else:
             raise ValueError("Unknown id hash type: '{}'".format(user_id_hash_type))
 
-        user_id += salt
-        internal_response.user_id = hashlib.sha256(user_id.encode("utf-8")).hexdigest()
-
-        return internal_response
+        return UserIdHasher.hash_data(salt, user_id)
 
 
 class AuthenticationInformation(object):
@@ -272,6 +276,7 @@ class InternalRequest(InternalData):
     """
     Internal request for SATOSA.
     """
+
     def __init__(self, user_id_hash_type, requestor):
         """
 
@@ -317,6 +322,7 @@ class InternalResponse(InternalData):
     def __init__(self, user_id_hash_type, auth_info=None):
         super(InternalResponse, self).__init__(user_id_hash_type)
         self._user_id = None
+        self._user_id_attributes = []
         # This dict is a data carrier between frontend and backend modules.
         self._attributes = {}
         self.auth_info = auth_info
@@ -340,29 +346,40 @@ class InternalResponse(InternalData):
         """
         self._attributes = attr_dict
 
-    @property
-    def user_id(self):
+    def set_user_id(self, uid):
         """
-        Get the user identification.
+        Set the user id value
+        :type uid: str
+        :param uid: The user id
+        """
+        if not isinstance(uid, str):
+            raise SATOSAError("Wrong user id format. Excpected 'str' but got '%s'" % type(uid))
+        self._user_id_attributes = []
+        self._user_id = uid
 
+    def set_user_id_from_attr(self, attributes):
+        """
+        Build the user id from multiple attributes
+        :type attributes: list[str]
+        :param attributes: A list of attributes (internal representation)
+        """
+        if not isinstance(attributes, list):
+            attributes = [attributes]
+        self._user_id_attributes = attributes
+
+    def get_user_id(self):
+        """
+        Returns the user id.
         :rtype: str
-
-        :return: User identification.
+        :return: The user id
         """
-        return self._user_id
-
-    @user_id.setter
-    def user_id(self, user_id):
-        """
-        Set the user identification.
-        :type user_id: str
-        :param user_id: User identification.
-        """
-        if not user_id:
-            raise ValueError("user_id can't be set to None")
-        elif user_id.startswith('/'):
-            raise ValueError("user_id can't start with '/'")
-        self._user_id = user_id
+        id = None
+        if self._user_id_attributes:
+            for attr in self._user_id_attributes:
+                id = "%s%s" % (id, self._attributes[attr])
+        else:
+            id = self._user_id
+        return id
 
     @staticmethod
     def from_dict(int_resp_dict):
@@ -376,7 +393,8 @@ class InternalResponse(InternalData):
         internal_response = InternalResponse(getattr(UserIdHashType, int_resp_dict["hash_type"]),
                                              auth_info=auth_info)
         internal_response._attributes = int_resp_dict["attr"]
-        internal_response.user_id = int_resp_dict["usr_id"]
+        internal_response._user_id = int_resp_dict["usr_id"]
+        internal_response._user_id_attributes = int_resp_dict["usr_id_attr"]
         return internal_response
 
     def to_dict(self):
@@ -385,7 +403,8 @@ class InternalResponse(InternalData):
         :rtype: dict[str, dict[str, str] | str]
         :return: A dict representation of the object
         """
-        return {"usr_id": self.user_id,
+        return {"usr_id": self._user_id,
+                "usr_id_attr": self._user_id_attributes,
                 "attr": self.get_attributes(),
                 "hash_type": self.user_id_hash_type.name,
                 "auth_info": self.auth_info.to_dict()}
