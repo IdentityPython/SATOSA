@@ -1,4 +1,5 @@
 import pytest
+
 from satosa.context import Context
 from satosa.exception import SATOSAAuthenticationError
 from satosa.micro_service.service_base import MicroService, build_micro_service_queue

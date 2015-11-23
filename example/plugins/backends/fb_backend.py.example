@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os.path
-from satosa.backends.oauth import FacebookBackend
 
-from satosa.backends.openid_connect import OpenIdBackend
+from satosa.backends.oauth import FacebookBackend
 from satosa.plugin_base.endpoint import BackendModulePlugin
 
 XMLSEC_PATH = '/usr/local/bin/xmlsec1'

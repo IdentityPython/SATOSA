@@ -14,9 +14,7 @@ from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
 from oic.utils.http_util import Response
-
 from oic.utils.keyio import KeyJar, KeyBundle, UnknownKeyType
-
 from oic.utils.sdb import SessionDB, AuthnEvent
 
 from oic.utils.userinfo import UserInfo

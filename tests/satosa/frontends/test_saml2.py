@@ -2,23 +2,27 @@
 Tests for the SAML frontend module src/frontends/saml2.py.
 """
 import re
-import pytest
 from urllib import parse
+import os.path
+
+import pytest
 from saml2.authn_context import PASSWORD
 from saml2.config import SPConfig
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.entity_category.edugain import COC
 from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, \
     SFS_1993_1153, NREN, EU
+
 from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_PERSISTENT
+
 from saml2.saml import NAMEID_FORMAT_TRANSIENT
+
 from satosa.frontends.saml2 import SamlFrontend
 from satosa.context import Context
 from satosa.internal_data import InternalResponse, AuthenticationInformation
 from satosa.state import State
 from tests.users import USERS
 from tests.util import FakeSP, FileGenerator
-import os.path
 
 INTERNAL_ATTRIBUTES = {
     'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},

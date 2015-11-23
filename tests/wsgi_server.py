@@ -1,12 +1,13 @@
-import importlib
 import logging
 import sys
 import traceback
 
 from saml2.httputil import Unauthorized
+
 from saml2.httputil import NotFound
 
 from saml2.httputil import ServiceError
+
 from satosa.base import SATOSABase
 from satosa.context import Context
 from satosa.routing import SATOSANoBoundEndpointError

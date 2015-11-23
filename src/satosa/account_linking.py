@@ -3,9 +3,13 @@ An account linking module for the satosa proxy
 """
 import json
 import logging
+
 import requests
+
 from jwkest.jwk import rsa_load, RSAKey
+
 from jwkest.jws import JWS
+
 from satosa.exception import SATOSAAuthenticationError
 from satosa.internal_data import InternalResponse
 from satosa.logging import satosa_logging

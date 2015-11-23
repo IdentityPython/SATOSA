@@ -3,26 +3,20 @@ A consent module for the satosa proxy
 """
 import hashlib
 import json
+import logging
 from base64 import urlsafe_b64encode
 
-from jwkest.jws import JWS
-import logging
 import requests
 from requests.exceptions import ConnectionError
-from base64 import urlsafe_b64encode
 from jwkest.jws import JWS
+
 from jwkest.jwk import rsa_load
+
 from jwkest.jwk import RSAKey
-from satosa.internal_data import InternalResponse
+
 from satosa.logging import satosa_logging
+from satosa.internal_data import InternalResponse
 from satosa.response import Redirect
-from jwkest.jwk import rsa_load
-
-from jwkest.jwk import RSAKey
-
-from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
-from satosa.response import Redirect
-from satosa.state import state_to_cookie, cookie_to_state
 
 LOGGER = logging.getLogger(__name__)
 
@@ -66,7 +60,7 @@ class ConsentModule(object):
         """
         if self.enabled:
             state.add(ConsentModule.STATE_KEY, {"filter": internal_request.get_filter(),
-                                                "requestor": internal_request.requestor},
+                                                "requestor": internal_request.requestor,
                                                 "requester_name": internal_request.requester_name})
 
     def _handle_consent_response(self, context):
@@ -132,7 +126,7 @@ class ConsentModule(object):
 
         # filter attributes
         filtered_data = {}
-        for attr in attr_filter:
+        for attr in filter:
             if attr in internal_response.get_attributes():
                 data = internal_response.get_attributes()[attr]
                 if not isinstance(data, list):

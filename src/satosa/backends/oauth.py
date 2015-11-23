@@ -28,6 +28,7 @@ class OAuthBackend(BackendModule):
     """
     Backend module for OAuth 2.0
     """
+
     def __init__(self, outgoing, internal_attributes, config, external_type):
         """
         :param outgoing: Callback should be called by the module after the authorization in the

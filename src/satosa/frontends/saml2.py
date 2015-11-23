@@ -14,7 +14,9 @@ from saml2.httputil import Unauthorized
 from saml2.s_utils import UnknownPrincipal
 from saml2.s_utils import UnsupportedBinding
 from saml2.saml import NameID
+
 from saml2.samlp import name_id_policy_from_string
+
 from saml2.server import Server
 
 from satosa.frontends.base import FrontendModule

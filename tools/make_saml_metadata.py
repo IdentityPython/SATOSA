@@ -9,14 +9,20 @@ from saml2.metadata import entity_descriptor, metadata_tostring_fix
 from saml2.metadata import entities_descriptor
 from saml2.metadata import sign_entity_descriptor
 from saml2.sigver import security_context
+
 from saml2.validate import valid_instance
+
 from saml2.config import Config
+
 from satosa.backends.saml2 import SamlBackend
 from satosa.frontends.saml2 import SamlFrontend
 from satosa.image_converter import convert_to_base64
 from satosa.plugin_base.endpoint import BackendModulePlugin, FrontendModulePlugin
 from satosa.plugin_loader import _load_plugins, backend_filter, frontend_filter
 from satosa.satosa_config import SATOSAConfig
+
+
+
 
 # =============================================================================
 # Script that creates SAML2 metadata files from

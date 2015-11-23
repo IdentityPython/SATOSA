@@ -5,10 +5,13 @@ import os
 import inspect
 from urllib.parse import urlsplit, parse_qs, urlencode, quote
 import sys
+import os.path
 
 from cherrypy.test import helper
+
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 import cherrypy
+
 from saml2.config import SPConfig, IdPConfig
 
 from satosa.backends.saml2 import SamlBackend
@@ -18,8 +21,6 @@ from satosa.satosa_config import SATOSAConfig
 from tests.wsgi_server import WsgiApplication
 from tests.util import FakeSP, FakeIdP, FileGenerator
 from tests.users import USERS
-import os.path
-
 
 INTERNAL_ATTRIBUTES = {
     'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
