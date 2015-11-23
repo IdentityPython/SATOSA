@@ -175,6 +175,7 @@ class OpenIdBackend(BackendModule):
             client = self.fetch_op_keys(client, state)
             self.load_client_registration_info(client, state, key)
             client.userinfo_endpoint = state[StateKeys.USERINFO_ENDPOINT]
+            client.authorization_endpoint = oidc_clients[key].authorization_endpoint
         else:
             return oidc_clients[key]
         return client
