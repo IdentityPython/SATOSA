@@ -1,1 +1,3 @@
-__author__ = 'mathiashedstrom'
+"""
+Python package file
+"""

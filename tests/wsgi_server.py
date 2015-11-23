@@ -9,8 +9,8 @@ from saml2.httputil import NotFound
 from saml2.httputil import ServiceError
 from satosa.base import SATOSABase
 from satosa.context import Context
-from satosa.routing import NoBoundEndpointError
-from satosa.service import unpack_either
+from satosa.routing import SATOSANoBoundEndpointError
+from satosa.util import unpack_either
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 's2s.log'
@@ -20,6 +20,7 @@ base_formatter = logging.Formatter("%(asctime)s %(name)s:%(levelname)s %(message
 hdlr.setFormatter(base_formatter)
 LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.DEBUG)
+
 
 class WsgiApplication(object):
     def __init__(self, config, debug=False):
@@ -57,7 +58,7 @@ class WsgiApplication(object):
             satosa_temporary_instance = SATOSABase(self.config)
             resp = satosa_temporary_instance.run(context)
             return resp(environ, start_response)
-        except NoBoundEndpointError:
+        except SATOSANoBoundEndpointError:
             LOGGER.debug("unknown side: %s" % path)
             resp = NotFound("Couldn't find the side you asked for!")
             return resp(environ, start_response)

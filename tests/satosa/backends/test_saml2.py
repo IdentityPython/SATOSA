@@ -166,16 +166,20 @@ def test_start_auth_no_request_info():
     internal_data = InternalRequest(None, None)
 
     state = State()
-    resp = samlbackend.start_auth(Context(), internal_data, state)
+    context = Context()
+    context.state = state
+    resp = samlbackend.start_auth(context, internal_data)
     assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
     assert resp.message.startswith(TestConfiguration.get_instance().spconfig["disco_srv"]), \
         "Redirect to wrong URL."
 
     # create_name_id_policy_transient()
     state = State()
+    context = Context()
+    context.state = state
     user_id_hash_type = UserIdHashType.transient
     internal_data = InternalRequest(user_id_hash_type, None)
-    resp = samlbackend.start_auth(Context(), internal_data, state)
+    resp = samlbackend.start_auth(context, internal_data)
     assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
 
 
@@ -192,17 +196,14 @@ def test_start_auth_name_id_policy():
 
     state = State()
     state.add(test_state_key, "my_state")
+    context = Context()
+    context.state = state
 
     internal_req = InternalRequest(UserIdHashType.transient, None)
-    resp = samlbackend.start_auth(Context(), internal_req, state)
+    resp = samlbackend.start_auth(context, internal_req)
 
     assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
-    cookie = None
-    for header in resp.headers:
-        if header[0] == "Set-Cookie":
-            cookie = header[1]
-            break
-    assert cookie
+
     disco_resp = parse.parse_qs(resp.message.replace(
         TestConfiguration.get_instance().spconfig["disco_srv"] + "?", ""))
     sp_config = TestConfiguration.get_instance().spconfig["config"]
@@ -212,8 +213,7 @@ def test_start_auth_name_id_policy():
     assert "entityID" in disco_resp and disco_resp["entityID"][0] == sp_config["entityid"], \
         "Not a valid entity id in the call to the discovery server"
 
-    request_info_tmp = cookie_to_state(cookie, "saml2_backend_disco_state",
-                                       samlbackend.state_encryption_key)
+    request_info_tmp = context.state
     assert request_info_tmp.get(test_state_key) == "my_state", "Wrong state!"
     assert request_info_tmp.get(SamlBackend.STATE_KEY) == UserIdHashType.transient.name
 
@@ -231,7 +231,7 @@ def test__start_auth_disco():
         TestConfiguration.get_instance().idpconfig,
         metadata_construction=False))
 
-    def auth_req_callback_func(context, internal_resp, state):
+    def auth_req_callback_func(context, internal_resp):
         """
         Callback function.
         :type context:
@@ -244,7 +244,7 @@ def test__start_auth_disco():
         :return:
         """
         assert isinstance(context, Context), "Not correct instance!"
-        assert state.get(test_state_key) == "my_state", "Not correct state!"
+        assert context.state.get(test_state_key) == "my_state", "Not correct state!"
         assert internal_resp.auth_info.auth_class_ref == PASSWORD, "Not correct authentication!"
         assert internal_resp.user_id_hash_type == UserIdHashType.persistent, "Must be persistent!"
         _dict = internal_resp._attributes
@@ -263,31 +263,21 @@ def test__start_auth_disco():
 
     state = State()
     state.add(test_state_key, "my_state")
+    context = Context()
+    context.state = state
 
-    resp = samlbackend.start_auth(Context(), internal_req, state)
+    resp = samlbackend.start_auth(context, internal_req)
     assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
 
-    cookie = None
-    for header in resp.headers:
-        if header[0] == "Set-Cookie":
-            cookie = header[1]
-            break
-    assert cookie
     sp_disco_resp = spconfig["config"]["service"]["sp"]["endpoints"]["discovery_response"][0][0]
     disco_resp = parse.parse_qs(resp.message.replace(spconfig["disco_srv"] + "?", ""))
     info = parse.parse_qs(disco_resp["return"][0].replace(sp_disco_resp + "?", ""))
     info[samlbackend.idp_disco_query_param] = idpconfig["entityid"]
     context = Context()
     context.request = info
-    context.cookie = cookie
+    context.state = state
     resp = samlbackend.disco_response(context)
     assert resp.status == "200 OK", "A post must be 200 OK."
-    cookie = None
-    for header in resp.headers:
-        if header[0] == "Set-Cookie":
-            cookie = header[1]
-            break
-    assert cookie
     sp_url, req_params = fakeidp.get_post_action_body(resp.message)
     url, fake_idp_resp = fakeidp.handle_auth_req(
         req_params["SAMLRequest"],
@@ -296,5 +286,5 @@ def test__start_auth_disco():
         "testuser1")
     context = Context()
     context.request = fake_idp_resp
-    context.cookie = cookie
+    context.state = state
     samlbackend.authn_response(context, BINDING_HTTP_POST)

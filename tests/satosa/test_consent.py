@@ -33,6 +33,8 @@ INTERNAL_ATTRIBUTES = {
 SATOSA_CONFIG = {"HOST": 'localhost',
                  "PORT": 8090,
                  "HTTPS": True,
+                 "COOKIE_STATE_NAME": "SATOSA_SATE",
+                 "STATE_ENCRYPTION_KEY": "ASDasd123",
                  "PLUGIN_PATH": "",
                  "BACKEND_MODULES": "",
                  "FRONTEND_MODULES": "",
@@ -132,7 +134,7 @@ def _join_dict(dict_a, dict_b):
     (_join_dict({"CONSENT": {"enable": False}}, SATOSA_CONFIG)),
 ])
 def test_disable_consent(config):
-    def callback(_, internal_response, state):
+    def callback(_, internal_response):
         assert internal_response._attributes["displayname"] == "test"
         assert internal_response._attributes["co"] == "test_co"
 
@@ -147,12 +149,13 @@ def test_disable_consent(config):
     internal_response = InternalResponse(UserIdHashType.persistent)
     internal_response.add_attributes(attributes)
     state = State()
-    consent_module.manage_consent(context, internal_response, state)
+    context.state = state
+    consent_module.manage_consent(context, internal_response)
 
 
 @responses.activate
 def test_verify_consent():
-    def callback(context, internal_response, state):
+    def callback(context, internal_response):
         pass
 
     def consent_service_verify_callback(request):
@@ -179,7 +182,7 @@ def test_verify_consent():
 
 @responses.activate
 def test_consent_registration():
-    def callback(context, internal_response, state):
+    def callback(context, internal_response):
         pass
 
     def consent_service_registration_callback(request):
@@ -207,8 +210,7 @@ def test_consent_registration():
     assert consent_module._consent_registration(jws) == "ticket"
 
 
-def callback(context, internal_response, state):
-    assert state, "state was None"
+def callback(context, internal_response):
     assert context, "context was None"
     saml_attr = internal_response.get_attributes()
     #TODO FIX THE FILTER!!!
@@ -217,8 +219,7 @@ def callback(context, internal_response, state):
     return "response"
 
 
-def empty_callback(context, internal_response, state):
-    assert state, "state was None"
+def empty_callback(context, internal_response):
     assert context, "context was None"
     assert not internal_response._attributes
     return "no_attr_response"
@@ -261,10 +262,11 @@ def test_consent_verify_down(consent_items):
 
     state = State()
     context = Context()
+    context.state = state
     consent_module.save_state(internal_request, state)
     internal_response = create_internal_response()
     consent_module.callback_func = empty_callback
-    resp = consent_module.manage_consent(context, internal_response, state)
+    resp = consent_module.manage_consent(context, internal_response)
     assert resp == "no_attr_response"
 
 
@@ -277,10 +279,11 @@ def test_consent_creq_down(consent_items):
 
     context = Context()
     state = State()
+    context.state = state
     internal_response = create_internal_response()
     consent_module.save_state(internal_request, state)
     consent_module.callback_func = empty_callback
-    resp = consent_module.manage_consent(context, internal_response, state)
+    resp = consent_module.manage_consent(context, internal_response)
     assert resp == "no_attr_response"
 
 
@@ -294,11 +297,12 @@ def test_consent_prev_given(consent_items):
     consent_service.clear()
     context = Context()
     state = State()
+    context.state = state
     consent_service.consent_given = True
     internal_response = create_internal_response()
     consent_module.save_state(internal_request, state)
     consent_module.callback_func = callback
-    resp = consent_module.manage_consent(context, internal_response, state)
+    resp = consent_module.manage_consent(context, internal_response)
     assert resp == "response"
 
 
@@ -314,21 +318,23 @@ def test_consent_full_flow(consent_items):
     consent_service.clear()
     context = Context()
     state = State()
+    context.state = state
     internal_response = create_internal_response()
     consent_module.save_state(internal_request, state)
     consent_module.callback_func = callback
-    resp = consent_module.manage_consent(context, internal_response, state)
+    resp = consent_module.manage_consent(context, internal_response)
     assert isinstance(resp, Redirect)
-    cookie_header = None
-    for header in resp.headers:
-        if header[0] == 'Set-Cookie':
-            cookie_header = header[1]
-            break
-    assert cookie_header, "Did not save state!"
+    # cookie_header = None
+    # for header in resp.headers:
+    #     if header[0] == 'Set-Cookie':
+    #         cookie_header = header[1]
+    #         break
+    # assert cookie_header, "Did not save state!"
     consent_service.redirect(resp.message)
     consent_service.consent_given = True
     context = Context()
-    context.cookie = cookie_header
+    context.state = state
+    # context.cookie = cookie_header
     resp = consent_module._handle_consent_response(context)
     assert resp == "response"
 
@@ -345,20 +351,22 @@ def test_consent_not_given(consent_items):
     consent_service.clear()
     context = Context()
     state = State()
+    context.state = state
     internal_response = create_internal_response()
     consent_module.save_state(internal_request, state)
     consent_module.callback_func = empty_callback
-    resp = consent_module.manage_consent(context, internal_response, state)
+    resp = consent_module.manage_consent(context, internal_response)
     assert isinstance(resp, Redirect)
-    cookie_header = None
-    for header in resp.headers:
-        if header[0] == 'Set-Cookie':
-            cookie_header = header[1]
-            break
-    assert cookie_header, "Did not save state!"
+    # cookie_header = None
+    # for header in resp.headers:
+    #     if header[0] == 'Set-Cookie':
+    #         cookie_header = header[1]
+    #         break
+    # assert cookie_header, "Did not save state!"
     consent_service.redirect(resp.message)
     consent_service.consent_given = False
     context = Context()
-    context.cookie = cookie_header
+    context.state = state
+    # context.cookie = cookie_header
     resp = consent_module._handle_consent_response(context)
     assert resp == "no_attr_response"

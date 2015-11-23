@@ -1,15 +1,13 @@
+"""
+OIDC backend module.
+"""
 from datetime import datetime
 from urllib.parse import urlparse
 import logging
 
-from jwkest.jws import alg2keytype
-
 from oic.oauth2 import rndstr
-
 from oic.utils.authn.authn_context import UNSPECIFIED
 from oic.utils.keyio import KeyJar
-from satosa.exception import AuthenticationError
-from satosa.response import Redirect
 from oic.exception import MissingAttribute
 from oic import oic
 from oic.oauth2 import ErrorResponse
@@ -20,32 +18,22 @@ from oic.oic import AuthorizationRequest
 
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
+from satosa.exception import SATOSAAuthenticationError, SATOSAError
+from satosa.logging import satosa_logging
+from satosa.response import Redirect
 from satosa.backends.base import BackendModule
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType, \
     DataConverter
-from satosa.state import State, cookie_to_state, state_to_cookie
 
 __author__ = 'danielevertsson'
 
-logger = logging.getLogger(__name__)
-
-
-def get_id_token(client, state):
-    return client.grant[state].get_id_token()
-
-
-# Produce a JWS, a signed JWT, containing a previously received ID token
-def id_token_as_signed_jwt(client, id_token, alg="RS256"):
-    ckey = client.keyjar.get_signing_key(alg2keytype(alg), "")
-    _signed_jwt = id_token.to_jwt(key=ckey, algorithm=alg)
-    return _signed_jwt
-
-
-class MissingUrlPath(Exception):
-    pass
+LOGGER = logging.getLogger(__name__)
 
 
 class StateKeys:
+    """
+    Keys used in the SATOSA state
+    """
     OP = "op"
     NONCE = "nonce"
     TOKEN_ENDPOINT = "token_endpoint"
@@ -53,12 +41,13 @@ class StateKeys:
     CLIENT_SECRET = "client_secret"
     JWKS_URI = "remote_keys_sources"
     USERINFO_ENDPOINT = "userinfo_endpoint"
-    STATE="state"
-
-COOKIE_STATE_NAME = "openid_backend_state"
+    STATE = "state"
 
 
 class RpConfig(object):
+    """
+    OIDC connect configuration class for clients.
+    """
     def __init__(self, config):
         self.CLIENTS = {
             config["authz_page"]: config["client"]
@@ -66,30 +55,56 @@ class RpConfig(object):
         self.ACR_VALUES = config["acr_values"]
         self.VERIFY_SSL = config["verify_ssl"]
         self.OP_URL = config["op_url"]
-        self.STATE_ENCRYPTION_KEY = config["state_encryption_key"]
         self.STATE_ID = config["state_id"]
 
 
 class OpenIdBackend(BackendModule):
+    """
+    OIDC module
+    """
     def __init__(self, auth_callback_func, internal_attributes, config):
+        """
+        OIDC backend module.
+        :param auth_callback_func: Callback should be called by the module after the authorization
+        in the backend is done.
+        :param internal_attributes: Mapping dictionary between SATOSA internal attribute names and
+        the names returned by underlying IdP's/OP's as well as what attributes the calling SP's and
+        RP's expects namevice.
+        :param config: Configuration parameters for the module.
+
+        :type auth_callback_func:
+        (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
+        :type internal_attributes: dict[string, dict[str, str | list[str]]]
+        :type config: dict[str, dict[str, str] | list[str]]
+        """
         super(OpenIdBackend, self).__init__(auth_callback_func, internal_attributes)
         self.auth_callback_func = auth_callback_func
         self.config = RpConfig(config)
-        self.oidc_clients = None#OIDCClients(self.config)
+        self.oidc_clients = None
         self.converter = DataConverter(internal_attributes)
 
     def get_oidc_clients(self):
-        #if self.oidc_clients is None:
+        """
+        Creates an instance of the class that holds all oidc clients.
+
+        :rtype: OIDCClients
+        :return: Instance of OIDCClients class.
+        """
         self.oidc_clients = OIDCClients(self.config)
         return self.oidc_clients
 
-    def start_auth(self, context, request_info, state):
+    def start_auth(self, context, request_info):
+        """
+        See super class method satosa.backends.base#start_auth
+        :type context: satosa.context.Context
+        :type request_info: satosa.internal_data.InternalRequest
+        """
 
         oidc_clients = self.get_oidc_clients()
         try:
             client_key = next(iter(oidc_clients.client.keys()))
         except:
-            client_key=False
+            client_key = False
 
         if client_key:
             client = oidc_clients[client_key]
@@ -125,16 +140,10 @@ class OpenIdBackend(BackendModule):
             save_state_dict = {}
         state_data.update(save_state_dict)
 
-        state.add(self.config.STATE_ID, state_data)
-        state_cookie = state_to_cookie(
-            state,
-            COOKIE_STATE_NAME,
-            "/",
-            self.config.STATE_ENCRYPTION_KEY
-        )
+        context.state.add(self.config.STATE_ID, state_data)
         try:
             resp = client.create_authn_request(
-                state_cookie,
+                context.state,
                 oidc_state,
                 nonce,
                 self.config.ACR_VALUES
@@ -144,8 +153,15 @@ class OpenIdBackend(BackendModule):
         else:
             return resp
 
-    # TODO not done yet. Info needs to be sent through state
     def restore_state(self, state):
+        """
+        Restores the satosa state after a redirect.
+        :type state: dict[str, str]
+        :rtype: Client
+
+        :param state: The data saved on the state.
+        :return: A oidc client.
+        """
         oidc_clients = self.get_oidc_clients()
         if state["op"] in oidc_clients.client:
             key = state["op"]
@@ -153,17 +169,28 @@ class OpenIdBackend(BackendModule):
             key = ""
         if "client_registration" not in self.config.CLIENTS[key]:
             client = oidc_clients.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
-                                                  behaviour=self.config.CLIENTS[key]["behaviour"],
-                                                  verify_ssl=self.config.VERIFY_SSL)
+                                             behaviour=self.config.CLIENTS[key]["behaviour"],
+                                             verify_ssl=self.config.VERIFY_SSL)
             client.token_endpoint = state[StateKeys.TOKEN_ENDPOINT]
             client = self.fetch_op_keys(client, state)
             self.load_client_registration_info(client, state, key)
             client.userinfo_endpoint = state[StateKeys.USERINFO_ENDPOINT]
+            client.authorization_endpoint = oidc_clients[key].authorization_endpoint
         else:
             return oidc_clients[key]
         return client
 
     def load_client_registration_info(self, client, state, key):
+        """
+        Loads client registration information into the oidc client.
+        :type client: Client
+        :type state: dict[str, str]
+        :type key: str
+
+        :param client: oidc client
+        :param state: A dictionary with all state values for the backend module.
+        :param key: oidc client key
+        """
         try:
             redirect_uris = self.config.CLIENTS[key]["client_info"]["redirect_uris"]
         except:
@@ -179,6 +206,16 @@ class OpenIdBackend(BackendModule):
             **val["client_registration"]))
 
     def fetch_op_keys(self, client, state):
+        """
+        Fetch op keys
+
+        :type client: Client
+        :type state: dict[str, str]
+
+        :param client: oidc client
+        :param state: A dictionary with all state values for the backend module.
+        :return: oidc client with op keys.
+        """
         client.keyjar = KeyJar(verify_ssl=self.config.VERIFY_SSL)
         pcr = ProviderConfigurationResponse()
         pcr['jwks_uri'] = state[StateKeys.JWKS_URI]
@@ -190,6 +227,14 @@ class OpenIdBackend(BackendModule):
         return client
 
     def register_endpoints(self):
+        """
+        Creates a list of all the endpoints this backend module needs to listen to. In this case
+        it's the authentication response from the underlying OP that is redirected from the OP to
+        the proxy.
+        :rtype:
+        list[(str, (satosa.context.Context) -> satosa.response.Response)]
+        :return: A list that can be used to map the request to SATOSA to this endpoint.
+        """
         url_map = []
 
         for key in self.config.CLIENTS:
@@ -206,31 +251,62 @@ class OpenIdBackend(BackendModule):
         return url_map
 
     def _add_endpoint_to_url_map(self, endpoint, url_map, function, binding=None):
+        """
+        Adds a url endpoints and function to call when the requested url matches the endpoint.
+        :type endpoint: str
+        :type url_map: list[str]
+        :type function: (satosa.context.Context, Any) -> satosa.response.Response
+        :type binding: str
+
+        :param endpoint: An ulr endpoint.
+        :param url_map: The map to add endpoints to.
+        :param function: The functoin to call if it's a match.
+        :param binding: This binding value will be sent to the function function.
+        :return:
+        """
         url = urlparse(endpoint)
         if not url.path:
-            raise MissingUrlPath()
+            raise SATOSAError("Missing url path")
         url_map.append(("%s?(.+?)" % url.path[1:], (function, binding)))
         url_map.append(("%s" % url.path[1:], (function, binding)))
         return url_map
 
     def redirect_endpoint(self, context, *args):
-        state = cookie_to_state(context.cookie, COOKIE_STATE_NAME, self.config.STATE_ENCRYPTION_KEY)
+        """
+        Handles the authentication response from the OP.
+        :type context: satosa.context.Context
+        :type args: Any
+        :rtype: satosa.response.Response
+
+        :param context: SATOSA context
+        :param args: None
+        :return:
+        """
+        state = context.state
         backend_state = state.get(self.config.STATE_ID)
         if backend_state["state"] != context.request["state"]:
-            raise AuthenticationError(backend_state, "Missing or invalid state in authn response!")
+            satosa_logging(LOGGER, logging.DEBUG,
+                           "Missing or invalid state in authn response for state: %s" %
+                           backend_state,
+                           state)
+            raise SATOSAAuthenticationError(state, "Missing or invalid state in authn response")
         client = self.restore_state(backend_state)
-        result = client.callback(context.request, backend_state)
+        result = client.callback(context.request, state, backend_state)
         return self.auth_callback_func(context,
                                        self._translate_response(
                                            result,
                                            client.authorization_endpoint,
                                            self.get_subject_type(client),
-                                       ),
-                                       state)
+                                       ))
 
     def get_subject_type(self, client):
+        """
+        Supported subject types by the OP.
+        :type client: Client
+        :param client: oidc client
+        :return: Supported subject type
+        """
         try:
-            #oidc_clients.config.CLIENTS[""]["client_info"]["subject_type"]
             supported = client.provider_info["subject_types_supported"]
             return supported[0]
         except:
@@ -238,6 +314,18 @@ class OpenIdBackend(BackendModule):
         return "public"
 
     def _translate_response(self, response, issuer, subject_type):
+        """
+        Translates oidc response to SATOSA internal response.
+        :type response: dict[str, str]
+        :type issuer: str
+        :type subject_type: str
+        :rtype: InternalResponse
+
+        :param response: Dictioary with attribute name as key.
+        :param issuer: The oidc op that gave the repsonse.
+        :param subject_type: public or pairwise according to oidc standard.
+        :return: A SATOSA internal response.
+        """
         oidc_clients = self.get_oidc_clients()
         subject_type = subject_type
         auth_info = AuthenticationInformation(UNSPECIFIED, str(datetime.now()), issuer)
@@ -252,6 +340,12 @@ class OpenIdBackend(BackendModule):
         return internal_resp
 
     def name_format_to_hash_type(self, name_format):
+        """
+        Maps a hashtype from oidc public or pairwise.
+        :type name_format: str
+        :param name_format: Can be public or pairwise.
+        :return: UserIdHashType
+        """
         if name_format == "public":
             return UserIdHashType.public
         elif name_format == "pairwise":
@@ -259,40 +353,76 @@ class OpenIdBackend(BackendModule):
         return None
 
 
-class OIDCError(Exception):
-    pass
-
-
 class Client(oic.Client):
+    """
+    OIDC client
+    """
     def __init__(self, client_id=None, ca_certs=None,
                  client_prefs=None, client_authn_method=None, keyjar=None,
                  verify_ssl=True, behaviour=None):
+        """
+        See class oic.Client
+        :param behaviour: Can contains the keys "resonse_type" or "scope".
+        :type behaviour: dict[str, str | list[str]]
+        :return:
+        """
         oic.Client.__init__(self, client_id, ca_certs, client_prefs,
                             client_authn_method, keyjar, verify_ssl)
         if behaviour:
             self.behaviour = behaviour
 
-    def create_authn_request(self, state_cookie, state, nonce, acr_value=None, **kwargs):
-        request_args = self.setup_authn_request_args(acr_value, kwargs, state, nonce)
+    def create_authn_request(self, state, oidc_state, nonce, acr_value=None, **kwargs):
+        """
+        Creates an oidc authentication request.
+        :type state: satosa.state.State
+        :type oidc_state: str
+        :type nonce: str
+        :type acr_value: list[str]
+        :type kwargs: Any
+        :rtype: satosa.response.Redirect
+
+        :param state: Module state
+        :param oidc_state: OIDC state
+        :param nonce: A nonce
+        :param acr_value: Authentication type
+        :param kwargs: Whatever
+        :return: A redirect to the OP
+        """
+        request_args = self.setup_authn_request_args(acr_value, kwargs, oidc_state, nonce)
 
         cis = self.construct_AuthorizationRequest(request_args=request_args)
-        logger.debug("request: %s" % cis)
+        satosa_logging(LOGGER, logging.DEBUG, "request: %s" % cis, state)
 
         url, body, ht_args, cis = self.uri_and_body(AuthorizationRequest, cis,
                                                     method="GET",
                                                     request_args=request_args)
 
-        logger.debug("body: %s" % body)
-        logger.info("URL: %s" % url)
-        logger.debug("ht_args: %s" % ht_args)
+        satosa_logging(LOGGER, logging.DEBUG, "body: %s" % body, state)
+        satosa_logging(LOGGER, logging.INFO, "URL: %s" % url, state)
+        satosa_logging(LOGGER, logging.DEBUG, "ht_args: %s" % ht_args, state)
 
-        resp = Redirect(str(url), state_cookie)
+        resp = Redirect(str(url))
         if ht_args:
             resp.headers.extend([(a, b) for a, b in ht_args.items()])
-        logger.debug("resp_headers: %s" % resp.headers)
+        satosa_logging(LOGGER, logging.DEBUG, "resp_headers: %s" % resp.headers, state)
         return resp
 
     def setup_authn_request_args(self, acr_value, kwargs, state, nonce):
+        """
+        Creates request arguments needed to create an oidc authentication request.
+
+        :type state: str
+        :type nonce: str
+        :type acr_value: list[str]
+        :type kwargs: Any
+        :rtype: dict[str, str | list[str]]
+
+        :param acr_value: Authentication type
+        :param kwargs: whatever
+        :param state: OIDC state
+        :param nonce: A nonce
+        :return:
+        """
         request_args = {
             "response_type": self.behaviour["response_type"],
             "scope": self.behaviour["scope"],
@@ -305,12 +435,18 @@ class Client(oic.Client):
         request_args.update(kwargs)
         return request_args
 
-    def callback(self, response, backend_state):
+    def callback(self, response, state, backend_state):
         """
         This is the method that should be called when an AuthN response has been
         received from the OP.
+        :type response: dict[str, str]
+        :type state: satosa.sate.State
+        :type backend_state: dict[str, str]
+        :rtype: satosa.response.Response
 
-        :param response: The URL returned by the OP
+        :param response: The response parameters from the OP.
+        :param state: A SATOSA state.
+        :param backend_state: The state data for this backend module.
         :return:
         """
         authresp = self.parse_response(AuthorizationResponse, response,
@@ -318,13 +454,18 @@ class Client(oic.Client):
 
         if isinstance(authresp, ErrorResponse):
             if authresp["error"] == "login_required":
-                return self.create_authn_request(authresp["state"])
+                satosa_logging(LOGGER, logging.WARN, "Access denied for state: %s" % backend_state,
+                               state)
+                raise SATOSAAuthenticationError(state, "Access denied")
             else:
-                return AuthenticationError(backend_state, "Access denied")
+                satosa_logging(LOGGER, logging.DEBUG, "Access denied for state: %s" % backend_state,
+                               state)
+                raise SATOSAAuthenticationError(state, "Access denied")
         try:
             if authresp["id_token"] != backend_state["nonce"]:
-                return AuthenticationError(backend_state,
-                                           "Received nonce not the same as expected.")
+                satosa_logging(LOGGER, logging.DEBUG,
+                               "Invalid nonce. for state: %s" % backend_state, state)
+                raise SATOSAAuthenticationError(state, "Invalid nonce")
             self.id_token[authresp["state"]] = authresp["id_token"]
         except KeyError:
             pass
@@ -344,36 +485,42 @@ class Client(oic.Client):
                     scope="openid", state=authresp["state"], request_args=args,
                     authn_method=self.registration_response["token_endpoint_auth_method"])
             except Exception as err:
-                logger.error("%s" % err)
+                satosa_logging(LOGGER, logging.ERROR, "%s" % err, state, exc_info=True)
                 raise
 
             if isinstance(atresp, ErrorResponse):
-                raise OIDCError("Invalid response %s." % atresp["error"])
+                msg = "Invalid response %s." % atresp["error"]
+                satosa_logging(LOGGER, logging.ERROR, msg, state)
+                raise SATOSAAuthenticationError(state, msg)
 
         kwargs = {}
         try:
             kwargs = {"method": self.userinfo_request_method}
         except AttributeError:
-            kwargs = {}
+            pass
 
         inforesp = self.do_user_info_request(state=authresp["state"], **kwargs)
 
         if isinstance(inforesp, ErrorResponse):
-            raise OIDCError("Invalid response %s." % inforesp["error"])
+            msg = "Invalid response %s." % inforesp["error"]
+            satosa_logging(LOGGER, logging.ERROR, msg, state)
+            raise SATOSAAuthenticationError(state, "Invalid response %s." % inforesp["error"])
 
         userinfo = inforesp.to_dict()
 
-        logger.debug("UserInfo: %s" % inforesp)
+        satosa_logging(LOGGER, logging.DEBUG, "UserInfo: %s" % inforesp, state)
 
         return userinfo
 
 
 class OIDCClients(object):
+    """
+    Holds all oidc clients.
+    """
     def __init__(self, config):
         """
-
+        :type: RpConfig
         :param config: Imported configuration module
-        :return:
         """
         self.client = {}
         self.client_cls = Client
@@ -388,8 +535,10 @@ class OIDCClients(object):
     def create_client(self, userid="", **kwargs):
         """
         Do an instantiation of a client instance
-
-        :param userid: An identifier of the user
+        :type userid: str
+        :type kwargs: any
+        :rtype: Client
+        :param userid: An identifier of the user. In this case OP base url.
         :param: Keyword arguments
             Keys are ["srv_discovery_url", "client_info", "client_registration",
             "provider_info"]
@@ -468,6 +617,13 @@ class OIDCClients(object):
         return client
 
     def dynamic_client(self, userid):
+        """
+        Creates a new dynamic client.
+        :type userid: str
+        :rtype: Client
+        :param userid: URL for the OP.
+        :return: oidc client
+        """
         client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
                                  verify_ssl=self.config.VERIFY_SSL)
 
@@ -491,8 +647,9 @@ class OIDCClients(object):
     def __getitem__(self, item):
         """
         Given a service or user identifier return a suitable client
-        :param item:
-        :return:
+        :type: item: str
+        :param item: oidc client key
+        :return: A oidc client.
         """
         try:
             return self.client[item]
@@ -500,4 +657,7 @@ class OIDCClients(object):
             return self.dynamic_client(item)
 
     def keys(self):
+        """
+        :return: A list with keys.
+        """
         return list(self.client.keys())

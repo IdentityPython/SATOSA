@@ -9,7 +9,6 @@
     ],
     "verify_ssl": false,
     "op_url": "https://localhost:7092",
-    "state_encryption_key": "",
     "state_id": "",
     "client": {
       "userid": "https://localhost:7092",

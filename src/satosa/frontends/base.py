@@ -11,38 +11,39 @@ class FrontendModule(object):
 
     def __init__(self, auth_req_callback_func, internal_attrbitues):
         """
-        :type auth_req_callback_func: (satosa.context.Context, satosa.internal_data.InternalData, satosa.state.State) -> Any
-        :type data_converters: list[satosa.internal_data.DataConverter]
+        :type auth_req_callback_func:
+        (satosa.context.Context, satosa.internal_data.InternalData) -> satosa.response.Response
+        :type internal_attrbitues: dict[str, dict[str, str | list[str]]]
 
-        :param auth_req_callback_func: Callback should be called by the module after the authorization response
-                                       has been processed.
+        :param auth_req_callback_func: Callback should be called by the module after the
+        authorization response has been processed.
         """
         self.auth_req_callback_func = auth_req_callback_func
         self.internal_attrbitues = internal_attrbitues
 
-    def handle_authn_response(self, context, internal_resp, state):
+    def handle_authn_response(self, context, internal_resp):
         """
-        If an authorization has been successful in a backend, this function is called and is supposed to send an
-        authorization response to the client.
+        If an authorization has been successful in a backend, this function is called and is
+        supposed to send an authorization response to the client.
 
         :type context: satosa.context.Context
         :type internal_resp: satosa.internal_data.InternalResponse
-        :type state: satosa.state.State
-        :rtype Any
+        :rtype satosa.response.Response
 
         :param context: The request context
         :param internal_resp: Attributes from the authorization
-        :param state: the saved frontend state
         :return response
         """
         raise NotImplementedError()
 
     def handle_backend_error(self, exception):
         """
-        IF the backend gets an unexpected error, a suitable notice about the failure should be sent to the requestor.
-        This function is supposed to send a suitable error message to the requestor.
+        IF the backend gets an unexpected error, a suitable notice about the failure should be sent
+        to the requestor. This function is supposed to send a suitable error message to the
+        requestor.
 
         :type exception: satosa.exception.SATOSAError
+        :rtype: satosa.response.Response
 
         :param exception: The raised exception
         :return: response
@@ -62,7 +63,8 @@ class FrontendModule(object):
 
 
         :type providers: list[str]
-        :rtype list[(str, ((satosa.context.Context, Any) -> Any, Any))]
+        :rtype list[(str, ((satosa.context.Context, Any) -> satosa.response.Response, Any))] |
+               list[(str, (satosa.context.Context) -> satosa.response.Response)]
 
         :param providers: A list of all possible endpoints.
         :return: A list with functions and args bound to a specific endpoint url,
