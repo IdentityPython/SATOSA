@@ -65,7 +65,7 @@ class TestOpenIdBackend:
             TestConfiguration.get_instance().rp_config.OP_URL,
             "public"
         )
-        assert internal_response.user_id == sub
+        assert internal_response.get_user_id() == sub
         attributes_keys = internal_response._attributes.keys()
         assert sorted(attributes_keys) == sorted(['surname', 'edupersontargetedid', 'givenname'])
 

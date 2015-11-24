@@ -82,7 +82,7 @@ class ConsentModule(object):
 
         requestor = consent_state["requestor"]
 
-        hash_id = self._get_consent_id(requestor, internal_response.user_id,
+        hash_id = self._get_consent_id(requestor, internal_response.get_user_id(),
                                        list(internal_response.get_attributes().keys()))
 
         try:
@@ -135,7 +135,7 @@ class ConsentModule(object):
         # Update internal response
         internal_response._attributes = filtered_data
 
-        id_hash = self._get_consent_id(requestor, internal_response.user_id,
+        id_hash = self._get_consent_id(requestor, internal_response.get_user_id(),
                                        list(filtered_data.keys()))
 
         try:

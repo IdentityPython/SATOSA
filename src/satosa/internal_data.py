@@ -377,7 +377,7 @@ class InternalResponse(InternalData):
         :rtype: str
         :return: The user id
         """
-        id = None
+        id = ""
         if self._user_id_attributes:
             for attr in self._user_id_attributes:
                 id = "%s%s" % (id, self._attributes[attr])

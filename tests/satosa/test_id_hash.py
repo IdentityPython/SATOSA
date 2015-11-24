@@ -5,18 +5,14 @@ __author__ = 'mathiashedstrom'
 
 SALT = "asdasdasdasdewr234"
 
+
 def _get_id(requestor, user_id, hash_type):
     state = State()
     internal_request = InternalRequest(hash_type, requestor)
 
     UserIdHasher.save_state(internal_request, state)
 
-    internal_response = InternalResponse(hash_type)
-    internal_response.user_id = user_id
-
-    internal_response = UserIdHasher.set_id(SALT, internal_response, state)
-
-    return internal_response.user_id
+    return UserIdHasher.hash_id(SALT, user_id, hash_type, state)
 
 
 def test_id_hash_transient():
