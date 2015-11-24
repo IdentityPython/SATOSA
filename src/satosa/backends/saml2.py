@@ -272,6 +272,7 @@ class SamlBackend(BackendModule):
 
         internal_resp.set_user_id(response.get_subject().text)
 
+        internal_resp.add_attributes(self.converter.to_internal("saml", response.ava))
         return internal_resp
 
     def _metadata(self, context):
