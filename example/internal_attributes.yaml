@@ -26,3 +26,5 @@ attributes:
     openid: [family_name]
     saml: [sn, surname]
 separator: ->
+hash: [edupersontargetedid]
+user_id_from_attr: [edupersontargetedid]

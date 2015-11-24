@@ -103,6 +103,9 @@ class SATOSABase(object):
         """
 
         context.request = None
+        user_id_attr = self.config.INTERNAL_ATTRIBUTES.get("user_id_from_attr", [])
+        if user_id_attr:
+            internal_response.set_user_id_from_attr(user_id_attr)
         # Hash the user id
         user_id = UserIdHasher.hash_data(self.config.USER_ID_HASH_SALT,
                                          internal_response.get_user_id())

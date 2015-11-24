@@ -29,7 +29,7 @@ class OAuthBackend(BackendModule):
     Backend module for OAuth 2.0
     """
 
-    def __init__(self, outgoing, internal_attributes, config, external_type):
+    def __init__(self, outgoing, internal_attributes, config, external_type, user_id_attr):
         """
         :param outgoing: Callback should be called by the module after the authorization in the
         backend is done.
@@ -50,6 +50,7 @@ class OAuthBackend(BackendModule):
         self.redirect_url = "%s/%s" % (self.config["base_url"], self.config["authz_page"])
         self.converter = DataConverter(internal_attributes)
         self.external_type = external_type
+        self.user_id_attr = user_id_attr
 
     def get_consumer(self, user_id_hash_type):
         """
@@ -164,6 +165,7 @@ class OAuthBackend(BackendModule):
                                                  auth_info=self.auth_info(request))
             internal_response.add_attributes(self.converter.to_internal(self.external_type,
                                                                         user_info))
+            internal_response.set_user_id(user_info[self.user_id_attr])
             return self.auth_callback_func(context, internal_response)
         except Exception as error:
             satosa_logging(LOGGER, logging.DEBUG, "Not a valid authentication", state,
@@ -218,7 +220,8 @@ class FacebookBackend(OAuthBackend):
         :type internal_attributes: dict[string, dict[str, str | list[str]]]
         :type config: dict[str, dict[str, str] | list[str]]
         """
-        super(FacebookBackend, self).__init__(outgoing, internal_attributes, config, "facebook")
+        super(FacebookBackend, self).__init__(outgoing, internal_attributes, config, "facebook",
+                                              "id")
         self.fields = None
         self.convert_dict = None
         if "state_key" not in self.config:

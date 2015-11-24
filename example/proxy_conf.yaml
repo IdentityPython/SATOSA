@@ -1,5 +1,6 @@
 #--- SATOSA Config ---#
-HOST: "hashog.umdc.umu.se"
+#HOST: "hashog.umdc.umu.se"
+HOST: "0.0.0.0"
 PORT: 8091
 HTTPS: Yes
 INTERNAL_ATTRIBUTES: 'internal_attributes.yaml'
