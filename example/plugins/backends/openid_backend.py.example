@@ -35,7 +35,7 @@ class OpenidPlugin(BackendModulePlugin):
                     "redirect_uris": ["%sauthz_cb" % module_base],
                     "post_logout_redirect_uris": ["%slogout" % module_base],
                     "response_types": ["code"],
-                    "subject_type": "pairwise"
+                    "subject_type": "public"
                 },
                 "behaviour": {
                     "response_type": "code",

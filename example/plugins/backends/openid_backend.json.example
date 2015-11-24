@@ -27,7 +27,7 @@
         "response_types": [
           "code"
         ],
-        "subject_type": "pairwise"
+        "subject_type": "public"
       },
       "behaviour": {
         "response_type": "code",

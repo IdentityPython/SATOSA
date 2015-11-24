@@ -270,12 +270,7 @@ class SamlBackend(BackendModule):
         auth_info = AuthenticationInformation(auth_class_ref, timestamp, issuer)
         internal_resp = InternalResponse(user_id_hash_type, auth_info=auth_info)
 
-        internal_resp.add_attributes(self.converter.to_internal("saml", response.ava))
-        if "user_id_attributes" in self.config and self.config["user_id_attributes"] is not None:
-            internal_resp.set_user_id_from_attr(self.config["user_id_attributes"])
-        else:
-            # user id from NameID
-            internal_resp.set_user_id(response.get_subject().text)
+        internal_resp.set_user_id(response.get_subject().text)
 
         return internal_resp
 

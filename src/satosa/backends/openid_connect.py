@@ -56,7 +56,6 @@ class RpConfig(object):
         self.VERIFY_SSL = config["verify_ssl"]
         self.OP_URL = config["op_url"]
         self.STATE_ID = config["state_id"]
-        self.USER_ID_ATTRIBUTES = config.get("user_id_attributes", None)
 
 
 class OpenIdBackend(BackendModule):
@@ -337,10 +336,7 @@ class OpenIdBackend(BackendModule):
         )
 
         internal_resp.add_attributes(self.converter.to_internal("openid", response))
-        if self.config.USER_ID_ATTRIBUTES is not None:
-            internal_resp.set_user_id_from_attr(self.config.USER_ID_ATTRIBUTES)
-        else:
-            internal_resp.set_user_id(response["sub"])
+        internal_resp.set_user_id(response["sub"])
 
         return internal_resp
 
