@@ -3,8 +3,10 @@ Tests for the state class.
 """
 import random
 import string
-import pytest
 from urllib.parse import quote_plus
+
+import pytest
+
 from satosa.state import State, state_to_cookie, cookie_to_state, SATOSAStateError
 
 __author__ = 'haho0032'

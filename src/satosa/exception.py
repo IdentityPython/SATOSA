@@ -42,6 +42,7 @@ class SATOSAAuthenticationError(SATOSAError):
     """
     SATOSA authentication error.
     """
+
     def __init__(self, state, message, *args, **kwargs):
         """
         :type state: satosa.state.State

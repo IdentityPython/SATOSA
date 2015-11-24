@@ -14,7 +14,9 @@ from saml2.httputil import Unauthorized
 from saml2.s_utils import UnknownPrincipal
 from saml2.s_utils import UnsupportedBinding
 from saml2.saml import NameID
+
 from saml2.samlp import name_id_policy_from_string
+
 from saml2.server import Server
 
 from satosa.frontends.base import FrontendModule
@@ -251,10 +253,24 @@ class SamlFrontend(FrontendModule):
                                             request["RelayState"])
             context.state.add(SamlFrontend.STATE_KEY, request_state)
 
+            extensions = idp.metadata.extension(
+                extracted_request['resp_args']['sp_entity_id'],
+                'spsso_descriptor',
+                'urn:oasis:names:tc:SAML:metadata:ui&UIInfo'
+            )
+
+            requester_name = None
+            try:
+                requester_name = extensions[0]['display_name']
+            except IndexError:
+                pass
+
             internal_req = InternalRequest(
                 saml_name_format_to_hash_type(extracted_request['req_args']
                                               ['name_id_policy'].format),
-                extracted_request["resp_args"]["sp_entity_id"])
+                extracted_request["resp_args"]["sp_entity_id"],
+                requester_name
+            )
 
             # Get attribute filter
             idp_policy = idp.config.getattr("policy", "idp")

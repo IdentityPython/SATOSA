@@ -2,6 +2,7 @@
 HOST: '127.0.0.1'
 PORT: 8090
 HTTPS: Yes
+INTERNAL_ATTRIBUTES: "internal_attributes.yaml"
 COOKIE_STATE_NAME: "SATOSA_STATE"
 STATE_ENCRYPTION_KEY: "asdASD123"
 PLUGIN_PATH:
@@ -21,6 +22,7 @@ CONSENT:
   service.consent_redirect: "https://127.0.0.1:8166/consent"
   endpoint: "handle_consent"
   sign_key: "pki/mykey.pem"
+  state_enc_key: "7D1ZGckfoiQfxvsK3DLCQFGutA6KM0ZzoSnzB"
   verify_ssl: No
 ACCOUNT_LINKING:
   enable: Yes

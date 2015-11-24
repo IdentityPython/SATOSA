@@ -1,16 +1,20 @@
 import re
 from urllib.parse import urlparse, parse_qs
+
 from jwkest import jws
 from jwkest.jwk import RSAKey, import_rsa_key
+
 from jwkest.jwt import JWT
 import pytest
+
 from requests.exceptions import ConnectionError
 import responses
+
 from satosa.response import Redirect
 from satosa.consent import ConsentModule
 from satosa.context import Context
-from satosa.internal_data import InternalResponse, UserIdHashType, InternalRequest, AuthenticationInformation, \
-    DataConverter
+from satosa.internal_data import InternalResponse, UserIdHashType, InternalRequest, \
+    AuthenticationInformation
 from satosa.satosa_config import SATOSAConfig
 from satosa.state import State
 from tests.util import FileGenerator, private_to_public_key

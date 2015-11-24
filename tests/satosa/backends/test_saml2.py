@@ -3,12 +3,14 @@ Tests for the SAML frontend module src/backends/saml2.py.
 """
 from urllib import parse
 import re
+import os.path
 
 from saml2 import BINDING_HTTP_POST
 from saml2.authn_context import PASSWORD
 from saml2.config import IdPConfig
 from saml2.entity_category.edugain import COC
 from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN, EU
+
 from saml2.extension.idpdisc import BINDING_DISCO
 
 from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
@@ -16,10 +18,9 @@ from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_P
 from satosa.backends.saml2 import SamlBackend
 from satosa.context import Context
 from satosa.internal_data import UserIdHashType, InternalRequest
-from satosa.state import State, cookie_to_state
+from satosa.state import State
 from tests.users import USERS
 from tests.util import FileGenerator, FakeIdP
-import os.path
 
 __author__ = 'haho0032'
 

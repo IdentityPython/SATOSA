@@ -4,8 +4,8 @@ The SATOSA main module
 import json
 import logging
 from uuid import uuid4
-from satosa.account_linking import AccountLinkingModule
 
+from satosa.account_linking import AccountLinkingModule
 from satosa.consent import ConsentModule
 from satosa.context import Context
 from satosa.exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError

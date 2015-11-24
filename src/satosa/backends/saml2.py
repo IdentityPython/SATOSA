@@ -10,7 +10,9 @@ from saml2 import BINDING_HTTP_REDIRECT
 from saml2 import BINDING_HTTP_POST
 from saml2.client_base import Base
 from saml2.config import SPConfig
+
 from saml2.metadata import create_metadata_string
+
 from saml2.samlp import NameIDPolicy
 
 from satosa.backends.base import BackendModule

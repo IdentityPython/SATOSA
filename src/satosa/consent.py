@@ -4,14 +4,18 @@ A consent module for the satosa proxy
 import hashlib
 import json
 import logging
+from base64 import urlsafe_b64encode
+
 import requests
 from requests.exceptions import ConnectionError
-from base64 import urlsafe_b64encode
 from jwkest.jws import JWS
+
 from jwkest.jwk import rsa_load
+
 from jwkest.jwk import RSAKey
-from satosa.internal_data import InternalResponse
+
 from satosa.logging import satosa_logging
+from satosa.internal_data import InternalResponse
 from satosa.response import Redirect
 
 LOGGER = logging.getLogger(__name__)
@@ -56,7 +60,8 @@ class ConsentModule(object):
         """
         if self.enabled:
             state.add(ConsentModule.STATE_KEY, {"filter": internal_request.get_filter(),
-                                                "requestor": internal_request.requestor})
+                                                "requestor": internal_request.requestor,
+                                                "requester_name": internal_request.requester_name})
 
     def _handle_consent_response(self, context):
         """
@@ -115,12 +120,13 @@ class ConsentModule(object):
             return self.callback_func(context, internal_response)
 
         consent_state = state.get(ConsentModule.STATE_KEY)
-        attr_filter = consent_state["filter"]
+        filter = consent_state["filter"]
         requestor = consent_state["requestor"]
+        requester_name = consent_state["requester_name"]
 
         # filter attributes
         filtered_data = {}
-        for attr in attr_filter:
+        for attr in filter:
             if attr in internal_response.get_attributes():
                 data = internal_response.get_attributes()[attr]
                 if not isinstance(data, list):
@@ -148,7 +154,8 @@ class ConsentModule(object):
 
         consent_args = {"attr": filtered_data,
                         "id": id_hash,
-                        "redirect_endpoint": "%s/consent/%s" % (self.proxy_base, self.endpoint)}
+                        "redirect_endpoint": "%s/consent/%s" % (self.proxy_base, self.endpoint),
+                        "requester_name": requester_name}
         consent_args_jws = self._to_jws(consent_args)
 
         try:
