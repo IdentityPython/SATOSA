@@ -171,8 +171,7 @@ class SamlBackend(BackendModule):
             satosa_logging(LOGGER, logging.DEBUG, "ht_args: %s" % ht_args, state)
         except Exception as exc:
             satosa_logging(LOGGER, logging.DEBUG,
-                           "Failed to construct the AuthnRequest for state: %s" % state, state,
-                           exc_info=True)
+                           "Failed to construct the AuthnRequest for state", state, exc_info=True)
             raise SATOSAAuthenticationError(state, "Failed to construct the AuthnRequest") from exc
 
         state.add(SamlBackend.STATE_KEY, relay_state)
