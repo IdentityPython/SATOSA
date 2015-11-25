@@ -133,6 +133,10 @@ class SATOSABase(object):
                                        internal_response.user_id_hash_type,
                                        context.state)
         internal_response.set_user_id(user_id)
+        user_id_to_attr = self.config.INTERNAL_ATTRIBUTES.get("user_id_to_attr", None)
+        if user_id_to_attr:
+            attributes = internal_response.get_attributes()
+            attributes[user_id_to_attr] = internal_response.get_user_id()
 
         # Hash all attributes specified in INTERNAL_ATTRIBUTES["hash]
         hash_attributes = self.config.INTERNAL_ATTRIBUTES.get("hash", [])
