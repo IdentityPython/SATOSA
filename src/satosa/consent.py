@@ -96,7 +96,7 @@ class ConsentModule(object):
         if consent_attributes is None:
             satosa_logging(LOGGER, logging.INFO, "Consent was NOT given", state)
             # If consent was not given, then don't send any attributes
-            internal_response._attributes = {}
+            consent_attributes = []
         else:
             satosa_logging(LOGGER, logging.INFO, "Consent was given", state)
 
