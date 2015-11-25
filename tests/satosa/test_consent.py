@@ -52,7 +52,7 @@ CONSENT_PUB_KEY_STR = private_to_public_key(CONSENT_KEY.name)
 
 CONSENT_CONFIG = {"CONSENT":
                       {"rest_uri": "https://localhost:8055",
-                       "consent_redirect": "https://localhost:8055/consent",
+                       "redirect": "https://localhost:8055/consent",
                        "endpoint": "handle_consent",
                        "sign_key": CONSENT_KEY.name,
                        "state_enc_key": "fsghajf90984jkflds",
