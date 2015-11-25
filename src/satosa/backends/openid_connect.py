@@ -56,6 +56,9 @@ class RpConfig(object):
         self.VERIFY_SSL = config["verify_ssl"]
         self.OP_URL = config["op_url"]
         self.STATE_ID = config["state_id"]
+        self.USER_ID_PARAMAS = None
+        if "user_id_paramas" in config:
+            self.USER_ID_PARAMAS = config["user_id_paramas"]
 
 
 class OpenIdBackend(BackendModule):
@@ -337,9 +340,9 @@ class OpenIdBackend(BackendModule):
 
         internal_resp.add_attributes(self.converter.to_internal("openid", response))
         internal_resp.set_user_id(response["sub"])
-        if "user_id_paramas" in self.config:
+        if self.config.USER_ID_PARAMAS:
             user_id = ""
-            for param in self.config["user_id_params"]:
+            for param in self.config.USER_ID_PARAMAS:
                 try:
                     user_id += response[param]
                 except Exception as error:
