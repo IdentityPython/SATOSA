@@ -1,6 +1,7 @@
 import pytest
+
 from satosa.context import Context
-from satosa.exception import AuthenticationError
+from satosa.exception import SATOSAAuthenticationError
 from satosa.micro_service.service_base import MicroService, build_micro_service_queue
 from satosa.state import State
 
@@ -32,8 +33,8 @@ def test_micro_service():
     service_queue = build_micro_service_queue(service_list)
     test_data = "test_data"
     context = Context()
-    state = State()
-    data = service_queue.process_service_queue(context, test_data, state)
+    context.state = State()
+    data = service_queue.process_service_queue(context, test_data)
 
     for d in data_list:
         test_data = "{}{}".format(test_data, d)
@@ -42,7 +43,7 @@ def test_micro_service():
 
 def test_mirco_service_error():
     """
-    Test that the process_service_queue raises a AuthenticationError if anything goes wrong with a micro service
+    Test that the process_service_queue raises a SATOSAAuthenticationError if anything goes wrong with a micro service
     """
     data_list = ["1", "2", "3"]
     service_list = []
@@ -60,7 +61,7 @@ def test_mirco_service_error():
     service_queue = build_micro_service_queue(service_list)
     test_data = "test_data"
     context = Context()
-    state = State()
+    context.state = State()
 
-    with pytest.raises(AuthenticationError):
-        service_queue.process_service_queue(context, test_data, state)
+    with pytest.raises(SATOSAAuthenticationError):
+        service_queue.process_service_queue(context, test_data)

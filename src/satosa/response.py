@@ -1,96 +1,154 @@
-import six
+"""
+Response objects used in satosa
+"""
 from urllib.parse import quote
+
+import six
 
 __author__ = 'mathiashedstrom'
 
 
 class Response(object):
-    _template = None
+    """
+    A response object
+    """
+    # _template = None
     _status = '200 OK'
     _content_type = 'text/html'
-    _mako_template = None
-    _mako_lookup = None
 
-    def __init__(self, message=None, cookie=None, **kwargs):
-        self.status = kwargs.get('status', self._status)
-        self.response = kwargs.get('response', self._response)
-        self.template = kwargs.get('template', self._template)
-        self.mako_template = kwargs.get('mako_template', self._mako_template)
-        self.mako_lookup = kwargs.get('template_lookup', self._mako_lookup)
+    def __init__(self, message=None, status=None, headers=None, content=None):
+        """
+        Creates a Responses
+        :type message: str
+        :type status: str
+        :type headers: list[(str, str)]
+        :type content: str
 
+        :param message: The response message
+        :param status: The response status code
+        :param headers: A list of headers
+        :param content: The content type
+        """
+        _content_type = content if content is not None else self._content_type
+        self.status = status if status is not None else self._status
+        self.headers = headers if headers is not None else []
         self.message = message
 
-        self.headers = kwargs.get('headers', [])
-        if cookie:
-            self.headers.append(tuple(cookie.output().split(": ", 1)))
-
-        _content_type = kwargs.get('content', self._content_type)
-        addContentType = True
+        addcontenttype = True
         for header in self.headers:
             if 'content-type' == header[0].lower():
-                addContentType = False
-        if addContentType:
+                addcontenttype = False
+        if addcontenttype:
             self.headers.append(('Content-type', _content_type))
 
-    def __call__(self, environ, start_response, **kwargs):
+    def add_cookie(self, cookie):
+        """
+        Adds a cookie to the response header
+        :type cookie: http.cookies.SimpleCookie
+        :param cookie: The cookie to be added
+        """
+        self.headers.append(tuple(cookie.output().split(": ", 1)))
+
+    def __call__(self, environ, start_response):
+        """
+        Help method when using a WSGI application server.
+        Creates a response from environ and start_response
+
+        :type environ: dict[str, str]
+        :type start_response: (str, list[(str, str)]) -> None
+
+        :param environ: The WSGI environ
+        :param start_response: The WSGI start_response
+        :return:
+        """
         try:
             start_response(self.status, self.headers)
         except TypeError:
             pass
-        return self.response(self.message or geturl(environ), **kwargs)
+        return self.to_list(self.message or geturl(environ))
 
-    def _response(self, message="", **argv):
-        if self.template:
-            return [self.template % message]
-        elif self.mako_lookup and self.mako_template:
-            argv["message"] = message
-            mte = self.mako_lookup.get_template(self.mako_template)
-            return [mte.render(**argv)]
+    def to_list(self, message=""):
+        """
+        Convert message to list
+        :type message: str | list[str]
+        :rtype: list[str]
+        :param message: message for response
+        :return: A response message
+        """
+        if isinstance(message, six.string_types):
+            return [message]
         else:
-            if isinstance(message, six.string_types):
-                return [message]
-            else:
-                return message
+            return message
 
 
 class Redirect(Response):
-    _template = '<html>\n<head><title>Redirecting to %s</title></head>\n' \
-                '<body>\nYou are being redirected to <a href="%s">%s</a>\n' \
-                '</body>\n</html>'
+    """
+    A Redirect response
+    """
     _status = '302 Found'
 
-    def __init__(self, redirect_url, state_cookie, **kwargs):
-        super(Redirect, self).__init__(message=redirect_url, cookie=state_cookie,
-                                       **kwargs)
+    def __init__(self, redirect_url, headers=None, content=None):
+        """
+        Crete a redirect response
 
-    def __call__(self, environ, start_response, **kwargs):
+        :type redirect_url: str
+        :type headers: list[(str,str)]
+        :type content: str
+
+        :param redirect_url: The redirect url
+        :param headers: A list of headers
+        :param content: Content type
+        """
+        super(Redirect, self).__init__(message=redirect_url, headers=headers, content=content)
+
+    def __call__(self, environ, start_response):
+        """
+        :type environ: dict[str, str]
+        :type start_response: (str, list[(str, str)]) -> None
+
+        :param environ: The WSGI environ
+        :param start_response: The WSGI start_response
+        """
         location = self.message
         self.headers.append(('location', location))
         start_response(self.status, self.headers)
-        return self.response((location, location, location))
+        return self.to_list()
+
 
 class SeeOther(Response):
-    _template = '<html>\n<head><title>Redirecting to %s</title></head>\n' \
-        '<body>\nYou are being redirected to <a href="%s">%s</a>\n' \
-        '</body>\n</html>'
+    """
+    A SeeOther response
+    """
     _status = '303 See Other'
 
-    def __init__(self, redirect_url, state_cookie, **kwargs):
-        super(SeeOther, self).__init__(message=redirect_url, cookie=state_cookie,
-                                       **kwargs)
+    def __init__(self, redirect_url, headers=None, content=None):
+        """
+        Creates a SeeOther response
 
-    def __call__(self, environ, start_response, **kwargs):
-        location = ""
+        :type redirect_url: str
+        :type headers: list[(str, str)]
+        :type content: str
+
+        :param redirect_url: The redirect url
+        :param headers: A list of headers
+        :param content: The content type
+        """
+        super(SeeOther, self).__init__(message=redirect_url, headers=headers, content=content)
+
+    def __call__(self, environ, start_response):
+        """
+        See super class method satosa.response.Redirect#__call__
+        :type environ: dict[str, str]
+        :type start_response: (str, list[(str, str)]) -> None
+
+        :param environ: The WSGI environ
+        :param start_response: The WSGI start_response
+        """
         if self.message:
             location = self.message
             self.headers.append(('location', location))
-        else:
-            for param, item in self.headers:
-                if param == "location":
-                    location = item
-                    break
         start_response(self.status, self.headers)
-        return self.response((location, location, location))
+        return self.to_list()
 
 
 def geturl(environ, query=True, path=True, use_server_name=False):
@@ -99,6 +157,13 @@ def geturl(environ, query=True, path=True, use_server_name=False):
     server_name and server_port instead of http_host in some case.
     The parameter use_server_name allows you to chose.
 
+    :type environ: any
+    :type query: str
+    :type path: str
+    :type use_server_name: bool
+    :rtype: str
+
+    :param environ: whiskey app environment
     :param query: Is QUERY_STRING included in URI (default: True)
     :param path: Is path included in URI (default: True)
     :param use_server_name: If SERVER_NAME/_HOST should be used instead of
@@ -123,6 +188,13 @@ def geturl(environ, query=True, path=True, use_server_name=False):
 
 
 def getpath(environ):
-    """Builds a path."""
+    """
+    Builds a path
+    :type environ: dict[str, str]
+    :rtype: str
+
+    :param environ: The WSGI application environ
+    :return: the path
+    """
     return ''.join([quote(environ.get('SCRIPT_NAME', '')),
                     quote(environ.get('PATH_INFO', ''))])

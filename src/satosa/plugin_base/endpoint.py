@@ -1,10 +1,14 @@
 """
 Interfaces for frontend / backend plugins
 """
+import logging
+
 from satosa.backends.base import BackendModule
 from satosa.frontends.base import FrontendModule
 
 __author__ = 'mathiashedstrom'
+
+LOGGER = logging.getLogger(__name__)
 
 
 class InterfaceModulePlugin(object):
@@ -45,7 +49,9 @@ class FrontendModulePlugin(InterfaceModulePlugin):
         :param config: configuration for the module
         """
         if not issubclass(module, FrontendModule):
-            raise AttributeError("module is not instance of {}".format(FrontendModule.__name__))
+            msg = "module is not subclass of {}".format(FrontendModule.__name__)
+            LOGGER.error(msg)
+            raise AttributeError(msg)
         super(FrontendModulePlugin, self).__init__(module, receiver, config)
 
 
@@ -66,5 +72,7 @@ class BackendModulePlugin(InterfaceModulePlugin):
         :param config: configuration for the module
         """
         if not issubclass(module, BackendModule):
-            raise AttributeError("module is not instance of {}".format(BackendModule.__name__))
+            msg = "module is not subclass of {}".format(BackendModule.__name__)
+            LOGGER.error(msg)
+            raise AttributeError(msg)
         super(BackendModulePlugin, self).__init__(module, provider, config)

@@ -1,0 +1,44 @@
+{
+  "plugin": "BackendModulePlugin",
+  "module": "satosa.backends.openid_connect.OpenIdBackend",
+  "name": "openid_connect",
+  "config": {
+    "authz_page": "<name>",
+    "acr_values": [
+      "PASSWORD"
+    ],
+    "verify_ssl": false,
+    "op_url": "https://localhost:7092",
+    "state_id": "",
+    "client": {
+      "userid": "https://localhost:7092",
+      "client_info": {
+        "application_type": "web",
+        "application_name": "SATOSA",
+        "contacts": [
+          "ops@example.com"
+        ],
+        "redirect_uris": [
+          "<base_url>/<name>/sauthz_cb"
+        ],
+        "post_logout_redirect_uris": [
+          "<base_url>/<name>/logout"
+        ],
+        "response_types": [
+          "code"
+        ],
+        "subject_type": "public"
+      },
+      "behaviour": {
+        "response_type": "code",
+        "scope": [
+          "openid",
+          "profile",
+          "email",
+          "address",
+          "phone"
+        ]
+      }
+    }
+  }
+}

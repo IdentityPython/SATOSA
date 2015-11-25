@@ -12,6 +12,18 @@ PROVIDERS = ["Saml2SP", "VOPaaSSaml2SP"]
 FRONTEND_ENDPOINTS = ["sso/redirect", "sso/post"]
 BACKEND_ENDPOINTS = ["disco", "auth"]
 
+INTERNAL_ATTRIBUTES = {
+    'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
+                   'givenname': {'saml': ['givenName'], 'openid': ['given_name'],
+                                 'facebook': ['first_name']},
+                   'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
+                            'facebook': ['email']},
+                   'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
+                                           'facebook': ['id']},
+                   'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
+                   'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
+                   'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
+                               'facebook': ['last_name']}}, 'separator': '->'}
 
 def create_frontend_endpoint_func(receiver):
     def register_frontend_url(providers):
@@ -72,12 +84,13 @@ def test_url_routing(router_fixture):
 
     def test_frontend(path, provider, receiver, endpoint):
         context = Context()
+        context.state = State()
         context.path = path
         spec = router.endpoint_routing(context)
         assert spec[0] == receiver
         assert spec[1] == endpoint
-        assert context._target_frontend == receiver
-        assert context._target_backend == provider
+        assert context.target_frontend == receiver
+        assert context.target_backend == provider
 
     def test_backend(path, provider, endpoint):
         context = Context()
@@ -85,8 +98,8 @@ def test_url_routing(router_fixture):
         spec = router.endpoint_routing(context)
         assert spec[0] == provider
         assert spec[1] == endpoint
-        assert context._target_backend == provider
-        assert context._target_frontend is None
+        assert context.target_backend == provider
+        assert context.target_frontend is None
 
     foreach_frontend_endpoint(test_frontend)
     foreach_backend_endpoint(test_backend)
@@ -99,14 +112,15 @@ def test_module_routing(router_fixture):
     def test_routing(path, provider, receiver, _):
         context = Context()
         context.path = path
+        context.state = state
         router.endpoint_routing(context)
 
-        backend = router.backend_routing(context, state)
+        backend = router.backend_routing(context)
         assert backend == backends[provider]
 
-        frontend = router.frontend_routing(context, state)
+        frontend = router.frontend_routing(context)
         assert frontend == frontends[receiver]
-        assert context._target_frontend == receiver
+        assert context.target_frontend == receiver
 
     foreach_frontend_endpoint(test_routing)
 

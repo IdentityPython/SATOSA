@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import copy
+import logging
 import os
 import sys
 
@@ -8,12 +9,20 @@ from saml2.metadata import entity_descriptor, metadata_tostring_fix
 from saml2.metadata import entities_descriptor
 from saml2.metadata import sign_entity_descriptor
 from saml2.sigver import security_context
+
 from saml2.validate import valid_instance
+
 from saml2.config import Config
+
 from satosa.backends.saml2 import SamlBackend
 from satosa.frontends.saml2 import SamlFrontend
+from satosa.image_converter import convert_to_base64
+from satosa.plugin_base.endpoint import BackendModulePlugin, FrontendModulePlugin
 from satosa.plugin_loader import _load_plugins, backend_filter, frontend_filter
 from satosa.satosa_config import SATOSAConfig
+
+
+
 
 # =============================================================================
 # Script that creates SAML2 metadata files from
@@ -34,6 +43,13 @@ parser.add_argument('-o', dest="output", default=".", help='output path')
 parser.add_argument(dest="config", nargs="+")
 args = parser.parse_args()
 
+LOGGER = logging.getLogger("")
+handler = logging.StreamHandler()
+logFormatter = logging.Formatter("[%(name)-12.12s] [%(levelname)-5.5s]  %(message)s")
+handler.setFormatter(logFormatter)
+LOGGER.addHandler(handler)
+LOGGER.setLevel(logging.INFO)
+
 generate_frontend = args.frontend
 generate_backend = args.backend
 
@@ -42,12 +58,15 @@ if not (args.frontend or args.backend):
     generate_frontend = True
     generate_backend = True
 
+LOGGER.info("Generating: frontends: %s, backends: %s" % (generate_frontend, generate_backend))
+
 valid_for = 0
 nspair = {"xs": "http://www.w3.org/2001/XMLSchema"}
 
 if args.valid:
     # translate into hours
     valid_for = int(args.valid) * 24
+
 
 def _make_metadata(config_dict):
     eds = []
@@ -84,6 +103,23 @@ def _make_metadata(config_dict):
             return xmldoc
 
 
+def _convert_logo_images(config_dict):
+    try:
+        logo_list = config_dict['service']['idp']['ui_info']['logo']
+        index = 0
+        for logo in logo_list:
+            try:
+                logo['text'] = convert_to_base64(logo['text'])
+                config_dict['service']['idp']['ui_info']['logo'][index] = logo
+            except KeyError:
+                pass
+            index += 1
+    except KeyError:
+        pass
+
+    return config_dict
+
+
 for filespec in args.config:
     bas, fil = os.path.split(filespec)
     if bas != "":
@@ -91,29 +127,42 @@ for filespec in args.config:
 
     config = SATOSAConfig(fil)
     metadata = {"backends": {}, "frontends": {}}
-    backend_plugins = _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter, config.BASE)
-    frontend_plugins = _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter, config.BASE)
+    backend_plugins = _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter,
+                                    BackendModulePlugin.__name__, config.BASE)
+    frontend_plugins = _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter,
+                                     FrontendModulePlugin.__name__, config.BASE)
+
+    LOGGER.info("Loaded backend modules: %s" % backend_plugins)
+    LOGGER.info("Loaded frontend modules: %s" % frontend_plugins)
 
     providers = []
     for plugin in backend_plugins:
         providers.append(plugin.name)
         if issubclass(plugin.module, SamlBackend) and generate_backend:
+            LOGGER.info("Generating saml backend '%s' metadata..." % plugin.name)
             metadata["backends"][plugin.name] = _make_metadata(plugin.config["config"])
+
+    LOGGER.info("Found backend modules: %s" % providers)
 
     if generate_frontend:
         for plugin in frontend_plugins:
             if issubclass(plugin.module, SamlFrontend):
-                module = plugin.module(None, plugin.config)
+                LOGGER.info("Generating saml frontend '%s' metadata..." % plugin.name)
+                module = plugin.module(None, None, plugin.config)
                 module.register_endpoints(providers)
                 metadata["frontends"][plugin.name] = _make_metadata(module.config)
 
     if generate_backend:
         for backend, data in metadata["backends"].items():
-            file = open("%s/%s_backend_metadata.xml" % (args.output, backend), "w")
+            path = "%s/%s_backend_metadata.xml" % (args.output, backend)
+            LOGGER.info("Writing backend '%s' metadata to '%s'" % (backend, path))
+            file = open(path, "w")
             file.write(data)
             file.close()
     if generate_frontend:
         for frontend, data in metadata["frontends"].items():
-            file = open("%s/%s_frontend_metadata.xml" % (args.output, frontend), "w")
+            path = "%s/%s_frontend_metadata.xml" % (args.output, frontend)
+            LOGGER.info("Writing frontend '%s' metadata to '%s'" % (frontend, path))
+            file = open(path, "w")
             file.write(data)
             file.close()

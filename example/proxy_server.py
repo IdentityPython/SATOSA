@@ -15,13 +15,13 @@ from saml2.httputil import ServiceError
 from satosa.satosa_config import SATOSAConfig
 from satosa.base import SATOSABase
 from satosa.context import Context
-from satosa.routing import NoBoundEndpointError
-from satosa.service import unpack_either
+from satosa.routing import SATOSANoBoundEndpointError
+from satosa.util import unpack_either
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 's2s.log'
 hdlr = logging.FileHandler(LOGFILE_NAME)
-base_formatter = logging.Formatter("%(asctime)s %(name)s:%(levelname)s %(message)s")
+base_formatter = logging.Formatter("[%(asctime)-19.19s] [%(levelname)-5.5s]: %(message)s")
 
 hdlr.setFormatter(base_formatter)
 LOGGER.addHandler(hdlr)
@@ -49,8 +49,7 @@ class WsgiApplication(SATOSABase):
             if isinstance(resp, Exception):
                 raise resp
             return resp(environ, start_response)
-        except NoBoundEndpointError:
-            LOGGER.debug("unknown side: %s" % path)
+        except SATOSANoBoundEndpointError:
             resp = NotFound("Couldn't find the side you asked for!")
             return resp(environ, start_response)
         except Exception as err:
@@ -61,7 +60,7 @@ class WsgiApplication(SATOSABase):
                 resp = ServiceError("%s" % err)
                 return resp(environ, start_response)
             else:
-                raise
+                raise err
 
 
 def main():
@@ -79,6 +78,21 @@ def main():
     sys.path.insert(0, os.getcwd())
 
     server_config = SATOSAConfig(args.proxy_config)
+
+    base_formatter = logging.Formatter("[%(asctime)-19.19s] [%(levelname)-5.5s]: %(message)s")
+
+    satosa_logger = logging.getLogger("satosa")
+    hdlr = logging.FileHandler("satosa.log")
+    hdlr.setFormatter(base_formatter)
+    satosa_logger.addHandler(hdlr)
+    satosa_logger.setLevel(logging.DEBUG)
+
+    satosa_logger = logging.getLogger("cherrypy")
+    hdlr = logging.FileHandler("cherrypy.log")
+    hdlr.setFormatter(base_formatter)
+    satosa_logger.addHandler(hdlr)
+    satosa_logger.setLevel(logging.DEBUG)
+
     wsgi_app = WsgiApplication(server_config, args.debug).run_server
     if args.debug:
         wsgi_app = DebuggedApplication(wsgi_app)

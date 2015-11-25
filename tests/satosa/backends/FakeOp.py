@@ -14,9 +14,7 @@ from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
 from oic.utils.http_util import Response
-
 from oic.utils.keyio import KeyJar, KeyBundle, UnknownKeyType
-
 from oic.utils.sdb import SessionDB, AuthnEvent
 
 from oic.utils.userinfo import UserInfo
@@ -273,7 +271,7 @@ class FakeOP:
             'code': 'F+R4uWbN46U+Bq9moQPC4lEvRd2De4o=',
             'scope': 'openid profile email address phone',
             'state': state}
-        context.cookie = 'openid_backend_state=%s' % self.generate_state(op_base)
+        context.state = self.generate_state(op_base)
         return context
 
     def generate_state(self, op_base):
@@ -292,8 +290,7 @@ class FakeOP:
             StateKeys.STATE: FakeOP.STATE
         }
         state.add(state_id, state_data)
-        encryption_key = TestConfiguration.get_instance().rp_config.STATE_ENCRYPTION_KEY
-        return state.urlstate(encryption_key)
+        return state
 
     def setup_client_registration_endpoint(self):
         client_info = TestConfiguration.get_instance().rp_config.CLIENTS[PROVIDER]["client_info"]

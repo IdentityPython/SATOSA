@@ -13,21 +13,20 @@ def full_path(local_file):
     return os.path.join(basedir, local_file)
 
 
-PROVIDER = "google"
+NAME = "google"
 MODULE = OpenIdBackend
 
 
 class OpenidPlugin(BackendModulePlugin):
     def __init__(self, base_url):
-        module_base = "%s/%s" % (base_url, PROVIDER)
-        config = RpConfig(module_base, PROVIDER)
-        super(OpenidPlugin, self).__init__(OpenIdBackend, PROVIDER, config)
-
-
-class RpConfig(object):
-    def __init__(self, module_base, provider):
-        self.CLIENTS = {
-            provider: {
+        module_base = "%s/%s" % (base_url, NAME)
+        config = {
+            "authz_page": NAME,
+            "acr_values": ["PASSWORD"],
+            "verify_ssl": False,
+            "op_url": "https://accounts.google.com",
+            "state_id": "",
+            "client": {
                 "srv_discovery_url": "https://accounts.google.com/",
                 "client_registration": {
                     "client_id": "",
@@ -43,10 +42,6 @@ class RpConfig(object):
                     "issuer_mismatch": True,
                     "userinfo_request_method": "GET"
                 }
-            }
+            },
         }
-        self.ACR_VALUES = ["PASSWORD"]
-        self.VERIFY_SSL = False
-        self.OP_URL = "https://accounts.google.com"
-        self.STATE_ENCRYPTION_KEY = ""
-        self.STATE_ID = ""
+        super(OpenidPlugin, self).__init__(OpenIdBackend, NAME, config)

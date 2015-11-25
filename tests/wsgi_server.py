@@ -1,16 +1,17 @@
-import importlib
 import logging
 import sys
 import traceback
 
 from saml2.httputil import Unauthorized
+
 from saml2.httputil import NotFound
 
 from saml2.httputil import ServiceError
+
 from satosa.base import SATOSABase
 from satosa.context import Context
-from satosa.routing import NoBoundEndpointError
-from satosa.service import unpack_either
+from satosa.routing import SATOSANoBoundEndpointError
+from satosa.util import unpack_either
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 's2s.log'
@@ -29,7 +30,7 @@ class WsgiApplication(object):
         if config is None:
             raise ValueError("Missing configuration")
 
-        self.satosa = SATOSABase(config)
+        self.config = config
 
     def run_server(self, environ, start_response):
         """
@@ -54,9 +55,11 @@ class WsgiApplication(object):
         context.cookie = environ.get("HTTP_COOKIE", "")
 
         try:
-            resp = self.satosa.run(context)
+            # Creates a new instance of the SATOSA proxy for every call to make sure the proxy is stateless
+            satosa_temporary_instance = SATOSABase(self.config)
+            resp = satosa_temporary_instance.run(context)
             return resp(environ, start_response)
-        except NoBoundEndpointError:
+        except SATOSANoBoundEndpointError:
             LOGGER.debug("unknown side: %s" % path)
             resp = NotFound("Couldn't find the side you asked for!")
             return resp(environ, start_response)

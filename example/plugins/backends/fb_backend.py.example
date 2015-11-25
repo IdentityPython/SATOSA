@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import os.path
+
+from satosa.backends.oauth import FacebookBackend
+from satosa.plugin_base.endpoint import BackendModulePlugin
+
+XMLSEC_PATH = '/usr/local/bin/xmlsec1'
+
+
+def full_path(local_file):
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    return os.path.join(basedir, local_file)
+
+
+NAME = "facebook"
+MODULE = FacebookBackend
+
+
+class FacebookPlugin(BackendModulePlugin):
+
+    def __init__(self, base_url):
+        module_base = base_url
+        config = {
+            "base_url": module_base,
+            "authz_page": NAME,
+            "client_config": {"client_id": ""},
+            "server_info": {
+                "authorization_endpoint": "https://www.facebook.com/dialog/oauth",
+                "token_endpoint": "https://graph.facebook.com/v2.5/oauth/access_token"
+            },
+            "client_secret": "",
+            "fields": ["id", "name", "first_name", "last_name", "middle_name", "picture",
+                       "email", "verified", "gender", "timezone", "locale", "updated_time"]
+        }
+        super(FacebookPlugin, self).__init__(MODULE, NAME, config)

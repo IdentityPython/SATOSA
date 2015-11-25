@@ -5,10 +5,13 @@ import os
 import inspect
 from urllib.parse import urlsplit, parse_qs, urlencode, quote
 import sys
+import os.path
 
 from cherrypy.test import helper
+
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 import cherrypy
+
 from saml2.config import SPConfig, IdPConfig
 
 from satosa.backends.saml2 import SamlBackend
@@ -19,6 +22,18 @@ from tests.wsgi_server import WsgiApplication
 from tests.util import FakeSP, FakeIdP, FileGenerator
 from tests.users import USERS
 
+INTERNAL_ATTRIBUTES = {
+    'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
+                   'givenname': {'saml': ['givenName'], 'openid': ['given_name'],
+                                 'facebook': ['first_name']},
+                   'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
+                            'facebook': ['email']},
+                   'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
+                                           'facebook': ['id']},
+                   'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
+                   'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
+                   'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
+                               'facebook': ['last_name']}}, 'separator': '->'}
 
 class TestConfiguration(object):
     """
@@ -34,15 +49,21 @@ class TestConfiguration(object):
         # Add test directory to path to be able to import configurations
         sys.path.append(os.path.dirname(__file__))
 
-        self.xmlsec_path = "/usr/bin/xmlsec1"
+        if os.path.isfile("/usr/bin/xmlsec1"):
+            self.xmlsec_path = "/usr/bin/xmlsec1"
+        elif os.path.isfile("/usr/local/bin/xmlsec1"):
+            self.xmlsec_path = "/usr/local/bin/xmlsec1"
 
         proxy_config_dict = {"HOST": 'localhost',
                              "PORT": 8090,
                              "HTTPS": True,
+                             "COOKIE_STATE_NAME": "TEST_STATE",
+                             "STATE_ENCRYPTION_KEY": "ASDasd123",
                              "PLUGIN_PATH": [os.path.dirname(__file__)],
                              "BACKEND_MODULES": [inspect.getmodulename(__file__)],
                              "FRONTEND_MODULES": [inspect.getmodulename(__file__)],
-                             "USER_ID_HASH_SALT": "qwerty"}
+                             "USER_ID_HASH_SALT": "qwerty",
+                             "INTERNAL_ATTRIBUTES": INTERNAL_ATTRIBUTES}
 
         self.proxy_config = SATOSAConfig(proxy_config_dict)
 

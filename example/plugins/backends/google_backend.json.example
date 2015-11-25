@@ -1,0 +1,35 @@
+{
+    "plugin": "BackendModulePlugin",
+    "module": "satosa.backends.openid_connect.OpenIdBackend",
+    "name": "google",
+    "config": {
+        "authz_page": "<name>",
+        "acr_values": [
+            "PASSWORD"
+        ],
+        "verify_ssl": false,
+        "op_url": "https://accounts.google.com",
+        "state_id": "",
+        "client": {
+            "srv_discovery_url": "https://accounts.google.com/",
+            "client_registration": {
+                "client_id": "",
+                "client_secret": "",
+                "redirect_uris": ["<base_url>/<name>"]
+            },
+            "behaviour": {
+                "response_type": "code",
+                "scope": [
+                    "openid",
+                    "profile",
+                    "email"
+                ]
+            },
+            "userinfo_request_method": "GET",
+            "allow": {
+                "issuer_mismatch": true,
+                "userinfo_request_method": "GET"
+            }
+        }
+    }
+}

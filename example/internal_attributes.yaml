@@ -1,0 +1,30 @@
+attributes:
+  address:
+    openid: [address->street_address]
+    saml: [postaladdress]
+  displayname:
+    openid: [nickname]
+    saml: [displayName]
+  edupersontargetedid:
+    facebook: [id]
+    openid: [sub]
+    saml: [eduPersonTargetedID]
+  givenname:
+    facebook: [first_name]
+    openid: [given_name]
+    saml: [givenName]
+  mail:
+    facebook: [email]
+    openid: [email]
+    saml: [email, emailAdress, mail]
+  name:
+    facebook: [name]
+    openid: [name]
+    saml: [cn]
+  surname:
+    facebook: [last_name]
+    openid: [family_name]
+    saml: [sn, surname]
+separator: ->
+hash: [edupersontargetedid]
+user_id_from_attr: [edupersontargetedid]

@@ -2,24 +2,48 @@
 Tests for the SAML frontend module src/frontends/saml2.py.
 """
 import re
-import pytest
 from urllib import parse
+import os.path
+
+import pytest
 from saml2.authn_context import PASSWORD
 from saml2.config import SPConfig
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.entity_category.edugain import COC
 from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, \
     SFS_1993_1153, NREN, EU
+
 from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_PERSISTENT
+
 from saml2.saml import NAMEID_FORMAT_TRANSIENT
+
 from satosa.frontends.saml2 import SamlFrontend
 from satosa.context import Context
 from satosa.internal_data import InternalResponse, AuthenticationInformation
+from satosa.state import State
 from tests.users import USERS
 from tests.util import FakeSP, FileGenerator
 
+INTERNAL_ATTRIBUTES = {
+    'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
+                   'givenname': {'saml': ['givenName'], 'openid': ['given_name'],
+                                 'facebook': ['first_name']},
+                   'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
+                            'facebook': ['email']},
+                   'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
+                                           'facebook': ['id']},
+                   'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
+                   'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
+                   'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
+                               'facebook': ['last_name']}}, 'separator': '->'}
+
 IDP_CERT_FILE, IDP_KEY_FILE = FileGenerator.get_instance().generate_cert()
-XMLSEC_PATH = '/usr/bin/xmlsec1'
+
+if os.path.isfile("/usr/bin/xmlsec1"):
+    XMLSEC_PATH = "/usr/bin/xmlsec1"
+elif os.path.isfile("/usr/local/bin/xmlsec1"):
+    XMLSEC_PATH = "/usr/local/bin/xmlsec1"
+
 IDP_BASE = "http://test.tester.se"
 RECEIVER = "Saml2IDP"
 ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
@@ -95,7 +119,7 @@ TESTDATA_HANDLE_AUTHN_REQUEST = \
      (CONFIG_ERR3, None, None, AssertionError),
      (CONFIG, None, None, TypeError),
      (CONFIG, "whatever", None, TypeError),
-     (CONFIG, "redirect", ["qwerty", "ytrewq"], None)]
+     (CONFIG, BINDING_HTTP_REDIRECT, ["qwerty", "ytrewq"], None)]
 
 
 @pytest.mark.parametrize("conf, binding_in, providers, error", TESTDATA_HANDLE_AUTHN_REQUEST)
@@ -115,23 +139,21 @@ def test_handle_authn_request(conf, binding_in, providers, error):
     samlfrontend = None
     fakesp = None
     try:
-        def auth_req_callback_func(context, internal_req, state):
+        def auth_req_callback_func(context, internal_req):
             """
             :type context: satosa.context.Context
             :type: internal_req: satosa.internal_data.InternalRequest
-            :type: state: str
 
             :param context: Contains the request context from the module.
             :param internal_req:
-            :param state: The current state for the module.
             :return:
             """
             assert internal_req.requestor == SPCONFIG["entityid"]
             auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
             internal_response = InternalResponse(internal_req.user_id_hash_type, auth_info=auth_info)
-            internal_response.add_pysaml_attributes(USERS["testuser1"])
+            internal_response.add_attributes(USERS["testuser1"])
 
-            resp = samlfrontend.handle_authn_response(context, internal_response, state)
+            resp = samlfrontend.handle_authn_response(context, internal_response)
             resp_dict = parse.parse_qs(resp.message.split("?")[1])
             resp = fakesp.parse_authn_request_response(resp_dict['SAMLResponse'][0],
                                                        BINDING_HTTP_REDIRECT)
@@ -139,7 +161,7 @@ def test_handle_authn_request(conf, binding_in, providers, error):
                 assert key in resp.ava
                 assert USERS["testuser1"][key] == resp.ava[key]
 
-        samlfrontend = SamlFrontend(auth_req_callback_func, conf)
+        samlfrontend = SamlFrontend(auth_req_callback_func, INTERNAL_ATTRIBUTES, conf)
     except Exception as exception:
         if error is None or not isinstance(exception, error):
             raise exception
@@ -170,6 +192,7 @@ def test_handle_authn_request(conf, binding_in, providers, error):
         SPCONFIG["metadata"]["local"] = [idp_metadata_file.name]
         fakesp = FakeSP(None, config=SPConfig().load(SPCONFIG, metadata_construction=False))
         context = Context()
+        context.state = State()
         context.request = parse.parse_qs(
             fakesp.make_auth_req(samlfrontend.config["entityid"]).split("?")[1])
         tmp_dict = {}

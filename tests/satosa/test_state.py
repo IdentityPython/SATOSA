@@ -3,9 +3,11 @@ Tests for the state class.
 """
 import random
 import string
-import pytest
 from urllib.parse import quote_plus
-from satosa.state import State, state_to_cookie, cookie_to_state, StateError
+
+import pytest
+
+from satosa.state import State, state_to_cookie, cookie_to_state, SATOSAStateError
 
 __author__ = 'haho0032'
 
@@ -139,13 +141,13 @@ def test_state_cookie():
     'Set-Cookie: state_cookie="_Td6WFoAAATm1rRGAgAhARYAAAB0L-WjAQCXYWt4NU9ZLWF5amdVVDdSUjhWdnkyUHE5MFhJV0J4Uzg5di1EVW1nNTR0WHZKakFsaWJmN2JMOUtlNEltMkJ0dmxOakRyUDJXZE53d0dwSGNqYnBzVng5YjVVeUYyUzkwcWVSMU42U2VNNHZDQTktUXdCQWx0WUh6LVBPX1pBYnZ1M1RsV09Qc2lKS3VpelB5a0FsMG93PT0AmlSCX0Pk2WoAAbABmAEAAGRNyZ2xxGf7AgAAAAAEWVo="; Max-Age=600; Path=/; Secure',
     "wrong_name",
     "2781y4hef90",
-    StateError,
+    SATOSAStateError,
     ),
     ( # Test bad cookie str
     'not_a_cookie',
     "state_cookie",
     "2781y4hef90",
-    StateError,
+    SATOSAStateError,
     ),
 ])
 def test_fail_cookie_to_state(cookie_str, name, encryption_key, exception):

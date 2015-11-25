@@ -1,17 +1,22 @@
 """
 This module contains methods to load, verify and build configurations for the satosa proxy.
 """
+import logging
 import os
 
 __author__ = 'mathiashedstrom'
 
+LOGGER = logging.getLogger(__name__)
+
 
 class SATOSAConfig(object):
     """
-    A configuration class for the satosa proxy. Verifies that the given config holds all the necessary parameters.
+    A configuration class for the satosa proxy. Verifies that the given config holds all the
+    necessary parameters.
     """
     mandatory_dict_keys = ["HOST", "PORT", "HTTPS", "PLUGIN_PATH", "BACKEND_MODULES",
-                           "FRONTEND_MODULES"]
+                           "FRONTEND_MODULES", "INTERNAL_ATTRIBUTES", "COOKIE_STATE_NAME",
+                           "STATE_ENCRYPTION_KEY"]
 
     def __init__(self, config):
         """
@@ -31,8 +36,19 @@ class SATOSAConfig(object):
                 break
 
         self._verify_dict(self._config)
+        _internal_attributes = None
+        if "INTERNAL_ATTRIBUTES" in self._config:
+            internal_attr_file = self._config["INTERNAL_ATTRIBUTES"]
+            for parser in dict_parsers:
+                _internal_attributes = parser(internal_attr_file)
+                if _internal_attributes:
+                    break
 
-        if not hasattr(self, "BASE"):  # construct base url from host+port if not specified in config
+            self._config["INTERNAL_ATTRIBUTES"] = _internal_attributes
+        else:
+            self._config["INTERNAL_ATTRIBUTES"] = None
+        if not hasattr(self,
+                       "BASE"):  # construct base url from host+port if not specified in config
             scheme = "http"
             if self._config["HTTPS"]:
                 scheme = "https"
@@ -50,9 +66,15 @@ class SATOSAConfig(object):
         :param conf: config to verify
         :return: None
         """
-        assert conf is not None and isinstance(conf, dict), "Missing configuration or unknown format"
+        if not (conf is not None and isinstance(conf, dict)):
+            msg = "Missing configuration or unknown format"
+            LOGGER.critical(msg)
+            raise AssertionError(msg)
         for mand_key in SATOSAConfig.mandatory_dict_keys:
-            assert mand_key in conf, "Missing key '%s' in config" % mand_key
+            if mand_key not in conf:
+                msg = "Missing key '%s' in config" % mand_key
+                LOGGER.critical(msg)
+                raise AssertionError(msg)
 
     def __getattr__(self, item):
         """
@@ -114,8 +136,9 @@ class SATOSAConfig(object):
         try:
             config = SATOSAConfig._readfile(config)
             import json
+
             return json.loads(config)
-        except ValueError as e:  # not a json config
+        except ValueError as error:  # not a json config
             pass
 
     @staticmethod
@@ -129,10 +152,14 @@ class SATOSAConfig(object):
         :param config: config to load. Can be file path or yaml string
         :return: Loaded config
         """
-
-        config = SATOSAConfig._readfile(config)
-        import yaml
-        return yaml.load(config)
+        try:
+            config = SATOSAConfig._readfile(config)
+            import yaml
+            return yaml.load(config)
+        except ImportError:
+            LOGGER.warn("No YAML library installed")
+        except Exception:
+            pass
 
     @staticmethod
     def _readfile(config):

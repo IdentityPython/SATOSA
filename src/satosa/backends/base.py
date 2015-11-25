@@ -9,27 +9,31 @@ class BackendModule(object):
     Base class for a backend module.
     """
 
-    def __init__(self, auth_callback_func):
+    def __init__(self, auth_callback_func, internal_attributes):
         """
-        :type auth_callback_func: (satosa.context.Context, satosa.internal_data.InternalResponse, satosa.state.State) -> Any
+        :type auth_callback_func:
+        (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
+        :type internal_attributes: dict[string, dict[str, str | list[str]]]
 
         :param auth_callback_func: Callback should be called by the module after
                                    the authorization in the backend is done.
+        :param internal_attributes: Mapping dictionary between SATOSA internal attribute names and
+        the names returned by underlying IdP's/OP's as well as what attributes the calling SP's and
+        RP's expects namevice.
         """
         self.auth_callback_func = auth_callback_func
+        self.internal_attributes = internal_attributes
 
-    def start_auth(self, context, internal_request, state):
+    def start_auth(self, context, internal_request):
         """
         This is the start up function of the backend authorization.
 
         :type context: satosa.context.Context
         :type internal_request: satosa.internal_data.InternalRequest
-        :type state: satosa.state.State
-        :rtype Any
+        :rtype satosa.response.Response
 
         :param context: the request context
         :param internal_request: Information about the authorization request
-        :param state: current state
         :return: response
         """
         raise NotImplementedError()

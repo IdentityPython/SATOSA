@@ -3,7 +3,6 @@ import re
 import pytest
 import responses
 from oic.utils.http_util import Redirect
-
 from mock import MagicMock
 
 from satosa.backends.openid_connect import OpenIdBackend
@@ -14,22 +13,34 @@ from tests.satosa.backends.FakeOp import FakeOP, CLIENT_ID, TestConfiguration, U
 
 __author__ = 'danielevertsson'
 
+INTERNAL_ATTRIBUTES = {
+    'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
+                   'givenname': {'saml': ['givenName'], 'openid': ['given_name'],
+                                 'facebook': ['first_name']},
+                   'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
+                            'facebook': ['email']},
+                   'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
+                                           'facebook': ['id']},
+                   'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
+                   'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
+                   'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
+                               'facebook': ['last_name']}}, 'separator': '->'}
 
-def verify_object_types_callback(context, response, state):
+
+def verify_object_types_callback(context, response):
     assert isinstance(context, Context)
     assert isinstance(response, InternalResponse)
-    assert isinstance(state, State)
 
 
-def verify_userinfo_callback(context, response, state):
+def verify_userinfo_callback(context, response):
     assert isinstance(response, InternalResponse)
     for attribute in [("name", "name"), ("mail", "email")]:
-        assert response._attributes[attribute[0]] == USERDB[USERNAME][attribute[1]]
+        assert response._attributes[attribute[0]][0] == USERDB[USERNAME][attribute[1]]
 
 class TestOpenIdBackend:
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.openid_backend = OpenIdBackend(MagicMock, TestConfiguration.get_instance().config)
+        self.openid_backend = OpenIdBackend(MagicMock, INTERNAL_ATTRIBUTES, TestConfiguration.get_instance().config)
         self.fake_op = FakeOP()
 
     def test_registered_endpoints(self):
@@ -54,7 +65,7 @@ class TestOpenIdBackend:
             TestConfiguration.get_instance().rp_config.OP_URL,
             "public"
         )
-        assert internal_response.user_id == sub
+        assert internal_response.get_user_id() == sub
         attributes_keys = internal_response._attributes.keys()
         assert sorted(attributes_keys) == sorted(['surname', 'edupersontargetedid', 'givenname'])
 
@@ -65,6 +76,7 @@ class TestOpenIdBackend:
         self.fake_op.setup_client_registration_endpoint()
         openid_backend = OpenIdBackend(
             verify_object_types_callback,
+            INTERNAL_ATTRIBUTES,
             TestConfiguration.get_instance().config
         )
         context = self.setup_fake_op_endpoints(FakeOP.STATE)
@@ -77,6 +89,7 @@ class TestOpenIdBackend:
         self.fake_op.setup_client_registration_endpoint()
         openid_backend = OpenIdBackend(
             verify_userinfo_callback,
+            INTERNAL_ATTRIBUTES,
             TestConfiguration.get_instance().config
         )
         context = self.setup_fake_op_endpoints(FakeOP.STATE)
@@ -95,7 +108,9 @@ class TestOpenIdBackend:
         self.fake_op.setup_webfinger_endpoint()
         self.fake_op.setup_opienid_config_endpoint()
         self.fake_op.setup_client_registration_endpoint()
-        auth_response = self.openid_backend.start_auth(None, None, State())
+        context = Context()
+        context.state = State()
+        auth_response = self.openid_backend.start_auth(context, None)
         assert auth_response._status == Redirect._status
 
     @responses.activate
@@ -103,10 +118,21 @@ class TestOpenIdBackend:
         self.fake_op.setup_webfinger_endpoint()
         self.fake_op.setup_opienid_config_endpoint()
         self.fake_op.setup_client_registration_endpoint()
-        state = State()
-        self.openid_backend.start_auth(None, None, state)
-        state_as_ulr = state.urlstate(
-            TestConfiguration.get_instance().rp_config.STATE_ENCRYPTION_KEY
-        )
+        context = Context()
+        context.state = State()
+        self.openid_backend.start_auth(context, None)
         context = self.setup_fake_op_endpoints(FakeOP.STATE)
         self.openid_backend.redirect_endpoint(context)
+
+    @responses.activate
+    def test_test_restore_state_with_separate_backends(self):
+        openid_backend_1 = OpenIdBackend(MagicMock, INTERNAL_ATTRIBUTES, TestConfiguration.get_instance().config)
+        openid_backend_2 = OpenIdBackend(MagicMock, INTERNAL_ATTRIBUTES, TestConfiguration.get_instance().config)
+        self.fake_op.setup_webfinger_endpoint()
+        self.fake_op.setup_opienid_config_endpoint()
+        self.fake_op.setup_client_registration_endpoint()
+        context = Context()
+        context.state = State()
+        openid_backend_1.start_auth(context, None)
+        context = self.setup_fake_op_endpoints(FakeOP.STATE)
+        openid_backend_2.redirect_endpoint(context)

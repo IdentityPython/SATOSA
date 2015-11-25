@@ -7,11 +7,19 @@ import copy
 from http.cookies import SimpleCookie
 import json
 import hashlib
+import logging
 from lzma import LZMADecompressor, LZMACompressor
 
 from Crypto import Random
+
 from Crypto.Cipher import AES
 
+from satosa.exception import SATOSAStateError
+from satosa.logging import satosa_logging
+
+LOGGER = logging.getLogger(__name__)
+
+# TODO MOVE TO CONFIG
 STATE_COOKIE_MAX_AGE = 600
 STATE_COOKIE_SECURE = True
 
@@ -32,6 +40,9 @@ def state_to_cookie(state, name, path, encryption_key):
     :param encryption_key: Key to encrypt the state information
     :return: A cookie
     """
+    satosa_logging(LOGGER, logging.DEBUG,
+                   "Saving state as cookie, secure: %s, max-age: %s, path: %s" %
+                   (STATE_COOKIE_SECURE, STATE_COOKIE_MAX_AGE, path), state)
     cookie = SimpleCookie()
     cookie[name] = state.urlstate(encryption_key)
     cookie[name]["secure"] = STATE_COOKIE_SECURE
@@ -55,13 +66,13 @@ def cookie_to_state(cookie_str, name, encryption_key):
     :return: A state
     """
     try:
-        return State(SimpleCookie(cookie_str)[name].value, encryption_key)
+        state = State(SimpleCookie(cookie_str)[name].value, encryption_key)
+        satosa_logging(LOGGER, logging.DEBUG, "Loading state from cookie: %s" % cookie_str, state)
+        return state
     except KeyError:
-        raise StateError("No cookie named '{}'".format(name))
-
-
-class StateError(Exception):
-    pass
+        LOGGER.debug("Did not find cookie named '%s' in cookie string '%s'" % (name, cookie_str))
+        raise SATOSAStateError(
+            "No cookie named '{}' in cookie string '{}'".format(name, cookie_str))
 
 
 class AESCipher(object):
@@ -188,7 +199,7 @@ class State(object):
 
 
         :type key: str
-        :rtype: object
+        :rtype: Any
 
         :param key:
         :return: A python object generated from a json string. So dictionary/list containing
@@ -227,3 +238,14 @@ class State(object):
         state_copy = State()
         state_copy._state_dict = copy.deepcopy(self._state_dict)
         return state_copy
+
+    def __str__(self):
+        return self._state_dict
+
+    @property
+    def state_dict(self):
+        """
+        :rtype: dict[str, any]
+        :return: A copy of the state as dictionary.
+        """
+        return copy.deepcopy(self._state_dict)
