@@ -166,6 +166,15 @@ class OAuthBackend(BackendModule):
             internal_response.add_attributes(self.converter.to_internal(self.external_type,
                                                                         user_info))
             internal_response.set_user_id(user_info[self.user_id_attr])
+            if "user_id_paramas" in self.config:
+                user_id = ""
+                for param in self.config["user_id_params"]:
+                    try:
+                        user_id += user_info[param]
+                    except Exception as error:
+                        raise SATOSAAuthenticationError from error
+                internal_response.set_user_id(user_id)
+
             return self.auth_callback_func(context, internal_response)
         except Exception as error:
             satosa_logging(LOGGER, logging.DEBUG, "Not a valid authentication", state,
