@@ -137,6 +137,7 @@ class SATOSABase(object):
         if user_id_to_attr:
             attributes = internal_response.get_attributes()
             attributes[user_id_to_attr] = internal_response.get_user_id()
+            internal_response.add_attributes(attributes)
 
         # Hash all attributes specified in INTERNAL_ATTRIBUTES["hash]
         hash_attributes = self.config.INTERNAL_ATTRIBUTES.get("hash", [])
