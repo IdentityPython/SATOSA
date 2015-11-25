@@ -34,8 +34,8 @@ class ConsentModule(object):
             "CONSENT" in config and ("enable" not in config.CONSENT or config.CONSENT["enable"])
         if self.enabled:
             self.proxy_base = config.BASE
-            self.consent_uri = config.CONSENT["service.rest_uri"]
-            self.consent_redirect_url = config.CONSENT["service.consent_redirect"]
+            self.consent_uri = config.CONSENT["rest_uri"]
+            self.consent_redirect_url = config.CONSENT["redirect"]
             self.endpoint = config.CONSENT["endpoint"]
             self.verify_ssl = config.CONSENT["verify_ssl"]
 
