@@ -29,8 +29,8 @@ class ConsentModule(object):
         if self.enabled:
             self.proxy_base = config.BASE
             self.state_enc_key = config.CONSENT["state_enc_key"]
-            self.consent_uri = config.CONSENT["service.rest_uri"]
-            self.consent_redirect_url = config.CONSENT["service.consent_redirect"]
+            self.consent_uri = config.CONSENT["rest_uri"]
+            self.consent_redirect_url = config.CONSENT["consent_redirect"]
             self.endpoint = config.CONSENT["endpoint"]
             self.verify_ssl = config.CONSENT["verify_ssl"]
 

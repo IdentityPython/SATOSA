@@ -29,8 +29,8 @@ CONSENT_CERT, CONSENT_KEY = FileGenerator.get_instance().generate_cert("consent"
 CONSENT_PUB_KEY_STR = private_to_public_key(CONSENT_KEY.name)
 
 CONSENT_CONFIG = {"CONSENT":
-                      {"service.rest_uri": "https://localhost:8055",
-                       "service.consent_redirect": "https://localhost:8055/consent",
+                      {"rest_uri": "https://localhost:8055",
+                       "consent_redirect": "https://localhost:8055/consent",
                        "endpoint": "handle_consent",
                        "sign_key": CONSENT_KEY.name,
                        "state_enc_key": "fsghajf90984jkflds",
@@ -154,7 +154,7 @@ def test_verify_consent():
     with pytest.raises(ConnectionError):
         consent_module._verify_consent("test_id")
 
-    url_re = re.compile(r'%s/verify/.*' % consent_config.CONSENT["service.rest_uri"])
+    url_re = re.compile(r'%s/verify/.*' % consent_config.CONSENT["rest_uri"])
     responses.add(responses.GET, url_re, status=400)
     assert not consent_module._verify_consent("test_id")
 
@@ -183,7 +183,7 @@ def test_consent_registration():
     with pytest.raises(ConnectionError):
         consent_module._consent_registration(jws)
 
-    url_re = re.compile(r'%s/creq/.*' % consent_config.CONSENT["service.rest_uri"])
+    url_re = re.compile(r'%s/creq/.*' % consent_config.CONSENT["rest_uri"])
     responses.add(responses.GET, url_re, status=401)
     with pytest.raises(AssertionError):
         consent_module._consent_registration(jws)
@@ -258,7 +258,7 @@ def test_consent_verify_down(consent_items):
 def test_consent_creq_down(consent_items):
     consent_module, internal_request, consent_config, consent_service = consent_items
 
-    url_re = re.compile(r'%s/verify/.*' % consent_config.CONSENT["service.rest_uri"])
+    url_re = re.compile(r'%s/verify/.*' % consent_config.CONSENT["rest_uri"])
     responses.add_callback(responses.GET, url_re, consent_service.verify)
 
     context = Context()
@@ -274,7 +274,7 @@ def test_consent_creq_down(consent_items):
 def test_consent_prev_given(consent_items):
     consent_module, internal_request, consent_config, consent_service = consent_items
 
-    url_re = re.compile(r'%s/verify/.*' % consent_config.CONSENT["service.rest_uri"])
+    url_re = re.compile(r'%s/verify/.*' % consent_config.CONSENT["rest_uri"])
     responses.add_callback(responses.GET, url_re, consent_service.verify)
 
     consent_service.clear()
@@ -292,9 +292,9 @@ def test_consent_prev_given(consent_items):
 def test_consent_full_flow(consent_items):
     consent_module, internal_request, consent_config, consent_service = consent_items
 
-    url_re = re.compile(r'%s/verify/.*' % consent_config.CONSENT["service.rest_uri"])
+    url_re = re.compile(r'%s/verify/.*' % consent_config.CONSENT["rest_uri"])
     responses.add_callback(responses.GET, url_re, consent_service.verify)
-    url_re = re.compile(r'%s/creq/.*' % consent_config.CONSENT["service.rest_uri"])
+    url_re = re.compile(r'%s/creq/.*' % consent_config.CONSENT["rest_uri"])
     responses.add_callback(responses.GET, url_re, consent_service.registration)
 
     consent_service.clear()
@@ -323,9 +323,9 @@ def test_consent_full_flow(consent_items):
 def test_consent_not_given(consent_items):
     consent_module, internal_request, consent_config, consent_service = consent_items
 
-    url_re = re.compile(r'%s/verify/.*' % consent_config.CONSENT["service.rest_uri"])
+    url_re = re.compile(r'%s/verify/.*' % consent_config.CONSENT["rest_uri"])
     responses.add_callback(responses.GET, url_re, consent_service.verify)
-    url_re = re.compile(r'%s/creq/.*' % consent_config.CONSENT["service.rest_uri"])
+    url_re = re.compile(r'%s/creq/.*' % consent_config.CONSENT["rest_uri"])
     responses.add_callback(responses.GET, url_re, consent_service.registration)
 
     consent_service.clear()
