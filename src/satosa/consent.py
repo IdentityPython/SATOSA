@@ -86,20 +86,21 @@ class ConsentModule(object):
                                        list(internal_response.get_attributes().keys()))
 
         try:
-            consent_given = self._verify_consent(hash_id)
+            consent_attributes = self._verify_consent(hash_id)
         except ConnectionError:
             satosa_logging(LOGGER, logging.ERROR,
                            "Consent service is not reachable, no consent given.", state)
             # Send an internal_response without any attributes
-            consent_given = False
+            consent_attributes = None
 
-        if not consent_given:
+        if consent_attributes is None:
             satosa_logging(LOGGER, logging.INFO, "Consent was NOT given", state)
             # If consent was not given, then don't send any attributes
-            internal_response._attributes = {}
+            consent_attributes = []
         else:
             satosa_logging(LOGGER, logging.INFO, "Consent was given", state)
 
+        internal_response = self._filter_attributes(internal_response, consent_attributes)
         return self.callback_func(context, internal_response)
 
     def manage_consent(self, context, internal_response):
@@ -124,23 +125,17 @@ class ConsentModule(object):
         requestor = consent_state["requestor"]
         requester_name = consent_state["requester_name"]
 
-        # filter attributes
-        filtered_data = {}
-        for attr in filter:
-            if attr in internal_response.get_attributes():
-                data = internal_response.get_attributes()[attr]
-                if not isinstance(data, list):
-                    data = [data]
-                filtered_data[attr] = data
-        # Update internal response
-        internal_response._attributes = filtered_data
+        internal_response = self._filter_attributes(internal_response, filter)
+        filtered_data = internal_response.get_attributes()
 
         id_hash = self._get_consent_id(requestor, internal_response.get_user_id(),
                                        list(filtered_data.keys()))
 
         try:
             # Check if consent is already given
-            if self._verify_consent(id_hash):
+            consent_attributes = self._verify_consent(id_hash)
+            if consent_attributes:
+                internal_response = self._filter_attributes(internal_response, consent_attributes)
                 return self.callback_func(context, internal_response)
         except ConnectionError:
             satosa_logging(LOGGER, logging.ERROR,
@@ -155,6 +150,7 @@ class ConsentModule(object):
         consent_args = {"attr": filtered_data,
                         "id": id_hash,
                         "redirect_endpoint": "%s/consent/%s" % (self.proxy_base, self.endpoint),
+                        "requestor": requestor,
                         "requester_name": requester_name}
         consent_args_jws = self._to_jws(consent_args)
 
@@ -169,6 +165,19 @@ class ConsentModule(object):
 
         consent_redirect = "%s?ticket=%s" % (self.consent_redirect_url, ticket)
         return Redirect(consent_redirect)
+
+    def _filter_attributes(self, internal_response, attr_filter):
+        # filter attributes
+        filtered_data = {}
+        for attr in attr_filter:
+            if attr in internal_response.get_attributes():
+                data = internal_response.get_attributes()[attr]
+                if not isinstance(data, list):
+                    data = [data]
+                filtered_data[attr] = data
+        # Update internal response
+        internal_response._attributes = filtered_data
+        return internal_response
 
     def _get_consent_id(self, requestor, user_id, filtered_attr):
         """
@@ -226,7 +235,9 @@ class ConsentModule(object):
         except ConnectionError as con_exc:
             raise ConnectionError("Could not connect to consent service") from con_exc
 
-        return res.status_code == 200
+        if res.status_code == 200:
+            return json.loads(res.text)
+        return None
 
     def _to_jws(self, data):
         """

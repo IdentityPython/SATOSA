@@ -1,3 +1,4 @@
+import json
 import re
 from urllib.parse import urlparse, parse_qs
 
@@ -62,6 +63,7 @@ CONSENT_CONFIG.update(SATOSA_CONFIG)
 
 FILTER = ["displayName", "co"]
 
+
 class ConsentService():
     def __init__(self):
         self.clear()
@@ -70,16 +72,17 @@ class ConsentService():
         split_path = request.path_url.lstrip("/").split("/")
         assert len(split_path) == 2
 
+        filter = ["displayname"]
         if self.consent_given is not None:
             if self.consent_given:
-                return (200, {}, "")
+                return (200, {}, json.dumps(filter))
             else:
-                return (401, {}, "")
+                return (401, {}, json.dumps(filter))
 
         id_hash = split_path[1]
 
         if id_hash in self.database:
-            return (200, {}, "")
+            return (200, filter, "")
         return (401, {}, "")
 
     def registration(self, request):
@@ -167,7 +170,7 @@ def test_verify_consent():
         assert len(split_path) == 2
         id_hash = split_path[1]
         assert id_hash == "test_id"
-        return (200, {}, "")
+        return (200, {}, json.dumps(["displayname"]))
 
     consent_config = SATOSAConfig(CONSENT_CONFIG)
     consent_module = ConsentModule(consent_config, callback)
@@ -217,8 +220,8 @@ def test_consent_registration():
 def callback(context, internal_response):
     assert context, "context was None"
     saml_attr = internal_response.get_attributes()
-    #TODO FIX THE FILTER!!!
-    #for attr in saml_attr:
+    # TODO FIX THE FILTER!!!
+    # for attr in saml_attr:
     #    assert attr in FILTER, "Consent module did not filter the attributes"
     return "response"
 
@@ -232,7 +235,8 @@ def empty_callback(context, internal_response):
 def create_internal_response():
     auth_info = AuthenticationInformation("auth_class_ref", "timestamp", "issuer")
     internal_response = InternalResponse(UserIdHashType.persistent, auth_info=auth_info)
-    internal_response.add_attributes({"displayName": "Test", "co": "example", "sn": "removed_by_filter"})
+    internal_response.add_attributes(
+        {"displayName": "Test", "co": "example", "sn": "removed_by_filter"})
     internal_response.user_id = "usrID"
     return internal_response
 
@@ -328,17 +332,10 @@ def test_consent_full_flow(consent_items):
     consent_module.callback_func = callback
     resp = consent_module.manage_consent(context, internal_response)
     assert isinstance(resp, Redirect)
-    # cookie_header = None
-    # for header in resp.headers:
-    #     if header[0] == 'Set-Cookie':
-    #         cookie_header = header[1]
-    #         break
-    # assert cookie_header, "Did not save state!"
     consent_service.redirect(resp.message)
     consent_service.consent_given = True
     context = Context()
     context.state = state
-    # context.cookie = cookie_header
     resp = consent_module._handle_consent_response(context)
     assert resp == "response"
 
