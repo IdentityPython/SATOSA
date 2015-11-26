@@ -4,9 +4,7 @@
     "name": "google",
     "config": {
         "authz_page": "<name>",
-        "acr_values": [
-            "PASSWORD"
-        ],
+        "acr_values": null,
         "verify_ssl": false,
         "op_url": "https://accounts.google.com",
         "state_id": "",
