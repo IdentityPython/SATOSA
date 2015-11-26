@@ -204,7 +204,7 @@ class ConsentModule(object):
                     _hash_value += val
             else:
                 _hash_value = val
-            hash_str = key + _hash_value
+            hash_str += key + _hash_value
         id_string = "%s%s%s" % (requestor, user_id, hash_str)
         return urlsafe_b64encode(
             hashlib.sha512(id_string.encode("utf-8")).hexdigest().encode("utf-8")).decode("utf-8")
