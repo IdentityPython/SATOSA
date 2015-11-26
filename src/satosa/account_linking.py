@@ -89,7 +89,7 @@ class AccountLinkingModule(object):
         if status_code == 200:
             satosa_logging(LOGGER, logging.INFO, "issuer/id pair is linked in AL service",
                            context.state)
-            internal_response.user_id = message
+            internal_response.set_user_id(message)
             return self.callback_func(context, internal_response)
 
         return self._approve_new_id(context, internal_response, message)
