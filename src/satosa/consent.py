@@ -207,7 +207,7 @@ class ConsentModule(object):
             hash_str = key + _hash_value
         id_string = "%s%s%s" % (requestor, user_id, hash_str)
         return urlsafe_b64encode(
-            hashlib.sha224(id_string.encode("utf-8")).hexdigest().encode("utf-8")).decode("utf-8")
+            hashlib.sha512(id_string.encode("utf-8")).hexdigest().encode("utf-8")).decode("utf-8")
 
     def _consent_registration(self, jws):
         """
