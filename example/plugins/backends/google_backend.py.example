@@ -22,12 +22,11 @@ class OpenidPlugin(BackendModulePlugin):
         module_base = "%s/%s" % (base_url, NAME)
         config = {
             "authz_page": NAME,
-            "acr_values": ["PASSWORD"],
+            "acr_values": None,
             "verify_ssl": False,
             "op_url": "https://accounts.google.com",
             "state_id": "",
             "client": {
-                "srv_discovery_url": "https://accounts.google.com/",
                 "client_registration": {
                     "client_id": "",
                     "client_secret": "",
