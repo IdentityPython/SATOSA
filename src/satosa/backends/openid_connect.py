@@ -60,6 +60,8 @@ class RpConfig(object):
         if "user_id_paramas" in config:
             self.USER_ID_PARAMAS = config["user_id_paramas"]
 
+        self.CLIENTS[config["authz_page"]]["srv_discovery_url"] = self.OP_URL
+
 
 class OpenIdBackend(BackendModule):
     """

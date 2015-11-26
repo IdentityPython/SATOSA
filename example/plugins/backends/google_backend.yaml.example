@@ -13,7 +13,6 @@ config:
       client_id:
       client_secret:
       redirect_uris: [<base_url>/<name>]
-    srv_discovery_url: https://accounts.google.com/
     userinfo_request_method: GET
   op_url: https://accounts.google.com
   state_id:

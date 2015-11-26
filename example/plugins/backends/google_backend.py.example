@@ -27,7 +27,6 @@ class OpenidPlugin(BackendModulePlugin):
             "op_url": "https://accounts.google.com",
             "state_id": "",
             "client": {
-                "srv_discovery_url": "https://accounts.google.com/",
                 "client_registration": {
                     "client_id": "",
                     "client_secret": "",
