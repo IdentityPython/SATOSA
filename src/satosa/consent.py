@@ -194,10 +194,18 @@ class ConsentModule(object):
 
         filtered_attr_key_list = list(filtered_attr.keys())
         filtered_attr_key_list.sort()
-        _dict = {}
+        hash_str = ""
         for key in filtered_attr_key_list:
-            _dict[key] = filtered_attr[key]
-        id_string = "%s%s%s" % (requestor, user_id, json.dumps(_dict))
+            _value = filtered_attr[key]
+            _hash_value = ""
+            if isinstance(_value, list):
+                _value.sort()
+                for val in _value:
+                    _hash_value += val
+            else:
+                _hash_value = val
+            hash_str = key + _hash_value
+        id_string = "%s%s%s" % (requestor, user_id, hash_str)
         return urlsafe_b64encode(
             hashlib.sha224(id_string.encode("utf-8")).hexdigest().encode("utf-8")).decode("utf-8")
 
