@@ -336,7 +336,6 @@ class OpenIdBackend(BackendModule):
         auth_info = AuthenticationInformation(UNSPECIFIED, str(datetime.now()), issuer)
 
         internal_resp = InternalResponse(
-            self.name_format_to_hash_type(subject_type),
             auth_info=auth_info
         )
 

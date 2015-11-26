@@ -216,12 +216,9 @@ def test_start_auth_name_id_policy():
 
     request_info_tmp = context.state
     assert request_info_tmp.get(test_state_key) == "my_state", "Wrong state!"
-    assert request_info_tmp.get(SamlBackend.STATE_KEY) == UserIdHashType.transient.name
-
-    pass
 
 
-def test__start_auth_disco():
+def test_start_auth_disco():
     """
     Performs a complete test for the module satosa.backends.saml2. The flow should be accepted.
     """
@@ -247,7 +244,6 @@ def test__start_auth_disco():
         assert isinstance(context, Context), "Not correct instance!"
         assert context.state.get(test_state_key) == "my_state", "Not correct state!"
         assert internal_resp.auth_info.auth_class_ref == PASSWORD, "Not correct authentication!"
-        assert internal_resp.user_id_hash_type == UserIdHashType.persistent, "Must be persistent!"
         _dict = internal_resp._attributes
         verify_dict = {'surname': ['Testsson 1'], 'mail': ['test@example.com'],
                        'displayname': ['Test Testsson'], 'givenname': ['Test 1'],
