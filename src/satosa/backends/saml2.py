@@ -21,7 +21,7 @@ from satosa.internal_data import UserIdHashType, InternalRequest, InternalRespon
     AuthenticationInformation, DataConverter
 from satosa.logging import satosa_logging
 from satosa.response import SeeOther, Response
-from satosa.util import rndstr, get_saml_name_id_format, saml_name_format_to_hash_type
+from satosa.util import rndstr, get_saml_name_id_format
 
 LOGGER = logging.getLogger(__name__)
 
@@ -116,8 +116,6 @@ class SamlBackend(BackendModule):
         :return: Response
         """
         state = context.state
-        if internal_req.user_id_hash_type:
-            state.add(SamlBackend.STATE_KEY, internal_req.user_id_hash_type.name)
 
         _cli = self.sp
 
@@ -146,7 +144,10 @@ class SamlBackend(BackendModule):
         :return: Response
         """
         _cli = self.sp
-        req_args = {"name_id_policy": self.create_name_id_policy(internal_req.user_id_hash_type)}
+        hash_type = UserIdHashType.persistent.name
+        if "hash_type" in self.config:
+            hash_type = self.config["hash_type"]
+        req_args = {"name_id_policy": self.create_name_id_policy(hash_type)}
 
         state = context.state
 
@@ -247,8 +248,7 @@ class SamlBackend(BackendModule):
                            exc_info=True)
             raise SATOSAAuthenticationError(state, "No IDP chosen") from err
         else:
-            request_info = InternalRequest(
-                getattr(UserIdHashType, state.get(SamlBackend.STATE_KEY)), None)
+            request_info = InternalRequest(None, None)
             return self.authn_request(context, entity_id, request_info)
 
     def _translate_response(self, response):
@@ -261,13 +261,12 @@ class SamlBackend(BackendModule):
         :return: A translated internal response
         """
         _authn_info = response.authn_info()[0]
-        user_id_hash_type = saml_name_format_to_hash_type(response.name_id.format)
         timestamp = response.assertion.authn_statement[0].authn_instant
         issuer = _authn_info[1][0]
         auth_class_ref = _authn_info[0]
 
         auth_info = AuthenticationInformation(auth_class_ref, timestamp, issuer)
-        internal_resp = InternalResponse(user_id_hash_type, auth_info=auth_info)
+        internal_resp = InternalResponse(auth_info=auth_info)
 
         internal_resp.set_user_id(response.get_subject().text)
         if "user_id_paramas" in self.config:

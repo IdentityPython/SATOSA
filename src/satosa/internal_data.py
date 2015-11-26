@@ -165,6 +165,8 @@ class UserIdHasher(object):
     Class for creating different user id types
     """
     STATE_KEY = "IDHASHER"
+    REQUESTOR = "requestor"
+    HASH_TYPE = "hash_type"
 
     @staticmethod
     def save_state(internal_request, state):
@@ -176,7 +178,11 @@ class UserIdHasher(object):
         :param internal_request: The request
         :param state: The current state
         """
-        state.add(UserIdHasher.STATE_KEY, internal_request.requestor)
+        _dict = {
+            UserIdHasher.REQUESTOR: internal_request.requestor,
+            UserIdHasher.HASH_TYPE: internal_request.user_id_hash_type.name
+        }
+        state.add(UserIdHasher.STATE_KEY, _dict)
 
     @staticmethod
     def hash_data(salt, value):
@@ -185,7 +191,14 @@ class UserIdHasher(object):
         return hashlib.sha512((value + salt).encode("utf-8")).hexdigest()
 
     @staticmethod
-    def hash_id(salt, user_id, user_id_hash_type, state):
+    def hash_type(state):
+        _dict = state.get(UserIdHasher.STATE_KEY)
+        hash_type = _dict[UserIdHasher.HASH_TYPE]
+        hash_type = getattr(UserIdHashType, hash_type)
+        return hash_type
+
+    @staticmethod
+    def hash_id(salt, user_id, state):
         """
         Sets a user id to the internal_response, in the format specified by the internal response
 
@@ -201,19 +214,21 @@ class UserIdHasher(object):
         :param state: The current state
         :return: the internal_response containing the hashed user ID
         """
-        requestor = state.get(UserIdHasher.STATE_KEY)
-
-        if user_id_hash_type == UserIdHashType.transient:
+        _dict = state.get(UserIdHasher.STATE_KEY)
+        requestor = _dict[UserIdHasher.REQUESTOR]
+        hash_type = _dict[UserIdHasher.HASH_TYPE]
+        hash_type = getattr(UserIdHashType, hash_type)
+        if hash_type == UserIdHashType.transient:
             timestamp = datetime.datetime.now().time()
             user_id = "{req}{time}{id}".format(req=requestor, time=timestamp, id=user_id)
-        elif user_id_hash_type == UserIdHashType.persistent:
+        elif hash_type == UserIdHashType.persistent:
             user_id = "{req}{id}".format(req=requestor, id=user_id)
-        elif user_id_hash_type == UserIdHashType.pairwise:
+        elif hash_type == UserIdHashType.pairwise:
             user_id = "{req}{id}".format(req=requestor, id=user_id)
-        elif user_id_hash_type == UserIdHashType.public:
+        elif hash_type == UserIdHashType.public:
             user_id = "{id}".format(id=user_id)
         else:
-            raise ValueError("Unknown id hash type: '{}'".format(user_id_hash_type))
+            raise ValueError("Unknown id hash type: '{}'".format(hash_type))
 
         return UserIdHasher.hash_data(salt, user_id)
 
@@ -267,9 +282,7 @@ class InternalData(object):
     """
     A base class for the data carriers between frontends/backends
     """
-
-    def __init__(self, user_id_hash_type):
-        self.user_id_hash_type = user_id_hash_type
+    pass
 
 
 class InternalRequest(InternalData):
@@ -286,7 +299,7 @@ class InternalRequest(InternalData):
         :type user_id_hash_type: UserIdHashType
         :type requestor: str
         """
-        super(InternalRequest, self).__init__(user_id_hash_type)
+        self.user_id_hash_type = user_id_hash_type
         self.requestor = requestor
         if requester_name:  # TODO do you need to validate this?
             self.requester_name = requester_name
@@ -323,13 +336,24 @@ class InternalResponse(InternalData):
     :type auth_info: AuthenticationInformation
     """
 
-    def __init__(self, user_id_hash_type, auth_info=None):
-        super(InternalResponse, self).__init__(user_id_hash_type)
+    def __init__(self, auth_info=None):
+        super(InternalResponse, self).__init__()
         self._user_id = None
         self._user_id_attributes = []
         # This dict is a data carrier between frontend and backend modules.
         self._attributes = {}
         self.auth_info = auth_info
+        self.user_id_hash_type = None
+
+    def set_user_id_hash_type(self, user_id_hash_type: UserIdHashType):
+        """
+
+        :param user_id_hash_type:
+        :type user_id_hash_type: UserIdHashType
+        """
+        if isinstance(user_id_hash_type, str):
+            user_id_hash_type = getattr(UserIdHashType, user_id_hash_type)
+        self.user_id_hash_type = user_id_hash_type
 
     def get_attributes(self):
         """
@@ -394,8 +418,10 @@ class InternalResponse(InternalData):
         :return: An InternalResponse object
         """
         auth_info = AuthenticationInformation.from_dict(int_resp_dict["auth_info"])
-        internal_response = InternalResponse(getattr(UserIdHashType, int_resp_dict["hash_type"]),
-                                             auth_info=auth_info)
+        internal_response = InternalResponse(auth_info=auth_info)
+        if "hash_type" in int_resp_dict:
+            internal_response.set_user_id_hash_type(getattr(UserIdHashType,
+                                                            int_resp_dict["hash_type"]))
         internal_response._attributes = int_resp_dict["attr"]
         internal_response._user_id = int_resp_dict["usr_id"]
         internal_response._user_id_attributes = int_resp_dict["usr_id_attr"]
@@ -407,8 +433,10 @@ class InternalResponse(InternalData):
         :rtype: dict[str, dict[str, str] | str]
         :return: A dict representation of the object
         """
-        return {"usr_id": self._user_id,
-                "usr_id_attr": self._user_id_attributes,
-                "attr": self.get_attributes(),
-                "hash_type": self.user_id_hash_type.name,
-                "auth_info": self.auth_info.to_dict()}
+        _dict = {"usr_id": self._user_id,
+                 "usr_id_attr": self._user_id_attributes,
+                 "attr": self.get_attributes(),
+                 "auth_info": self.auth_info.to_dict()}
+        if self.user_id_hash_type:
+            _dict["hash_type"] = self.user_id_hash_type.name
+        return _dict

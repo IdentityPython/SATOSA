@@ -52,7 +52,7 @@ class OAuthBackend(BackendModule):
         self.external_type = external_type
         self.user_id_attr = user_id_attr
 
-    def get_consumer(self, user_id_hash_type):
+    def get_consumer(self):
         """
         Creates a OAuth 2.0 consumer from a given configuration.
 
@@ -82,12 +82,11 @@ class OAuthBackend(BackendModule):
         :type internal_request: satosa.internal_data.InternalRequest
         :rtype satosa.response.Redirect
         """
-        consumer = self.get_consumer(internal_request.user_id_hash_type)
+        consumer = self.get_consumer()
         request_args = {"redirect_uri": self.redirect_url,
                         "state": get_state(self.config["base_url"], rndstr().encode())}
         state_data = {
-            "state": request_args["state"],
-            "user_id_hash_type": internal_request.user_id_hash_type.name
+            "state": request_args["state"]
         }
         state = context.state
         state.add(self.config["state_key"], state_data)
@@ -146,11 +145,7 @@ class OAuthBackend(BackendModule):
         state = context.state
         try:
             state_data = state.get(self.config["state_key"])
-            user_id_hash_type = UserIdHashType.pairwise
-            if "user_id_hash_type" in state_data:
-                enum_value = UserIdHashType[state_data["user_id_hash_type"]]
-                user_id_hash_type = enum_value
-            consumer = self.get_consumer(state_data["user_id_hash_type"])
+            consumer = self.get_consumer()
             request = context.request
             aresp = consumer.parse_response(AuthorizationResponse, info=json.dumps(request))
             self.verify_state(aresp, state_data, state)
@@ -161,8 +156,7 @@ class OAuthBackend(BackendModule):
                     self.config["verify_accesstoken_state"]):
                 self.verify_state(atresp, state_data, state)
             user_info = self.user_information(atresp["access_token"])
-            internal_response = InternalResponse(user_id_hash_type,
-                                                 auth_info=self.auth_info(request))
+            internal_response = InternalResponse(auth_info=self.auth_info(request))
             internal_response.add_attributes(self.converter.to_internal(self.external_type,
                                                                         user_info))
             internal_response.set_user_id(user_info[self.user_id_attr])

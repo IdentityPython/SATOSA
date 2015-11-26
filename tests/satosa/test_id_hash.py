@@ -8,11 +8,12 @@ SALT = "asdasdasdasdewr234"
 
 def _get_id(requestor, user_id, hash_type):
     state = State()
+
     internal_request = InternalRequest(hash_type, requestor)
 
     UserIdHasher.save_state(internal_request, state)
 
-    return UserIdHasher.hash_id(SALT, user_id, hash_type, state)
+    return UserIdHasher.hash_id(SALT, user_id, state)
 
 
 def test_id_hash_transient():
