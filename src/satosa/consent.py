@@ -128,8 +128,7 @@ class ConsentModule(object):
         internal_response = self._filter_attributes(internal_response, filter)
         filtered_data = internal_response.get_attributes()
 
-        id_hash = self._get_consent_id(requestor, internal_response.get_user_id(),
-                                       list(filtered_data.keys()))
+        id_hash = self._get_consent_id(requestor, internal_response.get_user_id(), filtered_data)
 
         try:
             # Check if consent is already given
