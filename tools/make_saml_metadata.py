@@ -1,17 +1,18 @@
 #!/usr/bin/env python
+# =============================================================================
+# Script that creates SAML2 metadata files from
+# SATOSA Saml2 frontends and backends
+# =============================================================================
+
 import argparse
 import copy
 import logging
-import os
-import sys
 
 from saml2.metadata import entity_descriptor, metadata_tostring_fix
 from saml2.metadata import entities_descriptor
 from saml2.metadata import sign_entity_descriptor
 from saml2.sigver import security_context
-
 from saml2.validate import valid_instance
-
 from saml2.config import Config
 
 from satosa.backends.saml2 import SamlBackend
@@ -21,16 +22,9 @@ from satosa.plugin_base.endpoint import BackendModulePlugin, FrontendModulePlugi
 from satosa.plugin_loader import _load_plugins, backend_filter, frontend_filter
 from satosa.satosa_config import SATOSAConfig
 
-
-
-
-# =============================================================================
-# Script that creates SAML2 metadata files from
-# SATOSA Saml2 frontends and backends
-# =============================================================================
-
 parser = argparse.ArgumentParser()
-parser.add_argument('-v', dest='valid', help="How long, in days, the metadata is valid from the time of creation")
+parser.add_argument('-v', dest='valid',
+                    help="How long, in days, the metadata is valid from the time of creation")
 parser.add_argument('-c', dest='cert', help='certificate')
 parser.add_argument('-i', dest='id', help="The ID of the entities descriptor")
 parser.add_argument('-k', dest='keyfile', help="A file with a key to sign the metadata with")
@@ -40,7 +34,7 @@ parser.add_argument('-x', dest='xmlsec', help="xmlsec binaries to be used for th
 parser.add_argument('-f', dest="frontend", help='generate frontend metadata', action="store_true")
 parser.add_argument('-b', dest="backend", help='generate backend metadata', action="store_true")
 parser.add_argument('-o', dest="output", default=".", help='output path')
-parser.add_argument(dest="config", nargs="+")
+parser.add_argument(dest="config")
 args = parser.parse_args()
 
 LOGGER = logging.getLogger("")
@@ -120,49 +114,44 @@ def _convert_logo_images(config_dict):
     return config_dict
 
 
-for filespec in args.config:
-    bas, fil = os.path.split(filespec)
-    if bas != "":
-        sys.path.insert(0, bas)
+config = SATOSAConfig(args.config)
+metadata = {"backends": {}, "frontends": {}}
+backend_plugins = _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter,
+                                BackendModulePlugin.__name__, config.BASE)
+frontend_plugins = _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter,
+                                 FrontendModulePlugin.__name__, config.BASE)
 
-    config = SATOSAConfig(fil)
-    metadata = {"backends": {}, "frontends": {}}
-    backend_plugins = _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter,
-                                    BackendModulePlugin.__name__, config.BASE)
-    frontend_plugins = _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter,
-                                     FrontendModulePlugin.__name__, config.BASE)
+LOGGER.info("Loaded backend modules: %s" % backend_plugins)
+LOGGER.info("Loaded frontend modules: %s" % frontend_plugins)
 
-    LOGGER.info("Loaded backend modules: %s" % backend_plugins)
-    LOGGER.info("Loaded frontend modules: %s" % frontend_plugins)
+providers = []
+for plugin in backend_plugins:
+    providers.append(plugin.name)
+    if issubclass(plugin.module, SamlBackend) and generate_backend:
+        LOGGER.info("Generating saml backend '%s' metadata..." % plugin.name)
+        metadata["backends"][plugin.name] = _make_metadata(plugin.config["config"])
 
-    providers = []
-    for plugin in backend_plugins:
-        providers.append(plugin.name)
-        if issubclass(plugin.module, SamlBackend) and generate_backend:
-            LOGGER.info("Generating saml backend '%s' metadata..." % plugin.name)
-            metadata["backends"][plugin.name] = _make_metadata(plugin.config["config"])
+LOGGER.info("Found backend modules: %s" % providers)
 
-    LOGGER.info("Found backend modules: %s" % providers)
+if generate_frontend:
+    for plugin in frontend_plugins:
+        if issubclass(plugin.module, SamlFrontend):
+            LOGGER.info("Generating saml frontend '%s' metadata..." % plugin.name)
+            module = plugin.module(None, None, plugin.config)
+            module.register_endpoints(providers)
+            metadata["frontends"][plugin.name] = _make_metadata(module.config)
 
-    if generate_frontend:
-        for plugin in frontend_plugins:
-            if issubclass(plugin.module, SamlFrontend):
-                LOGGER.info("Generating saml frontend '%s' metadata..." % plugin.name)
-                module = plugin.module(None, None, plugin.config)
-                module.register_endpoints(providers)
-                metadata["frontends"][plugin.name] = _make_metadata(module.config)
-
-    if generate_backend:
-        for backend, data in metadata["backends"].items():
-            path = "%s/%s_backend_metadata.xml" % (args.output, backend)
-            LOGGER.info("Writing backend '%s' metadata to '%s'" % (backend, path))
-            file = open(path, "w")
-            file.write(data)
-            file.close()
-    if generate_frontend:
-        for frontend, data in metadata["frontends"].items():
-            path = "%s/%s_frontend_metadata.xml" % (args.output, frontend)
-            LOGGER.info("Writing frontend '%s' metadata to '%s'" % (frontend, path))
-            file = open(path, "w")
-            file.write(data)
-            file.close()
+if generate_backend:
+    for backend, data in metadata["backends"].items():
+        path = "%s/%s_backend_metadata.xml" % (args.output, backend)
+        LOGGER.info("Writing backend '%s' metadata to '%s'" % (backend, path))
+        file = open(path, "w")
+        file.write(data)
+        file.close()
+if generate_frontend:
+    for frontend, data in metadata["frontends"].items():
+        path = "%s/%s_frontend_metadata.xml" % (args.output, frontend)
+        LOGGER.info("Writing frontend '%s' metadata to '%s'" % (frontend, path))
+        file = open(path, "w")
+        file.write(data)
+        file.close()
