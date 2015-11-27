@@ -44,11 +44,11 @@ def get_saml_name_id_format(hash_type):
     :param hash_type: satosa format
     :return: pySAML2 name format
     """
-    if hash_type == UserIdHashType.transient:
+    if hash_type == UserIdHashType.transient.name:
         return NAMEID_FORMAT_TRANSIENT
-    elif hash_type == UserIdHashType.persistent:
+    elif hash_type == UserIdHashType.persistent.name:
         return NAMEID_FORMAT_PERSISTENT
-    return None
+    return NAMEID_FORMAT_PERSISTENT
 
 
 def unpack(environ, binding):

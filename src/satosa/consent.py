@@ -83,7 +83,7 @@ class ConsentModule(object):
         requestor = consent_state["requestor"]
 
         hash_id = self._get_consent_id(requestor, internal_response.get_user_id(),
-                                       list(internal_response.get_attributes().keys()))
+                                       internal_response.get_attributes())
 
         try:
             consent_attributes = self._verify_consent(hash_id)
@@ -128,8 +128,7 @@ class ConsentModule(object):
         internal_response = self._filter_attributes(internal_response, filter)
         filtered_data = internal_response.get_attributes()
 
-        id_hash = self._get_consent_id(requestor, internal_response.get_user_id(),
-                                       list(filtered_data.keys()))
+        id_hash = self._get_consent_id(requestor, internal_response.get_user_id(), filtered_data)
 
         try:
             # Check if consent is already given
@@ -185,17 +184,30 @@ class ConsentModule(object):
 
         :type requestor: str
         :type user_id: str
-        :type filtered_attr: list[str]
+        :type filtered_attr: dict[str, str]
 
         :param requestor: The calling requestor
         :param user_id: The authorized user id
         :param filtered_attr: a list containing all attributes to be sent
         :return: an id
         """
-        filtered_attr.sort()
-        id_string = "%s%s%s" % (requestor, user_id, json.dumps(filtered_attr))
+
+        filtered_attr_key_list = list(filtered_attr.keys())
+        filtered_attr_key_list.sort()
+        hash_str = ""
+        for key in filtered_attr_key_list:
+            _value = filtered_attr[key]
+            _hash_value = ""
+            if isinstance(_value, list):
+                _value.sort()
+                for val in _value:
+                    _hash_value += val
+            else:
+                _hash_value = val
+            hash_str += key + _hash_value
+        id_string = "%s%s%s" % (requestor, user_id, hash_str)
         return urlsafe_b64encode(
-            hashlib.sha224(id_string.encode("utf-8")).hexdigest().encode("utf-8")).decode("utf-8")
+            hashlib.sha512(id_string.encode("utf-8")).hexdigest().encode("utf-8")).decode("utf-8")
 
     def _consent_registration(self, jws):
         """

@@ -153,7 +153,8 @@ def test_disable_consent(config):
                   "co": "test_co"}
 
     context = Context()
-    internal_response = InternalResponse(UserIdHashType.persistent)
+    internal_response = InternalResponse()
+    internal_response.set_user_id_hash_type(UserIdHashType.persistent)
     internal_response.add_attributes(attributes)
     state = State()
     context.state = state
@@ -234,7 +235,8 @@ def empty_callback(context, internal_response):
 
 def create_internal_response():
     auth_info = AuthenticationInformation("auth_class_ref", "timestamp", "issuer")
-    internal_response = InternalResponse(UserIdHashType.persistent, auth_info=auth_info)
+    internal_response = InternalResponse(auth_info=auth_info)
+    internal_response.set_user_id_hash_type(UserIdHashType.persistent)
     internal_response.add_attributes(
         {"displayName": "Test", "co": "example", "sn": "removed_by_filter"})
     internal_response.user_id = "usrID"

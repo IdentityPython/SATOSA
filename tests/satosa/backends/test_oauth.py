@@ -143,7 +143,7 @@ class TestFacebook:
         }
         # context.request = json.dumps(context.request)
         self.fb_backend.auth_callback_func = self.verify_callback
-        tmp_consumer = self.fb_backend.get_consumer(UserIdHashType.transient)
+        tmp_consumer = self.fb_backend.get_consumer()
         tmp_consumer.do_access_token_request = self.verify_do_access_token_request
         self.fb_backend.get_consumer = Mock()
         self.fb_backend.get_consumer.return_value = tmp_consumer
