@@ -183,8 +183,7 @@ class SamlBackend(BackendModule):
                     resp = SeeOther(str(value))
                     break
             else:
-                satosa_logging(LOGGER, logging.DEBUG, "Parameter error for state: %s" % state,
-                               state)
+                satosa_logging(LOGGER, logging.DEBUG, "Parameter error for state", state)
                 raise SATOSAAuthenticationError(state, "Parameter error")
         else:
             resp = Response(ht_args["data"], headers=ht_args["headers"])
@@ -207,7 +206,7 @@ class SamlBackend(BackendModule):
         state = context.state
 
         if not _authn_response["SAMLResponse"]:
-            satosa_logging(LOGGER, logging.DEBUG, "Missing Response for state: %s" % state, state)
+            satosa_logging(LOGGER, logging.DEBUG, "Missing Response for state", state)
             raise SATOSAAuthenticationError(state, "Missing Response")
 
         try:
@@ -215,14 +214,14 @@ class SamlBackend(BackendModule):
                 _authn_response["SAMLResponse"], binding)
         except Exception as err:
             satosa_logging(LOGGER, logging.DEBUG,
-                           "Failed to parse authn request for state: %s" % state, state,
+                           "Failed to parse authn request for state", state,
                            exc_info=True)
             raise SATOSAAuthenticationError(state, "Failed to parse authn request") from err
 
         # check if the relay_state matches the cookie state
         if state.get(SamlBackend.STATE_KEY) != _authn_response['RelayState']:
             satosa_logging(LOGGER, logging.DEBUG,
-                           "State did not match relay state for state: %s" % state, state)
+                           "State did not match relay state for state", state)
             raise SATOSAAuthenticationError(state, "State did not match relay state")
 
         return self.auth_callback_func(context, self._translate_response(_response))
@@ -244,8 +243,7 @@ class SamlBackend(BackendModule):
         try:
             entity_id = info[self.idp_disco_query_param]
         except KeyError as err:
-            satosa_logging(LOGGER, logging.DEBUG, "No IDP chosen for state %s" % state, state,
-                           exc_info=True)
+            satosa_logging(LOGGER, logging.DEBUG, "No IDP chosen for state", state, exc_info=True)
             raise SATOSAAuthenticationError(state, "No IDP chosen") from err
         else:
             request_info = InternalRequest(None, None)
