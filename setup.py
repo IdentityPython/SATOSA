@@ -20,7 +20,7 @@ setup(
     install_requires=["pluginbase",
                       "future",
                       # "oic",
-                      # "pyjwkest",
+                      "pyjwkest",
                       # "pysaml2 >= 3.0.2",
                       "requests",
                       "PyYAML",
