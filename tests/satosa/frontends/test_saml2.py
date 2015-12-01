@@ -44,6 +44,7 @@ if os.path.isfile("/usr/bin/xmlsec1"):
 elif os.path.isfile("/usr/local/bin/xmlsec1"):
     XMLSEC_PATH = "/usr/local/bin/xmlsec1"
 
+IDP_STATE_ID = "frontend_id"
 IDP_BASE = "http://test.tester.se"
 RECEIVER = "Saml2IDP"
 ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
@@ -107,10 +108,14 @@ SPCONFIG = {
     },
     "xmlsec_binary": XMLSEC_PATH,
 }
-CONFIG_ERR1 = {"idp_config_notok": IDPCONFIG, "endpoints": ENDPOINTS, "base": IDP_BASE, }
-CONFIG_ERR2 = {"idp_config": IDPCONFIG, "endpoints_notok": ENDPOINTS, "base": IDP_BASE, }
-CONFIG_ERR3 = {"idp_config": IDPCONFIG, "endpoints": ENDPOINTS, "base_notok": IDP_BASE, }
-CONFIG = {"idp_config": IDPCONFIG, "endpoints": ENDPOINTS, "base": IDP_BASE}
+CONFIG_ERR1 = {"idp_config_notok": IDPCONFIG, "endpoints": ENDPOINTS, "base": IDP_BASE,
+               "state_id": IDP_STATE_ID}
+CONFIG_ERR2 = {"idp_config": IDPCONFIG, "endpoints_notok": ENDPOINTS, "base": IDP_BASE,
+               "state_id": IDP_STATE_ID}
+CONFIG_ERR3 = {"idp_config": IDPCONFIG, "endpoints": ENDPOINTS, "base_notok": IDP_BASE,
+               "state_id": IDP_STATE_ID}
+CONFIG = {"idp_config": IDPCONFIG, "endpoints": ENDPOINTS, "base": IDP_BASE,
+          "state_id": IDP_STATE_ID}
 
 TESTDATA_HANDLE_AUTHN_REQUEST = \
     [(None, None, None, TypeError),

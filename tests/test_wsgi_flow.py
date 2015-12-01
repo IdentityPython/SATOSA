@@ -188,8 +188,8 @@ class Saml2BackendPlugin(BackendModulePlugin):
             "xmlsec_binary": TestConfiguration.get_instance().xmlsec_path,
         }
         config = {"config": sp_config,
-                  "encryption_key": "asd89673oeirds90",
                   "idp_entity_id": "https://example.com/unittest_idp.xml",
+                  "state_id": "saml_backend_test_id"
                   }
 
         super(Saml2BackendPlugin, self).__init__(SamlBackend, Saml2BackendPlugin.provider, config)
@@ -236,7 +236,8 @@ class Saml2FrontendPlugin(FrontendModulePlugin):
 
         config = {"idp_config": idpconfig,
                   "endpoints": Saml2FrontendPlugin.endpoints,
-                  "base": base_url}
+                  "base": base_url,
+                  "state_id": "saml_frontend_state_id"}
 
         super(Saml2FrontendPlugin, self).__init__(SamlFrontend, "Saml2IDP", config)
 

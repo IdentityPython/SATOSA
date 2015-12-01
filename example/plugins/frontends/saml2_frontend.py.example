@@ -79,6 +79,7 @@ class Saml2FrontendModulePlugin(FrontendModulePlugin):
 
         config = {"idp_config": idpConfig,
                   "endpoints": ENDPOINTS,
-                  "base": base_url
+                  "base": base_url,
+                  "state_id": NAME
                   }
         super(Saml2FrontendModulePlugin, self).__init__(MODULE, NAME, config)

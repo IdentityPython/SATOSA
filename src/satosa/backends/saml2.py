@@ -47,7 +47,6 @@ class SamlBackend(BackendModule):
     """
     A saml2 backend module
     """
-    STATE_KEY = "Saml2B_76ASF"
 
     def __init__(self, outgoing, internal_attributes, config):
         """
@@ -70,6 +69,7 @@ class SamlBackend(BackendModule):
         self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST]
         self.discosrv = None
         self.converter = DataConverter(internal_attributes)
+        self.state_id = config["state_id"]
         try:
             self.discosrv = config["disco_srv"]
         except KeyError:
@@ -175,7 +175,7 @@ class SamlBackend(BackendModule):
                            "Failed to construct the AuthnRequest for state", state, exc_info=True)
             raise SATOSAAuthenticationError(state, "Failed to construct the AuthnRequest") from exc
 
-        state.add(SamlBackend.STATE_KEY, relay_state)
+        state.add(self.state_id, relay_state)
 
         if _binding == BINDING_HTTP_REDIRECT:
             for param, value in ht_args["headers"]:
@@ -219,7 +219,7 @@ class SamlBackend(BackendModule):
             raise SATOSAAuthenticationError(state, "Failed to parse authn request") from err
 
         # check if the relay_state matches the cookie state
-        if state.get(SamlBackend.STATE_KEY) != _authn_response['RelayState']:
+        if state.get(self.state_id) != _authn_response['RelayState']:
             satosa_logging(LOGGER, logging.DEBUG,
                            "State did not match relay state for state", state)
             raise SATOSAAuthenticationError(state, "State did not match relay state")

@@ -2,6 +2,7 @@ module: satosa.frontends.saml2.SamlFrontend
 plugin: FrontendModulePlugin
 name: Saml2IDP
 config:
+  state_id: <name>
   base: <base_url>
   endpoints:
     single_sign_on_service: {'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST': sso/post,

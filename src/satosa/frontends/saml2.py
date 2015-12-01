@@ -31,8 +31,6 @@ class SamlFrontend(FrontendModule):
     """
     A pysaml2 frontend module
     """
-    # TODO Move to config
-    STATE_KEY = "SamlFront"
 
     def __init__(self, auth_req_callback_func, internal_attributes, conf):
         if conf is None:
@@ -45,6 +43,7 @@ class SamlFrontend(FrontendModule):
         self.config = conf["idp_config"]
         self.endpoints = conf["endpoints"]
         self.base = conf["base"]
+        self.state_id = conf["state_id"]
         self.response_bindings = None
         self.idp = None
 
@@ -118,7 +117,7 @@ class SamlFrontend(FrontendModule):
         :param state: The current state
         :return: The dictionary given by the save_state function
         """
-        loaded_state = state.get(SamlFrontend.STATE_KEY)
+        loaded_state = state.get(self.state_id)
         if isinstance(loaded_state["resp_args"]["name_id_policy"], str):
             loaded_state["resp_args"]["name_id_policy"] = name_id_policy_from_string(
                 loaded_state["resp_args"]["name_id_policy"])
@@ -251,7 +250,7 @@ class SamlFrontend(FrontendModule):
             request_state = self.save_state(context,
                                             idp.response_args(extracted_request["authn_req"]),
                                             request["RelayState"])
-            context.state.add(SamlFrontend.STATE_KEY, request_state)
+            context.state.add(self.state_id, request_state)
 
             extensions = idp.metadata.extension(
                 extracted_request['resp_args']['sp_entity_id'],
