@@ -115,8 +115,8 @@ class TestConfiguration(object):
                 },
                 "xmlsec_binary": xmlsec_path,
             },
-            "encryption_key": "asduy234879dyisahkd2",
             "disco_srv": "https://my.dicso.com/role/idp.ds",
+            "state_id": "saml_bakend_test_id"
         }
         sp_metadata = FileGenerator.get_instance().create_metadata(self.spconfig["config"],
                                                                    "sp_metadata")

@@ -66,7 +66,8 @@
       }
     },
     "disco_srv": "http://localhost:8080/role/idp.ds",
-    "publish_metadata": "<base_url>/<name>/metadata"
+    "publish_metadata": "<base_url>/<name>/metadata",
+    "state_id": "<name>"
   }
 }
 
