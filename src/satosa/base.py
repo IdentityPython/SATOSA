@@ -27,6 +27,8 @@ class SATOSABase(object):
     Does not contain any server parts.
     """
 
+    STATE_KEY = "satosa_base"
+
     def __init__(self, config):
         """
         Creates a satosa proxy base
@@ -78,6 +80,7 @@ class SATOSABase(object):
         :return: response
         """
         state = context.state
+        state.add(SATOSABase.STATE_KEY, internal_request.requestor)
         satosa_logging(LOGGER, logging.INFO,
                        "Requesting provider: {}".format(internal_request.requestor), state)
         context.request = None
@@ -103,6 +106,7 @@ class SATOSABase(object):
         """
 
         context.request = None
+        internal_response.to_requestor = context.state.get(SATOSABase.STATE_KEY)
         user_id_attr = self.config.INTERNAL_ATTRIBUTES.get("user_id_from_attr", [])
         if user_id_attr:
             internal_response.set_user_id_from_attr(user_id_attr)

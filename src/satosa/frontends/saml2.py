@@ -189,9 +189,8 @@ class SamlFrontend(FrontendModule):
                                               destination, excp)
 
         req_args = {}
-        for key in ["subject", "name_id_policy", "conditions",
-                    "requested_authn_context", "scoping", "force_authn",
-                    "is_passive"]:
+        for key in ["subject", "name_id_policy", "conditions", "requested_authn_context",
+                    "scoping", "force_authn", "is_passive"]:
             try:
                 val = getattr(_authn_req, key)
             except AttributeError:
