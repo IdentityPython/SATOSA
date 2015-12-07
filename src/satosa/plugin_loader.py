@@ -316,32 +316,53 @@ def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, *args):
                 done = False
                 for parser in dict_parsers:
                     _config = parser("%s/%s" % (path, module_file_name))
-                    if _config and "plugin" in _config and _config["plugin"] == filter_class:
-                        done = True
-                        break
+                    if _config and "plugin" in _config:
+                            if _config["plugin"] == filter_class:
+                                done = True
+                                break
+                            else:
+                                _config = None
                 if done:
                     break
             if _config is not None:
                 try:
-                    if all(k in _config for k in ("name", "plugin", "module", "config")):
-                        plugin_class = getattr(sys.modules[__name__], _config["plugin"])
-                        module_class = locate(_config["module"])
-                        name = _config["name"]
-                        config = json.dumps(_config["config"])
-                        replace = [
-                            ("<base_url>", args[0]),
-                            ("<name>", _config["name"])
-                        ]
-                        for _replace in replace:
-                            config = config.replace(_replace[0], _replace[1])
-                        config = json.loads(config)
-                        module = plugin_class(module_class, name, config)
-                        loaded_plugins.append(module)
-                        loaded_plugin_names.append(module_file_name)
+
+                    if "plugin" in _config and "MicroService" in _config["plugin"]:
+                        # Load micro service
+                        if all(k in _config for k in ("plugin", "module")):
+                            module_class = locate(_config["module"])
+                            instance = None
+                            if "config" in _config:
+                                instance = module_class(_config["config"])
+                            else:
+                                instance = module_class()
+                            loaded_plugins.append(instance)
+                        else:
+                            LOGGER.warn("Missing mandatory configuration parameters in "
+                                        "the micro service plugin %s ('plugin', 'module')."
+                                        % module_file_name)
                     else:
-                        LOGGER.warn("Missing mandatory configuration parameters in "
-                                    "the plugin %s (plugin, module, receiver and/or config)."
-                                    % module_file_name)
+                        if all(k in _config for k in ("name", "plugin", "module", "config")):
+
+                            plugin_class = getattr(sys.modules[__name__], _config["plugin"])
+                            module_class = locate(_config["module"])
+                            name = _config["name"]
+                            config = json.dumps(_config["config"])
+                            replace = [
+                                ("<base_url>", args[0]),
+                                ("<name>", _config["name"])
+                            ]
+                            for _replace in replace:
+                                config = config.replace(_replace[0], _replace[1])
+                            config = json.loads(config)
+                            module = plugin_class(module_class, name, config)
+                            loaded_plugins.append(module)
+                            loaded_plugin_names.append(module_file_name)
+                        else:
+
+                            LOGGER.warn("Missing mandatory configuration parameters in "
+                                        "the plugin %s (plugin, module, receiver and/or config)."
+                                        % module_file_name)
                 except:
                     LOGGER.warn("Cannot create the module %s." % module_file_name)
         except Exception as error:

@@ -5,9 +5,7 @@ import json
 import logging
 
 import requests
-
 from jwkest.jwk import rsa_load, RSAKey
-
 from jwkest.jws import JWS
 
 from satosa.exception import SATOSAAuthenticationError
@@ -45,7 +43,7 @@ class AccountLinkingModule(object):
             self.endpoint = config.ACCOUNT_LINKING["endpoint"]
             self.verify_ssl = True if "verify_ssl" not in config.ACCOUNT_LINKING else \
                 config.ACCOUNT_LINKING["verify_ssl"]
-            _bkey = rsa_load(config.CONSENT["sign_key"])
+            _bkey = rsa_load(config.ACCOUNT_LINKING["sign_key"])
             self.sign_key = RSAKey().load_key(_bkey)
             self.sign_key.use = "sig"
             LOGGER.info("Account linking is active")

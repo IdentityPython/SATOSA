@@ -260,7 +260,7 @@ class SamlBackend(BackendModule):
         """
         _authn_info = response.authn_info()[0]
         timestamp = response.assertion.authn_statement[0].authn_instant
-        issuer = _authn_info[1][0]
+        issuer = response.response.issuer.text
         auth_class_ref = _authn_info[0]
 
         auth_info = AuthenticationInformation(auth_class_ref, timestamp, issuer)

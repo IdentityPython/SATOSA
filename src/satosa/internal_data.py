@@ -344,6 +344,7 @@ class InternalResponse(InternalData):
         self._attributes = {}
         self.auth_info = auth_info
         self.user_id_hash_type = None
+        self.to_requestor = None
 
     def set_user_id_hash_type(self, user_id_hash_type: UserIdHashType):
         """
@@ -425,6 +426,7 @@ class InternalResponse(InternalData):
         internal_response._attributes = int_resp_dict["attr"]
         internal_response._user_id = int_resp_dict["usr_id"]
         internal_response._user_id_attributes = int_resp_dict["usr_id_attr"]
+        internal_response.to_requestor = int_resp_dict["to"]
         return internal_response
 
     def to_dict(self):
@@ -436,6 +438,7 @@ class InternalResponse(InternalData):
         _dict = {"usr_id": self._user_id,
                  "usr_id_attr": self._user_id_attributes,
                  "attr": self.get_attributes(),
+                 "to": self.to_requestor,
                  "auth_info": self.auth_info.to_dict()}
         if self.user_id_hash_type:
             _dict["hash_type"] = self.user_id_hash_type.name
