@@ -1,7 +1,5 @@
 #--- SATOSA Config ---#
-HOST: '127.0.0.1'
-PORT: 8090
-HTTPS: Yes
+BASE: https://example.com
 INTERNAL_ATTRIBUTES: "internal_attributes.yaml"
 COOKIE_STATE_NAME: "SATOSA_STATE"
 STATE_ENCRYPTION_KEY: "asdASD123"
