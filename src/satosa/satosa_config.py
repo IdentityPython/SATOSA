@@ -14,8 +14,9 @@ class SATOSAConfig(object):
     A configuration class for the satosa proxy. Verifies that the given config holds all the
     necessary parameters.
     """
-    mandatory_dict_keys = ["PLUGIN_PATH", "BACKEND_MODULES", "FRONTEND_MODULES",
-                           "INTERNAL_ATTRIBUTES", "COOKIE_STATE_NAME", "STATE_ENCRYPTION_KEY"]
+    sensitive_dict_keys = ["STATE_ENCRYPTION_KEY", "USER_ID_HASH_SALT"]
+    mandatory_dict_keys = ["BASE", "PLUGIN_PATH", "BACKEND_MODULES", "FRONTEND_MODULES",
+                           "INTERNAL_ATTRIBUTES", "COOKIE_STATE_NAME"] + sensitive_dict_keys
 
     def __init__(self, config):
         """
@@ -27,31 +28,25 @@ class SATOSAConfig(object):
         :param config: Can be a file path, a string (ex. json/yaml), or a dict
         :return: A verified SATOSAConfig
         """
-        self.__dict__["_config"] = None
         dict_parsers = [SATOSAConfig._load_dict, SATOSAConfig._load_json, SATOSAConfig._load_yaml]
         for parser in dict_parsers:
             self.__dict__["_config"] = parser(config)
-            if self._config:
+            if self._config is not None:
                 break
 
-        self._verify_dict(self._config)
-        _internal_attributes = None
-        if "INTERNAL_ATTRIBUTES" in self._config:
-            internal_attr_file = self._config["INTERNAL_ATTRIBUTES"]
-            for parser in dict_parsers:
-                _internal_attributes = parser(internal_attr_file)
-                if _internal_attributes:
-                    break
+        # Load sensitive config
+        for key in SATOSAConfig.sensitive_dict_keys:
+            val = os.environ.get("SATOSA_{key}".format(key=key))
+            if val:
+                self._config[key] = val
 
-            self._config["INTERNAL_ATTRIBUTES"] = _internal_attributes
-        else:
-            self._config["INTERNAL_ATTRIBUTES"] = None
-        if not hasattr(self,
-                       "BASE"):  # construct base url from host+port if not specified in config
-            scheme = "http"
-            if self._config["HTTPS"]:
-                scheme = "https"
-            self.BASE = "%s://%s:%s" % (scheme, self.HOST, self.PORT)
+        self._verify_dict(self._config)
+
+        for parser in dict_parsers:
+            _internal_attributes = parser(self._config["INTERNAL_ATTRIBUTES"])
+            if _internal_attributes is not None:
+                break
+        self._config["INTERNAL_ATTRIBUTES"] = _internal_attributes
 
     @staticmethod
     def _verify_dict(conf):

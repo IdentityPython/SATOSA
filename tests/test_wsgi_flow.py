@@ -54,9 +54,7 @@ class TestConfiguration(object):
         elif os.path.isfile("/usr/local/bin/xmlsec1"):
             self.xmlsec_path = "/usr/local/bin/xmlsec1"
 
-        proxy_config_dict = {"HOST": 'localhost',
-                             "PORT": 8090,
-                             "HTTPS": True,
+        proxy_config_dict = {"BASE": "https://localhost:8090",
                              "COOKIE_STATE_NAME": "TEST_STATE",
                              "STATE_ENCRYPTION_KEY": "ASDasd123",
                              "PLUGIN_PATH": [os.path.dirname(__file__)],

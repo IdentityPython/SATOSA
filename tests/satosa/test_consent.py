@@ -35,9 +35,7 @@ INTERNAL_ATTRIBUTES = {
                    'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
                                'facebook': ['last_name']}}, 'separator': '->'}
 
-SATOSA_CONFIG = {"HOST": 'localhost',
-                 "PORT": 8090,
-                 "HTTPS": True,
+SATOSA_CONFIG = {"BASE": "https://proxy.example.com",
                  "COOKIE_STATE_NAME": "SATOSA_SATE",
                  "STATE_ENCRYPTION_KEY": "ASDasd123",
                  "PLUGIN_PATH": "",

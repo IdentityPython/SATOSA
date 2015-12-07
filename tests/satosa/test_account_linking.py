@@ -58,9 +58,7 @@ class TestAccountLinking():
             "verify_ssl": False
         }
         self.satosa_config = {
-            "HOST": 'localhost',
-            "PORT": 8090,
-            "HTTPS": True,
+            "BASE": "https://proxy.example.com",
             "USER_ID_HASH_SALT": "qwerty",
             "COOKIE_STATE_NAME": "SATOSA_SATE",
             "STATE_ENCRYPTION_KEY": "ASDasd123",
