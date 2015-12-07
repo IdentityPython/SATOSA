@@ -27,7 +27,6 @@ class SATOSAConfig(object):
         :param config: Can be a file path, a string (ex. json/yaml), or a dict
         :return: A verified SATOSAConfig
         """
-        self.__dict__["_config"] = None
         dict_parsers = [SATOSAConfig._load_dict, SATOSAConfig._load_json, SATOSAConfig._load_yaml]
         for parser in dict_parsers:
             self.__dict__["_config"] = parser(config)
@@ -41,17 +40,12 @@ class SATOSAConfig(object):
                 self._config[key] = val
 
         self._verify_dict(self._config)
-        _internal_attributes = None
-        if "INTERNAL_ATTRIBUTES" in self._config:
-            internal_attr_file = self._config["INTERNAL_ATTRIBUTES"]
-            for parser in dict_parsers:
-                _internal_attributes = parser(internal_attr_file)
-                if _internal_attributes:
-                    break
 
-            self._config["INTERNAL_ATTRIBUTES"] = _internal_attributes
-        else:
-            self._config["INTERNAL_ATTRIBUTES"] = None
+        for parser in dict_parsers:
+            _internal_attributes = parser(self._config["INTERNAL_ATTRIBUTES"])
+            if _internal_attributes is not None:
+                break
+        self._config["INTERNAL_ATTRIBUTES"] = _internal_attributes
 
     @staticmethod
     def _verify_dict(conf):
