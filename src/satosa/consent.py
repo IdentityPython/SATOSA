@@ -60,7 +60,6 @@ class ConsentModule(object):
         """
         if self.enabled:
             state.add(ConsentModule.STATE_KEY, {"filter": internal_request.get_filter(),
-                                                "requestor": internal_request.requestor,
                                                 "requester_name": internal_request.requester_name})
 
     def _handle_consent_response(self, context):
@@ -80,7 +79,7 @@ class ConsentModule(object):
         # rebuild internal_response from state
         internal_response = InternalResponse.from_dict(saved_resp)
 
-        requestor = consent_state["requestor"]
+        requestor = internal_response.to_requestor
 
         hash_id = self._get_consent_id(requestor, internal_response.get_user_id(),
                                        internal_response.get_attributes())
@@ -101,7 +100,7 @@ class ConsentModule(object):
             satosa_logging(LOGGER, logging.INFO, "Consent was given", state)
 
         internal_response = self._filter_attributes(internal_response, consent_attributes)
-        return self.callback_func(context, internal_response)
+        return self._end_consent(context, internal_response)
 
     def manage_consent(self, context, internal_response):
         """
@@ -118,11 +117,11 @@ class ConsentModule(object):
         state = context.state
         if not self.enabled:
             satosa_logging(LOGGER, logging.INFO, "Consent flow not activated", state)
-            return self.callback_func(context, internal_response)
+            return self._end_consent(context, internal_response)
 
         consent_state = state.get(ConsentModule.STATE_KEY)
         filter = consent_state["filter"]
-        requestor = consent_state["requestor"]
+        requestor = internal_response.to_requestor
         requester_name = consent_state["requester_name"]
 
         internal_response = self._filter_attributes(internal_response, filter)
@@ -135,13 +134,13 @@ class ConsentModule(object):
             consent_attributes = self._verify_consent(id_hash)
             if consent_attributes:
                 internal_response = self._filter_attributes(internal_response, consent_attributes)
-                return self.callback_func(context, internal_response)
+                return self._end_consent(context, internal_response)
         except ConnectionError:
             satosa_logging(LOGGER, logging.ERROR,
                            "Consent service is not reachable, no consent given.", state)
             # Send an internal_response without any attributes
             internal_response._attributes = {}
-            return self.callback_func(context, internal_response)
+            return self._end_consent(context, internal_response)
 
         consent_state["internal_resp"] = internal_response.to_dict()
         state.add(ConsentModule.STATE_KEY, consent_state)
@@ -160,7 +159,7 @@ class ConsentModule(object):
                            "Consent service is not reachable, no consent given.", state)
             # Send an internal_response without any attributes
             internal_response._attributes = {}
-            return self.callback_func(context, internal_response)
+            return self._end_consent(context, internal_response)
 
         consent_redirect = "%s?ticket=%s" % (self.consent_redirect_url, ticket)
         return Redirect(consent_redirect)
@@ -250,6 +249,24 @@ class ConsentModule(object):
         if res.status_code == 200:
             return json.loads(res.text)
         return None
+
+    def _end_consent(self, context, internal_response):
+        """
+        Clear the state for consent and end the consent step
+
+        :type context: satosa.context.Context
+        :type internal_response: satosa.internal_data.InternalResponse
+        :rtype: satosa.response.Response
+
+        :param context: response context
+        :param internal_response: the response
+        :return: response
+        """
+        try:
+            context.state.remove(ConsentModule.STATE_KEY)
+        except KeyError:
+            pass
+        return self.callback_func(context, internal_response)
 
     def _to_jws(self, data):
         """

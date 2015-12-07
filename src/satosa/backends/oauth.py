@@ -168,7 +168,7 @@ class OAuthBackend(BackendModule):
                     except Exception as error:
                         raise SATOSAAuthenticationError from error
                 internal_response.set_user_id(user_id)
-
+            context.state.remove(self.config["state_key"])
             return self.auth_callback_func(context, internal_response)
         except Exception as error:
             satosa_logging(LOGGER, logging.DEBUG, "Not a valid authentication", state,

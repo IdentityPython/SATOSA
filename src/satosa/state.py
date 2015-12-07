@@ -20,11 +20,11 @@ from satosa.logging import satosa_logging
 LOGGER = logging.getLogger(__name__)
 
 # TODO MOVE TO CONFIG
-STATE_COOKIE_MAX_AGE = 600
+STATE_COOKIE_MAX_AGE = 1200
 STATE_COOKIE_SECURE = True
 
 
-def state_to_cookie(state, name, path, encryption_key):
+def state_to_cookie(state, name, path, encryption_key, max_age=STATE_COOKIE_MAX_AGE):
     """
     Saves a state to a cookie
 
@@ -47,7 +47,7 @@ def state_to_cookie(state, name, path, encryption_key):
     cookie[name] = state.urlstate(encryption_key)
     cookie[name]["secure"] = STATE_COOKIE_SECURE
     cookie[name]["path"] = path
-    cookie[name]["max-age"] = STATE_COOKIE_MAX_AGE
+    cookie[name]["max-age"] = max_age
     return cookie
 
 
@@ -163,6 +163,7 @@ class State(object):
         :return: An instance of this class.
         """
         self._state_dict = {}
+        self._delete = False
         if urlstate_data is not None:
             urlstate_data = urlstate_data.encode("utf-8")
             urlstate_data = base64.urlsafe_b64decode(urlstate_data)
@@ -192,6 +193,14 @@ class State(object):
         """
         json.dumps(data)
         self._state_dict[key] = data
+
+    def remove(self, key):
+        """
+        Removes state value
+        :type key: str
+        :param key: Key for value
+        """
+        del self._state_dict[key]
 
     def get(self, key):
         """
@@ -226,6 +235,21 @@ class State(object):
         urlstate_data += lzma.flush()
         urlstate_data = base64.urlsafe_b64encode(urlstate_data)
         return urlstate_data.decode("utf-8")
+
+    def set_delete_state(self, delete=True):
+        """
+        Delete state in the next redirect
+        :type delete: bool
+        :param delete: Should delete state
+        """
+        self._delete = delete
+
+    def should_delete(self):
+        """
+        :rtype: bool
+        :return: True if should be deleted, else false
+        """
+        return self._delete
 
     def copy(self):
         """

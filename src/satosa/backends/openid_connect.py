@@ -297,6 +297,7 @@ class OpenIdBackend(BackendModule):
             raise SATOSAAuthenticationError(state, "Missing or invalid state in authn response")
         client = self.restore_state(backend_state)
         result = client.callback(context.request, state, backend_state)
+        context.state.remove(self.config.STATE_ID)
         return self.auth_callback_func(context,
                                        self._translate_response(
                                            result,

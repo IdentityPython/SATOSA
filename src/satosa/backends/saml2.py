@@ -224,6 +224,7 @@ class SamlBackend(BackendModule):
                            "State did not match relay state for state", state)
             raise SATOSAAuthenticationError(state, "State did not match relay state")
 
+        context.state.remove(self.state_id)
         return self.auth_callback_func(context, self._translate_response(_response))
 
     def disco_response(self, context):

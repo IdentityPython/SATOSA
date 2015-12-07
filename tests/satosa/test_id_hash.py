@@ -13,7 +13,7 @@ def _get_id(requestor, user_id, hash_type):
 
     UserIdHasher.save_state(internal_request, state)
 
-    return UserIdHasher.hash_id(SALT, user_id, state)
+    return UserIdHasher.hash_id(SALT, user_id, requestor, state)
 
 
 def test_id_hash_transient():

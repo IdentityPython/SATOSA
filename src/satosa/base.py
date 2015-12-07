@@ -27,7 +27,7 @@ class SATOSABase(object):
     Does not contain any server parts.
     """
 
-    STATE_KEY = "satosa_base"
+    STATE_KEY = "SATOSA_REQUESTOR"
 
     def __init__(self, config):
         """
@@ -134,6 +134,7 @@ class SATOSABase(object):
         """
         user_id = UserIdHasher.hash_id(self.config.USER_ID_HASH_SALT,
                                        internal_response.get_user_id(),
+                                       internal_response.to_requestor,
                                        context.state)
         internal_response.set_user_id(user_id)
         internal_response.set_user_id_hash_type(UserIdHasher.hash_type(context.state))
@@ -165,6 +166,7 @@ class SATOSABase(object):
         :return: response
         """
         context.request = None
+        context.state.set_delete_state()
         frontend = self.module_router.frontend_routing(context)
         return frontend.handle_authn_response(context, internal_response)
 
@@ -232,11 +234,28 @@ class SATOSABase(object):
         :param resp: The response
         :param context: Session context
         """
+        if context.state.should_delete():
+            # Save empty state with a max age of 0
+            cookie = state_to_cookie(State(),
+                                     self.config.COOKIE_STATE_NAME,
+                                     "/",
+                                     self.config.STATE_ENCRYPTION_KEY,
+                                     0)
+        else:
+            cookie = state_to_cookie(context.state,
+                                     self.config.COOKIE_STATE_NAME,
+                                     "/",
+                                     self.config.STATE_ENCRYPTION_KEY)
+
         if isinstance(resp, Response):
-            resp.add_cookie(state_to_cookie(context.state,
-                                            self.config.COOKIE_STATE_NAME,
-                                            "/",
-                                            self.config.STATE_ENCRYPTION_KEY))
+            resp.add_cookie(cookie)
+        else:
+            try:
+                resp.headers.append(tuple(cookie.output().split(": ", 1)))
+            except:
+                satosa_logging(LOGGER, logging.WARN,
+                               "can't add cookie to response '%s'" % resp.__class__, context.state)
+                pass
 
     def run(self, context):
         """

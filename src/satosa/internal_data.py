@@ -198,24 +198,25 @@ class UserIdHasher(object):
         return hash_type
 
     @staticmethod
-    def hash_id(salt, user_id, state):
+    def hash_id(salt, user_id, requestor, state):
         """
         Sets a user id to the internal_response, in the format specified by the internal response
 
         :type salt: str
         :type user_id: str
+        :type requestor: str
         :type user_id_hash_type: satosa.internal_data.UserIdHashType
         :type state: satosa.state.State
         :rtype: str
 
         :param salt: A salt string for the ID hashing
-        :param user_id:  the user id
+        :param user_id: the user id
+        :param requestor: requestor
         :param user_id_hash_type: Hashing type
         :param state: The current state
         :return: the internal_response containing the hashed user ID
         """
         _dict = state.get(UserIdHasher.STATE_KEY)
-        requestor = _dict[UserIdHasher.REQUESTOR]
         hash_type = _dict[UserIdHasher.HASH_TYPE]
         hash_type = getattr(UserIdHashType, hash_type)
         if hash_type == UserIdHashType.transient:

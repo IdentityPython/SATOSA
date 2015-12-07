@@ -20,7 +20,7 @@ class AccountLinkingModule(object):
     """
     Module for handling account linking and recovery. Uses an external account linking service
     """
-    STATE_KEY = "ACCOUNT_LINKING_KEY"
+    STATE_KEY = "ACCOUNT_LINKING"
 
     def __init__(self, config, callback_func):
         """
@@ -88,6 +88,10 @@ class AccountLinkingModule(object):
             satosa_logging(LOGGER, logging.INFO, "issuer/id pair is linked in AL service",
                            context.state)
             internal_response.set_user_id(message)
+            try:
+                context.state.remove(AccountLinkingModule.STATE_KEY)
+            except KeyError:
+                pass
             return self.callback_func(context, internal_response)
 
         return self._approve_new_id(context, internal_response, message)
