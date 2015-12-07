@@ -34,6 +34,12 @@ class SATOSAConfig(object):
             if self._config is not None:
                 break
 
+        # Load sensitive config
+        for key in ["USER_ID_HASH_SALT", "STATE_ENCRYPTION_KEY"]:
+            val = os.environ.get("SATOSA_{key}".format(key=key))
+            if val:
+                self._config[key] = val
+
         self._verify_dict(self._config)
         _internal_attributes = None
         if "INTERNAL_ATTRIBUTES" in self._config:
