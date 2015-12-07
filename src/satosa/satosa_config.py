@@ -31,7 +31,7 @@ class SATOSAConfig(object):
         dict_parsers = [SATOSAConfig._load_dict, SATOSAConfig._load_json, SATOSAConfig._load_yaml]
         for parser in dict_parsers:
             self.__dict__["_config"] = parser(config)
-            if self._config:
+            if self._config is not None:
                 break
 
         self._verify_dict(self._config)
