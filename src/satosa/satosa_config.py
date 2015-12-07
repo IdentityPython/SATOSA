@@ -14,9 +14,9 @@ class SATOSAConfig(object):
     A configuration class for the satosa proxy. Verifies that the given config holds all the
     necessary parameters.
     """
+    sensitive_dict_keys = ["STATE_ENCRYPTION_KEY", "USER_ID_HASH_SALT"]
     mandatory_dict_keys = ["BASE", "PLUGIN_PATH", "BACKEND_MODULES", "FRONTEND_MODULES",
-                           "INTERNAL_ATTRIBUTES", "COOKIE_STATE_NAME", "STATE_ENCRYPTION_KEY",
-                           "USER_ID_HASH_SALT"]
+                           "INTERNAL_ATTRIBUTES", "COOKIE_STATE_NAME"] + sensitive_dict_keys
 
     def __init__(self, config):
         """
@@ -35,7 +35,7 @@ class SATOSAConfig(object):
                 break
 
         # Load sensitive config
-        for key in ["USER_ID_HASH_SALT", "STATE_ENCRYPTION_KEY"]:
+        for key in SATOSAConfig.sensitive_dict_keys:
             val = os.environ.get("SATOSA_{key}".format(key=key))
             if val:
                 self._config[key] = val
