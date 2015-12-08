@@ -38,6 +38,9 @@ class ConsentModule(object):
             self.consent_redirect_url = config.CONSENT["redirect"]
             self.endpoint = config.CONSENT["endpoint"]
             self.verify_ssl = config.CONSENT["verify_ssl"]
+            self.locked_attr = None
+            if "user_id_to_attr" in config.INTERNAL_ATTRIBUTES:
+                self.locked_attr = config.INTERNAL_ATTRIBUTES["user_id_to_attr"]
 
             _bkey = rsa_load(config.CONSENT["sign_key"])
             self.sign_key = RSAKey().load_key(_bkey)
@@ -146,6 +149,7 @@ class ConsentModule(object):
         state.add(ConsentModule.STATE_KEY, consent_state)
 
         consent_args = {"attr": filtered_data,
+                        "locked_attr": self.locked_attr,
                         "id": id_hash,
                         "redirect_endpoint": "%s/consent/%s" % (self.proxy_base, self.endpoint),
                         "requestor": requestor,
