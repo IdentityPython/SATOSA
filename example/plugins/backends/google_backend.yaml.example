@@ -16,5 +16,5 @@ config:
     userinfo_request_method: GET
   op_url: https://accounts.google.com
   state_id: <name>
-  verify_ssl: false
+  verify_ssl: true
 
