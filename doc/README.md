@@ -19,12 +19,7 @@ in the [example directory](../example).
 ### SATOSA proxy configuration: `proxy_conf.yaml.example`
 | Parameter name | Data type | Example value | Description |
 | -------------- | --------- | ------------- | ----------- |
-| `HOST` | string | `127.0.0.1` | hostname or IP address |
-| `PORT` | int | `8080` | port number |
-| `HTTPS` | bool | `No` | whether the proxy should use HTTPS |
-| `SERVER_CERT` | string | `/etc/ssl/cert.pem` | path to certificate for HTTPS, optional if `HTTPS: No` |
-| `SERVER_KEY` | string | `/etc/ssl/key.pem` | path to private key for HTTPS cert, optional if `HTTPS: No` |
-| `CERT_CHAIN` | string | `/etc/ssl/chain.pem` | path to certificate chain file for HTTPS cert, optional if `HTTPS: No`, and may be `Null` (for using with self-signed certificates in a development environment) |
+| `BASE` | string | `https://proxy.example.com` | base url of the proxy |
 | `SESSION_OPTS` | dict | `{session.type: memory, session.cookie_expires: Yes, session.auto: Yes}` | configuration options for [Beaker Session Middleware](http://beaker.readthedocs.org/en/latest/configuration.html)
 | `COOKIE_STATE_NAME` | string | `vopaas_state` | name of cooke VOPaaS uses for preserving state between requests |
 | `STATE_ENCRYPTION_KEY` | string | `52fddd3528a44157` | key used for encrypting the state cookie, will be overriden by the environment variable `SATOSA_STATE_ENCRYPTION_KEY` if it is set |
