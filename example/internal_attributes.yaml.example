@@ -25,7 +25,6 @@ attributes:
     facebook: [last_name]
     openid: [family_name]
     saml: [sn, surname]
-separator: ->
 hash: [edupersontargetedid]
 #user_id_from_attr: [edupersontargetedid]
 user_id_to_attr: edupersontargetedid

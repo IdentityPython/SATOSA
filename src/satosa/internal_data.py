@@ -24,7 +24,7 @@ class DataConverter(object):
         """
         self.to_internal_attributes = {}
         self.to_internal_attributes_lower = {}
-        self.separator = internal_attributes["separator"]
+        self.separator = "."  # separator for nested attribute values, e.g. address.street_address
         self.from_internal_attributes = internal_attributes["attributes"]
         for internal_key in self.from_internal_attributes:
             for tmp_type in self.from_internal_attributes[internal_key]:
