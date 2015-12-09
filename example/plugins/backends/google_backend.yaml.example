@@ -15,6 +15,6 @@ config:
       redirect_uris: [<base_url>/<name>]
     userinfo_request_method: GET
   op_url: https://accounts.google.com
-  state_id:
+  state_id: <name>
   verify_ssl: false
 
