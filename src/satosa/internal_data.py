@@ -138,6 +138,8 @@ class DataConverter(object):
                     _external_dict = external_dict
                     if self.separator in _external_key:
                         _tmp_keys = _external_key.split(self.separator)
+                        _external_key = _tmp_keys[-1:][0]
+                        _tmp_keys = _tmp_keys[:-1]
                         for _tmp_key in _tmp_keys:
                             if _tmp_key not in _external_dict:
                                 _external_dict[_tmp_key] = {}

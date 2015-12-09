@@ -145,7 +145,7 @@ class AccountLinkingModule(object):
             satosa_logging(LOGGER, logging.CRITICAL, msg, context.state, exc_info=True)
             raise SATOSAAuthenticationError(context.state, msg) from con_exc
 
-        if response.status_code != 200 and response.status_code != 400:
+        if response.status_code != 200 and response.status_code != 404:
             msg = "Got status code '%s' from account linking service" % (response.status_code)
             satosa_logging(LOGGER, logging.CRITICAL, msg, context.state)
             raise SATOSAAuthenticationError(context.state, msg)
