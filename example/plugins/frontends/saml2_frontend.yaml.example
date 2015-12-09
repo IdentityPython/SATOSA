@@ -1,23 +1,15 @@
-module: satosa.frontends.saml2.SamlFrontend
-plugin: FrontendModulePlugin
-name: Saml2IDP
 config:
-  state_id: <name>
-  base: <base_url>
-  endpoints:
-    single_sign_on_service: {'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST': sso/post,
-      'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect': sso/redirect}
   idp_config:
-    cert_file: plugins/frontends/pki/new_server.crt
-    debug: 1
-    description: A SAML2SAML proxy
-    entityid: <base_url>/<name>/proxy.xml
-    key_file: plugins/frontends/pki/new_server.key
-    logger:
-      loglevel: debug
-      rotating: {backupCount: 5, filename: idp.log, maxBytes: 500000}
+    organization: {display_name: Example Identities, name: Example Identities Org., url: 'http://www.example.com'}
+    contact_person:
+    - {contact_type: technical, email_address: technical@example.com, given_name: Technical}
+    - {contact_type: support, email_address: support@example.com, given_name: Support}
+    key_file: frontend.key
+    cert_file: frontend.crt
     metadata:
-      local: [[somepath]/sp_metadata.xml]
+      local: [sp.xml]
+
+    entityid: <base_url>/<name>/proxy.xml
     service:
       idp:
         endpoints:
@@ -33,3 +25,11 @@ config:
         subject_data: ./idp.subject
         want_authn_requests_signed: false
     xmlsec_binary: /usr/bin/xmlsec1
+  state_id: <name>
+  base: <base_url>
+  endpoints:
+    single_sign_on_service: {'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST': sso/post,
+      'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect': sso/redirect}
+module: satosa.frontends.saml2.SamlFrontend
+plugin: FrontendModulePlugin
+name: Saml2IDP
