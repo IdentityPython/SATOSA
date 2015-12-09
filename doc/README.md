@@ -8,8 +8,9 @@ This document describes how to install and configure the SATOSA proxy.
 
 1. Install the Python code and its requirements:
 
-       pip install `<satosa_path>` -r `<satosa_path>/requirements.txt`
-
+   ```bash  
+   pip install `<satosa_path>` -r `<satosa_path>/requirements.txt`
+   ```
 
 ## Configuration
 All default configuration files, as well as an example WSGI application for the proxy, can be found
@@ -59,28 +60,30 @@ internal attribute.
 Sometimes the external attributes are nested/complex structures. One example is
 the [address claim in OpenID connect](http://openid.net/specs/openid-connect-core-1_0.html#AddressClaim)
 which consists of multiple sub-fields, e.g.:
-
-    "address": {
-      "formatted": "100 Universal City Plaza, Hollywood CA 91608, USA",
-      "street_address": "100 Universal City Plaza",
-      "locality": "Hollywood",
-      "region": "CA",
-      "postal_code": "91608",
-      "country": "USA",
-    }
+```json
+"address": {
+  "formatted": "100 Universal City Plaza, Hollywood CA 91608, USA",
+  "street_address": "100 Universal City Plaza",
+  "locality": "Hollywood",
+  "region": "CA",
+  "postal_code": "91608",
+  "country": "USA",
+}
+```
 
 In this case the proxy accepts a dot-separated string denoting which external
 attribute to use, e.g. `address.formatted`.
 
 **Example**
-
-    attributes:
-      mail:
-        openid: [email]
-        saml: [mail, emailAdress, email]
-      address:
-        openid: [address.formatted]
-        saml: [postaladdress]
+```yaml
+attributes:
+  mail:
+    openid: [email]
+    saml: [mail, emailAdress, email]
+  address:
+    openid: [address.formatted]
+    saml: [postaladdress]
+```
 
 This example defines two attributes internal to the proxy, named `mail` and `address` accessible to any plugins (e.g. front- and backends) in the proxy and their mapping
 in two different "profiles", named `openid` and `saml` respectively.
