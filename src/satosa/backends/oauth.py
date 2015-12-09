@@ -89,7 +89,7 @@ class OAuthBackend(BackendModule):
             "state": request_args["state"]
         }
         state = context.state
-        state.add(self.config["state_key"], state_data)
+        state.add(self.config["state_id"], state_data)
         cis = consumer.construct_AuthorizationRequest(request_args=request_args)
         url, body, ht_args, cis = consumer.uri_and_body(AuthorizationRequest, cis,
                                                         method="GET",
@@ -144,7 +144,7 @@ class OAuthBackend(BackendModule):
         """
         state = context.state
         try:
-            state_data = state.get(self.config["state_key"])
+            state_data = state.get(self.config["state_id"])
             consumer = self.get_consumer()
             request = context.request
             aresp = consumer.parse_response(AuthorizationResponse, info=json.dumps(request))
@@ -168,7 +168,7 @@ class OAuthBackend(BackendModule):
                     except Exception as error:
                         raise SATOSAAuthenticationError from error
                 internal_response.set_user_id(user_id)
-            context.state.remove(self.config["state_key"])
+            context.state.remove(self.config["state_id"])
             return self.auth_callback_func(context, internal_response)
         except Exception as error:
             satosa_logging(LOGGER, logging.DEBUG, "Not a valid authentication", state,
@@ -206,7 +206,7 @@ class FacebookBackend(OAuthBackend):
     """
     Backend module for facebook.
     """
-    STATE_KEY = "facebook_backend"
+    STATE_ID = "facebook_backend"
 
     def __init__(self, outgoing, internal_attributes, config):
         """
@@ -227,8 +227,8 @@ class FacebookBackend(OAuthBackend):
                                               "id")
         self.fields = None
         self.convert_dict = None
-        if "state_key" not in self.config:
-            self.config["state_key"] = FacebookBackend.STATE_KEY
+        if "state_id" not in self.config:
+            self.config["state_id"] = FacebookBackend.STATE_ID
         if "verify_accesstoken_state" not in self.config:
             self.config["verify_accesstoken_state"] = False
         if "response_type" not in self.config:
