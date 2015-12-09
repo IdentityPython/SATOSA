@@ -16,7 +16,6 @@ config:
       redirect_uris: [<base_url>/<name>/sauthz_cb]
       response_types: [code]
       subject_type: public
-    userid: https://localhost:7092
   op_url: https://localhost:7092
-  state_id:
+  state_id: <name>
   verify_ssl: false
