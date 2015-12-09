@@ -119,3 +119,79 @@ The proxy can hash any attribute value (e.g., for obfuscation) before passing
 it on to the client. The `hash` key should contain a list of all attribute names
 for which the corresponding attribute value should be hashed before being
 returned to the client.
+
+
+## Plugins
+The protocol specific communication is handled by different plugins, divided
+into frontends (receiving requests from clients) and backends (sending requests
+to backing identity providers).
+
+### SAML2 plugins
+
+Common configuration parameters:
+
+| Parameter name | Data type | Example value | Description |
+| -------------- | --------- | ------------- | ----------- |
+| `organization` | dict | `{display_name: Example Identities, name: Example Identities Organization, url: https://www.example.com}` | information about the organization, will be published in the SAML metadata |
+| `contact_person` | dict[] | `{contact_type: technical, given_name: Someone Technical, email_address: technical@example.com}` | list of contact information, will be published in the SAML metadata |
+| `key_file` | string | `pki/key.pem` | path to private key used for signing(backend)/decrypting(frontend) SAML2 assertions |
+| `cert_file` | string | `pki/cert.pem` | path to certificate for the public key associated with the private key in `key_file` |
+| `metadata["local"]` | string[] | `[metadata/entity.xml]` | list of paths to metadata for all service providers (frontend)/identity providers (backend) communicating with the proxy |
+
+
+#### Frontend
+The SAML2 frontend acts as an SAML Identity Provider (IdP), accepting
+authentication requests from SAML Service Providers (SP). The default
+configuration file can be found [here](../example/plugins/frontends/saml2_frontend.yaml.example).
+
+
+#### Backend
+The SAML2 backend acts as an SAML Service Provider (SP), making authentication
+requests to SAML Identity Providers (IdP). The default configuration file can be
+found [here](../example/plugins/backends/saml2_backend.yaml.example).
+
+
+### OpenID Connect plugins
+
+#### Backend
+The OpenID Connect backend acts as an OpenID Connect Relying Party (RP), making
+authentication requests to OpenID Connect Provider (OP). The default
+configuration file can be found [here](../example/plugins/backends/openid_backend.yaml.example).
+
+Only the `op_url` must be configured to specify the OP issuer url.
+
+The example configuration assumes the OP supports [discovery](http://openid.net/specs/openid-connect-discovery-1_0.html)
+and [dynamic client registration](https://openid.net/specs/openid-connect-registration-1_0.html).
+When using an OP that only supports statically registered clients, see the
+[default configuration for using Google as the OP](../example/plugins/backends/google_backend.yaml.example).
+
+
+### Social login plugins
+The social login plugins can be used as backends for the proxy, allowing the
+proxy to act as a client to the social login services.
+
+#### Google
+The default configuration file can be
+found [here](../example/plugins/backends/google_backend.yaml.example).
+
+The only parameters necessary to configure is the credentials,
+the `client_id` and `client_secret`, issued by Google. See [OAuth 2.0 credentials](https://developers.google.com/identity/protocols/OpenIDConnect#getcredentials)
+for information on how to obtain them.
+
+The `redirect_uri` of the SATOSA proxy must be registered with Google. The
+redirect URI to register with Google is "<base_url>/google", where `<base_url>`
+is the base url of the proxy as specified in the `BASE` configuration parameter
+in `proxy_conf.yaml`, e.g. "https://proxy.example.com/google".
+
+A list of all claims possibly released by Google can be found [here](https://developers.google.com/identity/protocols/OpenIDConnect#obtainuserinfo),
+which should be used when configuring the attribute mapping (see above).
+
+
+#### Facebook
+The default configuration file can be
+found [here](../example/plugins/backends/fb_backend.yaml.example).
+
+The only parameters necessary to configure is the credentials,
+the "App ID" (`client_id`) and "App Secret" (`client_secret`), issued by Facebook.
+See the [registration instructions](https://developers.facebook.com/docs/apps/register)
+for information on how to obtain them.
