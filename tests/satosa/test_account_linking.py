@@ -105,7 +105,7 @@ class TestAccountLinking():
         responses.add(
             responses.GET,
             "%s/get_id" % self.account_linking_config['rest_uri'],
-            status=400,
+            status=404,
             body=ticket,
             content_type='text/html'
         )
