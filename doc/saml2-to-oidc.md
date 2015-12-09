@@ -37,19 +37,3 @@ be configured with a SAML2 frontend and an OpenID Connect backend.
   1. Map the necessary attributes, see the "Attribute mapping configuration"
      section of the [proxy configuration instructions](README.md) for more
      information.
-
-
-## Using Google as the backing OpenID Connect Provider
-When using Google as the identity provider some additional configuration is necessary, so the backend configuration in [`google_backend.yaml.example`](../example/plugins/backends/google_backend.yaml.example)
-should be used instead of `openid_backend.yaml.example`.
-
-The only parameters necessary to configure is the credentials,
-the `client_id` and `client_secret`, issued by Google. See [OAuth 2.0 credentials](https://developers.google.com/identity/protocols/OpenIDConnect#getcredentials) for information on how to obtain them.
-
-The `redirect_uri` of the SATOSA proxy must be registered with Google. The
-redirect URI to register with Google is "<base_url>/google", where `<base_url>`
-is the base url of the proxy as specified in the `BASE` configuration parameter
-in `proxy_conf.yaml`, e.g. "https://proxy.example.com/google".
-
-A list of all claims possibly released by Google can be found [here](https://developers.google.com/identity/protocols/OpenIDConnect#obtainuserinfo),
-which should be used when configuring the attribute mapping (see above).
