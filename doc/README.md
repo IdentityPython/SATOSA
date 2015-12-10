@@ -138,6 +138,34 @@ Common configuration parameters:
 | `cert_file` | string | `pki/cert.pem` | path to certificate for the public key associated with the private key in `key_file` |
 | `metadata["local"]` | string[] | `[metadata/entity.xml]` | list of paths to metadata for all service providers (frontend)/identity providers (backend) communicating with the proxy |
 
+For more detailed information on how you could customize the SAML entities configuration please visit: 
+https://dirg.org.umu.se/static/pysaml2/howto/config.html
+
+#### Metadata
+The metadata could be loaded in multiple ways in the table above it's loaded from a static 
+file by using the key "local". It's also possible to load read the metadata from a remote URL.
+The final way to load metadata is by using a discovery server, in order to achieve this enter an URL
+in the "disco_srv".
+
+**Examples:**
+
+Metadata from local file:
+
+    "metadata": 
+        local: [idp.xml]
+
+Metadata from remote URL:
+
+    "metadata": {
+        "remote": 
+            -url:https://kalmar2.org/simplesaml/module.php/aggregator/?id=kalmarcentral2&set=saml2,
+            -cert:null
+    }
+
+Metadata from discovery server:
+
+    disco_srv: http://disco.example.com
+    
 
 #### Frontend
 The SAML2 frontend acts as an SAML Identity Provider (IdP), accepting
