@@ -9,7 +9,7 @@ This document describes how to install and configure the SATOSA proxy.
 1. Install the Python code and its requirements:
 
    ```bash  
-   pip install `<satosa_path>` -r `<satosa_path>/requirements.txt`
+   pip install <satosa_path> -r <satosa_path>/requirements.txt
    ```
 
 ## Configuration
