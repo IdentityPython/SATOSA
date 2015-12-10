@@ -1,26 +1,25 @@
 """
 Complete test for a SAML to SAML proxy.
 """
-import os
 import inspect
-from urllib.parse import urlsplit, parse_qs, urlencode, quote
-import sys
+import os
 import os.path
+import sys
+from urllib.parse import urlsplit, parse_qs, urlencode, quote, urlparse
 
-from cherrypy.test import helper
-
+import pytest
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
-import cherrypy
-
 from saml2.config import SPConfig, IdPConfig
+from werkzeug.test import Client
+from werkzeug.wrappers import BaseResponse
 
 from satosa.backends.saml2 import SamlBackend
 from satosa.frontends.saml2 import SamlFrontend
 from satosa.plugin_base.endpoint import BackendModulePlugin, FrontendModulePlugin
+from satosa.proxy_server import WsgiApplication
 from satosa.satosa_config import SATOSAConfig
-from tests.wsgi_server import WsgiApplication
-from tests.util import FakeSP, FakeIdP, FileGenerator
 from tests.users import USERS
+from tests.util import FakeSP, FakeIdP, FileGenerator
 
 INTERNAL_ATTRIBUTES = {
     'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
@@ -34,6 +33,7 @@ INTERNAL_ATTRIBUTES = {
                    'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
                    'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
                                'facebook': ['last_name']}}, 'separator': '->'}
+
 
 class TestConfiguration(object):
     """
@@ -240,12 +240,14 @@ class Saml2FrontendPlugin(FrontendModulePlugin):
         super(Saml2FrontendPlugin, self).__init__(SamlFrontend, "Saml2IDP", config)
 
 
-class ProxyTest(helper.CPWebCase):
+class TestProxy:
     """
     Performs a complete flow test for the proxy.
-    Verifies SAML -> PROXY -> SAML in a cherrypy server.
+    Verifies SAML -> PROXY -> SAML.
     """
-    def setUp(self):
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
         """
         Initiates the test.
         :return: None
@@ -256,36 +258,26 @@ class ProxyTest(helper.CPWebCase):
         self.idp = FakeIdP(USERS, IdPConfig().load(TestConfiguration.get_instance().fake_idp_config,
                                                    metadata_construction=False))
 
-    @staticmethod
-    def setup_server():
-        """
-        Creates a new server.
-
-        :return: None
-        """
-        app = WsgiApplication(config=TestConfiguration.get_instance().proxy_config)
-
-        cherrypy.tree.graft(app.run_server, '/')
-
     def test_flow(self):
         """
         Performs the test.
         """
         e_id = 'https://localhost:8090/proxy.xml'
         target_id = 'https://example.com/unittest_idp.xml'
+        url = "{}&entityID={}".format(self.sp.make_auth_req(e_id), quote(target_id))
 
-        url = self.sp.make_auth_req(e_id)
-        url = "%s&entityID=%s" % (url, quote(target_id))
-        status, headers, _ = self.getPage(url)
-        assert status == '303 See Other'
-        cookie_header = None
-        for header in headers:
-            if header[0] == "Set-Cookie":
-                cookie_header = header[1]
-                break
-        assert cookie_header, "Did not save state in cookie!"
+        app = WsgiApplication(config=TestConfiguration.get_instance().proxy_config)
+        test_client = Client(app.run_server, BaseResponse)
 
-        url = self.get_redirect_location(headers)
+        parsed = urlparse(url)
+        request = "{}?{}".format(parsed.path, parsed.query)
+
+        resp = test_client.get(request)
+        assert resp.status == '303 See Other'
+        headers = dict(resp.headers)
+        assert headers["Set-Cookie"], "Did not save state in cookie!"
+
+        url = headers["location"]
         req = parse_qs(urlsplit(url).query)
         assert 'SAMLRequest' in req
         assert 'RelayState' in req
@@ -294,28 +286,19 @@ class ProxyTest(helper.CPWebCase):
                                                 req['RelayState'][0],
                                                 BINDING_HTTP_REDIRECT,
                                                 'testuser1')
-        status, headers, body = self.getPage(action, method='POST', body=urlencode(body), headers=[("Cookie", cookie_header)])
-        assert status == '302 Found'
 
-        url = self.get_redirect_location(headers)
+        parsed = urlparse(action)
+        request = "{}?{}".format(parsed.path, parsed.query)
+        resp = test_client.post(request, data=urlencode(body),
+                                headers=[("Cookie", headers["Set-Cookie"])])
+        assert resp.status == '302 Found'
+
+        headers = dict(resp.headers)
+        url = headers["location"]
         req = parse_qs(urlsplit(url).query)
         assert 'SAMLResponse' in req
         assert 'RelayState' in req
-        resp = self.sp.parse_authn_request_response(req['SAMLResponse'][0],
-                                                    BINDING_HTTP_REDIRECT)
+        resp = self.sp.parse_authn_request_response(req['SAMLResponse'][0], BINDING_HTTP_REDIRECT)
 
         identity = resp.ava
         assert identity["displayName"][0] == "Test Testsson"
-
-    def get_redirect_location(self, headers):
-        """
-        Gets the redirect location from the header.
-        :type headers: {list}
-        :rtype: str
-
-        :param headers: A list of (str, str) tuples.
-        :return: An URL for the redirect.
-        """
-        for header, value in headers:
-            if header.lower() == 'location':
-                return value

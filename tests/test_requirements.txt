@@ -1,5 +1,5 @@
 pytest
-nose # just for CherryPy test helper
 responses
 future
 mock
+Werkzeug
