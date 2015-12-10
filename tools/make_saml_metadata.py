@@ -26,15 +26,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-v', dest='valid',
                     help="How long, in days, the metadata is valid from the time of creation")
 parser.add_argument('-c', dest='cert', help='certificate')
-parser.add_argument('-i', dest='id', help="The ID of the entities descriptor")
 parser.add_argument('-k', dest='keyfile', help="A file with a key to sign the metadata with")
-parser.add_argument('-n', dest='name', default="")
 parser.add_argument('-s', dest='sign', action='store_true', help="sign the metadata")
 parser.add_argument('-x', dest='xmlsec', help="xmlsec binaries to be used for the signing")
 parser.add_argument('-f', dest="frontend", help='generate frontend metadata', action="store_true")
 parser.add_argument('-b', dest="backend", help='generate backend metadata', action="store_true")
 parser.add_argument('-o', dest="output", default=".", help='output path')
-parser.add_argument(dest="config")
+parser.add_argument(dest="config", metavar="proxy_conf", help='path to proxy_conf.yaml')
 args = parser.parse_args()
 
 LOGGER = logging.getLogger("")
@@ -78,23 +76,17 @@ def _make_metadata(config_dict):
     conf.xmlsec_binary = args.xmlsec
     secc = security_context(conf)
 
-    if args.id:
-        desc, xmldoc = entities_descriptor(eds, valid_for, args.name, args.id,
-                                           args.sign, secc)
-        valid_instance(desc)
-        print(desc.to_string(nspair))
-    else:
-        for eid in eds:
-            if args.sign:
-                assert conf.key_file
-                assert conf.cert_file
-                eid, xmldoc = sign_entity_descriptor(eid, args.id, secc)
-            else:
-                xmldoc = None
+    for eid in eds:
+        if args.sign:
+            assert conf.key_file
+            assert conf.cert_file
+            eid, xmldoc = sign_entity_descriptor(eid, None, secc)
+        else:
+            xmldoc = None
 
-            valid_instance(eid)
-            xmldoc = metadata_tostring_fix(eid, nspair, xmldoc).decode()
-            return xmldoc
+        valid_instance(eid)
+        xmldoc = metadata_tostring_fix(eid, nspair, xmldoc).decode()
+        return xmldoc
 
 
 def _convert_logo_images(config_dict):
