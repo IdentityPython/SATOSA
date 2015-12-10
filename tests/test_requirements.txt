@@ -2,4 +2,3 @@ pytest
 responses
 future
 mock
-Werkzeug
