@@ -1,4 +1,4 @@
-gunicorn=19.4.1
+gunicorn==19.4.1
 Werkzeug==0.10.4
 git+https://github.com/its-dirg/pysaml2.git@c681f89b3e5858e29d09accc1ac2f8a3f7e58bc7#egg=pysaml2
 git+https://github.com/rohe/pyjwkest.git@6928cc9c4490389b91e064422e1fe2a7ad7cf5c8#egg=pyjwkest
