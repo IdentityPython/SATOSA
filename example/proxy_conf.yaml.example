@@ -29,18 +29,3 @@ ACCOUNT_LINKING:
   endpoint: "handle_account_linking"
   sign_key: "pki/account_linking.key"
   verify_ssl: No
-
-
-#--- Server Config ---#
-SERVER_CERT: 'pki/mycert.pem'
-SERVER_KEY: 'pki/mykey.pem'
-CERT_CHAIN: Null
-STATIC_DIR: '/static'
-LOG_FILE: 'server.log'
-
-# Beaker session configuration
-# This session can be configured to use database, file, or memory
-SESSION_OPTS:
-    session.type: 'memory'
-    session.cookie_expires: Yes  # Expire when the session is closed
-    session.auto: Yes
