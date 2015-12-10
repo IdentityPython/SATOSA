@@ -76,23 +76,17 @@ def _make_metadata(config_dict):
     conf.xmlsec_binary = args.xmlsec
     secc = security_context(conf)
 
-    if args.id:
-        desc, xmldoc = entities_descriptor(eds, valid_for, args.name, args.id,
-                                           args.sign, secc)
-        valid_instance(desc)
-        print(desc.to_string(nspair))
-    else:
-        for eid in eds:
-            if args.sign:
-                assert conf.key_file
-                assert conf.cert_file
-                eid, xmldoc = sign_entity_descriptor(eid, args.id, secc)
-            else:
-                xmldoc = None
+    for eid in eds:
+        if args.sign:
+            assert conf.key_file
+            assert conf.cert_file
+            eid, xmldoc = sign_entity_descriptor(eid, None, secc)
+        else:
+            xmldoc = None
 
-            valid_instance(eid)
-            xmldoc = metadata_tostring_fix(eid, nspair, xmldoc).decode()
-            return xmldoc
+        valid_instance(eid)
+        xmldoc = metadata_tostring_fix(eid, nspair, xmldoc).decode()
+        return xmldoc
 
 
 def _convert_logo_images(config_dict):

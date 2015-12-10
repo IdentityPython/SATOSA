@@ -225,33 +225,18 @@ See the [registration instructions](https://developers.facebook.com/docs/apps/re
 for information on how to obtain them.
 
 
-# Metadata
+# SAML metadata
 
-Generating metadata for the proxy is done in two steps. The order does not matter. 
-* Generating metadata for all saml2 based backend modules.
-* Generating metadata for all proxy frontend endpoints.
+The SAML metadata of the proxy is generated based on the `proxy_conf.yaml`
+(which defines all front-/backend plugins) using the `make_saml_metadata.py`
+(installed globally by SATOSA installation).
 
 ## Generate backend metadata
-Using the script with flag **make_saml_metadata.py -b \<proxy_config_path\>** will generate separate 
-metadata files for each saml2 based backend modules specified in the proxy_config file.
+The command
+```bash
+make_saml_metadata.py proxy_conf.yaml
+```
+will generate separate metadata files for all SAML2 backend modules specified in
+`proxy_conf.yaml`.
 
-### Arguments to script:
-positional arguments:
-  
-    proxy_config_path
-
-optional arguments:
-
-    -h, --help  show this help message and exit
-    -v VALID    How long, in days, the metadata is valid from the time of
-              creation
-    -c CERT     certificate
-    -i ID       The ID of the entities descriptor
-    -k KEYFILE  A file with a key to sign the metadata with
-    -n NAME
-    -s          sign the metadata
-    -x XMLSEC   xmlsec binaries to be used for the signing
-    -f          generate frontend metadata
-    -b          generate backend metadata
-    -o OUTPUT   output path
-    
+Detailed usage instructions can be viewed by running `make_saml_metadata.py -h`.
