@@ -250,3 +250,10 @@ where
 * `socket address` is the socket address that `gunicorn` should bind to for incoming requests, e.g. `0.0.0.0:8080`
 * `https key` is the path to the private key to use for HTTPS, e.g. `pki/key.pem`
 * `https cert` is the path to the certificate to use for HTTPS, e.g. `pki/cert.pem`
+
+This will use the `proxy_conf.yaml` file in the working directory. If the `proxy_conf.yaml` is
+located somewhere else, use the environment variable `SATOSA_CONFIG` to specify the path, e.g.:
+
+```bash
+set SATOSA_CONFIG=/home/user/proxy_conf.yaml
+```

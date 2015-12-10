@@ -18,7 +18,7 @@ for logger_name in ["", "satosa", "saml2"]:
     logger.addHandler(stdout_handler)
     logger.setLevel(logging.DEBUG)
 
-config_file = os.environ.get("SAAS_CONFIG", "proxy_conf.yaml")
+config_file = os.environ.get("SATOSA_CONFIG", "proxy_conf.yaml")
 server_config = SATOSAConfig(config_file)
 app = ToBytesMiddleware(WsgiApplication(server_config).run_server)
 
