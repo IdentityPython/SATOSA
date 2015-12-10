@@ -59,7 +59,5 @@ be configured with a SAML2 frontend and an OpenID Connect backend.
    make_saml_metadata.py proxy_conf.yaml
    ```
 
-1. Run the proxy application
-   ```bash
-   gunicorn -b<socket address> --keyfile <HTTPS key> --certfile <HTTPS cert> satosa.proxy_server:app
-   ```
+1. Start the proxy application, see the "Running the proxy application" section of
+   the [proxy configuration instructions](README.md) for more information.

@@ -1,31 +1,15 @@
-import argparse
-import functools
 import logging
-import os
-import ssl
-import sys
-from wsgiref.simple_server import make_server
 
 from saml2.httputil import NotFound
 from saml2.httputil import ServiceError
 from saml2.httputil import Unauthorized
-from werkzeug.debug import DebuggedApplication
 
 from satosa.base import SATOSABase
 from satosa.context import Context
 from satosa.routing import SATOSANoBoundEndpointError
-from satosa.satosa_config import SATOSAConfig
 from satosa.util import unpack_either
 
 logger = logging.getLogger(__name__)
-
-stdout_handler = logging.StreamHandler(sys.stdout)
-stdout_handler.setLevel(logging.DEBUG)
-
-for logger_name in ["", "satosa", "saml2"]:
-    logger = logging.getLogger(logger_name)
-    logger.addHandler(stdout_handler)
-    logger.setLevel(logging.DEBUG)
 
 
 class ToBytesMiddleware:
@@ -77,41 +61,3 @@ class WsgiApplication(SATOSABase):
 
             resp = ServiceError("%s" % err)
             return resp(environ, start_response)
-
-
-config_file = os.environ.get("SAAS_CONFIG", "proxy_conf.yaml")
-server_config = SATOSAConfig(config_file)
-app = ToBytesMiddleware(WsgiApplication(server_config).run_server)
-
-
-def main():
-    global app
-
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('port', type=int)
-    parser.add_argument('--keyfile', type=str)
-    parser.add_argument('--certfile', type=str)
-    parser.add_argument('-d', action='store_true', dest="debug",
-                        help="enable debug mode.")
-    args = parser.parse_args()
-
-    if (args.keyfile and not args.certfile) or (args.certfile and not args.keyfile):
-        print("Both keyfile and certfile must be specified for HTTPS.")
-        sys.exit()
-
-    if args.debug:
-        app.app = functools.partial(app.app, debug=True)
-        app = DebuggedApplication(app)
-
-    httpd = make_server('', args.port, app)
-
-    if args.keyfile and args.certfile:
-        ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        ctx.check_hostname = False
-        ctx.load_cert_chain(certfile=args.certfile, keyfile=args.keyfile)
-        httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
-    httpd.serve_forever()
-
-
-if __name__ == '__main__':
-    main()

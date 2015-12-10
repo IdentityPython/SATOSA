@@ -197,13 +197,13 @@ See the [registration instructions](https://developers.facebook.com/docs/apps/re
 for information on how to obtain them.
 
 
-# SAML metadata
+## SAML metadata
 
 The SAML metadata of the proxy is generated based on the `proxy_conf.yaml`
 (which defines all front-/backend plugins) using the `make_saml_metadata.py`
 (installed globally by SATOSA installation).
 
-## Generate backend metadata
+### Generate backend metadata
 The command
 ```bash
 make_saml_metadata.py proxy_conf.yaml
@@ -212,3 +212,13 @@ will generate separate metadata files for all SAML2 backend modules specified in
 `proxy_conf.yaml`.
 
 Detailed usage instructions can be viewed by running `make_saml_metadata.py -h`.
+
+## Running the proxy application
+Start the proxy server with the following command:
+```bash
+gunicorn -b<socket address> satosa.wsgi:app --keyfile=<https key> --certfile=<https cert>
+```
+where
+* `socket address` is the socket address that `gunicorn` should bind to for incoming requests, e.g. `0.0.0.0:8080`
+* `https key` is the path to the private key to use for HTTPS, e.g. `pki/key.pem`
+* `https cert` is the path to the certificate to use for HTTPS, e.g. `pki/cert.pem`
