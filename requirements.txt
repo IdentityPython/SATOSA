@@ -1,1 +1,1 @@
-git+https://github.com/rebeckag/pysaml2.git@its-dirg-changes#egg=pysaml2
+git+https://github.com/rohe/pysaml2.git@e6151b5#egg=pysaml2
