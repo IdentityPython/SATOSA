@@ -32,28 +32,27 @@ ACCOUNT_LINKING:
 LOGGING:
   version: 1
   formatters:
-    standard:
+    simple:
       format: "[%(asctime)-19.19s] [%(levelname)-5.5s]: %(message)s"
   handlers:
-    default:
-      level: "INFO"
-      class: "logging.FileHandler"
-      filename: "vopaas.log"
-      formatter: "standard"
+    console:
+      class: logging.StreamHandler
+      level: DEBUG
+      formatter: simple
+      stream: ext://sys.stdout
+    info_file_handler:
+      class: logging.handlers.RotatingFileHandler
+      level: INFO
+      formatter: simple
+      filename: info.log
+      maxBytes: 10485760 # 10MB
+      backupCount: 20
+      encoding: utf8
   loggers:
     satosa:
-      handlers: ["default"]
-      level: "INFO"
-      propagate: Yes
-    vopaas:
-      handlers: ["default"]
-      level: "INFO"
-      propagate: Yes
-    saml:
-      handlers: ["default"]
-      level: "WARN"
-      propagate: Yes
-    oic:
-      handlers: ["default"]
-      level: "WARN"
-      propagate: Yes
+      level: DEBUG
+      handlers: [console]
+      propagate: no
+  root:
+    level: INFO
+    handlers: [info_file_handler]

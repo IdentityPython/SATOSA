@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='SATOSA',
-    version='0.2',
+    version='0.3',
     description='',
     author='DIRG',
     author_email='dirg@its.umu.se',
@@ -22,7 +22,7 @@ setup(
         "future",
         "oic",
         "pyjwkest",
-        # "pysaml2 >= 3.0.2",
+        "pysaml2 >= 4.0.0",
         "requests",
         "PyYAML",
         "pycrypto",
