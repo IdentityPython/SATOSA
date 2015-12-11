@@ -97,6 +97,12 @@ class SamlBackend(BackendModule):
         :type internal_req: satosa.internal_data.InternalRequest
         :rtype: satosa.response.Response
         """
+
+        # if there is only one IdP in the metadata, bypass the discovery service
+        idps = self.sp.metadata.identity_providers()
+        if len(idps) == 1:
+            return self.authn_request(context, idps[0], internal_req)
+
         try:
             entity_id = context.internal_data["saml2.target_entity_id"]
             return self.authn_request(context, entity_id, internal_req)

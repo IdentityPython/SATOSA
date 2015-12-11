@@ -1,18 +1,16 @@
 """
 Tests for the SAML frontend module src/backends/saml2.py.
 """
-from urllib import parse
-import re
 import os.path
+import re
+from urllib import parse
 
-from saml2 import BINDING_HTTP_POST
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.authn_context import PASSWORD
 from saml2.config import IdPConfig
 from saml2.entity_category.edugain import COC
 from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN, EU
-
 from saml2.extension.idpdisc import BINDING_DISCO
-
 from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
 
 from satosa.backends.saml2 import SamlBackend
@@ -65,7 +63,7 @@ class TestConfiguration(object):
                     "name": "Proxy IdP",
                     "endpoints": {
                         "single_sign_on_service": [
-                            ("%s/sso/post" % idp_base, BINDING_HTTP_POST),
+                            ("%s/sso/redirect" % idp_base, BINDING_HTTP_REDIRECT),
                         ],
                     },
                     "policy": {
@@ -285,3 +283,20 @@ def test_start_auth_disco():
     context.request = fake_idp_resp
     context.state = state
     samlbackend.authn_response(context, BINDING_HTTP_POST)
+
+
+def test_redirect_to_idp_if_only_one_idp_in_metadata(monkeypatch):
+    sp_config = TestConfiguration.get_instance().spconfig
+    monkeypatch.delitem(sp_config, "disco_srv")
+
+    samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, sp_config)
+
+    state = State()
+    state.add("test", "state")
+    context = Context()
+    context.state = state
+    internal_req = InternalRequest(UserIdHashType.transient, None)
+    resp = samlbackend.start_auth(context, internal_req)
+
+    assert resp.status == "303 See Other"
+    assert resp.message.split("?")[0] == "http://test.tester.se/sso/redirect"
