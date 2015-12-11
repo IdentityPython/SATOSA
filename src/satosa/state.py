@@ -15,7 +15,7 @@ from Crypto import Random
 from Crypto.Cipher import AES
 
 from satosa.exception import SATOSAStateError
-from satosa.logging import satosa_logging
+from satosa.logging_util import satosa_logging
 
 LOGGER = logging.getLogger(__name__)
 

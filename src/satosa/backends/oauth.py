@@ -15,7 +15,7 @@ from satosa.backends.base import BackendModule
 from satosa.exception import SATOSAAuthenticationError, SATOSAError
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType, \
     DataConverter
-from satosa.logging import satosa_logging
+from satosa.logging_util import satosa_logging
 from satosa.response import Redirect
 from satosa.util import rndstr
 

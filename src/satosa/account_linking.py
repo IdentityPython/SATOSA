@@ -10,7 +10,7 @@ from jwkest.jws import JWS
 
 from satosa.exception import SATOSAAuthenticationError
 from satosa.internal_data import InternalResponse
-from satosa.logging import satosa_logging
+from satosa.logging_util import satosa_logging
 from satosa.response import Redirect
 
 LOGGER = logging.getLogger(__name__)

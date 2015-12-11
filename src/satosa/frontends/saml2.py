@@ -21,7 +21,7 @@ from saml2.server import Server
 
 from satosa.frontends.base import FrontendModule
 from satosa.internal_data import InternalRequest, DataConverter
-from satosa.logging import satosa_logging
+from satosa.logging_util import satosa_logging
 from satosa.util import response, get_saml_name_id_format, saml_name_format_to_hash_type
 
 LOGGER = logging.getLogger(__name__)

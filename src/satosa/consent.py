@@ -14,7 +14,7 @@ from jwkest.jwk import rsa_load
 
 from jwkest.jwk import RSAKey
 
-from satosa.logging import satosa_logging
+from satosa.logging_util import satosa_logging
 from satosa.internal_data import InternalResponse
 from satosa.response import Redirect
 

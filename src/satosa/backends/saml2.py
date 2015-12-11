@@ -19,7 +19,7 @@ from satosa.backends.base import BackendModule
 from satosa.exception import SATOSAAuthenticationError
 from satosa.internal_data import UserIdHashType, InternalRequest, InternalResponse, \
     AuthenticationInformation, DataConverter
-from satosa.logging import satosa_logging
+from satosa.logging_util import satosa_logging
 from satosa.response import SeeOther, Response
 from satosa.util import rndstr, get_saml_name_id_format
 
