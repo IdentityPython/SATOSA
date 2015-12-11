@@ -1,18 +1,16 @@
 """
 Tests for the SAML frontend module src/backends/saml2.py.
 """
-from urllib import parse
-import re
 import os.path
+import re
+from urllib.parse import urlparse, parse_qs, parse_qsl
 
-from saml2 import BINDING_HTTP_POST
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.authn_context import PASSWORD
 from saml2.config import IdPConfig
 from saml2.entity_category.edugain import COC
 from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN, EU
-
 from saml2.extension.idpdisc import BINDING_DISCO
-
 from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
 
 from satosa.backends.saml2 import SamlBackend
@@ -33,9 +31,8 @@ INTERNAL_ATTRIBUTES = {
                    'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
                                            'facebook': ['id']},
                    'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
-                   'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
                    'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
-                               'facebook': ['last_name']}}, 'separator': '->'}
+                               'facebook': ['last_name']}}}
 
 
 class TestConfiguration(object):
@@ -65,7 +62,7 @@ class TestConfiguration(object):
                     "name": "Proxy IdP",
                     "endpoints": {
                         "single_sign_on_service": [
-                            ("%s/sso/post" % idp_base, BINDING_HTTP_POST),
+                            ("%s/sso/redirect" % idp_base, BINDING_HTTP_REDIRECT),
                         ],
                     },
                     "policy": {
@@ -122,6 +119,12 @@ class TestConfiguration(object):
                                                                    "sp_metadata")
         idp_metadata = FileGenerator.get_instance().create_metadata(self.idpconfig, "idp_metadata")
         self.spconfig["config"]["metadata"]["local"].append(idp_metadata.name)
+
+        idp2_config = self.idpconfig.copy()
+        idp2_config["entityid"] = "just_an_extra_idp"
+        idp_metadata2 = FileGenerator.get_instance().create_metadata(idp2_config, "idp2_metadata")
+        self.spconfig["config"]["metadata"]["local"].append(idp_metadata2.name)
+
         self.idpconfig["metadata"]["local"].append(sp_metadata.name)
 
     @staticmethod
@@ -205,8 +208,7 @@ def test_start_auth_name_id_policy():
 
     assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
 
-    disco_resp = parse.parse_qs(resp.message.replace(
-        TestConfiguration.get_instance().spconfig["disco_srv"] + "?", ""))
+    disco_resp = parse_qs(urlparse(resp.message).query)
     sp_config = TestConfiguration.get_instance().spconfig["config"]
     sp_disco_resp = sp_config["service"]["sp"]["endpoints"]["discovery_response"][0][0]
     assert "return" in disco_resp and disco_resp["return"][0].startswith(sp_disco_resp), \
@@ -266,22 +268,41 @@ def test_start_auth_disco():
     resp = samlbackend.start_auth(context, internal_req)
     assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
 
-    sp_disco_resp = spconfig["config"]["service"]["sp"]["endpoints"]["discovery_response"][0][0]
-    disco_resp = parse.parse_qs(resp.message.replace(spconfig["disco_srv"] + "?", ""))
-    info = parse.parse_qs(disco_resp["return"][0].replace(sp_disco_resp + "?", ""))
+    disco_resp = parse_qs(urlparse(resp.message).query)
+
+    info = parse_qs(urlparse(disco_resp["return"][0]).query)
     info[samlbackend.idp_disco_query_param] = idpconfig["entityid"]
     context = Context()
     context.request = info
     context.state = state
     resp = samlbackend.disco_response(context)
-    assert resp.status == "200 OK", "A post must be 200 OK."
-    sp_url, req_params = fakeidp.get_post_action_body(resp.message)
+    assert resp.status == "303 See Other"
+    req_params = dict(parse_qsl(urlparse(resp.message).query))
     url, fake_idp_resp = fakeidp.handle_auth_req(
         req_params["SAMLRequest"],
         req_params["RelayState"],
-        BINDING_HTTP_POST,
+        BINDING_HTTP_REDIRECT,
         "testuser1")
     context = Context()
     context.request = fake_idp_resp
     context.state = state
     samlbackend.authn_response(context, BINDING_HTTP_POST)
+
+
+def test_redirect_to_idp_if_only_one_idp_in_metadata(monkeypatch):
+    sp_config = TestConfiguration.get_instance().spconfig
+    monkeypatch.delitem(sp_config, "disco_srv")
+    monkeypatch.setitem(sp_config["config"]["metadata"], "local", [
+        FileGenerator.get_instance().create_metadata(None, "idp_metadata").name])
+
+    samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, sp_config)
+
+    state = State()
+    state.add("test", "state")
+    context = Context()
+    context.state = state
+    internal_req = InternalRequest(UserIdHashType.transient, None)
+    resp = samlbackend.start_auth(context, internal_req)
+
+    assert resp.status == "303 See Other"
+    assert resp.message.split("?")[0] == "http://test.tester.se/sso/redirect"

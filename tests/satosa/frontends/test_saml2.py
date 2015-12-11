@@ -33,9 +33,8 @@ INTERNAL_ATTRIBUTES = {
                    'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
                                            'facebook': ['id']},
                    'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
-                   'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
                    'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
-                               'facebook': ['last_name']}}, 'separator': '->'}
+                               'facebook': ['last_name']}}}
 
 IDP_CERT_FILE, IDP_KEY_FILE = FileGenerator.get_instance().generate_cert()
 

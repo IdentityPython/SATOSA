@@ -1,6 +1,6 @@
 attributes:
   address:
-    openid: [address->street_address]
+    openid: [address.street_address]
     saml: [postaladdress]
   displayname:
     openid: [nickname]

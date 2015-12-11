@@ -1,7 +1,6 @@
 from mock.mock import MagicMock
 import pytest
 import responses
-
 from satosa.account_linking import AccountLinkingModule
 from satosa.context import Context
 from satosa.internal_data import InternalResponse, AuthenticationInformation
@@ -14,32 +13,13 @@ __author__ = 'danielevertsson'
 
 INTERNAL_ATTRIBUTES = {
     'attributes': {
-        'displayname': {
-            'openid': ['nickname'], 'saml': ['displayName']
-        },
-        'givenname': {
-            'saml': ['givenName'], 'openid': ['given_name'],
-            'facebook': ['first_name']
-        },
-        'mail': {
-            'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
-            'facebook': ['email']
-        },
-        'edupersontargetedid': {
-            'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
-            'facebook': ['id']
-        },
-        'name': {
-            'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']
-        },
-        'address': {
-            'openid': ['address->street_address'], 'saml': ['postaladdress']
-        },
-        'surname': {
-            'saml': ['sn', 'surname'], 'openid': ['family_name'],
-            'facebook': ['last_name']
-        }
-    }, 'separator': '->'
+        'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
+        'givenname': {'saml': ['givenName'], 'openid': ['given_name'], 'facebook': ['first_name']},
+        'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'], 'facebook': ['email']},
+        'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'], 'facebook': ['id']},
+        'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
+        'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],'facebook': ['last_name']}
+    }
 }
 
 CONSENT_CERT, CONSENT_KEY = FileGenerator.get_instance().generate_cert("consent")
