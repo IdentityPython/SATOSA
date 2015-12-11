@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='SATOSA',
-    version='0.0.1.2',
+    version='0.2',
     description='',
     author='DIRG',
     author_email='dirg@its.umu.se',
