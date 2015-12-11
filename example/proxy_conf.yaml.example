@@ -29,3 +29,30 @@ ACCOUNT_LINKING:
   endpoint: "handle_account_linking"
   sign_key: "pki/account_linking.key"
   verify_ssl: No
+LOGGING:
+  version: 1
+  formatters:
+    simple:
+      format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    console:
+      class: logging.StreamHandler
+      level: DEBUG
+      formatter: simple
+      stream: ext://sys.stdout
+    info_file_handler:
+      class: logging.handlers.RotatingFileHandler
+      level: INFO
+      formatter: simple
+      filename: info.log
+      maxBytes: 10485760 # 10MB
+      backupCount: 20
+      encoding: utf8
+  loggers:
+    satosa:
+      level: DEBUG
+      handlers: [console]
+      propagate: no
+  root:
+    level: INFO
+    handlers: [info_file_handler]

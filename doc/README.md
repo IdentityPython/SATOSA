@@ -31,6 +31,7 @@ in the [example directory](../example).
 | `USER_ID_HASH_SALT` | string | `61a89d2db0b9e1e2` | salt used when creating the persistent user identifier, will be overriden by the environment variable `SATOSA_USER_ID_HASH_SALT` if it is set |
 | `CONSENT` | dict | see configuration of [Additional Services](#additional-services) | optional configuration of consent service |
 | `ACCOUNT_LINKING` | dict | see configuration of [Additional Services](#additional-services) | optional configuration of account linking service |
+| `LOGGING` | dict | see [Python logging.conf](https://docs.python.org/3/library/logging.config.html) | optional configuration of application logging |
 
 
 #### Additional services
