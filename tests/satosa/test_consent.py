@@ -31,9 +31,8 @@ INTERNAL_ATTRIBUTES = {
                    'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
                                            'facebook': ['id']},
                    'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
-                   'address': {'openid': ['address->street_address'], 'saml': ['postaladdress']},
                    'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
-                               'facebook': ['last_name']}}, 'separator': '->'}
+                               'facebook': ['last_name']}}}
 
 SATOSA_CONFIG = {"BASE": "https://proxy.example.com",
                  "COOKIE_STATE_NAME": "SATOSA_SATE",
