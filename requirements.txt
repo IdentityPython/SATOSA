@@ -1,1 +1,0 @@
-git+https://github.com/rohe/pysaml2.git@e6151b5#egg=pysaml2

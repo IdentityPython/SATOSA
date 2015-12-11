@@ -22,7 +22,7 @@ setup(
         "future",
         "oic",
         "pyjwkest",
-        # "pysaml2 >= 3.0.2",
+        "pysaml2 >= 4.0.0",
         "requests",
         "PyYAML",
         "pycrypto",
