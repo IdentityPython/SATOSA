@@ -4,4 +4,4 @@
 [Instructions](doc/README.md)
 
 ## Use cases
-[SAML2<->OIDC](doc/saml2-to-oidc.md)
+* [SAML2<->OIDC](doc/saml2-to-oidc.md)
