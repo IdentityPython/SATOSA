@@ -29,3 +29,31 @@ ACCOUNT_LINKING:
   endpoint: "handle_account_linking"
   sign_key: "pki/account_linking.key"
   verify_ssl: No
+LOGGING:
+  version: 1
+  formatters:
+    standard:
+      format: "[%(asctime)-19.19s] [%(levelname)-5.5s]: %(message)s"
+  handlers:
+    default:
+      level: "INFO"
+      class: "logging.FileHandler"
+      filename: "vopaas.log"
+      formatter: "standard"
+  loggers:
+    satosa:
+      handlers: ["default"]
+      level: "INFO"
+      propagate: Yes
+    vopaas:
+      handlers: ["default"]
+      level: "INFO"
+      propagate: Yes
+    saml:
+      handlers: ["default"]
+      level: "WARN"
+      propagate: Yes
+    oic:
+      handlers: ["default"]
+      level: "WARN"
+      propagate: Yes

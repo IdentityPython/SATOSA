@@ -268,7 +268,7 @@ class SamlBackend(BackendModule):
         internal_resp = InternalResponse(auth_info=auth_info)
 
         internal_resp.set_user_id(response.get_subject().text)
-        if "user_id_paramas" in self.config:
+        if "user_id_params" in self.config:
             user_id = ""
             for param in self.config["user_id_params"]:
                 try:
