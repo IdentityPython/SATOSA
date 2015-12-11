@@ -20,10 +20,13 @@ config:
           - [<base_url>/<name>/acs/redirect, 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect']
           discovery_response:
           - [<base_url>/<name>/disco, 'urn:oasis:names:tc:SAML:profiles:SSO:idp-discovery-protocol']
+        name_id_format:
+          -urn:oasis:names:tc:SAML:2.0:nameid-format:transient
     xmlsec_binary: /usr/bin/xmlsec1
   disco_srv: http://disco.example.com
   publish_metadata: <base_url>/<name>/metadata
   state_id: <name>
+  hash_type: persistent
 module: satosa.backends.saml2.SamlBackend
 name: Saml2
 plugin: BackendModulePlugin

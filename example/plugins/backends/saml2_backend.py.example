@@ -36,10 +36,8 @@ class Saml2BackendModulePlugin(BackendModulePlugin):
         module_base = "%s/%s" % (base_url, NAME)
         sp_config = {
             "entityid": "%s/proxy_saml2_backend.xml" % module_base,
-            "description": "A SAML2 SP MODULE",
             "entity_category": [COC, RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN,
                                 EU],
-            # "valid_for": 168,
             "service": {
                 "sp": {
                     "allow_unsolicited": True,
@@ -51,10 +49,11 @@ class Saml2BackendModulePlugin(BackendModulePlugin):
                         "discovery_response": [
                             ("%s/disco" % module_base, BINDING_DISCO)
                         ]
-                    }
-                }
+                    },
+                    "name_id_format": ["urn:oasis:names:tc:SAML:2.0:nameid-format:transient"]
+                },
+
             },
-            "debug": 1,
             "key_file": full_path("pki/new_server.key"),
             "cert_file": full_path("pki/new_server.crt"),
             "metadata": {
@@ -78,20 +77,13 @@ class Saml2BackendModulePlugin(BackendModulePlugin):
             ],
 
             "xmlsec_binary": xmlsec_path,
-            "logger": {
-                "rotating": {
-                    "filename": "idp.log",
-                    "maxBytes": 500000,
-                    "backupCount": 5,
-                },
-                "loglevel": "debug",
-            }
         }
 
         config = {"config": sp_config,
                   "disco_srv": "http://localhost:8080/role/idp.ds",
                   "publish_metadata": "%s/metadata" % module_base,
-                  "state_id": NAME
+                  "state_id": NAME,
+                  "hash_type": "persistent"
                   }
 
         super(Saml2BackendModulePlugin, self).__init__(MODULE, NAME, config)
