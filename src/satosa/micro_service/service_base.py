@@ -4,7 +4,7 @@ Micro service for SATOSA
 import logging
 
 from satosa.exception import SATOSAAuthenticationError
-from satosa.logging import satosa_logging
+from satosa.logging_util import satosa_logging
 
 __author__ = 'mathiashedstrom'
 

@@ -6,7 +6,7 @@ import re
 
 from satosa.context import SATOSABadContextError
 from satosa.exception import SATOSAError
-from satosa.logging import satosa_logging
+from satosa.logging_util import satosa_logging
 
 __author__ = 'mathiashedstrom'
 

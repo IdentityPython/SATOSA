@@ -364,7 +364,7 @@ def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, *args):
                                         "the plugin %s (plugin, module, receiver and/or config)."
                                         % module_file_name)
                 except:
-                    LOGGER.warn("Cannot create the module %s." % module_file_name)
+                    LOGGER.exception("Cannot create the module %s." % module_file_name)
         except Exception as error:
             LOGGER.exception("The configuration file %s is corrupt." % module_file_name)
             raise SATOSAConfigurationError(
@@ -390,5 +390,11 @@ def load_micro_services(plugin_path, plugins):
                                      RequestMicroService.__name__)
     response_services = _load_plugins(plugin_path, plugins, _response_micro_service_filter,
                                       ResponseMicroService.__name__)
+
+    LOGGER.info(
+        "Loaded request micro services: %s" % [k.__class__.__name__ for k in request_services])
+    LOGGER.info(
+        "Loaded response micro services: %s" % [k.__class__.__name__ for k in response_services])
+
     return (
         build_micro_service_queue(request_services), build_micro_service_queue(response_services))

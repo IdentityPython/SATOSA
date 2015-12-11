@@ -10,7 +10,7 @@ from satosa.consent import ConsentModule
 from satosa.context import Context
 from satosa.exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
 from satosa.internal_data import UserIdHasher
-from satosa.logging import satosa_logging
+from satosa.logging_util import satosa_logging
 from satosa.plugin_loader import load_backends, load_frontends, load_micro_services
 from satosa.response import Response
 from satosa.routing import ModuleRouter
