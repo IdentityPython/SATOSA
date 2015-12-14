@@ -10,9 +10,8 @@ import requests
 from oic.oauth2.consumer import Consumer, stateID
 
 from oic.oauth2.message import AuthorizationRequest, AuthorizationResponse
-from vopaas.backends.backend_base import get_metadata_desc_for_oidc_backend
 
-from satosa.backends.base import BackendModule
+from satosa.backends.base import BackendModule, get_metadata_desc_for_oidc_backend
 from satosa.exception import SATOSAAuthenticationError, SATOSAError
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType, \
     DataConverter
@@ -208,7 +207,8 @@ class OAuthBackend(BackendModule):
         :rtype: satosa.metadata_creation.description.MetadataDescription
         """
         return get_metadata_desc_for_oidc_backend(self.config,
-                                                  self.config["server_info"]["authorization_endpoint"])
+                                                  self.config["server_info"][
+                                                      "authorization_endpoint"])
 
 
 class FacebookBackend(OAuthBackend):
