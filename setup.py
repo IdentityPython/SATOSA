@@ -16,7 +16,7 @@ setup(
     url='',
     packages=find_packages('src/'),
     package_dir={'': 'src'},
-    scripts=["tools/make_saml_metadata.py"],
+    scripts=["tools/make_satosa_saml_metadata.py"],
     install_requires=[
         "pluginbase",
         "future",

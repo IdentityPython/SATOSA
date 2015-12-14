@@ -10,6 +10,7 @@ import requests
 from oic.oauth2.consumer import Consumer, stateID
 
 from oic.oauth2.message import AuthorizationRequest, AuthorizationResponse
+from vopaas.backends.backend_base import get_metadata_desc_for_oidc_backend
 
 from satosa.backends.base import BackendModule
 from satosa.exception import SATOSAAuthenticationError, SATOSAError
@@ -200,6 +201,14 @@ class OAuthBackend(BackendModule):
         :return: Dictionary with attribute name as key and attribute value as value.
         """
         raise NotImplementedError("Method user_information must be implemented!")
+
+    def get_metadata_desc(self):
+        """
+        See super class satosa.backends.base.BackendModule#get_metadata_desc
+        :rtype: satosa.metadata_creation.description.MetadataDescription
+        """
+        return get_metadata_desc_for_oidc_backend(self.config,
+                                                  self.config["server_info"]["authorization_endpoint"])
 
 
 class FacebookBackend(OAuthBackend):
