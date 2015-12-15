@@ -289,7 +289,8 @@ class SamlBackend(BackendModule):
 
         internal_resp.add_attributes(self.converter.to_internal("saml", response.ava))
 
-        satosa_logging(LOGGER, logging.DEBUG, "received attributes:\n%s" % json.dumps(response.ava, indent=4), state)
+        satosa_logging(LOGGER, logging.DEBUG,
+                       "received attributes:\n%s" % json.dumps(response.ava, indent=4), state)
 
         return internal_resp
 
@@ -351,7 +352,8 @@ class SamlBackend(BackendModule):
             entity = metadata_file.entity
             for entity_id in entity_ids:
 
-                description = MetadataDescription(urlsafe_b64encode(entity_id.encode("utf-8")).decode("utf-8"))
+                description = MetadataDescription(
+                    urlsafe_b64encode(entity_id.encode("utf-8")).decode("utf-8"))
 
                 # Add organization info
                 try:
@@ -361,7 +363,8 @@ class SamlBackend(BackendModule):
                     for name_info in organization_info.get("organization_name", []):
                         organization.add_name(name_info["text"], name_info["lang"])
                     for display_name_info in organization_info.get("organization_display_name", []):
-                        organization.add_display_name(display_name_info["text"], display_name_info["lang"])
+                        organization.add_display_name(display_name_info["text"],
+                                                      display_name_info["lang"])
                     for url_info in organization_info.get("organization_url", []):
                         organization.add_url(url_info["text"], url_info["lang"])
 
@@ -403,7 +406,8 @@ class SamlBackend(BackendModule):
                             for name in element.get("display_name", []):
                                 ui_info.add_display_name(name["text"], name["lang"])
                             for logo in element.get("logo", []):
-                                ui_info.add_logo(logo["text"], logo["width"], logo["height"], logo["lang"])
+                                ui_info.add_logo(logo["text"], logo["width"], logo["height"],
+                                                 logo["lang"])
 
                         description.set_ui_info(ui_info)
                 except KeyError:
