@@ -16,7 +16,6 @@ This document describes how to install and configure the SATOSA proxy.
 All default configuration files, as well as an example WSGI application for the proxy, can be found
 in the [example directory](../example).
 
-
 ### SATOSA proxy configuration: `proxy_conf.yaml.example`
 | Parameter name | Data type | Example value | Description |
 | -------------- | --------- | ------------- | ----------- |
@@ -47,7 +46,8 @@ in the [example directory](../example).
 If using the [CMService](https://github.com/its-dirg/CMservice) for consent management and the [ALService](https://github.com/its-dirg/ALservice) for account linking, the `redirect` parameter should be `https://<host>/consent` and `https://<host>/approve` in the respective configuration entry.
 
 
-### Attribute mapping configuration: `internal_attributes.yaml`
+### <a name="attr" style="color:#000000">Attribute mapping configuration:</a> `internal_attributes.yaml`
+
 
 #### `attributes`
 The values directly under the `attributes` key are the internal attribute names.
@@ -122,7 +122,7 @@ for which the corresponding attribute value should be hashed before being
 returned to the client.
 
 
-## Plugins
+## Plugins 
 The protocol specific communication is handled by different plugins, divided
 into frontends (receiving requests from clients) and backends (sending requests
 to backing identity providers).
