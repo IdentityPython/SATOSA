@@ -179,6 +179,12 @@ The SAML2 backend acts as an SAML Service Provider (SP), making authentication
 requests to SAML Identity Providers (IdP). The default configuration file can be
 found [here](../example/plugins/backends/saml2_backend.yaml.example).
 
+##### Name ID Format
+The SAML backend could indicate which name ID formats are supported to adding **name_id_format** 
+under the SP element in the configuration file. By defining the **hash_type** attribute 
+in the configuration it's possible to enter a name_id_format in the authentication 
+request sent to the identity provider. 
+
 
 ### OpenID Connect plugins
 

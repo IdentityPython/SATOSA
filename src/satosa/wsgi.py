@@ -32,6 +32,7 @@ def main():
     parser.add_argument('port', type=int)
     parser.add_argument('--keyfile', type=str)
     parser.add_argument('--certfile', type=str)
+    parser.add_argument('--host', type=str)
     parser.add_argument('-d', action='store_true', dest="debug",
                         help="enable debug mode.")
     args = parser.parse_args()
@@ -49,7 +50,10 @@ def main():
     else:
         ssl_context = None
 
-    run_simple('localhost', args.port, app, ssl_context=ssl_context)
+    if args.host:
+        run_simple(args.host, args.port, app, ssl_context=ssl_context)
+    else:
+        run_simple('localhost', args.port, app, ssl_context=ssl_context)
 
 
 if __name__ == '__main__':
