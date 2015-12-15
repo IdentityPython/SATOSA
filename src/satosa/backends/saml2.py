@@ -4,6 +4,7 @@ A saml2 backend module for the satosa proxy
 """
 from base64 import urlsafe_b64encode, urlsafe_b64decode
 import copy
+import json
 import logging
 from urllib.parse import urlparse
 
@@ -234,7 +235,7 @@ class SamlBackend(BackendModule):
             raise SATOSAAuthenticationError(state, "State did not match relay state")
 
         context.state.remove(self.state_id)
-        return self.auth_callback_func(context, self._translate_response(_response))
+        return self.auth_callback_func(context, self._translate_response(_response, context.state))
 
     def disco_response(self, context):
         """
@@ -259,7 +260,7 @@ class SamlBackend(BackendModule):
             request_info = InternalRequest(None, None)
             return self.authn_request(context, entity_id, request_info)
 
-    def _translate_response(self, response):
+    def _translate_response(self, response, state):
         """
         Translates a saml authorization response to an internal response
 
@@ -287,6 +288,9 @@ class SamlBackend(BackendModule):
             internal_resp.set_user_id(user_id)
 
         internal_resp.add_attributes(self.converter.to_internal("saml", response.ava))
+
+        satosa_logging(LOGGER, logging.DEBUG, "received attributes:\n%s" % json.dumps(response.ava, indent=4), state)
+
         return internal_resp
 
     def _metadata(self, context):
