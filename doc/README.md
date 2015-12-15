@@ -3,13 +3,13 @@ This document describes how to install and configure the SATOSA proxy.
 
 
 ## Installation
-1. Download the SATOSA proxy project as a [compressed archive ](https://github.com/its-dirg/SATOSA/releases)
+1. Download the SATOSA proxy project as a [compressed archive](https://github.com/its-dirg/SATOSA/releases)
    and unpack it to `<satosa_path>`.
 
 1. Install the Python code and its requirements:
 
    ```bash  
-   pip install <satosa_path> -r <satosa_path>/requirements.txt
+   pip install <satosa_path>
    ```
 
 ## Configuration
@@ -27,7 +27,7 @@ in the [example directory](../example).
 | `PLUGIN_PATH` | string[] | `[example/plugins/backends, example/plugins/frontends]` | list of directory paths containing any front-/backend plugins |
 | `BACKEND_MODULES` | string[] | `[oidc_backend, saml2_backend]` | list of plugin names to load from the directories in `PLUGIN_PATH` |
 | `FRONTEND_MODULES` | string[] | `[saml2_frontend]` | list of plugin names to load from the directories in `PLUGIN_PATH` |
-| `MICRO_SERVICES` | string[] | `[statistics_service.yaml]` | list of plugin names to load from the directories in `PLUGIN_PATH` |
+| `MICRO_SERVICES` | string[] | `[statistics_segit lorvice.yaml]` | list of plugin names to load from the directories in `PLUGIN_PATH` |
 | `USER_ID_HASH_SALT` | string | `61a89d2db0b9e1e2` | salt used when creating the persistent user identifier, will be overriden by the environment variable `SATOSA_USER_ID_HASH_SALT` if it is set |
 | `CONSENT` | dict | see configuration of [Additional Services](#additional-services) | optional configuration of consent service |
 | `ACCOUNT_LINKING` | dict | see configuration of [Additional Services](#additional-services) | optional configuration of account linking service |
