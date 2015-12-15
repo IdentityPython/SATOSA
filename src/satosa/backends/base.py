@@ -88,7 +88,7 @@ def get_metadata_desc_for_oidc_backend(config, entity_id=None):
         op_info = config["op_info"]
 
         # Add contact person information
-        for contact_person in op_info.get("contact_person"):
+        for contact_person in op_info.get("contact_person", []):
             person = ContactPersonDesc()
             if 'contact_type' in contact_person:
                 person.contact_type = contact_person['contact_type']
