@@ -169,10 +169,20 @@ Metadata from discovery server:
     
 
 #### Frontend
+
 The SAML2 frontend acts as an SAML Identity Provider (IdP), accepting
 authentication requests from SAML Service Providers (SP). The default
 configuration file can be found [here](../example/plugins/frontends/saml2_frontend.yaml.example).
 
+The SAML2 frontend comes with two different behaviours:
+
+The **SamlMirrorFrontend** module mirrors the target identity provider information on to the frontend metadata.
+Because of this the frontend uses a dynamic entity id depending on the target IDP/OP and behaves as several IDPs.
+The target is chosen by using the associated frontend IDP. This gives a "direct connection" to the targeted IDP/OP.
+
+The **SamlFrontend** module acts like a regular IDP and hides the target identity provider.
+The target is chosen by using a sso endpoint in the frontend IDP associated to a specific backend. 
+It is the backend modules job to pick an identity provider.
 
 #### Backend
 The SAML2 backend acts as an SAML Service Provider (SP), making authentication
@@ -235,16 +245,16 @@ for information on how to obtain them.
 ## SAML metadata
 
 The SAML metadata of the proxy is generated based on the `proxy_conf.yaml`
-(which defines all front-/backend plugins) using the `make_saml_metadata.py`
+(which defines all front-/backend plugins) using the `make_satosa_saml_metadata.py`
 (installed globally by SATOSA installation).
 
 ### Generate backend metadata
 The command
 ```bash
-make_saml_metadata.py proxy_conf.yaml
+make_satosa_saml_metadata.py proxy_conf.yaml
 ```
-will generate separate metadata files for all SAML2 backend modules specified in
-`proxy_conf.yaml`.
+will generate separate metadata files for all SAML2 backend modules and frontend modules 
+specified in `proxy_conf.yaml`.
 
 Detailed usage instructions can be viewed by running `make_saml_metadata.py -h`.
 

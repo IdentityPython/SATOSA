@@ -20,7 +20,7 @@ from saml2.sigver import security_context
 from saml2.validate import valid_instance
 from satosa.backends.saml2 import SamlBackend
 from satosa.frontends.saml2 import SamlFrontend
-from satosa.frontends.saml2_mirror import SamlMirrorFrontend
+from satosa.frontends.saml2 import SamlMirrorFrontend
 from satosa.plugin_base.endpoint import FrontendModulePlugin, BackendModulePlugin
 from satosa.plugin_loader import _load_plugins, frontend_filter, backend_filter, \
     _load_endpoint_modules
