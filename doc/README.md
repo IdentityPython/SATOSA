@@ -3,21 +3,20 @@ This document describes how to install and configure the SATOSA proxy.
 
 
 ## Installation
-1. Download the SATOSA proxy project as a [compressed archive ](https://github.com/its-dirg/SATOSA/releases)
+1. Download the SATOSA proxy project as a [compressed archive](https://github.com/its-dirg/SATOSA/releases)
    and unpack it to `<satosa_path>`.
 
 1. Install the Python code and its requirements:
 
    ```bash  
-   pip install <satosa_path> -r <satosa_path>/requirements.txt
+   pip install <satosa_path>
    ```
 
 ## Configuration
 All default configuration files, as well as an example WSGI application for the proxy, can be found
 in the [example directory](../example).
 
-
-### SATOSA proxy configuration: `proxy_conf.yaml.example`
+### <a name="proxy_conf" style="color:#000000">SATOSA proxy configuration</a>: `proxy_conf.yaml.example`
 | Parameter name | Data type | Example value | Description |
 | -------------- | --------- | ------------- | ----------- |
 | `BASE` | string | `https://proxy.example.com` | base url of the proxy |
@@ -27,7 +26,7 @@ in the [example directory](../example).
 | `PLUGIN_PATH` | string[] | `[example/plugins/backends, example/plugins/frontends]` | list of directory paths containing any front-/backend plugins |
 | `BACKEND_MODULES` | string[] | `[oidc_backend, saml2_backend]` | list of plugin names to load from the directories in `PLUGIN_PATH` |
 | `FRONTEND_MODULES` | string[] | `[saml2_frontend]` | list of plugin names to load from the directories in `PLUGIN_PATH` |
-| `MICRO_SERVICES` | string[] | `[statistics_service.yaml]` | list of plugin names to load from the directories in `PLUGIN_PATH` |
+| `MICRO_SERVICES` | string[] | `[statistics_segit lorvice.yaml]` | list of plugin names to load from the directories in `PLUGIN_PATH` |
 | `USER_ID_HASH_SALT` | string | `61a89d2db0b9e1e2` | salt used when creating the persistent user identifier, will be overriden by the environment variable `SATOSA_USER_ID_HASH_SALT` if it is set |
 | `CONSENT` | dict | see configuration of [Additional Services](#additional-services) | optional configuration of consent service |
 | `ACCOUNT_LINKING` | dict | see configuration of [Additional Services](#additional-services) | optional configuration of account linking service |
@@ -47,7 +46,8 @@ in the [example directory](../example).
 If using the [CMService](https://github.com/its-dirg/CMservice) for consent management and the [ALService](https://github.com/its-dirg/ALservice) for account linking, the `redirect` parameter should be `https://<host>/consent` and `https://<host>/approve` in the respective configuration entry.
 
 
-### Attribute mapping configuration: `internal_attributes.yaml`
+### <a name="attr_map" style="color:#000000">Attribute mapping configuration:</a> `internal_attributes.yaml`
+
 
 #### `attributes`
 The values directly under the `attributes` key are the internal attribute names.
@@ -122,7 +122,7 @@ for which the corresponding attribute value should be hashed before being
 returned to the client.
 
 
-## Plugins
+## Plugins 
 The protocol specific communication is handled by different plugins, divided
 into frontends (receiving requests from clients) and backends (sending requests
 to backing identity providers).
@@ -242,7 +242,7 @@ See the [registration instructions](https://developers.facebook.com/docs/apps/re
 for information on how to obtain them.
 
 
-## SAML metadata
+## <a name="saml_metadata" style="color:#000000">SAML metadata</a>
 
 The SAML metadata of the proxy is generated based on the `proxy_conf.yaml`
 (which defines all front-/backend plugins) using the `make_satosa_saml_metadata.py`
@@ -258,7 +258,7 @@ specified in `proxy_conf.yaml`.
 
 Detailed usage instructions can be viewed by running `make_saml_metadata.py -h`.
 
-## Running the proxy application
+## <a name="run" style="color:#000000">Running the proxy application</a>
 Start the proxy server with the following command:
 ```bash
 gunicorn -b<socket address> satosa.wsgi:app --keyfile=<https key> --certfile=<https cert>
