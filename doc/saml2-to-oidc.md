@@ -7,7 +7,7 @@ be configured with a SAML2 frontend and an OpenID Connect backend.
 1. Copy the necessary base configurations from the `<satosa_path>/example` directory:
    ```bash
    mkdir -p saml2-oidc/plugins
-   cp example/{proxy_conf.yaml.example,internal_attributes.yaml.example} saml2-oidc/ # proxy application and its config
+   cp example/{proxy_conf.yaml.example,internal_attributes.yaml.example} saml2-oidc/
    cp example/plugins/frontends/saml2_frontend.yaml.example saml2-oidc/plugins/
    cp example/plugins/backends/openid_backend.yaml.example saml2-oidc/plugins/
    ```
