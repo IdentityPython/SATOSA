@@ -2,6 +2,7 @@
 Holds a base class for backend modules used in the SATOSA proxy.
 """
 from base64 import urlsafe_b64encode
+
 from satosa.metadata_creation.description import MetadataDescription, ContactPersonDesc, \
     OrganizationDesc, UIInfoDesc
 
@@ -67,6 +68,7 @@ class BackendModule(object):
         :return: A description of the backend
         """
         raise NotImplementedError()
+
 
 def get_metadata_desc_for_oidc_backend(config, entity_id=None):
     """

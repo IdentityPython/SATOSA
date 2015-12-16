@@ -6,7 +6,6 @@ import logging
 
 from oic.utils.authn.authn_context import UNSPECIFIED
 import requests
-
 from oic.oauth2.consumer import Consumer, stateID
 
 from oic.oauth2.message import AuthorizationRequest, AuthorizationResponse
