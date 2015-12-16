@@ -1,5 +1,6 @@
 # SATOSA
 [![Build Status](https://travis-ci.org/its-dirg/SATOSA.svg?branch=travis)](https://travis-ci.org/its-dirg/SATOSA)
+[![PyPI](https://img.shields.io/pypi/v/SATOSA.svg)](https://pypi.python.org/pypi/SATOSA)
 
 # Table of Contents
 
