@@ -346,6 +346,8 @@ def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, *args):
 
                             plugin_class = getattr(sys.modules[__name__], _config["plugin"])
                             module_class = locate(_config["module"])
+                            if not module_class:
+                                raise ValueError("Can't find module '%s'" % _config["module"])
                             name = _config["name"]
                             config = json.dumps(_config["config"])
                             replace = [

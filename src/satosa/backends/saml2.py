@@ -2,7 +2,9 @@
 """
 A saml2 backend module for the satosa proxy
 """
+from base64 import urlsafe_b64encode, urlsafe_b64decode
 import copy
+import json
 import logging
 from urllib.parse import urlparse
 
@@ -10,16 +12,17 @@ from saml2 import BINDING_HTTP_REDIRECT
 from saml2 import BINDING_HTTP_POST
 from saml2.client_base import Base
 from saml2.config import SPConfig
-
 from saml2.metadata import create_metadata_string
-
 from saml2.samlp import NameIDPolicy
+from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
 
 from satosa.backends.base import BackendModule
 from satosa.exception import SATOSAAuthenticationError
 from satosa.internal_data import UserIdHashType, InternalRequest, InternalResponse, \
     AuthenticationInformation, DataConverter
 from satosa.logging_util import satosa_logging
+from satosa.metadata_creation.description import MetadataDescription, OrganizationDesc, \
+    ContactPersonDesc, UIInfoDesc
 from satosa.response import SeeOther, Response
 from satosa.util import rndstr, get_saml_name_id_format
 
@@ -104,7 +107,8 @@ class SamlBackend(BackendModule):
             return self.authn_request(context, idps[0], internal_req)
 
         try:
-            entity_id = context.internal_data["saml2.target_entity_id"]
+            entity_id = context.internal_data["mirror.target_entity_id"]
+            entity_id = urlsafe_b64decode(entity_id).decode("utf-8")
             return self.authn_request(context, entity_id, internal_req)
         except KeyError:
             return self.disco_query(context, internal_req)
@@ -231,7 +235,7 @@ class SamlBackend(BackendModule):
             raise SATOSAAuthenticationError(state, "State did not match relay state")
 
         context.state.remove(self.state_id)
-        return self.auth_callback_func(context, self._translate_response(_response))
+        return self.auth_callback_func(context, self._translate_response(_response, context.state))
 
     def disco_response(self, context):
         """
@@ -256,7 +260,7 @@ class SamlBackend(BackendModule):
             request_info = InternalRequest(None, None)
             return self.authn_request(context, entity_id, request_info)
 
-    def _translate_response(self, response):
+    def _translate_response(self, response, state):
         """
         Translates a saml authorization response to an internal response
 
@@ -284,6 +288,10 @@ class SamlBackend(BackendModule):
             internal_resp.set_user_id(user_id)
 
         internal_resp.add_attributes(self.converter.to_internal("saml", response.ava))
+
+        satosa_logging(LOGGER, logging.DEBUG,
+                       "received attributes:\n%s" % json.dumps(response.ava, indent=4), state)
+
         return internal_resp
 
     def _metadata(self, context):
@@ -323,3 +331,87 @@ class SamlBackend(BackendModule):
                     ("^%s$" % parsed_endp.path[1:], self.disco_response))
 
         return url_map
+
+    def get_metadata_desc(self):
+        """
+        See super class vopaas.backends.backend_base.VOPaaSBackendModule#get_metadata_desc
+        :rtype: satosa.metadata_creation.description.MetadataDescription
+        """
+        # TODO Only get IDPs
+        metadata_desc = []
+        for metadata_file in self.sp.metadata.metadata:
+            metadata_file = self.sp.metadata.metadata[metadata_file]
+            entity_ids = []
+
+            if metadata_file.entity_descr is None:
+                for entity_descr in metadata_file.entities_descr.entity_descriptor:
+                    entity_ids.append(entity_descr.entity_id)
+            else:
+                entity_ids.append(metadata_file.entity_descr.entity_id)
+
+            entity = metadata_file.entity
+            for entity_id in entity_ids:
+
+                description = MetadataDescription(
+                    urlsafe_b64encode(entity_id.encode("utf-8")).decode("utf-8"))
+
+                # Add organization info
+                try:
+                    organization = OrganizationDesc()
+                    organization_info = entity[entity_id]['organization']
+
+                    for name_info in organization_info.get("organization_name", []):
+                        organization.add_name(name_info["text"], name_info["lang"])
+                    for display_name_info in organization_info.get("organization_display_name", []):
+                        organization.add_display_name(display_name_info["text"],
+                                                      display_name_info["lang"])
+                    for url_info in organization_info.get("organization_url", []):
+                        organization.add_url(url_info["text"], url_info["lang"])
+
+                    description.set_organization(organization)
+                except:
+                    pass
+
+                # Add contact person info
+                try:
+                    contact_persons = entity[entity_id]['contact_person']
+                    for cont_pers in contact_persons:
+                        person = ContactPersonDesc()
+
+                        if 'contact_type' in cont_pers:
+                            person.contact_type = cont_pers['contact_type']
+                        for address in cont_pers.get('email_address', []):
+                            person.add_email_address(address["text"])
+                        if 'given_name' in cont_pers:
+                            person.given_name = cont_pers['given_name']['text']
+                        if 'sur_name' in cont_pers:
+                            person.sur_name = cont_pers['sur_name']['text']
+
+                        description.add_contact_person(person)
+                except KeyError:
+                    pass
+
+                # Add ui info
+                try:
+                    for idpsso_desc in entity[entity_id]["idpsso_descriptor"]:
+                        # TODO Can have more than one ui info?
+                        ui_elements = idpsso_desc["extensions"]["extension_elements"]
+                        ui_info = UIInfoDesc()
+
+                        for element in ui_elements:
+                            if not element["__class__"] == "%s&UIInfo" % UI_NAMESPACE:
+                                continue
+                            for desc in element.get("description", []):
+                                ui_info.add_description(desc["text"], desc["lang"])
+                            for name in element.get("display_name", []):
+                                ui_info.add_display_name(name["text"], name["lang"])
+                            for logo in element.get("logo", []):
+                                ui_info.add_logo(logo["text"], logo["width"], logo["height"],
+                                                 logo["lang"])
+
+                        description.set_ui_info(ui_info)
+                except KeyError:
+                    pass
+
+                metadata_desc.append(description)
+        return metadata_desc

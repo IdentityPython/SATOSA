@@ -17,3 +17,26 @@ config:
   op_url: https://op.example.com
   state_id: <name>
   verify_ssl: true
+  op_info:
+    contact_person:
+      - contact_type: "technical test"
+        email_address: ["technical_test@example.com", "support_test@example.com"]
+        given_name: "Test"
+        sur_name: "OP"
+      - contact_type: "support_test"
+        email_address: ["support_test@example.com"]
+        given_name: "Support_test"
+    organization:
+      display_name:
+      - ["OP Identities", "en"]
+      name:
+      - ["En test-OP", "se"]
+      - ["A test OP", "en"]
+      url:
+      - ["http://www.example.com", "en"]
+      - ["http://www.example.se", "se"]
+    ui_info:
+      description:
+      - ["This is a test OP", "en"]
+      display_name:
+      - ["OP - TEST", "en"]

@@ -21,7 +21,7 @@ from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from satosa.exception import SATOSAAuthenticationError, SATOSAError
 from satosa.logging_util import satosa_logging
 from satosa.response import Redirect
-from satosa.backends.base import BackendModule
+from satosa.backends.base import BackendModule, get_metadata_desc_for_oidc_backend
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType, \
     DataConverter
 
@@ -85,6 +85,7 @@ class OpenIdBackend(BackendModule):
         super(OpenIdBackend, self).__init__(auth_callback_func, internal_attributes)
         self.auth_callback_func = auth_callback_func
         self.config = RpConfig(config)
+        self.oidc_backend_config = config
         self.oidc_clients = None
         self.converter = DataConverter(internal_attributes)
 
@@ -365,6 +366,13 @@ class OpenIdBackend(BackendModule):
         elif name_format == "pairwise":
             return UserIdHashType.pairwise
         return None
+    
+    def get_metadata_desc(self):
+        """
+        See super class satosa.backends.base.BackendModule#get_metadata_desc
+        :rtype: satosa.metadata_creation.description.MetadataDescription
+        """
+        return get_metadata_desc_for_oidc_backend(self.oidc_backend_config)
 
 
 class Client(oic.Client):
