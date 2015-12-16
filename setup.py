@@ -9,11 +9,11 @@ from setuptools import setup, find_packages
 setup(
     name='SATOSA',
     version='0.4.0',
-    description='',
+    description='Protocol proxy (SAML/OIDC).',
     author='DIRG',
     author_email='dirg@its.umu.se',
     license='Apache 2.0',
-    url='',
+    url='https://github.com/its-dirg/SATOSA',
     packages=find_packages('src/'),
     package_dir={'': 'src'},
     scripts=["tools/make_satosa_saml_metadata.py"],
