@@ -246,8 +246,8 @@ for information on how to obtain them.
 
 # <a name="saml_metadata" style="color:#000000">Generate proxy metadata</a>
 
-The proxy metadata is generated based the front-/backend plugins listed in `proxy_conf.yaml` using the `make_saml_metadata.py`
-(installed globally by SATOSA installation).
+The proxy metadata is generated based on the front-/backend plugins listed in `proxy_conf.yaml`
+using the `make_satosa_saml_metadata.py` (installed globally by SATOSA installation).
 
 ## <a name="backend_metadata" style="color:#000000">Generate backend metadata</a>
 The command
@@ -260,7 +260,7 @@ specified in `proxy_conf.yaml`.
 Detailed usage instructions can be viewed by running `make_satosa_saml_metadata.py -h`.
 
     ```bash
-    usage: make_saml_metadata.py [-h] [-v VALID] [-c CERT] [-k KEYFILE] [-s]
+    usage: make_satosa_saml_metadata.py [-h] [-v VALID] [-c CERT] [-k KEYFILE] [-s]
                                  [-x XMLSEC] [-f] [-b] [-o OUTPUT]
                                  proxy_conf
     
