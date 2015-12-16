@@ -167,11 +167,5 @@ class SATOSAConfig(object):
         :param config: Path to file or config string
         :return: File data
         """
-        try:
-            if os.path.isfile(config):
-                config_file = open(config, "r")
-                config = config_file.read()
-                config_file.close()
-        except Exception:
-            pass
-        return config
+        with open(config) as f:
+            return f.read()
