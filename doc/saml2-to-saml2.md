@@ -55,9 +55,6 @@ be configured with a SAML2 frontend and an SAML2.
 
 1. Generate the SAML metadata, see the [SAML metadata](README.md#saml_metadata) section of the
    proxy configuration instructions for more information.
-   ```bash
-   make_saml_metadata.py proxy_conf.yaml
-   ```
 
 1. Start the proxy application, see the [Running the proxy application](README.md#run) section of
    the proxy configuration instructions for more information.

@@ -256,7 +256,7 @@ make_satosa_saml_metadata.py proxy_conf.yaml
 will generate separate metadata files for all SAML2 backend modules and frontend modules 
 specified in `proxy_conf.yaml`.
 
-Detailed usage instructions can be viewed by running `make_saml_metadata.py -h`.
+Detailed usage instructions can be viewed by running `make_satosa_saml_metadata.py -h`.
 
 ## <a name="run" style="color:#000000">Running the proxy application</a>
 Start the proxy server with the following command:
