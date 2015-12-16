@@ -5,10 +5,12 @@ from satosa.image_converter import convert_to_base64
 
 __author__ = 'mathiashedstrom'
 
+
 class ContactPersonDesc(object):
     """
     Description class for a contact preson
     """
+
     def __init__(self):
         self.contact_type = None
         self._email_address = []
@@ -48,6 +50,7 @@ class UIInfoDesc(object):
     """
     Description class for UI info
     """
+
     def __init__(self):
         self._description = []
         self._display_name = []
@@ -114,6 +117,7 @@ class OrganizationDesc(object):
     """
     Description class for an organization
     """
+
     def __init__(self):
         self._display_name = []
         self._name = []
@@ -170,6 +174,7 @@ class MetadataDescription(object):
     """
     Description class for a backend module
     """
+
     def __init__(self, entity_id):
         self.entity_id = entity_id
         self._organization = None
