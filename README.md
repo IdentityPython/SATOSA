@@ -1,7 +1,7 @@
 # SATOSA
 [![Build Status](https://travis-ci.org/its-dirg/SATOSA.svg?branch=travis)](https://travis-ci.org/its-dirg/SATOSA)
 
-# Table of Contents  <!---http://doctoc.herokuapp.com/ -->
+# Table of Contents
 
 - [Installation](doc/README.md#installation)
 - [Configuration](doc/README.md#configuration)
