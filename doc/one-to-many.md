@@ -1,17 +1,26 @@
-# Proxy: SAML2 <-> OpenID Connect
-After following the [installation instructions](README.md#installation), the proxy must
-be configured with a SAML2 frontend and an OpenID Connect backend.
+![](images/one-to-many_proxy_uscase.png "one-to-many proxy overview image")
 
-## Configuration
+1. The service provider sends a request to the proxy instance. The service provider only knows about the proxy and none of the actual identity providers.
+1. The proxy redirects the user to the discovery service 
+1. The entity ID of the identity provider selected by the user is returned to the proxy 
+1. The proxy sent authentication request and when completed the the user get redirected back to the proxy
+1. The response returned from the Identity provider is returned to the Service provider
+
+# Installation
+After following the [installation instructions](README.md#installation), the proxy must
+be configured with a SAML2 frontend and an SAML2 backend.
+
+
+# Configuration
 
 1. Copy the necessary base configurations from the `<satosa_path>/example` directory:
    ```bash
-   mkdir -p saml2-oidc/plugins
-   cp example/{proxy_conf.yaml.example,internal_attributes.yaml.example} saml2-oidc/
+   mkdir -p saml2-saml2/plugins
+   cp example/{proxy_conf.yaml.example,internal_attributes.yaml.example} saml2-oidc/ # proxy application and its config
    cp example/plugins/frontends/saml2_frontend.yaml.example saml2-oidc/plugins/
-   cp example/plugins/backends/openid_backend.yaml.example saml2-oidc/plugins/
+   cp example/plugins/backends/saml2_backend.yaml.example saml2-oidc/plugins/
    ```
-
+   
 1. Configure the proxy:
   1. Rename `proxy_conf.yaml.example` to `proxy_conf.yaml`:
      ```bash
@@ -27,7 +36,7 @@ be configured with a SAML2 frontend and an OpenID Connect backend.
      PLUGIN_PATH:
        - plugins
      BACKEND_MODULES:
-       - openid_backend
+       - saml2_backend
      FRONTEND_MODULES:
        - saml2_frontend
      ```
@@ -44,10 +53,10 @@ be configured with a SAML2 frontend and an OpenID Connect backend.
 
 1. Configure the plugins
   1. Rename `plugins/saml2_frontend.yaml.example` to `plugins/saml2_frontend.yaml`
-     and `plugins/openid_backend.yaml.example` to `plugins/openid_backend.yaml`
+     and `plugins/saml2_backend.yaml.example` to `plugins/saml2_backend.yaml`
      ```bash
      mv plugins/saml2_frontend.yaml.example plugins/saml2_frontend.yaml
-     mv plugins/openid_backend.yaml.example plugins/openid_backend.yaml
+     mv plugins/saml2_backend.yaml.example plugins/saml2_backend.yaml
      ```
 
   1. Specify the necessary configuration parameters, see the [Plugins](README.md#plugins) section
@@ -56,5 +65,6 @@ be configured with a SAML2 frontend and an OpenID Connect backend.
 1. Generate the SAML metadata, see the [SAML metadata](README.md#saml_metadata) section of the
    proxy configuration instructions for more information.
 
+# Run
 1. Start the proxy application, see the [Running the proxy application](README.md#run) section of
    the proxy configuration instructions for more information.

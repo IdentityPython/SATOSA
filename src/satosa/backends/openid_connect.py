@@ -13,7 +13,6 @@ from oic import oic
 from oic.oauth2 import ErrorResponse
 from oic.oic import ProviderConfigurationResponse, AuthorizationResponse
 from oic.oic import RegistrationResponse
-
 from oic.oic import AuthorizationRequest
 
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
@@ -366,7 +365,7 @@ class OpenIdBackend(BackendModule):
         elif name_format == "pairwise":
             return UserIdHashType.pairwise
         return None
-    
+
     def get_metadata_desc(self):
         """
         See super class satosa.backends.base.BackendModule#get_metadata_desc

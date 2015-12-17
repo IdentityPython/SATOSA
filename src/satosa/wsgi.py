@@ -11,18 +11,23 @@ from werkzeug.serving import run_simple
 from satosa.proxy_server import ToBytesMiddleware, WsgiApplication
 from satosa.satosa_config import SATOSAConfig
 
-config_file = os.environ.get("SATOSA_CONFIG", "proxy_conf.yaml")
-server_config = SATOSAConfig(config_file)
-if "LOGGING" in server_config:
-    logging.config.dictConfig(server_config.LOGGING)
-else:
-    stdout_handler = logging.StreamHandler(sys.stdout)
-    stdout_handler.setLevel(logging.DEBUG)
+try:
+    config_file = os.environ.get("SATOSA_CONFIG", "proxy_conf.yaml")
+    server_config = SATOSAConfig(config_file)
+    if "LOGGING" in server_config:
+        logging.config.dictConfig(server_config.LOGGING)
+    else:
+        stdout_handler = logging.StreamHandler(sys.stdout)
+        stdout_handler.setLevel(logging.DEBUG)
 
-    logger = logging.getLogger("")
-    logger.addHandler(stdout_handler)
-    logger.setLevel(logging.DEBUG)
-app = ToBytesMiddleware(WsgiApplication(server_config).run_server)
+        logger = logging.getLogger("")
+        logger.addHandler(stdout_handler)
+        logger.setLevel(logging.DEBUG)
+    app = ToBytesMiddleware(WsgiApplication(server_config).run_server)
+except Exception:
+    logger = logging.getLogger(__name__)
+    logger.exception("Failed to create WSGI app.")
+    raise
 
 
 def main():

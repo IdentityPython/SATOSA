@@ -14,6 +14,7 @@ from saml2.client_base import Base
 from saml2.config import SPConfig
 from saml2.metadata import create_metadata_string
 from saml2.samlp import NameIDPolicy
+
 from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
 
 from satosa.backends.base import BackendModule

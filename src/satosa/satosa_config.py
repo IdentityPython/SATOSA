@@ -1,8 +1,11 @@
 """
 This module contains methods to load, verify and build configurations for the satosa proxy.
 """
+import json
 import logging
 import os
+
+import yaml
 
 __author__ = 'mathiashedstrom'
 
@@ -129,11 +132,9 @@ class SATOSAConfig(object):
         """
         try:
             config = SATOSAConfig._readfile(config)
-            import json
-
             return json.loads(config)
         except ValueError as error:  # not a json config
-            pass
+            LOGGER.debug("Could not parse config as json: {}", str(error))
 
     @staticmethod
     def _load_yaml(config):
@@ -148,12 +149,9 @@ class SATOSAConfig(object):
         """
         try:
             config = SATOSAConfig._readfile(config)
-            import yaml
-            return yaml.load(config)
-        except ImportError:
-            LOGGER.warn("No YAML library installed")
-        except Exception:
-            pass
+            return yaml.safe_load(config)
+        except yaml.YAMLError as error:
+            LOGGER.debug("Could not parse config as YAML: {}", str(error))
 
     @staticmethod
     def _readfile(config):
@@ -167,11 +165,5 @@ class SATOSAConfig(object):
         :param config: Path to file or config string
         :return: File data
         """
-        try:
-            if os.path.isfile(config):
-                config_file = open(config, "r")
-                config = config_file.read()
-                config_file.close()
-        except Exception:
-            pass
-        return config
+        with open(config) as f:
+            return f.read()

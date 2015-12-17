@@ -1,3 +1,5 @@
+import pytest
+
 from satosa.satosa_config import SATOSAConfig
 
 DEFAULT_CONFIG_DICT = {
@@ -27,3 +29,7 @@ class TestSATOSAConfig:
         config = SATOSAConfig(DEFAULT_CONFIG_DICT)
         assert config.USER_ID_HASH_SALT == "user_id_hash_salt"
         assert config.STATE_ENCRYPTION_KEY == "state_encryption_key"
+
+    def test_raise_exception_if_file_dont_exist(self):
+        with pytest.raises(IOError):
+            SATOSAConfig._readfile("no_exist")
