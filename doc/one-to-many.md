@@ -1,3 +1,6 @@
+# saml-to-saml
+
+## one-to-many
 ![](images/one-to-many_proxy_uscase.png "one-to-many proxy overview image")
 
 1. The service provider sends a request to the proxy instance. The service provider only knows about the proxy and none of the actual identity providers.
@@ -5,6 +8,16 @@
 1. The entity ID of the identity provider selected by the user is returned to the proxy 
 1. The proxy sent authentication request and when completed the the user get redirected back to the proxy
 1. The response returned from the Identity provider is returned to the Service provider
+
+## many-to-one
+![](images/many-to-one.png "many-to-one proxy overview image")
+
+1. Service provider sends request to proxy
+1. Proxy communicates with the identity provider which normally can't talk to the service provider. 
+A reason for this could be that it can't handle multiple entity ID's or that they are not really
+compatible.
+1. Response returned by the identity provider containing the user information.
+1. proxy returns the response to the service provider
 
 # Installation
 After following the [installation instructions](README.md#installation), the proxy must
@@ -16,9 +29,9 @@ be configured with a SAML2 frontend and an SAML2 backend.
 1. Copy the necessary base configurations from the `<satosa_path>/example` directory:
    ```bash
    mkdir -p saml2-saml2/plugins
-   cp example/{proxy_conf.yaml.example,internal_attributes.yaml.example} saml2-oidc/ # proxy application and its config
-   cp example/plugins/frontends/saml2_frontend.yaml.example saml2-oidc/plugins/
-   cp example/plugins/backends/saml2_backend.yaml.example saml2-oidc/plugins/
+   cp example/{proxy_conf.yaml.example,internal_attributes.yaml.example} saml2-saml2/
+   cp example/plugins/frontends/saml2_frontend.yaml.example saml2-saml2/plugins/
+   cp example/plugins/backends/saml2_backend.yaml.example saml2-saml2/plugins/
    ```
    
 1. Configure the proxy:

@@ -31,14 +31,18 @@
 - [Running the proxy application](doc/README.md#run)
 
 
-## Use cases
+# Use cases
+In this section a set of use cases for the proxy is presented. 
 
-### Single Service Provider<->Multiple Identity providers 
+## SAML2<->SAML2
 There are SAML2 service providers for example Box which is not able to handle multiple identity 
 providers. For more information about how to set up, configure and run such a proxy instance 
 please visit [Single Service Provider<->Multiple Identity providers](doc/one-to-many.md)
 
-### SAML2<->Social logins
+If an identity provider can not communicate with service providers in for example a federation the 
+can convert request and make the communication possible.
+
+## SAML2<->Social logins
 This setup makes it possible to connect a SAML2 service provider to multiple social media identity 
 providers such as Goolgle, Facebook. The proxy makes it possible to mirror a identity provider by 
 generating SAML2 metadata corresponding that provider and create dynamic endpoint which 
@@ -46,12 +50,6 @@ are connected to a single identity provider.
 For more information about how to set up, configure and run such a proxy instance please visit 
 [SAML2<->Social logins](doc/SAML2-to-Social_logins.md)
 
-### SAML2<->OIDC
+## SAML2<->OIDC
 The proxy is able to act as a proxy between a SAML2 service provider and a OpenID connect provider 
 [SAML2<->OIDC](doc/saml2-to-oidc.md)
-
-
-### SAML2<->SAML2
-This could be used in order to connect two different SAML2 implementations which normally could not 
-communicate.
-[SAML2<->SAML2](doc/saml2-to-saml2.md)
