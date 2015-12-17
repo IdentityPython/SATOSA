@@ -7,9 +7,9 @@ be configured with a SAML2 frontend and an SAML2.
 1. Copy the necessary base configurations from the `<satosa_path>/example` directory:
    ```bash
    mkdir -p saml2-saml2/plugins
-   cp example/{proxy_conf.yaml.example,internal_attributes.yaml.example} saml2-oidc/ # proxy application and its config
-   cp example/plugins/frontends/saml2_frontend.yaml.example saml2-oidc/plugins/
-   cp example/plugins/backends/saml2_backend.yaml.example saml2-oidc/plugins/
+   cp example/{proxy_conf.yaml.example,internal_attributes.yaml.example} saml2-saml2/
+   cp example/plugins/frontends/saml2_frontend.yaml.example saml2-saml2/plugins/
+   cp example/plugins/backends/saml2_backend.yaml.example saml2-saml2/plugins/
    ```
    
 1. Configure the proxy:
