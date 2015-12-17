@@ -12,7 +12,7 @@ This document describes how to install and configure the SATOSA proxy.
    pip install <satosa_path>
    ```
    
-1. Alternatively the application can be downloaded directly from PyPI (`pip install satosa`), or the [Docker image[(https://hub.docker.com/r/itsdirg/satosa/) can be used.
+1. Alternatively the application can be downloaded directly from PyPI (`pip install satosa`), or the [Docker image](https://hub.docker.com/r/itsdirg/satosa/) can be used.
 
 <br>
 <br>
