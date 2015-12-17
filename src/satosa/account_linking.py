@@ -140,7 +140,7 @@ class AccountLinkingModule(object):
         try:
             request = "{}/get_id?jwt={}".format(self.al_rest_uri, jws)
             response = requests.get(request, verify=self.verify_ssl)
-        except ConnectionError as con_exc:
+        except requests.ConnectionError as con_exc:
             msg = "Could not connect to account linking service"
             satosa_logging(LOGGER, logging.CRITICAL, msg, context.state, exc_info=True)
             raise SATOSAAuthenticationError(context.state, msg) from con_exc

@@ -1,8 +1,10 @@
+import requests
 from mock.mock import MagicMock
 import pytest
 import responses
 from satosa.account_linking import AccountLinkingModule
 from satosa.context import Context
+from satosa.exception import SATOSAAuthenticationError
 from satosa.internal_data import InternalResponse, AuthenticationInformation
 from satosa.response import Redirect
 from satosa.satosa_config import SATOSAConfig
@@ -15,10 +17,12 @@ INTERNAL_ATTRIBUTES = {
     'attributes': {
         'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
         'givenname': {'saml': ['givenName'], 'openid': ['given_name'], 'facebook': ['first_name']},
-        'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'], 'facebook': ['email']},
-        'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'], 'facebook': ['id']},
+        'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
+                 'facebook': ['email']},
+        'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
+                                'facebook': ['id']},
         'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
-        'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],'facebook': ['last_name']}
+        'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'], 'facebook': ['last_name']}
     }
 }
 
@@ -66,15 +70,15 @@ class TestAccountLinking():
     def test_store_existing_uuid_in_internal_attributes(self):
         uuid = "uuid"
         responses.add(
-            responses.GET,
-            "%s/get_id" % self.account_linking_config['rest_uri'],
-            status=200,
-            body=uuid,
-            content_type='text/html'
+                responses.GET,
+                "%s/get_id" % self.account_linking_config['rest_uri'],
+                status=200,
+                body=uuid,
+                content_type='text/html'
         )
         account_linking = AccountLinkingModule(
-            SATOSAConfig(self.satosa_config),
-            self.callback_func
+                SATOSAConfig(self.satosa_config),
+                self.callback_func
         )
         account_linking.manage_al(self.context, self.internal_response)
         assert self.internal_response.get_user_id() == uuid
@@ -83,16 +87,29 @@ class TestAccountLinking():
     def test_account_link_does_not_exists(self):
         ticket = "ticket"
         responses.add(
-            responses.GET,
-            "%s/get_id" % self.account_linking_config['rest_uri'],
-            status=404,
-            body=ticket,
-            content_type='text/html'
+                responses.GET,
+                "%s/get_id" % self.account_linking_config['rest_uri'],
+                status=404,
+                body=ticket,
+                content_type='text/html'
         )
         account_linking = AccountLinkingModule(
-            SATOSAConfig(self.satosa_config),
-            self.callback_func
+                SATOSAConfig(self.satosa_config),
+                self.callback_func
         )
         result = account_linking.manage_al(self.context, self.internal_response)
         assert isinstance(result, Redirect)
         assert self.account_linking_config["redirect"] in result.message
+
+    @responses.activate
+    def test_handle_failed_connection(self):
+        exception = requests.ConnectionError("No connection")
+        responses.add(responses.GET, "%s/get_id" % self.account_linking_config['rest_uri'],
+                      body=exception)
+        account_linking = AccountLinkingModule(
+                SATOSAConfig(self.satosa_config),
+                self.callback_func
+        )
+
+        with pytest.raises(SATOSAAuthenticationError):
+            account_linking.manage_al(self.context, self.internal_response)
