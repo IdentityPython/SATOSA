@@ -5,7 +5,7 @@ This document describes how to install and configure the SATOSA proxy.
 # Installation
 
 ## <a name="dependencies" style="color:#000000">Dependencies</a>
-SATOSA requires the following packages on Ubuntu:
+SATOSA requires Python 3.4 (or above), and the following packages on Ubuntu:
 ```
 apt-get install libffi-dev libssl-dev xmlsec1
 ````
