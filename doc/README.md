@@ -3,6 +3,14 @@ This document describes how to install and configure the SATOSA proxy.
 <!-- ![](doc/images/satosa_proxy_internals.png "SATOSA overview image") -->
 
 # Installation
+
+## <a name="dependencies" style="color:#000000">Dependencies</a>
+SATOSA requires the following packages on Ubuntu:
+```
+apt-get install libffi-dev libssl-dev xmlsec1
+````
+
+## <a name="install_instructions" style="color:#000000">Instructions</a>
 1. Download the SATOSA proxy project as a [compressed archive](https://github.com/its-dirg/SATOSA/releases)
    and unpack it to `<satosa_path>`.
 
@@ -12,7 +20,7 @@ This document describes how to install and configure the SATOSA proxy.
    pip install <satosa_path>
    ```
    
-1. Alternatively the application can be downloaded directly from PyPI (`pip install satosa`), or the [Docker image](https://hub.docker.com/r/itsdirg/satosa/) can be used.
+Alternatively the application can be installed directly from PyPI (`pip install satosa`), or the [Docker image](https://hub.docker.com/r/itsdirg/satosa/) can be used.
 
 <br>
 <br>
