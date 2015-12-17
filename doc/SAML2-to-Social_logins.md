@@ -18,7 +18,7 @@ be configured with a SAML2 frontend and an SAML2 backend.
 1. Copy the necessary base configurations from the `<satosa_path>/example` directory:
    ```bash
    mkdir -p SAML2-to-Social_logins/plugins
-   cp example/{proxy_conf.yaml.example,internal_attributes.yaml.example} SAML2-to-Social_logins/ # proxy application and its config
+   cp example/{proxy_conf.yaml.example,internal_attributes.yaml.example} SAML2-to-Social_logins/
    cp example/plugins/frontends/saml2_frontend.yaml.example SAML2-to-Social_logins/plugins/
    cp example/plugins/backends/saml2_backend.yaml.example SAML2-to-Social_logins/plugins/
    ```
@@ -67,9 +67,6 @@ be configured with a SAML2 frontend and an SAML2 backend.
 
 1. Generate the SAML metadata, see the [SAML metadata](README.md#saml_metadata) section of the
    proxy configuration instructions for more information.
-   ```bash
-   make_saml_metadata.py proxy_conf.yaml
-   ```
 
 # Run
 1. Start the proxy application, see the [Running the proxy application](README.md#run) section of

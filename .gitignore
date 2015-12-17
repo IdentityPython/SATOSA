@@ -8,3 +8,6 @@ example/*_conf.py
 *static/
 *.egg-info
 .tox/
+.cache/
+build/
+dist/

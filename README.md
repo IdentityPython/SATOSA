@@ -1,9 +1,12 @@
 # SATOSA
 [![Build Status](https://travis-ci.org/its-dirg/SATOSA.svg?branch=travis)](https://travis-ci.org/its-dirg/SATOSA)
+[![PyPI](https://img.shields.io/pypi/v/SATOSA.svg)](https://pypi.python.org/pypi/SATOSA)
 
-# Table of Contents  <!---http://doctoc.herokuapp.com/ -->
+# Table of Contents
 
 - [Installation](doc/README.md#installation)
+    - [Dependencies](doc/README.md#dependencies)
+    - [Instructions](doc/README.md#install_instructions)
 - [Configuration](doc/README.md#configuration)
     - [SATOSA proxy configuration: proxy_conf.yaml.example](doc/README.md#proxy_conf)
         - [Additional services](doc/README.md#additional_service)

@@ -3,14 +3,25 @@ This document describes how to install and configure the SATOSA proxy.
 <!-- ![](doc/images/satosa_proxy_internals.png "SATOSA overview image") -->
 
 # Installation
+
+## <a name="dependencies" style="color:#000000">Dependencies</a>
+SATOSA requires Python 3.4 (or above), and the following packages on Ubuntu:
+```
+apt-get install libffi-dev libssl-dev xmlsec1
+````
+
+## <a name="install_instructions" style="color:#000000">Instructions</a>
 1. Download the SATOSA proxy project as a [compressed archive](https://github.com/its-dirg/SATOSA/releases)
    and unpack it to `<satosa_path>`.
 
-1. Install the Python code and its requirements:
+1. Install the application:
 
    ```bash  
    pip install <satosa_path>
    ```
+   
+Alternatively the application can be installed directly from PyPI (`pip install satosa`), or the [Docker image](https://hub.docker.com/r/itsdirg/satosa/) can be used.
+
 <br>
 <br>
 
@@ -246,8 +257,8 @@ for information on how to obtain them.
 
 # <a name="saml_metadata" style="color:#000000">Generate proxy metadata</a>
 
-The proxy metadata is generated based the front-/backend plugins listed in `proxy_conf.yaml` using the `make_saml_metadata.py`
-(installed globally by SATOSA installation).
+The proxy metadata is generated based on the front-/backend plugins listed in `proxy_conf.yaml`
+using the `make_satosa_saml_metadata.py` (installed globally by SATOSA installation).
 
 ## <a name="backend_metadata" style="color:#000000">Generate backend metadata</a>
 The command
@@ -257,10 +268,10 @@ make_satosa_saml_metadata.py proxy_conf.yaml
 will generate separate metadata files for all SAML2 backend modules and frontend modules 
 specified in `proxy_conf.yaml`.
 
-Detailed usage instructions can be viewed by running `make_saml_metadata.py -h`.
+Detailed usage instructions can be viewed by running `make_satosa_saml_metadata.py -h`.
 
     ```bash
-    usage: make_saml_metadata.py [-h] [-v VALID] [-c CERT] [-k KEYFILE] [-s]
+    usage: make_satosa_saml_metadata.py [-h] [-v VALID] [-c CERT] [-k KEYFILE] [-s]
                                  [-x XMLSEC] [-f] [-b] [-o OUTPUT]
                                  proxy_conf
     
