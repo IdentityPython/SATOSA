@@ -1,5 +1,6 @@
+from unittest.mock import MagicMock
+
 import requests
-from mock.mock import MagicMock
 import pytest
 import responses
 from satosa.account_linking import AccountLinkingModule

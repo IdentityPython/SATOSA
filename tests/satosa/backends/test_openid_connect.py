@@ -1,9 +1,9 @@
 import re
+from unittest.mock import MagicMock
 
 import pytest
 import responses
 from oic.utils.http_util import Redirect
-from mock import MagicMock
 
 from satosa.backends.openid_connect import OpenIdBackend
 from satosa.context import Context
