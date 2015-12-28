@@ -1,8 +1,10 @@
+import os
 from unittest.mock import MagicMock
 
-import requests
 import pytest
+import requests
 import responses
+
 from satosa.account_linking import AccountLinkingModule
 from satosa.context import Context
 from satosa.exception import SATOSAAuthenticationError
@@ -10,36 +12,32 @@ from satosa.internal_data import InternalResponse, AuthenticationInformation
 from satosa.response import Redirect
 from satosa.satosa_config import SATOSAConfig
 from satosa.state import State
-from tests.util import FileGenerator, private_to_public_key
+from tests.util import generate_cert
 
 __author__ = 'danielevertsson'
 
-INTERNAL_ATTRIBUTES = {
-    'attributes': {
-        'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
-        'givenname': {'saml': ['givenName'], 'openid': ['given_name'], 'facebook': ['first_name']},
-        'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
-                 'facebook': ['email']},
-        'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
-                                'facebook': ['id']},
-        'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
-        'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'], 'facebook': ['last_name']}
-    }
-}
 
-CONSENT_CERT, CONSENT_KEY = FileGenerator.get_instance().generate_cert("consent")
-CONSENT_PUB_KEY_STR = private_to_public_key(CONSENT_KEY.name)
+@pytest.fixture(scope="session")
+def signing_key_path(tmpdir_factory):
+    tmpdir = str(tmpdir_factory.getbasetemp())
+    path = os.path.join(tmpdir, "al_key.pem")
+    _, private_al_key = generate_cert()
+
+    with open(path, "wb") as f:
+        f.write(private_al_key)
+
+    return path
 
 
 class TestAccountLinking():
     @pytest.fixture(autouse=True)
-    def setup(self):
+    def setup(self, signing_key_path):
         self.account_linking_config = {
             "enable": True,
             "rest_uri": "https://localhost:8167",
             "redirect": "https://localhost:8167/approve",
             "endpoint": "handle_account_linking",
-            "sign_key": CONSENT_KEY.name,
+            "sign_key": signing_key_path,
             "verify_ssl": False
         }
         self.satosa_config = {
@@ -50,7 +48,7 @@ class TestAccountLinking():
             "PLUGIN_PATH": "",
             "BACKEND_MODULES": "",
             "FRONTEND_MODULES": "",
-            "INTERNAL_ATTRIBUTES": INTERNAL_ATTRIBUTES,
+            "INTERNAL_ATTRIBUTES": {},
             "ACCOUNT_LINKING": self.account_linking_config
         }
         self.callback_func = MagicMock()
