@@ -2,9 +2,7 @@
 Contains help methods and classes to perform tests.
 """
 import base64
-import random
 import re
-import sys
 import tempfile
 
 from Crypto.PublicKey import RSA
@@ -156,6 +154,20 @@ def create_metadata_from_config_dict(config):
     return entity_descriptor(conf).to_string(nspair).decode("utf-8")
 
 
+def generate_cert():
+    cert_info = {
+        "cn": "localhost",
+        "country_code": "se",
+        "state": "ac",
+        "city": "Umea",
+        "organization": "ITS",
+        "organization_unit": "DIRG"
+    }
+    osw = OpenSSLWrapper()
+    cert_str, key_str = osw.create_certificate(cert_info, request=False)
+    return cert_str, key_str
+
+
 class FileGenerator(object):
     """
     Creates different types of temporary files that is useful for testing.
@@ -193,17 +205,9 @@ class FileGenerator(object):
         """
         if code in self.generate_certs:
             return self.generate_certs[code]
-        sn = random.randint(1, sys.maxsize)
-        cert_info = {
-            "cn": "localhost",
-            "country_code": "se",
-            "state": "ac",
-            "city": "Umea",
-            "organization": "ITS",
-            "organization_unit": "DIRG"
-        }
-        osw = OpenSSLWrapper()
-        cert_str, key_str = osw.create_certificate(cert_info, request=False, sn=sn, key_length=2048)
+
+        cert_str, key_str = generate_cert()
+
         cert_file = tempfile.NamedTemporaryFile()
         cert_file.write(cert_str)
         cert_file.flush()
