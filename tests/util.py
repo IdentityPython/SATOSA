@@ -3,9 +3,9 @@ Contains help methods and classes to perform tests.
 """
 import base64
 import random
-import tempfile
-import sys
 import re
+import sys
+import tempfile
 
 from Crypto.PublicKey import RSA
 from saml2 import server, BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
@@ -13,11 +13,9 @@ from saml2.authn_context import AuthnBroker, authn_context_class_ref, PASSWORD
 from saml2.cert import OpenSSLWrapper
 from saml2.client import Saml2Client
 from saml2.config import config_factory, Config
-from saml2.metadata import entity_descriptor, entities_descriptor
+from saml2.metadata import entity_descriptor
 from saml2.saml import name_id_from_string, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
 from saml2.samlp import NameIDPolicy
-
-from saml2.validate import valid_instance
 
 from satosa.backends.base import BackendModule
 from satosa.frontends.base import FrontendModule
@@ -27,6 +25,7 @@ class FakeSP(Saml2Client):
     """
     A SAML service provider that can be used to perform tests.
     """
+
     def __init__(self, config_module, config=None):
         """
         :type config_module: str
@@ -49,9 +48,9 @@ class FakeSP(Saml2Client):
         """
         # Picks a binding to use for sending the Request to the IDP
         _binding, destination = self.pick_binding(
-            'single_sign_on_service',
-            [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST], 'idpsso',
-            entity_id=entity_id)
+                'single_sign_on_service',
+                [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST], 'idpsso',
+                entity_id=entity_id)
         # Binding here is the response binding that is which binding the
         # IDP shou  ld use to return the response.
         acs = self.config.getattr('endpoints', 'sp')[
@@ -107,8 +106,8 @@ class FakeIdP(server.Server):
         """
         auth_req = self.parse_authn_request(saml_request, binding)
         binding_out, destination = self.pick_binding(
-            'assertion_consumer_service',
-            entity_id=auth_req.message.issuer.text, request=auth_req.message)
+                'assertion_consumer_service',
+                entity_id=auth_req.message.issuer.text, request=auth_req.message)
 
         resp_args = self.response_args(auth_req.message)
         authn_broker = AuthnBroker()
@@ -134,21 +133,27 @@ class FakeIdP(server.Server):
             form_str = ""
             for item in form:
                 form_str += item
-        resp = re.split( r'([^=, ]+)="([^" ]+|[^," ]+)" ?',  form_str)
+        resp = re.split(r'([^=, ]+)="([^" ]+|[^," ]+)" ?', form_str)
         count = 0
         action = None
         saml_response = None
         relay_state = None
         for value in resp:
             if value == "action":
-                action = resp[count+1]
+                action = resp[count + 1]
             if value == 'SAMLRequest':
-                saml_response = resp[count+3]
+                saml_response = resp[count + 3]
             if value == "RelayState":
-                relay_state = resp[count+3]
+                relay_state = resp[count + 3]
             count += 1
         body = {"SAMLRequest": saml_response, "RelayState": relay_state}
         return action, body
+
+
+def create_metadata_from_config_dict(config):
+    nspair = {"xs": "http://www.w3.org/2001/XMLSchema"}
+    conf = Config().load(config, metadata_construction=True)
+    return entity_descriptor(conf).to_string(nspair).decode("utf-8")
 
 
 class FileGenerator(object):
@@ -221,17 +226,11 @@ class FileGenerator(object):
         """
         if code in self.metadata:
             return self.metadata[code]
-        nspair = {"xs": "http://www.w3.org/2001/XMLSchema"}
-        eds = []
 
-        conf = Config().load(config, metadata_construction=True)
-        eds.append(entity_descriptor(conf))
-        ed_id = conf.entityid
+        desc = create_metadata_from_config_dict(config)
 
-        desc, xmldoc = entities_descriptor(eds, conf.valid_for, None, ed_id, False, None)
-        valid_instance(desc)
         tmp_file = tempfile.NamedTemporaryFile()
-        tmp_file.write(desc.to_string(nspair))
+        tmp_file.write(desc.encode("utf-8"))
         tmp_file.flush()
         if code:
             self.metadata[code] = tmp_file
@@ -242,6 +241,7 @@ def private_to_public_key(pk_file):
     f = open(pk_file, 'r')
     pk = RSA.importKey(f.read())
     return pk.publickey().exportKey('PEM')
+
 
 def create_name_id():
     """
@@ -283,7 +283,9 @@ class FakeBackend(BackendModule):
     """
     TODO comment
     """
-    def __init__(self, start_auth_func=None,internal_attributes=None, register_endpoints_func=None):
+
+    def __init__(self, start_auth_func=None, internal_attributes=None,
+                 register_endpoints_func=None):
         super(FakeBackend, self).__init__(None, internal_attributes)
 
         self.start_auth_func = start_auth_func
@@ -317,7 +319,9 @@ class FakeFrontend(FrontendModule):
     """
     TODO comment
     """
-    def __init__(self, handle_authn_request_func=None,internal_attributes=None, handle_authn_response_func=None,
+
+    def __init__(self, handle_authn_request_func=None, internal_attributes=None,
+                 handle_authn_response_func=None,
                  register_endpoints_func=None):
         super(FakeFrontend, self).__init__(None, internal_attributes)
         self.handle_authn_request_func = handle_authn_request_func
