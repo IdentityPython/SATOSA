@@ -150,3 +150,39 @@ class TestDataConverter:
         assert Counter(internal_repr["mail"]) == expected
         external_repr = converter.from_internal("saml", internal_repr)
         assert Counter(external_repr[mapping["attributes"]["mail"]["saml"][0]]) == expected
+
+    def test_to_internal_filter(self):
+        mapping = {
+            "attributes": {
+                "mail": {
+                    "p1": ["email"],
+                },
+                "identifier": {
+                    "p1": ["uid"],
+                },
+            },
+        }
+
+        data = {"uid": "12345", "email": "test@example.com"}
+
+        converter = DataConverter(mapping)
+        filter = converter.to_internal_filter("p1", data, False)
+        assert Counter(filter) == Counter(["mail", "identifier"])
+
+    def test_to_internal_filter_case_insensitive(self):
+        mapping = {
+            "attributes": {
+                "mail": {
+                    "p1": ["emailaddress"],
+                },
+                "identifier": {
+                    "p1": ["uid"],
+                },
+            },
+        }
+
+        data = {"Uid": "12345", "eMaILAdDreSS": "test@example.com"}
+
+        converter = DataConverter(mapping)
+        filter = converter.to_internal_filter("p1", data, True)
+        assert Counter(filter) == Counter(["mail", "identifier"])

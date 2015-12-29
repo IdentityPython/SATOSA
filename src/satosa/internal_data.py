@@ -49,17 +49,15 @@ class DataConverter(object):
         :param case_insensitive: Create a case insensitive filter
         :return: A list of attribute names in the internal format
         """
-        internal_keys = []
+        internal_keys = set()
         for external_key in external_keys:
-            if external_key in self.to_internal_attributes[external_type] or \
-                    (case_insensitive and external_key in
-                        self.to_internal_attributes_lower[external_type]):
-                if case_insensitive:
-                    internal_key = self.to_internal_attributes_lower[external_type][external_key]
-                else:
-                    internal_key = self.to_internal_attributes[external_type][external_key]
-                if internal_key not in internal_keys:
-                    internal_keys.append(internal_key)
+            if case_insensitive:
+                internal_key = self.to_internal_attributes_lower[external_type][external_key.lower()]
+            else:
+                internal_key = self.to_internal_attributes[external_type][external_key]
+
+            internal_keys.add(internal_key)
+
         return internal_keys
 
     def _get_attr_value_key(self, my_key, my_dict):
@@ -94,9 +92,9 @@ class DataConverter(object):
                     internal_dict[internal_key].append(json.dumps(external_dict[external_key]))
                 else:
                     internal_dict.update(
-                        self.to_internal(external_type,
-                                         self._get_attr_value_key(external_key,
-                                                                  external_dict[external_key])))
+                            self.to_internal(external_type,
+                                             self._get_attr_value_key(external_key,
+                                                                      external_dict[external_key])))
             elif external_key in self.to_internal_attributes[external_type]:
                 internal_key = self.to_internal_attributes[external_type][external_key]
                 if internal_key not in internal_dict:
@@ -278,7 +276,7 @@ class AuthenticationInformation(object):
         """
         return {"issuer": self.issuer,
                 "timestamp": self.timestamp,
-                "auth_class_ref": self.auth_class_ref, }
+                "auth_class_ref": self.auth_class_ref,}
 
 
 class InternalData(object):
