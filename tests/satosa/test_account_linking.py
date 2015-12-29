@@ -1,4 +1,3 @@
-import os
 from unittest.mock import MagicMock
 
 import pytest
@@ -12,21 +11,8 @@ from satosa.internal_data import InternalResponse, AuthenticationInformation
 from satosa.response import Redirect
 from satosa.satosa_config import SATOSAConfig
 from satosa.state import State
-from tests.util import generate_cert
 
 __author__ = 'danielevertsson'
-
-
-@pytest.fixture(scope="session")
-def signing_key_path(tmpdir_factory):
-    tmpdir = str(tmpdir_factory.getbasetemp())
-    path = os.path.join(tmpdir, "al_key.pem")
-    _, private_al_key = generate_cert()
-
-    with open(path, "wb") as f:
-        f.write(private_al_key)
-
-    return path
 
 
 class TestAccountLinking():
