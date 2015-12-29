@@ -298,6 +298,7 @@ class SamlFrontend(FrontendModule):
         """
         name_format = idp_policy.get_name_form(sp_entity_id)
         attrconvs = idp.config.attribute_converters
+        idp_policy.acs = attrconvs
         attribute_filter = []
         for aconv in attrconvs:
             if aconv.name_format == name_format:

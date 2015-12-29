@@ -1,28 +1,28 @@
 """
 Tests for the SAML frontend module src/frontends/saml2.py.
 """
+import os.path
 import re
 from urllib import parse
-import os.path
+from urllib.parse import urlparse
 
 import pytest
+from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.authn_context import PASSWORD
 from saml2.config import SPConfig
-from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.entity_category.edugain import COC
 from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, \
     SFS_1993_1153, NREN, EU
-
+from saml2.saml import NAMEID_FORMAT_TRANSIENT
 from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_PERSISTENT
 
-from saml2.saml import NAMEID_FORMAT_TRANSIENT
-
-from satosa.frontends.saml2 import SamlFrontend
 from satosa.context import Context
-from satosa.internal_data import InternalResponse, AuthenticationInformation
+from satosa.frontends.saml2 import SamlFrontend
+from satosa.internal_data import InternalResponse, AuthenticationInformation, InternalRequest
 from satosa.state import State
+from satosa.util import saml_name_format_to_hash_type
 from tests.users import USERS
-from tests.util import FakeSP, FileGenerator
+from tests.util import FakeSP, FileGenerator, create_metadata_from_config_dict
 
 INTERNAL_ATTRIBUTES = {
     'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
@@ -198,8 +198,7 @@ def test_handle_authn_request(conf, binding_in, providers, error):
         fakesp = FakeSP(None, config=SPConfig().load(SPCONFIG, metadata_construction=False))
         context = Context()
         context.state = State()
-        context.request = parse.parse_qs(
-            fakesp.make_auth_req(samlfrontend.config["entityid"]).split("?")[1])
+        context.request = parse.parse_qs(urlparse(fakesp.make_auth_req(samlfrontend.config["entityid"])).query)
         tmp_dict = {}
         for val in context.request:
             if isinstance(context.request[val], list):
@@ -212,3 +211,47 @@ def test_handle_authn_request(conf, binding_in, providers, error):
         if error is None or not isinstance(exception, error):
             raise exception
         return
+
+
+def test_get_filter_attributes_with_sp_requested_attributes_without_friendlyname():
+    idp_config = IDPCONFIG.copy()
+    sp_metadata_str = """<?xml version="1.0"?>
+    <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://sp.example.com">
+      <md:SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:1.1:protocol urn:oasis:names:tc:SAML:2.0:protocol">
+        <md:AttributeConsumingService>
+          <md:RequestedAttribute Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.10" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri" isRequired="true"/>
+          <md:RequestedAttribute Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.6" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri" isRequired="true"/>
+          <md:RequestedAttribute Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.1" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri"/>
+          <md:RequestedAttribute Name="urn:oid:0.9.2342.19200300.100.1.3" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri" isRequired="true"/>
+          <md:RequestedAttribute Name="urn:oid:2.16.840.1.113730.3.1.241" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri"/>
+          <md:RequestedAttribute Name="urn:oid:2.5.4.4" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri"/>
+          <md:RequestedAttribute Name="urn:oid:2.5.4.42" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri"/>
+        </md:AttributeConsumingService>
+      </md:SPSSODescriptor>
+    </md:EntityDescriptor>
+    """
+
+    idp_config["metadata"] = {"inline": [sp_metadata_str]}
+
+    conf = {"idp_config": idp_config, "endpoints": ENDPOINTS, "base": IDP_BASE,
+            "state_id": IDP_STATE_ID}
+
+    internal_attributes = {"attributes": {attr_name: {"saml": [attr_name]} for attr_name in
+                                          ["edupersontargetedid", "edupersonprincipalname",
+                                           "edupersonaffiliation", "mail", "displayname", "sn",
+                                           "givenname"]}}  # no op mapping for saml attribute names
+
+    samlfrontend = SamlFrontend(None, internal_attributes, conf)
+    samlfrontend.register_endpoints(["testprovider"])
+
+    internal_req = InternalRequest(saml_name_format_to_hash_type(NAMEID_FORMAT_PERSISTENT),
+                                   "http://sp.example.com",
+                                   "Example SP")
+    filtered_attributes = samlfrontend.get_filter_attributes(samlfrontend.idp,
+                                                             samlfrontend.idp.config.getattr(
+                                                                     "policy", "idp"),
+                                                             internal_req.requestor, None)
+
+    assert set(filtered_attributes) == set(
+            ["edupersontargetedid", "edupersonprincipalname", "edupersonaffiliation", "mail",
+             "displayname", "sn", "givenname"])
