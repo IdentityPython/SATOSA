@@ -11,6 +11,25 @@ from satosa.exception import SATOSAError
 __author__ = 'haho0032'
 
 
+class CaseInsensitiveMapping:
+    def __init__(self):
+        self.mapping = {}
+        self.mapping_lower = {}
+
+    def __setitem__(self, key, value):
+        self.mapping[key] = value
+        self.mapping_lower[key.lower()] = value
+
+    def __getitem__(self, item):
+        return self.get(item)
+
+    def get(self, item, case_insensitive=False, default=None):
+        if case_insensitive and isinstance(item, str):
+            return self.mapping_lower[item.lower()]
+
+        return self.mapping[item]
+
+
 class DataConverter(object):
     """
     Converts between internal and external data format
@@ -22,18 +41,17 @@ class DataConverter(object):
         :param internal_attributes: A map of how to convert the attributes
         (dict[internal_name, dict[external_type, external_name]])
         """
-        self.to_internal_attributes = {}
-        self.to_internal_attributes_lower = {}
         self.separator = "."  # separator for nested attribute values, e.g. address.street_address
         self.from_internal_attributes = internal_attributes["attributes"]
-        for internal_key in self.from_internal_attributes:
-            for tmp_type in self.from_internal_attributes[internal_key]:
-                if tmp_type not in self.to_internal_attributes:
-                    self.to_internal_attributes[tmp_type] = {}
-                    self.to_internal_attributes_lower[tmp_type] = {}
-                for external_key in self.from_internal_attributes[internal_key][tmp_type]:
-                    self.to_internal_attributes[tmp_type][external_key] = internal_key
-                    self.to_internal_attributes_lower[tmp_type][external_key.lower()] = internal_key
+
+        self.external2internal_attribute_name_mapping = {}
+        for internal_key, mappings in self.from_internal_attributes.items():
+            for type, external_keys in self.from_internal_attributes[internal_key].items():
+                if type not in self.external2internal_attribute_name_mapping:
+                    self.external2internal_attribute_name_mapping[type] = CaseInsensitiveMapping()
+
+                for external_key in external_keys:
+                    self.external2internal_attribute_name_mapping[type][external_key] = internal_key
 
     def to_internal_filter(self, external_type, external_keys, case_insensitive=False):
         """
@@ -51,12 +69,9 @@ class DataConverter(object):
         """
         internal_keys = set()
         for external_key in external_keys:
-            if case_insensitive:
-                internal_key = self.to_internal_attributes_lower[external_type][external_key.lower()]
-            else:
-                internal_key = self.to_internal_attributes[external_type][external_key]
-
-            internal_keys.add(internal_key)
+            internal_keys.add(
+                self.external2internal_attribute_name_mapping[external_type].get(external_key,
+                                                                                 case_insensitive))
 
         return internal_keys
 
@@ -88,7 +103,7 @@ class DataConverter(object):
             external_key = self.from_internal_attributes[internal_key][external_type]
             attribute_values = self._collate_attribute_values_by_priority_order(external_key,
                                                                                 external_dict)
-            if attribute_values: # Only insert key if it has some values
+            if attribute_values:  # Only insert key if it has some values
                 internal_dict[internal_key] = attribute_values
 
         return internal_dict
