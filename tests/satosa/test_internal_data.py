@@ -186,3 +186,33 @@ class TestDataConverter:
         converter = DataConverter(mapping)
         filter = converter.to_internal_filter("p1", data, True)
         assert Counter(filter) == Counter(["mail", "identifier"])
+
+    def test_to_internal_with_missing_attribute_value(self):
+        mapping = {
+            "attributes": {
+                "mail": {
+                    "p1": ["emailaddress"],
+                },
+            }
+        }
+
+        converter = DataConverter(mapping)
+        internal_repr = converter.to_internal("p1", {})
+        assert not internal_repr
+
+
+    def test_map_one_source_attribute_to_multiple_internal_attributes(self):
+        mapping = {
+            "attributes": {
+                "mail": {
+                    "p1": ["email"],
+                },
+                "identifier": {
+                    "p1": ["email"],
+                },
+            },
+        }
+
+        converter = DataConverter(mapping)
+        internal_repr = converter.to_internal("p1", {"email": "test@example.com"})
+        assert internal_repr == {"mail": ["test@example.com"], "identifier": ["test@example.com"]}

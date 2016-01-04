@@ -83,27 +83,33 @@ class DataConverter(object):
         :return: Attributes in the internal format
         """
         internal_dict = {}
-        for external_key in external_dict.keys():
-            if isinstance(external_dict[external_key], dict):
-                if external_key in self.to_internal_attributes[external_type]:
-                    internal_key = self.to_internal_attributes[external_type][external_key]
-                    if internal_key not in internal_dict:
-                        internal_dict[internal_key] = []
-                    internal_dict[internal_key].append(json.dumps(external_dict[external_key]))
-                else:
-                    internal_dict.update(
-                            self.to_internal(external_type,
-                                             self._get_attr_value_key(external_key,
-                                                                      external_dict[external_key])))
-            elif external_key in self.to_internal_attributes[external_type]:
-                internal_key = self.to_internal_attributes[external_type][external_key]
-                if internal_key not in internal_dict:
-                    internal_dict[internal_key] = []
-                if isinstance(external_dict[external_key], list):
-                    internal_dict[internal_key] += external_dict[external_key]
-                else:
-                    internal_dict[internal_key].append(external_dict[external_key])
+
+        for internal_key in self.from_internal_attributes:
+            external_key = self.from_internal_attributes[internal_key][external_type]
+            attribute_values = self._collate_attribute_values_by_priority_order(external_key,
+                                                                                external_dict)
+            if attribute_values: # Only insert key if it has some values
+                internal_dict[internal_key] = attribute_values
+
         return internal_dict
+
+    def _collate_attribute_values_by_priority_order(self, attribute_names, data):
+        result = []
+        for attr_name in attribute_names:
+            attr_val = self._get_nested_attribute_value(attr_name, data)
+            if attr_val:
+                result.append(attr_val)
+        return result
+
+    def _get_nested_attribute_value(self, nested_key, data):
+        keys = nested_key.split(self.separator)
+
+        d = data
+        for key in keys:
+            d = d.get(key)
+            if d is None:
+                return None
+        return d
 
     def from_internal(self, external_type, internal_dict, attr_list=True, external_keys=None):
         # TODO doc about external_keys
