@@ -107,13 +107,6 @@ SPCONFIG = {
     },
     "xmlsec_binary": XMLSEC_PATH,
 }
-CONFIG = {"idp_config": IDPCONFIG, "endpoints": ENDPOINTS, "base": IDP_BASE,
-          "state_id": IDP_STATE_ID}
-
-TESTDATA_HANDLE_AUTHN_REQUEST = [
-    (CONFIG, None, None, TypeError),
-    (CONFIG, "whatever", None, TypeError),
-    (CONFIG, BINDING_HTTP_REDIRECT, ["qwerty", "ytrewq"], None)]
 
 
 @pytest.mark.parametrize("conf", [
@@ -130,86 +123,62 @@ def test_config_error_handling(conf):
         SamlFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES, conf)
 
 
-@pytest.mark.parametrize("conf, binding_in, providers, error", TESTDATA_HANDLE_AUTHN_REQUEST)
-def test_handle_authn_request(conf, binding_in, providers, error):
+def test_handle_authn_request():
     """
     Performs a complete test for the module. The flow should be accepted.
-    :type conf: dict
-    :type binding_in: str
-    :type providers: list
-    :type error: Exception
-
-    :param conf: Module configuration.
-    :param binding_in: Type of binding post | redirect
-    :param providers: A list of strings with the names of the providers.
-    :param error: None or an allowed exception.
     """
-    fakesp = None
 
-    def auth_req_callback_func(context, internal_req):
-        """
-        :type context: satosa.context.Context
-        :type: internal_req: satosa.internal_data.InternalRequest
+    CONFIG = {"idp_config": IDPCONFIG, "endpoints": ENDPOINTS, "base": IDP_BASE,
+              "state_id": IDP_STATE_ID}
+    providers = ["foo", "bar"]
 
-        :param context: Contains the request context from the module.
-        :param internal_req:
-        :return:
-        """
-        assert internal_req.requestor == SPCONFIG["entityid"]
-        auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
-        internal_response = InternalResponse(auth_info=auth_info)
-        internal_response.set_user_id_hash_type(internal_req.user_id_hash_type)
-        internal_response.add_attributes(USERS["testuser1"])
+    samlfrontend = SamlFrontend(lambda context, internal_req: (context, internal_req),
+                                INTERNAL_ATTRIBUTES, CONFIG)
 
-        resp = samlfrontend.handle_authn_response(context, internal_response)
-        resp_dict = parse.parse_qs(resp.message.split("?")[1])
-        resp = fakesp.parse_authn_request_response(resp_dict['SAMLResponse'][0],
-                                                   BINDING_HTTP_REDIRECT)
-        for key in resp.ava:
-            assert key in resp.ava
-            assert USERS["testuser1"][key] == resp.ava[key]
+    sp_metadata_file = FileGenerator.get_instance().create_metadata(SPCONFIG)
+    IDPCONFIG["metadata"]["local"] = [sp_metadata_file.name]
+    url_map = samlfrontend.register_endpoints(providers)
+    for regex in url_map:
+        p = re.compile(regex[0])
+        match = False
+        for provider in providers:
+            for s_key in CONFIG["endpoints"]:
+                for b_key in CONFIG["endpoints"][s_key]:
+                    if p.match(provider + "/" + CONFIG["endpoints"][s_key][b_key]) or \
+                            p.match(provider + "/" + CONFIG["endpoints"][s_key][b_key] + "/test"):
+                        match = True
+                        break
+        assert match, "All regular expressions must match!"
 
-    samlfrontend = SamlFrontend(auth_req_callback_func, INTERNAL_ATTRIBUTES, conf)
+    idp_metadata_file = FileGenerator.get_instance().create_metadata(samlfrontend.config)
+    SPCONFIG["metadata"]["local"] = [idp_metadata_file.name]
+    fakesp = FakeSP(None, config=SPConfig().load(SPCONFIG, metadata_construction=False))
+    context = Context()
+    context.state = State()
+    context.request = parse.parse_qs(
+            urlparse(fakesp.make_auth_req(samlfrontend.config["entityid"])).query)
+    tmp_dict = {}
+    for val in context.request:
+        if isinstance(context.request[val], list):
+            tmp_dict[val] = context.request[val][0]
+        else:
+            tmp_dict[val] = context.request[val]
+    context.request = tmp_dict
 
-    try:
-        sp_metadata_file = FileGenerator.get_instance().create_metadata(SPCONFIG)
-        IDPCONFIG["metadata"]["local"] = [sp_metadata_file.name]
-        url_map = samlfrontend.register_endpoints(providers)
-        for regex in url_map:
-            p = re.compile(regex[0])
-            match = False
-            for provider in providers:
-                for s_key in conf["endpoints"]:
-                    for b_key in conf["endpoints"][s_key]:
-                        if p.match(provider + "/" + conf["endpoints"][s_key][b_key]) or \
-                                p.match(provider + "/" + conf["endpoints"][s_key][b_key] + "/test"):
-                            match = True
-                            break
-            assert match, "All regular expressions must match!"
-    except Exception as exception:
-        if error is None or not isinstance(exception, error):
-            raise exception
-        return
-    try:
-        idp_metadata_file = FileGenerator.get_instance().create_metadata(samlfrontend.config)
-        SPCONFIG["metadata"]["local"] = [idp_metadata_file.name]
-        fakesp = FakeSP(None, config=SPConfig().load(SPCONFIG, metadata_construction=False))
-        context = Context()
-        context.state = State()
-        context.request = parse.parse_qs(
-                urlparse(fakesp.make_auth_req(samlfrontend.config["entityid"])).query)
-        tmp_dict = {}
-        for val in context.request:
-            if isinstance(context.request[val], list):
-                tmp_dict[val] = context.request[val][0]
-            else:
-                tmp_dict[val] = context.request[val]
-        context.request = tmp_dict
-        samlfrontend.handle_authn_request(context, binding_in)
-    except Exception as exception:
-        if error is None or not isinstance(exception, error):
-            raise exception
-        return
+    _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
+    assert internal_req.requestor == SPCONFIG["entityid"]
+
+    auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
+    internal_response = InternalResponse(auth_info=auth_info)
+    internal_response.set_user_id_hash_type(internal_req.user_id_hash_type)
+    internal_response.add_attributes(USERS["testuser1"])
+
+    resp = samlfrontend.handle_authn_response(context, internal_response)
+    resp_dict = parse.parse_qs(urlparse(resp.message).query)
+    resp = fakesp.parse_authn_request_response(resp_dict['SAMLResponse'][0],
+                                               BINDING_HTTP_REDIRECT)
+    for key in resp.ava:
+        assert USERS["testuser1"][key] == resp.ava[key]
 
 
 def test_get_filter_attributes_with_sp_requested_attributes_without_friendlyname():
