@@ -127,7 +127,7 @@ class FakeIdP(server.Server):
                                        destination, relay_state, response=True)
             resp = dict(parse_qsl(urlparse(dict(http_args["headers"])["Location"]).query))
 
-        return http_args['url'], resp
+        return destination, resp
 
     def get_post_action_body(self, form):
         form_str = form
