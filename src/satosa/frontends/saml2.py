@@ -32,8 +32,6 @@ class SamlFrontend(FrontendModule):
     """
 
     def __init__(self, auth_req_callback_func, internal_attributes, conf):
-        if conf is None:
-            raise TypeError("conf can't be 'None'")
         self._validate_config(conf)
 
         super(SamlFrontend, self).__init__(auth_req_callback_func, internal_attributes)
@@ -128,6 +126,8 @@ class SamlFrontend(FrontendModule):
         :type config: dict[str, dict[str, Any] | str]
         :param config: The module config
         """
+        assert config is not None, "conf can't be 'None'"
+
         mandatory_keys = ["idp_config", "endpoints", "base"]
         for key in mandatory_keys:
             assert key in config, "Missing key '%s' in config" % key

@@ -107,23 +107,27 @@ SPCONFIG = {
     },
     "xmlsec_binary": XMLSEC_PATH,
 }
-CONFIG_ERR1 = {"idp_config_notok": IDPCONFIG, "endpoints": ENDPOINTS, "base": IDP_BASE,
-               "state_id": IDP_STATE_ID}
-CONFIG_ERR2 = {"idp_config": IDPCONFIG, "endpoints_notok": ENDPOINTS, "base": IDP_BASE,
-               "state_id": IDP_STATE_ID}
-CONFIG_ERR3 = {"idp_config": IDPCONFIG, "endpoints": ENDPOINTS, "base_notok": IDP_BASE,
-               "state_id": IDP_STATE_ID}
 CONFIG = {"idp_config": IDPCONFIG, "endpoints": ENDPOINTS, "base": IDP_BASE,
           "state_id": IDP_STATE_ID}
 
-TESTDATA_HANDLE_AUTHN_REQUEST = \
-    [(None, None, None, TypeError),
-     (CONFIG_ERR1, None, None, AssertionError),
-     (CONFIG_ERR2, None, None, AssertionError),
-     (CONFIG_ERR3, None, None, AssertionError),
-     (CONFIG, None, None, TypeError),
-     (CONFIG, "whatever", None, TypeError),
-     (CONFIG, BINDING_HTTP_REDIRECT, ["qwerty", "ytrewq"], None)]
+TESTDATA_HANDLE_AUTHN_REQUEST = [
+    (CONFIG, None, None, TypeError),
+    (CONFIG, "whatever", None, TypeError),
+    (CONFIG, BINDING_HTTP_REDIRECT, ["qwerty", "ytrewq"], None)]
+
+
+@pytest.mark.parametrize("conf", [
+    None,
+    {"idp_config_notok": IDPCONFIG, "endpoints": ENDPOINTS, "base": IDP_BASE,
+     "state_id": IDP_STATE_ID},
+    {"idp_config": IDPCONFIG, "endpoints_notok": ENDPOINTS, "base": IDP_BASE,
+     "state_id": IDP_STATE_ID},
+    {"idp_config": IDPCONFIG, "endpoints": ENDPOINTS, "base_notok": IDP_BASE,
+     "state_id": IDP_STATE_ID}
+])
+def test_config_error_handling(conf):
+    with pytest.raises(AssertionError):
+        SamlFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES, conf)
 
 
 @pytest.mark.parametrize("conf, binding_in, providers, error", TESTDATA_HANDLE_AUTHN_REQUEST)
@@ -140,39 +144,33 @@ def test_handle_authn_request(conf, binding_in, providers, error):
     :param providers: A list of strings with the names of the providers.
     :param error: None or an allowed exception.
     """
-    samlfrontend = None
     fakesp = None
-    try:
-        def auth_req_callback_func(context, internal_req):
-            """
-            :type context: satosa.context.Context
-            :type: internal_req: satosa.internal_data.InternalRequest
 
-            :param context: Contains the request context from the module.
-            :param internal_req:
-            :return:
-            """
-            assert internal_req.requestor == SPCONFIG["entityid"]
-            auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
-            internal_response = InternalResponse(auth_info=auth_info)
-            internal_response.set_user_id_hash_type(internal_req.user_id_hash_type)
-            internal_response.add_attributes(USERS["testuser1"])
+    def auth_req_callback_func(context, internal_req):
+        """
+        :type context: satosa.context.Context
+        :type: internal_req: satosa.internal_data.InternalRequest
 
-            resp = samlfrontend.handle_authn_response(context, internal_response)
-            resp_dict = parse.parse_qs(resp.message.split("?")[1])
-            resp = fakesp.parse_authn_request_response(resp_dict['SAMLResponse'][0],
-                                                       BINDING_HTTP_REDIRECT)
-            for key in resp.ava:
-                assert key in resp.ava
-                assert USERS["testuser1"][key] == resp.ava[key]
+        :param context: Contains the request context from the module.
+        :param internal_req:
+        :return:
+        """
+        assert internal_req.requestor == SPCONFIG["entityid"]
+        auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
+        internal_response = InternalResponse(auth_info=auth_info)
+        internal_response.set_user_id_hash_type(internal_req.user_id_hash_type)
+        internal_response.add_attributes(USERS["testuser1"])
 
-        samlfrontend = SamlFrontend(auth_req_callback_func, INTERNAL_ATTRIBUTES, conf)
-    except Exception as exception:
-        if error is None or not isinstance(exception, error):
-            raise exception
-        return
-    assert conf is not None, \
-        "conf cannot be None. Argument validation missing."
+        resp = samlfrontend.handle_authn_response(context, internal_response)
+        resp_dict = parse.parse_qs(resp.message.split("?")[1])
+        resp = fakesp.parse_authn_request_response(resp_dict['SAMLResponse'][0],
+                                                   BINDING_HTTP_REDIRECT)
+        for key in resp.ava:
+            assert key in resp.ava
+            assert USERS["testuser1"][key] == resp.ava[key]
+
+    samlfrontend = SamlFrontend(auth_req_callback_func, INTERNAL_ATTRIBUTES, conf)
+
     try:
         sp_metadata_file = FileGenerator.get_instance().create_metadata(SPCONFIG)
         IDPCONFIG["metadata"]["local"] = [sp_metadata_file.name]
@@ -198,7 +196,8 @@ def test_handle_authn_request(conf, binding_in, providers, error):
         fakesp = FakeSP(None, config=SPConfig().load(SPCONFIG, metadata_construction=False))
         context = Context()
         context.state = State()
-        context.request = parse.parse_qs(urlparse(fakesp.make_auth_req(samlfrontend.config["entityid"])).query)
+        context.request = parse.parse_qs(
+                urlparse(fakesp.make_auth_req(samlfrontend.config["entityid"])).query)
         tmp_dict = {}
         for val in context.request:
             if isinstance(context.request[val], list):
