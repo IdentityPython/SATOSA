@@ -1,20 +1,15 @@
 """
 Tests for the SAML frontend module src/frontends/saml2.py.
 """
-import os.path
 import re
 from urllib import parse
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 import pytest
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.authn_context import PASSWORD
 from saml2.config import SPConfig
-from saml2.entity_category.edugain import COC
-from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION, HEI, \
-    SFS_1993_1153, NREN, EU
-from saml2.saml import NAMEID_FORMAT_TRANSIENT
-from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_PERSISTENT
+from saml2.saml import NAMEID_FORMAT_PERSISTENT
 
 from satosa.context import Context
 from satosa.frontends.saml2 import SamlFrontend
@@ -36,107 +31,43 @@ INTERNAL_ATTRIBUTES = {
                    'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
                                'facebook': ['last_name']}}}
 
-IDP_CERT_FILE, IDP_KEY_FILE = FileGenerator.get_instance().generate_cert()
-
-if os.path.isfile("/usr/bin/xmlsec1"):
-    XMLSEC_PATH = "/usr/bin/xmlsec1"
-elif os.path.isfile("/usr/local/bin/xmlsec1"):
-    XMLSEC_PATH = "/usr/local/bin/xmlsec1"
-
-IDP_STATE_ID = "frontend_id"
+IDP_STATE_ID = "frontend_idp"
 IDP_BASE = "http://test.tester.se"
 RECEIVER = "Saml2IDP"
 ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
                                         BINDING_HTTP_POST: "sso/post"}}
-IDPCONFIG = {
-    "entityid": "%s/%s/proxy.xml" % (IDP_BASE, RECEIVER),
-    "description": "A SAML2SAML proxy",
-    "entity_category": [COC, RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN,
-                        EU],
-    "valid_for": 0,
-    "service": {
-        "idp": {
-            "name": "Proxy IdP",
-            "endpoints": {
-                "single_sign_on_service": [
-                    ("%s/sso/post" % IDP_BASE, BINDING_HTTP_POST),
-                    ("%s/sso/redirect" % IDP_BASE, BINDING_HTTP_REDIRECT)
-                ],
-            },
-            "policy": {
-                "default": {
-                    "lifetime": {"minutes": 15},
-                    "attribute_restrictions": None,  # means all I have
-                    "name_form": NAME_FORMAT_URI,
-                    # "entity_categories": ["edugain"],
-                    "fail_on_missing_requested": False
-                },
-            },
-            "subject_data": {},
-            "name_id_format": [NAMEID_FORMAT_TRANSIENT,
-                               NAMEID_FORMAT_PERSISTENT],
-            "want_authn_requests_signed": False
-        },
-    },
-    "debug": 1,
-    "key_file": IDP_KEY_FILE.name,
-    "cert_file": IDP_CERT_FILE.name,
-    "metadata": {
-    },
-    "xmlsec_binary": XMLSEC_PATH,
-}
 
-SP_CERT_FILE, SP_KEY_FILE = FileGenerator.get_instance().generate_cert()
 SP_BASE = "http://example.com"
-SPCONFIG = {
-    "entityid": "{}/unittest_sp.xml".format(SP_BASE),
-    "service": {
-        "sp": {
-            "endpoints": {
-                "assertion_consumer_service": [
-                    ("%s/acs/redirect" % SP_BASE, BINDING_HTTP_REDIRECT),
-                    ("%s/acs/post" % SP_BASE, BINDING_HTTP_POST)
-                ],
-            },
-            "allow_unsolicited": "true",
-        },
-    },
-    "key_file": SP_KEY_FILE.name,
-    "cert_file": SP_CERT_FILE.name,
-    "metadata": {
-    },
-    "xmlsec_binary": XMLSEC_PATH,
-}
 
 
 @pytest.mark.parametrize("conf", [
     None,
-    {"idp_config_notok": IDPCONFIG, "endpoints": ENDPOINTS, "base": IDP_BASE,
-     "state_id": IDP_STATE_ID},
-    {"idp_config": IDPCONFIG, "endpoints_notok": ENDPOINTS, "base": IDP_BASE,
-     "state_id": IDP_STATE_ID},
-    {"idp_config": IDPCONFIG, "endpoints": ENDPOINTS, "base_notok": IDP_BASE,
-     "state_id": IDP_STATE_ID}
+    {"idp_config_notok": {}, "endpoints": {}, "base": "base",
+     "state_id": "state_id"},
+    {"idp_config": {}, "endpoints_notok": {}, "base": "base",
+     "state_id": "state_id"},
+    {"idp_config": {}, "endpoints": {}, "base_notok": "base",
+     "state_id": "state_id"}
 ])
 def test_config_error_handling(conf):
     with pytest.raises(AssertionError):
         SamlFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES, conf)
 
 
-def test_handle_authn_request():
+def test_handle_authn_request(idp_conf, sp_conf):
     """
     Performs a complete test for the module. The flow should be accepted.
     """
-
-    CONFIG = {"idp_config": IDPCONFIG, "endpoints": ENDPOINTS, "base": IDP_BASE,
+    base = "{parsed.scheme}://{parsed.netloc}".format(parsed=urlparse(idp_conf["entityid"]))
+    CONFIG = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base,
               "state_id": IDP_STATE_ID}
     providers = ["foo", "bar"]
+    sp_metadata_str = create_metadata_from_config_dict(sp_conf)
+    idp_conf["metadata"]["inline"] = [sp_metadata_str]
 
     samlfrontend = SamlFrontend(lambda context, internal_req: (context, internal_req),
                                 INTERNAL_ATTRIBUTES, CONFIG)
 
-    sp_metadata_file = FileGenerator.get_instance().create_metadata(SPCONFIG)
-    IDPCONFIG["metadata"]["local"] = [sp_metadata_file.name]
     url_map = samlfrontend.register_endpoints(providers)
     for regex in url_map:
         p = re.compile(regex[0])
@@ -150,9 +81,9 @@ def test_handle_authn_request():
                         break
         assert match, "All regular expressions must match!"
 
-    idp_metadata_file = FileGenerator.get_instance().create_metadata(samlfrontend.config)
-    SPCONFIG["metadata"]["local"] = [idp_metadata_file.name]
-    fakesp = FakeSP(None, config=SPConfig().load(SPCONFIG, metadata_construction=False))
+    idp_metadata_str = create_metadata_from_config_dict(samlfrontend.config)
+    sp_conf["metadata"]["inline"].append(idp_metadata_str)
+    fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
     context = Context()
     context.state = State()
     context.request = parse.parse_qs(
@@ -166,7 +97,7 @@ def test_handle_authn_request():
     context.request = tmp_dict
 
     _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
-    assert internal_req.requestor == SPCONFIG["entityid"]
+    assert internal_req.requestor == sp_conf["entityid"]
 
     auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
     internal_response = InternalResponse(auth_info=auth_info)
@@ -174,15 +105,14 @@ def test_handle_authn_request():
     internal_response.add_attributes(USERS["testuser1"])
 
     resp = samlfrontend.handle_authn_response(context, internal_response)
-    resp_dict = parse.parse_qs(urlparse(resp.message).query)
+    resp_dict = parse_qs(urlparse(resp.message).query)
     resp = fakesp.parse_authn_request_response(resp_dict['SAMLResponse'][0],
                                                BINDING_HTTP_REDIRECT)
     for key in resp.ava:
         assert USERS["testuser1"][key] == resp.ava[key]
 
 
-def test_get_filter_attributes_with_sp_requested_attributes_without_friendlyname():
-    idp_config = IDPCONFIG.copy()
+def test_get_filter_attributes_with_sp_requested_attributes_without_friendlyname(idp_conf):
     sp_metadata_str = """<?xml version="1.0"?>
     <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://sp.example.com">
       <md:SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:1.1:protocol urn:oasis:names:tc:SAML:2.0:protocol">
@@ -199,9 +129,10 @@ def test_get_filter_attributes_with_sp_requested_attributes_without_friendlyname
     </md:EntityDescriptor>
     """
 
-    idp_config["metadata"] = {"inline": [sp_metadata_str]}
+    idp_conf["metadata"] = {"inline": [sp_metadata_str]}
 
-    conf = {"idp_config": idp_config, "endpoints": ENDPOINTS, "base": IDP_BASE,
+    base = "{parsed.scheme}://{parsed.netloc}".format(parsed=urlparse(idp_conf["entityid"]))
+    conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base,
             "state_id": IDP_STATE_ID}
 
     internal_attributes = {"attributes": {attr_name: {"saml": [attr_name]} for attr_name in

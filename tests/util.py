@@ -4,6 +4,7 @@ Contains help methods and classes to perform tests.
 import base64
 import re
 import tempfile
+from urllib.parse import parse_qsl, urlparse
 
 from Crypto.PublicKey import RSA
 from saml2 import server, BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
@@ -85,7 +86,7 @@ class FakeIdP(server.Server):
         server.Server.__init__(self, config=config)
         self.user_db = user_db
 
-    def handle_auth_req(self, saml_request, relay_state, binding, userid):
+    def handle_auth_req(self, saml_request, relay_state, binding, userid, response_binding=BINDING_HTTP_POST):
         """
         Handles a SAML request, validates and creates a SAML response.
         :type saml_request: str
@@ -118,12 +119,15 @@ class FakeIdP(server.Server):
                                            userid=userid,
                                            **resp_args)
 
-        http_args = self.apply_binding(BINDING_HTTP_POST, '%s' % _resp,
+        if response_binding == BINDING_HTTP_POST:
+            saml_response = base64.b64encode(str(_resp).encode("utf-8"))
+            resp = {'SAMLResponse': saml_response, 'RelayState': relay_state}
+        elif response_binding == BINDING_HTTP_REDIRECT:
+            http_args = self.apply_binding(response_binding, '%s' % _resp,
                                        destination, relay_state, response=True)
-        url = http_args['url']
-        saml_response = base64.b64encode(str(_resp).encode("utf-8"))
-        resp = {'SAMLResponse': saml_response, 'RelayState': relay_state}
-        return url, resp
+            resp = dict(parse_qsl(urlparse(dict(http_args["headers"])["Location"]).query))
+
+        return http_args['url'], resp
 
     def get_post_action_body(self, form):
         form_str = form
@@ -166,6 +170,14 @@ def generate_cert():
     osw = OpenSSLWrapper()
     cert_str, key_str = osw.create_certificate(cert_info, request=False)
     return cert_str, key_str
+
+
+def write_cert(cert_path, key_path):
+    cert, key = generate_cert()
+    with open(cert_path, "wb") as cert_file:
+        cert_file.write(cert)
+    with open(key_path, "wb") as key_file:
+        key_file.write(key)
 
 
 class FileGenerator(object):
