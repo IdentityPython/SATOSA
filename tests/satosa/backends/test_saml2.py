@@ -5,7 +5,7 @@ import re
 from urllib.parse import urlparse, parse_qs, parse_qsl
 
 import pytest
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
+from saml2 import BINDING_HTTP_REDIRECT
 from saml2.authn_context import PASSWORD
 from saml2.config import IdPConfig
 
@@ -46,17 +46,13 @@ def setup_test_config(sp_conf, idp_conf):
 
 @pytest.mark.usefixtures("setup_test_config")
 class TestSamlBackend:
-    @pytest.fixture(autouse=True)
-    def setup_backend(self, sp_conf):
-        self.config = {"config": sp_conf,
-                       "disco_srv": "https://my.dicso.com/role/idp.ds",
-                       "state_id": "saml_backend_test_id"}
-
     def test_register_endpoints(self, sp_conf):
         """
         Tests the method register_endpoints
         """
-        samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, self.config)
+        samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf,
+                                                              "disco_srv": "https://my.dicso.com/role/idp.ds",
+                                                              "state_id": "saml_backend_test_id"})
 
         url_map = samlbackend.register_endpoints()
         for k, v in sp_conf["service"]["sp"]["endpoints"].items():
@@ -73,7 +69,10 @@ class TestSamlBackend:
         """
         Performs a complete test for the module satosa.backends.saml2. The flow should be accepted.
         """
-        samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, self.config)
+        disco_srv = "https://my.dicso.com/role/idp.ds"
+        samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf,
+                                                              "disco_srv": disco_srv,
+                                                              "state_id": "saml_backend_test_id"})
         internal_data = InternalRequest(None, None)
 
         state = State()
@@ -81,7 +80,7 @@ class TestSamlBackend:
         context.state = state
         resp = samlbackend.start_auth(context, internal_data)
         assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
-        assert resp.message.startswith(self.config["disco_srv"]), \
+        assert resp.message.startswith("https://my.dicso.com/role/idp.ds"), \
             "Redirect to wrong URL."
 
         # create_name_id_policy_transient()
@@ -93,11 +92,13 @@ class TestSamlBackend:
         resp = samlbackend.start_auth(context, internal_data)
         assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
 
-    def test_start_auth_name_id_policy(self):
+    def test_start_auth_name_id_policy(self, sp_conf):
         """
         Performs a complete test for the module satosa.backends.saml2. The flow should be accepted.
         """
-        samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, self.config)
+        samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf,
+                                                              "disco_srv": "https://my.dicso.com/role/idp.ds",
+                                                              "state_id": "saml_backend_test_id"})
         test_state_key = "sauyghj34589fdh"
 
         state = State()
@@ -112,22 +113,23 @@ class TestSamlBackend:
 
         disco_resp = parse_qs(urlparse(resp.message).query)
         sp_disco_resp = \
-            self.config["config"]["service"]["sp"]["endpoints"]["discovery_response"][0][0]
+            sp_conf["service"]["sp"]["endpoints"]["discovery_response"][0][0]
         assert "return" in disco_resp and disco_resp["return"][0].startswith(sp_disco_resp), \
             "Not a valid return url in the call to the discovery server"
-        assert "entityID" in disco_resp and disco_resp["entityID"][0] == self.config["config"][
-            "entityid"], \
+        assert "entityID" in disco_resp and disco_resp["entityID"][0] == sp_conf["entityid"], \
             "Not a valid entity id in the call to the discovery server"
 
         request_info_tmp = context.state
         assert request_info_tmp.get(test_state_key) == "my_state", "Wrong state!"
 
-    def test_start_auth_disco(self, idp_conf):
+    def test_start_auth_disco(self, sp_conf, idp_conf):
         """
         Performs a complete test for the module satosa.backends.saml2. The flow should be accepted.
         """
         samlbackend = SamlBackend(lambda context, internal_resp: (context, internal_resp),
-                                  INTERNAL_ATTRIBUTES, self.config)
+                                  INTERNAL_ATTRIBUTES, {"config": sp_conf,
+                                                        "disco_srv": "https://my.dicso.com/role/idp.ds",
+                                                        "state_id": "saml_backend_test_id"})
         test_state_key = "test_state_key_456afgrh"
         response_binding = BINDING_HTTP_REDIRECT
         fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf, metadata_construction=False))
