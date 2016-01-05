@@ -99,8 +99,12 @@ class DataConverter(object):
         """
         internal_dict = {}
 
-        for internal_key in self.from_internal_attributes:
-            external_key = self.from_internal_attributes[internal_key][external_type]
+        for internal_key, mapping in self.from_internal_attributes.items():
+            if external_type not in mapping:
+                # skip this internal attribute if we have no mapping in the specified profile
+                continue
+
+            external_key = mapping[external_type]
             attribute_values = self._collate_attribute_values_by_priority_order(external_key,
                                                                                 external_dict)
             if attribute_values:  # Only insert key if it has some values
