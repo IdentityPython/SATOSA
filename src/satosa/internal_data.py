@@ -25,9 +25,9 @@ class CaseInsensitiveMapping:
 
     def get(self, item, case_insensitive=False, default=None):
         if case_insensitive and isinstance(item, str):
-            return self.mapping_lower[item.lower()]
+            return self.mapping_lower.get(item.lower())
 
-        return self.mapping[item]
+        return self.mapping.get(item)
 
 
 class DataConverter(object):
