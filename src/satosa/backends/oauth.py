@@ -159,7 +159,7 @@ class OAuthBackend(BackendModule):
             internal_response.add_attributes(self.converter.to_internal(self.external_type,
                                                                         user_info))
             internal_response.set_user_id(user_info[self.user_id_attr])
-            if "user_id_paramas" in self.config:
+            if "user_id_params" in self.config:
                 user_id = ""
                 for param in self.config["user_id_params"]:
                     try:
