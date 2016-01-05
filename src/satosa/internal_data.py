@@ -112,8 +112,11 @@ class DataConverter(object):
         result = []
         for attr_name in attribute_names:
             attr_val = self._get_nested_attribute_value(attr_name, data)
-            if attr_val:
+            if isinstance(attr_val, list):
+                result.extend(attr_val)
+            elif attr_val:
                 result.append(attr_val)
+
         return result
 
     def _get_nested_attribute_value(self, nested_key, data):

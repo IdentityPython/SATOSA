@@ -1,5 +1,7 @@
 from collections import Counter
 
+import pytest
+
 from satosa.internal_data import DataConverter
 
 
@@ -15,12 +17,12 @@ class TestDataConverter:
 
         data = {
             "address": {
-                "formatted": "100 Universal City Plaza, Hollywood CA 91608, USA"
+                "formatted": ["100 Universal City Plaza, Hollywood CA 91608, USA"]
             }
         }
 
         internal_repr = DataConverter(mapping).to_internal("openid", data)
-        assert internal_repr["address"] == [data["address"]["formatted"]]
+        assert internal_repr["address"] == data["address"]["formatted"]
 
     def test_deeply_nested_attribute_to_internal(self):
         mapping = {
@@ -35,14 +37,14 @@ class TestDataConverter:
             "address": {
                 "formatted": {
                     "text": {
-                        "value": "100 Universal City Plaza, Hollywood CA 91608, USA"
+                        "value": ["100 Universal City Plaza, Hollywood CA 91608, USA"]
                     }
                 }
             }
         }
 
         internal_repr = DataConverter(mapping).to_internal("openid", data)
-        assert internal_repr["address"] == [data["address"]["formatted"]["text"]["value"]]
+        assert internal_repr["address"] == data["address"]["formatted"]["text"]["value"]
 
     def test_mapping_from_nested_attribute(self):
         mapping = {
@@ -56,14 +58,14 @@ class TestDataConverter:
 
         data = {
             "address": {
-                "formatted": "100 Universal City Plaza, Hollywood CA 91608, USA"
+                "formatted": ["100 Universal City Plaza, Hollywood CA 91608, USA"]
             }
         }
 
         converter = DataConverter(mapping)
         internal_repr = converter.to_internal("openid", data)
         external_repr = converter.from_internal("saml", internal_repr)
-        assert external_repr["postaladdress"] == [data["address"]["formatted"]]
+        assert external_repr["postaladdress"] == data["address"]["formatted"]
 
     def test_mapping_from_deeply_nested_attribute(self):
         mapping = {
@@ -79,7 +81,7 @@ class TestDataConverter:
             "address": {
                 "formatted": {
                     "text": {
-                        "value": "100 Universal City Plaza, Hollywood CA 91608, USA"
+                        "value": ["100 Universal City Plaza, Hollywood CA 91608, USA"]
                     }
                 }
             }
@@ -88,7 +90,7 @@ class TestDataConverter:
         converter = DataConverter(mapping)
         internal_repr = converter.to_internal("openid", data)
         external_repr = converter.from_internal("saml", internal_repr)
-        assert external_repr["postaladdress"] == [data["address"]["formatted"]["text"]["value"]]
+        assert external_repr["postaladdress"] == data["address"]["formatted"]["text"]["value"]
 
     def test_mapping_to_nested_attribute(self):
         mapping = {
@@ -101,13 +103,13 @@ class TestDataConverter:
         }
 
         data = {
-            "postaladdress": "100 Universal City Plaza, Hollywood CA 91608, USA"
+            "postaladdress": ["100 Universal City Plaza, Hollywood CA 91608, USA"]
         }
 
         converter = DataConverter(mapping)
         internal_repr = converter.to_internal("saml", data)
         external_repr = converter.from_internal("openid", internal_repr)
-        assert external_repr["address"]["formatted"] == [data["postaladdress"]]
+        assert external_repr["address"]["formatted"] == data["postaladdress"]
 
     def test_mapping_to_deeply_nested_attribute(self):
         mapping = {
@@ -120,13 +122,13 @@ class TestDataConverter:
         }
 
         data = {
-            "postaladdress": "100 Universal City Plaza, Hollywood CA 91608, USA"
+            "postaladdress": ["100 Universal City Plaza, Hollywood CA 91608, USA"]
         }
 
         converter = DataConverter(mapping)
         internal_repr = converter.to_internal("saml", data)
         external_repr = converter.from_internal("openid", internal_repr)
-        assert external_repr["address"]["formatted"]["text"]["value"] == [data["postaladdress"]]
+        assert external_repr["address"]["formatted"]["text"]["value"] == data["postaladdress"]
 
     def test_multiple_source_attribute_values(self):
         mapping = {
@@ -138,9 +140,9 @@ class TestDataConverter:
         }
 
         data = {
-            "mail": "test1@example.com",
-            "email": "test2@example.com",
-            "emailAddress": "test3@example.com",
+            "mail": ["test1@example.com"],
+            "email": ["test2@example.com"],
+            "emailAddress": ["test3@example.com"],
         }
 
         expected = Counter(["test1@example.com", "test2@example.com", "test3@example.com"])
@@ -163,7 +165,7 @@ class TestDataConverter:
             },
         }
 
-        data = {"uid": "12345", "email": "test@example.com"}
+        data = {"uid": ["12345"], "email": ["test@example.com"]}
 
         converter = DataConverter(mapping)
         filter = converter.to_internal_filter("p1", data, False)
@@ -181,7 +183,7 @@ class TestDataConverter:
             },
         }
 
-        data = {"Uid": "12345", "eMaILAdDreSS": "test@example.com"}
+        data = {"Uid": ["12345"], "eMaILAdDreSS": ["test@example.com"]}
 
         converter = DataConverter(mapping)
         filter = converter.to_internal_filter("p1", data, True)
@@ -200,7 +202,6 @@ class TestDataConverter:
         internal_repr = converter.to_internal("p1", {})
         assert not internal_repr
 
-
     def test_map_one_source_attribute_to_multiple_internal_attributes(self):
         mapping = {
             "attributes": {
@@ -214,5 +215,42 @@ class TestDataConverter:
         }
 
         converter = DataConverter(mapping)
-        internal_repr = converter.to_internal("p1", {"email": "test@example.com"})
+        internal_repr = converter.to_internal("p1", {"email": ["test@example.com"]})
         assert internal_repr == {"mail": ["test@example.com"], "identifier": ["test@example.com"]}
+
+    def test_to_internal_profile_missing_attribute_mapping(self):
+        mapping = {
+            "attributes": {
+                "mail": {
+                    "foo": ["email"],
+                },
+                "id": {
+                    "foo": ["id"],
+                    "bar": ["uid"],
+                }
+            },
+        }
+
+        converter = DataConverter(mapping)
+        internal_repr = converter.to_internal("bar", {"email": ["test@example.com"], "uid": ["uid"]})
+        assert "mail" not in internal_repr  # no mapping for the 'mail' attribute in the 'bar' profile
+        assert internal_repr["id"] == ["uid"]
+
+    @pytest.mark.parametrize("attribute_value", [
+        {"email": "test@example.com"},
+        {"email": ["test@example.com"]}
+    ])
+    def test_to_internal_same_attribute_value_from_list_and_single_value(self, attribute_value):
+        mapping = {
+            "attributes": {
+                "mail": {
+                    "foo": ["email"],
+                },
+            },
+        }
+
+        converter = DataConverter(mapping)
+        internal_repr = converter.to_internal("foo", attribute_value)
+        assert internal_repr["mail"] == ["test@example.com"]
+
+
