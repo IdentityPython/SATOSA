@@ -232,6 +232,24 @@ class TestDataConverter:
         assert "mail" not in internal_repr  # no mapping for the 'mail' attribute in the 'bar' profile
         assert internal_repr["id"] == ["uid"]
 
+    def test_to_internal_filter_profile_missing_attribute_mapping(self):
+        mapping = {
+            "attributes": {
+                "mail": {
+                    "foo": ["email"],
+                },
+                "id": {
+                    "foo": ["id"],
+                    "bar": ["uid"],
+                }
+            },
+        }
+
+        converter = DataConverter(mapping)
+        filter = converter.to_internal_filter("bar", ["email", "uid"])
+        assert Counter(filter) == Counter(["id"])
+
+
     @pytest.mark.parametrize("attribute_value", [
         {"email": "test@example.com"},
         {"email": ["test@example.com"]}

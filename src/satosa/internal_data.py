@@ -69,9 +69,12 @@ class DataConverter(object):
         """
         internal_keys = set()
         for external_key in external_keys:
-            internal_keys.add(
-                self.external2internal_attribute_name_mapping[external_type].get(external_key,
-                                                                                 case_insensitive))
+            internal_key = self.external2internal_attribute_name_mapping[external_type].get(
+                external_key,
+                case_insensitive)
+
+            if internal_key:
+                internal_keys.add(internal_key)
 
         return internal_keys
 
