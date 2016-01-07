@@ -67,7 +67,8 @@ class DataConverter(object):
         :param case_insensitive: Create a case insensitive filter
         :return: A list of attribute names in the internal format
         """
-        internal_keys = set()
+        internal_keys = set()  # use set to ensure only unique values
+
         for external_key in external_keys:
             internal_key = self.external2internal_attribute_name_mapping[external_type].get(
                 external_key,
@@ -76,7 +77,7 @@ class DataConverter(object):
             if internal_key:
                 internal_keys.add(internal_key)
 
-        return internal_keys
+        return list(internal_keys)
 
     def _get_attr_value_key(self, my_key, my_dict):
         tmp_attributes = {}
