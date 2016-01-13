@@ -9,7 +9,8 @@ import pytest
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.authn_context import PASSWORD
 from saml2.config import SPConfig
-from saml2.saml import NAMEID_FORMAT_PERSISTENT
+from saml2.saml import NAMEID_FORMAT_PERSISTENT, NAMEID_FORMAT_TRANSIENT
+from saml2.samlp import NameIDPolicy
 
 from satosa.context import Context
 from satosa.frontends.saml2 import SamlFrontend
@@ -158,3 +159,85 @@ class TestSamlFrontend:
         assert set(filtered_attributes) == set(
                 ["edupersontargetedid", "edupersonprincipalname", "edupersonaffiliation", "mail",
                  "displayname", "sn", "givenname"])
+
+    def test_acr_mapping_in_authn_response(self, idp_conf, sp_conf):
+        eidas_loa_low = "http://eidas.europa.eu/LoA/low"
+        loa = {"": eidas_loa_low}
+
+        base = self.construct_base_url_from_entity_id(idp_conf["entityid"])
+        conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base,
+                "state_id": "state_id", "acr_mapping": loa}
+
+        samlfrontend = SamlFrontend(None, INTERNAL_ATTRIBUTES, conf)
+        samlfrontend.register_endpoints(["foo"])
+
+        idp_metadata_str = create_metadata_from_config_dict(samlfrontend.config)
+        sp_conf["metadata"]["inline"].append(idp_metadata_str)
+        fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
+
+        auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
+        internal_response = InternalResponse(auth_info=auth_info)
+        context = Context()
+        context.state = State()
+
+        resp_args = {
+            "name_id_policy": NameIDPolicy(format=NAMEID_FORMAT_TRANSIENT),
+            "in_response_to": None,
+            "destination": "",
+            "sp_entity_id": None,
+            "binding": BINDING_HTTP_REDIRECT
+
+        }
+        request_state = samlfrontend.save_state(context, resp_args, "")
+        context.state.add(conf["state_id"], request_state)
+
+        resp = samlfrontend.handle_authn_response(context, internal_response)
+        resp_dict = parse_qs(urlparse(resp.message).query)
+        resp = fakesp.parse_authn_request_response(resp_dict['SAMLResponse'][0],
+                                                   BINDING_HTTP_REDIRECT)
+
+        assert len(resp.assertion.authn_statement) == 1
+        authn_context_class_ref = resp.assertion.authn_statement[
+            0].authn_context.authn_context_class_ref
+        assert authn_context_class_ref.text == eidas_loa_low
+
+    def test_acr_mapping_per_idp_in_authn_response(self, idp_conf, sp_conf):
+        expected_loa = "LoA1"
+        loa = {"": "http://eidas.europa.eu/LoA/low", idp_conf["entityid"]: expected_loa}
+
+        base = self.construct_base_url_from_entity_id(idp_conf["entityid"])
+        conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base,
+                "state_id": "state_id", "acr_mapping": loa}
+
+        samlfrontend = SamlFrontend(None, INTERNAL_ATTRIBUTES, conf)
+        samlfrontend.register_endpoints(["foo"])
+
+        idp_metadata_str = create_metadata_from_config_dict(samlfrontend.config)
+        sp_conf["metadata"]["inline"].append(idp_metadata_str)
+        fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
+
+        auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", idp_conf["entityid"])
+        internal_response = InternalResponse(auth_info=auth_info)
+        context = Context()
+        context.state = State()
+
+        resp_args = {
+            "name_id_policy": NameIDPolicy(format=NAMEID_FORMAT_TRANSIENT),
+            "in_response_to": None,
+            "destination": "",
+            "sp_entity_id": None,
+            "binding": BINDING_HTTP_REDIRECT
+
+        }
+        request_state = samlfrontend.save_state(context, resp_args, "")
+        context.state.add(conf["state_id"], request_state)
+
+        resp = samlfrontend.handle_authn_response(context, internal_response)
+        resp_dict = parse_qs(urlparse(resp.message).query)
+        resp = fakesp.parse_authn_request_response(resp_dict['SAMLResponse'][0],
+                                                   BINDING_HTTP_REDIRECT)
+
+        assert len(resp.assertion.authn_statement) == 1
+        authn_context_class_ref = resp.assertion.authn_statement[
+            0].authn_context.authn_context_class_ref
+        assert authn_context_class_ref.text == expected_loa

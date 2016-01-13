@@ -41,6 +41,7 @@ class SamlFrontend(FrontendModule):
         self.endpoints = conf["endpoints"]
         self.base = conf["base"]
         self.state_id = conf["state_id"]
+        self.acr_mapping = conf.get("acr_mapping")
         self.response_bindings = None
         self.idp = None
 
@@ -325,7 +326,12 @@ class SamlFrontend(FrontendModule):
 
         resp_args = request_state["resp_args"]
         ava = self.converter.from_internal("saml", internal_response.get_attributes())
-        auth_info = {"class_ref": internal_response.auth_info.auth_class_ref}
+
+        auth_info = {}
+        if self.acr_mapping:
+            auth_info["class_ref"] = self.acr_mapping.get(internal_response.auth_info.issuer, self.acr_mapping[""])
+        else:
+            auth_info["class_ref"] = internal_response.auth_info.auth_class_ref
 
         name_id = NameID(text=internal_response.get_user_id(),
                          format=get_saml_name_id_format(internal_response.user_id_hash_type),

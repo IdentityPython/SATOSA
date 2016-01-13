@@ -25,6 +25,11 @@ config:
         subject_data: ./idp.subject
         want_authn_requests_signed: false
     xmlsec_binary: /usr/bin/xmlsec1
+
+  acr_mapping:
+    "": default-LoA
+    "https://accounts.google.com": LoA1
+
   state_id: <name>
   base: <base_url>
   endpoints:

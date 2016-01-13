@@ -189,6 +189,30 @@ The **SamlFrontend** module acts like a regular IDP and hides the target identit
 The target is chosen by using a sso endpoint in the frontend IDP associated to a specific backend. 
 It is the backend modules job to pick an identity provider.
 
+##### Providing `AuthnContextClassRef`
+The SAML2 frontends can provide an authenication class reference in the `AuthnStatement` of the
+assertion in the authentication response. This can be used to describe the Level of Assurance,
+as described for example by [eIDAS](https://joinup.ec.europa.eu/sites/default/files/eidas_message_format_v1.0.pdf).
+
+The `AuthnContextClassRef`(ACR) can be specified per backing provider in a mapping under the 
+configuration parameter `acr_mapping`. The mapping must contain a default ACR under the key `""`
+(empty string), other ACR value specific per provider is specified with key-value pairs, where the
+key is the providers id (entity id for SAML IdP behind SAML2 backend, authorization endpoint URL for
+OAuth AS behind OAuth backend, and issuer for OpenID Connect OP behind OpenID Connect backend). 
+
+If no `acr_mapping` is provided in the configuration, the ACR from the backend plugin will
+be used instead. This means that when using a SAML2 backend, the ACR provided by the backing
+provider will preserved and passed on in the authentication response, and when using a OAuth or
+OpenID Connect backend, the ACR will be `urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified`.
+
+**Example**
+
+    config:
+        config: [...]
+        acr_mapping:
+            "": default-LoA
+            "https://accounts.google.com": LoA1
+
 #### Backend
 The SAML2 backend acts as an SAML Service Provider (SP), making authentication
 requests to SAML Identity Providers (IdP). The default configuration file can be
