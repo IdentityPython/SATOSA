@@ -154,8 +154,6 @@ Common configuration parameters:
 
 The metadata could be loaded in multiple ways in the table above it's loaded from a static 
 file by using the key "local". It's also possible to load read the metadata from a remote URL.
-The final way to load metadata is by using a discovery server, in order to achieve this enter an URL
-in the "disco_srv".
 
 **Examples:**
 
@@ -172,10 +170,6 @@ Metadata from remote URL:
             -cert:null
     }
 
-Metadata from discovery server:
-
-    disco_srv: http://disco.example.com
-    
 For more detailed information on how you could customize the SAML entities configuration please visit: 
 https://dirg.org.umu.se/static/pysaml2/howto/config.html
     
@@ -206,6 +200,13 @@ under the SP element in the configuration file. By defining the **hash_type** at
 in the configuration it's possible to enter a name_id_format in the authentication 
 request sent to the identity provider. 
 
+##### Use a discovery service
+To allow the user to choose which provider they want to use to authenticate with, specify the
+configuration parameter `disco_srv`, e.g.
+
+    config:
+        config: [...]
+        disco_srv: http://disco.example.com
 
 ### <a name="openid_plugin" style="color:#000000">OpenID Connect plugins</a>
 
