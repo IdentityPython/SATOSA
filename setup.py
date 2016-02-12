@@ -19,13 +19,11 @@ setup(
     scripts=["tools/make_satosa_saml_metadata.py"],
     install_requires=[
         "pluginbase",
-        "future",
         "oic",
         "pyjwkest",
         "pysaml2 >= 4.0.2",
         "requests",
         "PyYAML",
-        "pycrypto",
         "gunicorn",
         "Werkzeug"
     ],
@@ -33,6 +31,5 @@ setup(
     classifiers=[
         "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
     ]
 )
