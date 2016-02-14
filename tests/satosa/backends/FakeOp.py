@@ -130,7 +130,8 @@ CDB = {
     CLIENT_ID: {
         "client_secret": "client_secret",
         "redirect_uris": [("%sauthz" % TestConfiguration.get_instance().rp_base, None)],
-        "client_salt": "salted"
+        "client_salt": "salted",
+        "response_types": ["code", "token"]
     }
 }
 
@@ -206,8 +207,6 @@ class FakeOP:
         cons.keyjar[""] = KC_RSA
 
         cons.client_secret = "drickyoughurt"
-        cons.config["response_type"] = ["token"]
-        cons.config["request_method"] = "parameter"
         state, location = cons.begin("openid", "token",
                                      path=TestConfiguration.get_instance().rp_base)
 

@@ -19,9 +19,9 @@ setup(
     scripts=["tools/make_satosa_saml_metadata.py"],
     install_requires=[
         "pluginbase",
-        "oic",
+        "oic==0.8.2",
         "pyjwkest",
-        "pysaml2 >= 4.0.2",
+        "pysaml2==4.0.3",
         "requests",
         "PyYAML",
         "gunicorn",
