@@ -281,6 +281,17 @@ for information on how to obtain them.
 <br>
 <br>
 
+## Microservices
+
+Additional behaviour can be configured in the proxy through "microservices".
+
+### Adding static attributes to all responses
+
+To add a set of static attributes, use the `AddStaticAttributes` class which will add
+pre-configured (static) attributes, see the
+[example configuration](example/plugins/microservices/static_attributes.yaml.example).
+
+
 # <a name="saml_metadata" style="color:#000000">Generate proxy metadata</a>
 
 The proxy metadata is generated based on the front-/backend plugins listed in `proxy_conf.yaml`
