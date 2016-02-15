@@ -37,10 +37,10 @@ def load_backends(config, callback, internal_attributes):
     :return: A list of backend modules
     """
     return _load_endpoint_modules(
-        _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter,
-                      BackendModulePlugin.__name__,
-                      config.BASE),
-        callback, internal_attributes)
+            _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter,
+                          BackendModulePlugin.__name__,
+                          config.BASE),
+            callback, internal_attributes)
 
 
 def load_frontends(config, callback, internal_attributes):
@@ -59,10 +59,10 @@ def load_frontends(config, callback, internal_attributes):
     :return: A dict of frontend modules
     """
     return _load_endpoint_modules(
-        _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter,
-                      FrontendModulePlugin.__name__,
-                      config.BASE),
-        callback, internal_attributes)
+            _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter,
+                          FrontendModulePlugin.__name__,
+                          config.BASE),
+            callback, internal_attributes)
 
 
 def _member_filter(member):
@@ -213,7 +213,7 @@ def _load_json(config):
             if file_config is not None and os.path.isfile(file_config):
                 LOGGER.exception("The configuration file %s is corrupt." % file_config)
                 raise SATOSAConfigurationError(
-                    "The configuration file %s is corrupt." % file_config)
+                        "The configuration file %s is corrupt." % file_config)
             return None
     except ValueError as error:
         if file_config is not None and os.path.isfile(file_config):
@@ -250,7 +250,7 @@ def _load_yaml(config):
             if file_config is not None and os.path.isfile(file_config):
                 LOGGER.exception("The configuration file %s is corrupt." % file_config)
                 raise SATOSAConfigurationError(
-                    "The configuration file %s is corrupt." % file_config)
+                        "The configuration file %s is corrupt." % file_config)
             return None
     except Exception as error:
         if file_config is not None and os.path.isfile(file_config):
@@ -280,7 +280,8 @@ def _readfile(config):
     return None
 
 
-def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, base_url, internal_attributes=None, *args):
+def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, base_url,
+                  internal_attributes=None, *args):
     """
     Loads endpoint plugins
 
@@ -305,7 +306,7 @@ def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, base_url, i
         try:
             module = plugin_source.load_plugin(module_file_name)
             for name, obj in inspect.getmembers(module, plugin_filter):
-                loaded_plugins.append(obj(*args))
+                loaded_plugins.append(obj(base_url, *args))
                 loaded_plugin_names.append(module_file_name)
         except ImportError as error:
             LOGGER.debug("Not a py file or import error '%s': %s", module_file_name, error)
@@ -318,11 +319,11 @@ def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, base_url, i
                 for parser in dict_parsers:
                     _config = parser("%s/%s" % (path, module_file_name))
                     if _config and "plugin" in _config:
-                            if _config["plugin"] == filter_class:
-                                done = True
-                                break
-                            else:
-                                _config = None
+                        if _config["plugin"] == filter_class:
+                            done = True
+                            break
+                        else:
+                            _config = None
                 if done:
                     break
             if _config is not None:
@@ -371,7 +372,7 @@ def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, base_url, i
         except Exception as error:
             LOGGER.exception("The configuration file %s is corrupt." % module_file_name)
             raise SATOSAConfigurationError(
-                "The configuration file %s is corrupt." % module_file_name) from error
+                    "The configuration file %s is corrupt." % module_file_name) from error
     LOGGER.debug("Loaded plugins: {}".format(loaded_plugin_names))
     return loaded_plugins
 
@@ -397,9 +398,10 @@ def load_micro_services(plugin_path, plugins, internal_attributes):
                                       internal_attributes=internal_attributes)
 
     LOGGER.info(
-        "Loaded request micro services: %s" % [k.__class__.__name__ for k in request_services])
+            "Loaded request micro services: %s" % [k.__class__.__name__ for k in request_services])
     LOGGER.info(
-        "Loaded response micro services: %s" % [k.__class__.__name__ for k in response_services])
+            "Loaded response micro services: %s" % [k.__class__.__name__ for k in
+                                                    response_services])
 
     return (
         build_micro_service_queue(request_services), build_micro_service_queue(response_services))
