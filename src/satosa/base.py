@@ -62,7 +62,8 @@ class SATOSABase(object):
         if "MICRO_SERVICES" in self.config:
             self.request_micro_services, self.response_micro_services = load_micro_services(
                 self.config.PLUGIN_PATH,
-                self.config.MICRO_SERVICES)
+                self.config.MICRO_SERVICES,
+                self.config.INTERNAL_ATTRIBUTES)
         self.module_router = ModuleRouter(frontends, backends)
 
     def _auth_req_callback_func(self, context, internal_request):

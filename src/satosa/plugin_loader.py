@@ -280,13 +280,14 @@ def _readfile(config):
     return None
 
 
-def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, *args):
+def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, base_url, internal_attributes=None, *args):
     """
     Loads endpoint plugins
 
     :type plugin_path: list[str]
     :type plugins: list[str]
     :type plugin_filter: (type | str) -> bool
+    :type internal_attributes: dict[string, dict[str, str | list[str]]]
     :type args: Any
     :rtype list[satosa.plugin_base.endpoint.InterfaceModulePlugin]
 
@@ -333,9 +334,9 @@ def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, *args):
                             module_class = locate(_config["module"])
                             instance = None
                             if "config" in _config:
-                                instance = module_class(_config["config"])
+                                instance = module_class(internal_attributes, _config["config"])
                             else:
-                                instance = module_class()
+                                instance = module_class(internal_attributes)
                             loaded_plugins.append(instance)
                         else:
                             LOGGER.warn("Missing mandatory configuration parameters in "
@@ -351,7 +352,7 @@ def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, *args):
                             name = _config["name"]
                             config = json.dumps(_config["config"])
                             replace = [
-                                ("<base_url>", args[0]),
+                                ("<base_url>", base_url),
                                 ("<name>", _config["name"])
                             ]
                             for _replace in replace:
@@ -365,7 +366,7 @@ def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, *args):
                             LOGGER.warn("Missing mandatory configuration parameters in "
                                         "the plugin %s (plugin, module, receiver and/or config)."
                                         % module_file_name)
-                except:
+                except Exception as e:
                     LOGGER.exception("Cannot create the module %s." % module_file_name)
         except Exception as error:
             LOGGER.exception("The configuration file %s is corrupt." % module_file_name)
@@ -375,12 +376,13 @@ def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, *args):
     return loaded_plugins
 
 
-def load_micro_services(plugin_path, plugins):
+def load_micro_services(plugin_path, plugins, internal_attributes):
     """
     Loads micro services
 
     :type plugin_path: list[str]
     :type plugins: list[str]
+    :type internal_attributes: dict[string, dict[str, str | list[str]]]
     :rtype (satosa.micro_service.service_base.RequestMicroService,
     satosa.micro_service.service_base.ResponseMicroService)
 
@@ -389,9 +391,10 @@ def load_micro_services(plugin_path, plugins):
     :return: (Request micro service, response micro service)
     """
     request_services = _load_plugins(plugin_path, plugins, _request_micro_service_filter,
-                                     RequestMicroService.__name__)
+                                     RequestMicroService.__name__, "")
     response_services = _load_plugins(plugin_path, plugins, _response_micro_service_filter,
-                                      ResponseMicroService.__name__)
+                                      ResponseMicroService.__name__, "",
+                                      internal_attributes=internal_attributes)
 
     LOGGER.info(
         "Loaded request micro services: %s" % [k.__class__.__name__ for k in request_services])
