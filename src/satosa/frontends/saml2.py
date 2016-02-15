@@ -42,6 +42,7 @@ class SamlFrontend(FrontendModule):
         self.base = conf["base"]
         self.state_id = conf["state_id"]
         self.acr_mapping = conf.get("acr_mapping")
+        self.attribute_profile = conf.get("attribute_profile", "saml")
         self.response_bindings = None
         self.idp = None
 
@@ -304,8 +305,9 @@ class SamlFrontend(FrontendModule):
         for aconv in attrconvs:
             if aconv.name_format == name_format:
                 attribute_filter = list(
-                    idp_policy.restrict(aconv._to, sp_entity_id, idp.metadata).keys())
-        attribute_filter = self.converter.to_internal_filter("saml", attribute_filter, True)
+                        idp_policy.restrict(aconv._to, sp_entity_id, idp.metadata).keys())
+        attribute_filter = self.converter.to_internal_filter(self.attribute_profile,
+                                                             attribute_filter, True)
         satosa_logging(LOGGER, logging.DEBUG, "Filter: %s" % attribute_filter, state)
         return attribute_filter
 
@@ -325,7 +327,8 @@ class SamlFrontend(FrontendModule):
         request_state = self.load_state(context.state)
 
         resp_args = request_state["resp_args"]
-        ava = self.converter.from_internal("saml", internal_response.get_attributes())
+        ava = self.converter.from_internal(self.attribute_profile,
+                                           internal_response.get_attributes())
 
         auth_info = {}
         if self.acr_mapping:

@@ -70,6 +70,7 @@ class SamlBackend(BackendModule):
         self.sp = Base(sp_config)
         self.idp_disco_query_param = "entityID"
         self.config = config
+        self.attribute_profile = config.get("attribute_profile", "saml")
         self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST]
         self.discosrv = None
         self.converter = DataConverter(internal_attributes)
@@ -288,7 +289,7 @@ class SamlBackend(BackendModule):
                     raise SATOSAAuthenticationError from error
             internal_resp.set_user_id(user_id)
 
-        internal_resp.add_attributes(self.converter.to_internal("saml", response.ava))
+        internal_resp.add_attributes(self.converter.to_internal(self.attribute_profile, response.ava))
 
         satosa_logging(LOGGER, logging.DEBUG,
                        "received attributes:\n%s" % json.dumps(response.ava, indent=4), state)
