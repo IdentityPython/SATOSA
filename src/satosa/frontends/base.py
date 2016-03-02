@@ -1,6 +1,8 @@
 """
 Holds a base class for frontend modules used in the SATOSA proxy.
 """
+from satosa.internal_data import DataConverter
+
 __author__ = 'mathiashedstrom'
 
 
@@ -9,17 +11,18 @@ class FrontendModule(object):
     Base class for a frontend module.
     """
 
-    def __init__(self, auth_req_callback_func, internal_attrbitues):
+    def __init__(self, auth_req_callback_func, internal_attributes):
         """
         :type auth_req_callback_func:
         (satosa.context.Context, satosa.internal_data.InternalData) -> satosa.response.Response
-        :type internal_attrbitues: dict[str, dict[str, str | list[str]]]
+        :type internal_attributes: dict[str, dict[str, str | list[str]]]
 
         :param auth_req_callback_func: Callback should be called by the module after the
         authorization response has been processed.
         """
         self.auth_req_callback_func = auth_req_callback_func
-        self.internal_attrbitues = internal_attrbitues
+        self.internal_attrbiutes = internal_attributes
+        self.converter = DataConverter(internal_attributes)
 
     def handle_authn_response(self, context, internal_resp):
         """

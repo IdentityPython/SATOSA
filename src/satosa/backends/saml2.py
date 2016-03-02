@@ -73,7 +73,6 @@ class SamlBackend(BackendModule):
         self.attribute_profile = config.get("attribute_profile", "saml")
         self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST]
         self.discosrv = None
-        self.converter = DataConverter(internal_attributes)
         self.state_id = config["state_id"]
         try:
             self.discosrv = config["disco_srv"]

@@ -47,7 +47,6 @@ class OAuthBackend(BackendModule):
         super(OAuthBackend, self).__init__(outgoing, internal_attributes)
         self.config = config
         self.redirect_url = "%s/%s" % (self.config["base_url"], self.config["authz_page"])
-        self.converter = DataConverter(internal_attributes)
         self.external_type = external_type
         self.user_id_attr = user_id_attr
 

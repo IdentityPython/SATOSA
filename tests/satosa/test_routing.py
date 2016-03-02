@@ -53,11 +53,11 @@ def router_fixture():
     backends = {}
 
     for provider in PROVIDERS:
-        backends[provider] = FakeBackend()
+        backends[provider] = FakeBackend(internal_attributes=INTERNAL_ATTRIBUTES)
         backends[provider].register_endpoints_func = create_backend_endpoint_func(provider)
 
     for receiver in RECEIVERS:
-        frontends[receiver] = FakeFrontend()
+        frontends[receiver] = FakeFrontend(internal_attributes=INTERNAL_ATTRIBUTES)
         frontends[receiver].register_endpoints_func = create_frontend_endpoint_func(receiver)
 
     return ModuleRouter(frontends, backends), frontends, backends

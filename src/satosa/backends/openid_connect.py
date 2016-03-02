@@ -86,7 +86,6 @@ class OpenIdBackend(BackendModule):
         self.config = RpConfig(config)
         self.oidc_backend_config = config
         self.oidc_clients = None
-        self.converter = DataConverter(internal_attributes)
 
     def get_oidc_clients(self):
         """

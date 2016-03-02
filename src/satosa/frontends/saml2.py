@@ -35,8 +35,6 @@ class SamlFrontend(FrontendModule):
         self._validate_config(conf)
 
         super(SamlFrontend, self).__init__(auth_req_callback_func, internal_attributes)
-        if internal_attributes is not None:
-            self.converter = DataConverter(internal_attributes)
         self.config = conf["idp_config"]
         self.endpoints = conf["endpoints"]
         self.base = conf["base"]
