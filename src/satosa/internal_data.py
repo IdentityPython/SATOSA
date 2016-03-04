@@ -188,8 +188,8 @@ class UserIdHashType(Enum):
     """
     transient = 1
     persistent = 2
-    pairwise = 2
-    public = 3
+    pairwise = 3
+    public = 4
 
 
 class UserIdHasher(object):
@@ -254,9 +254,7 @@ class UserIdHasher(object):
         if hash_type == UserIdHashType.transient:
             timestamp = datetime.datetime.now().time()
             user_id = "{req}{time}{id}".format(req=requestor, time=timestamp, id=user_id)
-        elif hash_type == UserIdHashType.persistent:
-            user_id = "{req}{id}".format(req=requestor, id=user_id)
-        elif hash_type == UserIdHashType.pairwise:
+        elif hash_type == UserIdHashType.persistent or hash_type == UserIdHashType.pairwise:
             user_id = "{req}{id}".format(req=requestor, id=user_id)
         elif hash_type == UserIdHashType.public:
             user_id = "{id}".format(id=user_id)
