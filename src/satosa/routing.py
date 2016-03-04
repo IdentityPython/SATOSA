@@ -134,11 +134,10 @@ class ModuleRouter(object):
         path_split = context.path.split('/')
         backend = path_split[0]
 
-        if backend not in self.backends:
+        if backend in self.backends:
+            context.target_backend = backend
+        else:
             satosa_logging(LOGGER, logging.DEBUG, "Unknown backend %s" % backend, context.state)
-            raise SATOSAUnknownTargetBackend("Unknown backend {}".format(backend))
-
-        context.target_backend = backend
 
         # Search for frontend endpoint
         for frontend in self.frontends.keys():
