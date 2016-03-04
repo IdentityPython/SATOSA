@@ -22,7 +22,9 @@ class ToBytesMiddleware:
         if isinstance(data, list):
             encoded_data = []
             for d in data:
-                if not isinstance(data, bytes):
+                if isinstance(d, bytes):
+                    encoded_data.append(d)
+                else:
                     encoded_data.append(d.encode("utf-8"))
             return encoded_data
         if not isinstance(data, bytes):
