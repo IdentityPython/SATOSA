@@ -2,16 +2,17 @@
 """
 Python package file for util functions.
 """
+import json
 import logging
 import random
 import string
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, parse_qsl
 
 from saml2 import BINDING_HTTP_REDIRECT
-from saml2.httputil import get_post
+from saml2.httputil import Response
 from saml2.httputil import SeeOther
 from saml2.httputil import ServiceError
-from saml2.httputil import Response
+from saml2.httputil import get_post
 from saml2.saml import NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
 
 from satosa.internal_data import UserIdHashType
@@ -88,12 +89,14 @@ def unpack_post(environ):
     :return: A dictionary with parameters.
     """
     post_body = get_post(environ).decode("utf-8")
-    _dict = parse_qs(post_body)
-    LOGGER.debug("unpack_post:: %s", _dict)
-    try:
-        return dict([(k, v[0]) for k, v in _dict.items()])
-    except IOError:
-        return None
+    data = None
+    if environ["CONTENT_TYPE"] == "application/x-www-form-urlencoded":
+        data = dict(parse_qsl(post_body))
+    elif environ["CONTENT_TYPE"] == "application/json":
+        data = json.loads(post_body)
+
+    LOGGER.debug("unpack_post:: %s", data)
+    return data
 
 
 def unpack_soap(environ):
