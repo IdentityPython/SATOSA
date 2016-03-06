@@ -182,12 +182,8 @@ def make_satosa_metadata(option):
     frontend_metadata = {}
     if option.generate_frontend:
         for frontend in frontend_plugins:
-            frontend_metadata[frontend.name] = []
-            frontend_config = frontend.config["idp_config"]
-            frontend_endpoints = frontend.config["endpoints"]
-            url_base = conf_mod.BASE
-
             if issubclass(frontend.module, SamlMirrorFrontend):
+                frontend_metadata[frontend.name] = []
                 for plugin in backend_plugins:
                     provider = plugin.name
                     LOGGER.info(
@@ -197,7 +193,8 @@ def make_satosa_metadata(option):
                     meta_desc = backend_modules[provider].get_metadata_desc()
                     for desc in meta_desc:
                         xml = _make_metadata(
-                            create_config_file(frontend_config, frontend_endpoints, url_base, desc,
+                            create_config_file(frontend.config["idp_config"],
+                                               frontend.config["endpoints"], conf_mod.BASE, desc,
                                                provider),
                             option
                         )
