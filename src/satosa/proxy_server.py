@@ -1,3 +1,4 @@
+import io
 import logging
 
 from saml2.httputil import NotFound
@@ -45,7 +46,16 @@ class WsgiApplication(SATOSABase):
 
         context = Context()
         context.path = path
+
+        # copy wsgi.input stream to allow it to be re-read later by satosa plugins
+        # see: http://stackoverflow.com/questions/1783383/how-do-i-copy-wsgi-input-if-i-want-to-process-post-data-more-than-once
+        content_length = int(environ.get('CONTENT_LENGTH', '0') or '0')
+        body = io.BytesIO(environ['wsgi.input'].read(content_length))
+        environ['wsgi.input'] = body
         context.request = unpack_either(environ)
+        environ['wsgi.input'].seek(0)
+
+        context.wsgi_environ = environ
         context.cookie = environ.get("HTTP_COOKIE", "")
 
         try:
