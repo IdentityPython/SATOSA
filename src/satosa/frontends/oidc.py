@@ -236,9 +236,13 @@ class OIDCFrontend(FrontendModule):
         if not isinstance(http_resp, Created):
             return http_resp
 
+        return self._fixup_registration_response(http_resp)
+
+    def _fixup_registration_response(self, http_resp):
         # remove client_secret since no token endpoint is published
         response = RegistrationResponse().deserialize(http_resp.message, "json")
         del response["client_secret"]
+        # specify supported id token signing alg
         response["id_token_signed_response_alg"] = self.sign_alg
 
         http_resp.message = response.to_json()
