@@ -5,7 +5,7 @@ from datetime import datetime
 from urllib.parse import urlparse
 import logging
 
-from oic.oauth2 import rndstr
+from oic import rndstr
 from oic.utils.authn.authn_context import UNSPECIFIED
 from oic.utils.keyio import KeyJar
 from oic.exception import MissingAttribute

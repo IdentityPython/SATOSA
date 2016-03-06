@@ -3,7 +3,7 @@ import time
 from urllib.parse import urlparse
 
 from jwkest.jwk import RSAKey
-from oic.oauth2 import rndstr
+from oic import rndstr
 from oic.oic import DEF_SIGN_ALG
 from oic.oic.consumer import Consumer
 from oic.oic.message import RegistrationResponse, RegistrationRequest, AccessTokenRequest, \
