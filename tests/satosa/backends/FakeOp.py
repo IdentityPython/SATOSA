@@ -183,7 +183,7 @@ class FakeOP:
     def __init__(self):
         op_base_url = TestConfiguration.get_instance().rp_config.OP_URL
         self.provider = Provider(
-            "pyoicserv",
+            "https://op.tester.se/",
             SessionDB(op_base_url),
             CDB,
             AUTHN_BROKER,

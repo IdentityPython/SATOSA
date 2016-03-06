@@ -290,7 +290,8 @@ class TestProxy:
         parsed = urlparse(action)
         request = "{}?{}".format(parsed.path, parsed.query)
         resp = test_client.post(request, data=urlencode(body),
-                                headers=[("Cookie", headers["Set-Cookie"])])
+                                headers=[("Cookie", headers["Set-Cookie"]),
+                                         ("Content-Type", "application/x-www-form-urlencoded")])
         assert resp.status == '302 Found'
 
         headers = dict(resp.headers)
