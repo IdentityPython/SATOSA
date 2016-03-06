@@ -252,6 +252,21 @@ When using an OP that only supports statically registered clients, see the
 The social login plugins can be used as backends for the proxy, allowing the
 proxy to act as a client to the social login services.
 
+#### Frontend
+The OpenID Connect frontend acts as and OpenID Connect Provider (OP), accepting requests from OpenID
+Connect Relying Parties (RPs). The default configuration file can be found
+[here](../example/plugins/frontends/oidc_frontend.yaml.example).
+ 
+The configuration parameters available:
+* `signing_key_path`: path to a RSA Private Key file (PKCS#1). MUST be configured. 
+* `client_db_path`: path to where the client (RP) database will be stored.
+The other parameters should be left with their default values. 
+
+As opposed to the other plugins, this plugin is NOT stateless (due to the client database). This 
+makes it impossible to run multiple instances of the SATOSA proxy on different machines (for the
+purpose of load balancing) unless the client database file is also distributed among those machines
+by some external process.
+
 #### Google
 The default configuration file can be
 found [here](../example/plugins/backends/google_backend.yaml.example).

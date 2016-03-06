@@ -1,0 +1,7 @@
+config:
+  issuer: <base_url>
+  signing_key_path: frontend.key
+  client_db_path: ./client_db
+module: satosa.frontends.oidc.OIDCFrontend
+name: OIDC
+plugin: FrontendModulePlugin
