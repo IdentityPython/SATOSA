@@ -2,6 +2,9 @@
 [![Build Status](https://travis-ci.org/its-dirg/SATOSA.svg?branch=travis)](https://travis-ci.org/its-dirg/SATOSA)
 [![PyPI](https://img.shields.io/pypi/v/SATOSA.svg)](https://pypi.python.org/pypi/SATOSA)
 
+A configurable proxy for translating between different authentication protocols such as SAML2, 
+OpenID Connect and OAuth2.
+
 # Table of Contents
 
 - [Installation](doc/README.md#installation)
