@@ -19,7 +19,7 @@ from saml2.samlp import name_id_policy_from_string
 from saml2.server import Server
 
 from satosa.frontends.base import FrontendModule
-from satosa.internal_data import InternalRequest, DataConverter
+from satosa.internal_data import InternalRequest, DataConverter, UserIdHashType
 from satosa.logging_util import satosa_logging
 from satosa.util import response, get_saml_name_id_format, saml_name_format_to_hash_type
 
@@ -102,7 +102,8 @@ class SamlFrontend(FrontendModule):
         :param relay_state: Request relay state
         :return: A state as a dict
         """
-        resp_args["name_id_policy"] = resp_args["name_id_policy"].to_string().decode("utf-8")
+        if "name_id_policy" in resp_args and resp_args["name_id_policy"] is not None:
+            resp_args["name_id_policy"] = resp_args["name_id_policy"].to_string().decode("utf-8")
         return {"resp_args": resp_args,
                 "relay_state": relay_state}
 
@@ -262,12 +263,17 @@ class SamlFrontend(FrontendModule):
             except IndexError:
                 pass
 
-            internal_req = InternalRequest(
-                saml_name_format_to_hash_type(extracted_request['req_args']
-                                              ['name_id_policy'].format),
-                extracted_request["resp_args"]["sp_entity_id"],
-                requester_name
-            )
+            name_format = None
+            if 'name_id_policy' in extracted_request['req_args']:
+                name_format = saml_name_format_to_hash_type(
+                    extracted_request['req_args']['name_id_policy'].format)
+            if name_format is None:
+                # default to requesting transient name id
+                name_format = UserIdHashType.transient
+
+            internal_req = InternalRequest(name_format,
+                                           extracted_request["resp_args"]["sp_entity_id"],
+                                           requester_name)
 
             # Get attribute filter
             idp_policy = idp.config.getattr("policy", "idp")

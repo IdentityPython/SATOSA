@@ -37,7 +37,7 @@ class FakeSP(Saml2Client):
             config = config_factory('sp', config_module)
         Saml2Client.__init__(self, config)
 
-    def make_auth_req(self, entity_id):
+    def make_auth_req(self, entity_id, nameid_format=None):
         """
         :type entity_id: str
         :rtype: str
@@ -62,7 +62,7 @@ class FakeSP(Saml2Client):
                 break
 
         req_id, req = self.create_authn_request(destination,
-                                                binding=return_binding)
+                                                binding=return_binding, nameid_format=nameid_format)
         ht_args = self.apply_binding(_binding, '%s' % req, destination,
                                      relay_state='hello')
 
@@ -86,7 +86,8 @@ class FakeIdP(server.Server):
         server.Server.__init__(self, config=config)
         self.user_db = user_db
 
-    def handle_auth_req(self, saml_request, relay_state, binding, userid, response_binding=BINDING_HTTP_POST):
+    def handle_auth_req(self, saml_request, relay_state, binding, userid,
+                        response_binding=BINDING_HTTP_POST):
         """
         Handles a SAML request, validates and creates a SAML response.
         :type saml_request: str
@@ -124,7 +125,7 @@ class FakeIdP(server.Server):
             resp = {'SAMLResponse': saml_response, 'RelayState': relay_state}
         elif response_binding == BINDING_HTTP_REDIRECT:
             http_args = self.apply_binding(response_binding, '%s' % _resp,
-                                       destination, relay_state, response=True)
+                                           destination, relay_state, response=True)
             resp = dict(parse_qsl(urlparse(dict(http_args["headers"])["Location"]).query))
 
         return destination, resp
