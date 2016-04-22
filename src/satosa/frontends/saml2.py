@@ -21,6 +21,7 @@ from saml2.server import Server
 from satosa.frontends.base import FrontendModule
 from satosa.internal_data import InternalRequest, DataConverter, UserIdHashType
 from satosa.logging_util import satosa_logging
+from satosa.response import MetadataResponse
 from satosa.util import response, get_saml_name_id_format, saml_name_format_to_hash_type
 
 LOGGER = logging.getLogger(__name__)
@@ -35,7 +36,8 @@ class SamlFrontend(FrontendModule):
         self._validate_config(conf)
 
         super(SamlFrontend, self).__init__(auth_req_callback_func, internal_attributes)
-        self.config = conf["idp_config"]
+        self.config = conf
+        self.idp_config = conf["idp_config"]
         self.endpoints = conf["endpoints"]
         self.base = conf["base"]
         self.state_id = conf["state_id"]
@@ -82,9 +84,9 @@ class SamlFrontend(FrontendModule):
         :rtype: list[(str, ((satosa.context.Context, Any) -> satosa.response.Response, Any))]
         """
         self._validate_providers(providers)
-        self.config = self._build_idp_config_endpoints(self.config, providers)
+        self.idp_config = self._build_idp_config_endpoints(self.idp_config, providers)
         # Create the idp
-        idp_config = IdPConfig().load(copy.deepcopy(self.config), metadata_construction=False)
+        idp_config = IdPConfig().load(copy.deepcopy(self.idp_config), metadata_construction=False)
         self.idp = Server(config=idp_config)
         return self._register_endpoints(providers)
 
@@ -446,6 +448,18 @@ class SamlFrontend(FrontendModule):
             LOGGER.error(msg)
             raise TypeError(msg)
 
+    def _metadata(self, context):
+        """
+        Endpoint for retrieving the backend metadata
+        :type context: satosa.context.Context
+        :rtype: satosa.backends.saml2.MetadataResponse
+
+        :param context: The current context
+        :return: response with metadata
+        """
+        satosa_logging(LOGGER, logging.DEBUG, "Sending metadata response", context.state)
+        return MetadataResponse(self.idp.config)
+
     def _register_endpoints(self, providers):
         """
         Register methods to endpoints
@@ -467,6 +481,10 @@ class SamlFrontend(FrontendModule):
                                 (self.handle_authn_request, binding)))
                 url_map.append(("(%s)/%s/(.*)$" % (valid_providers, parsed_endp.path),
                                 (self.handle_authn_request, binding)))
+
+        if "publish_metadata" in self.config:
+            metadata_path = urlparse(self.config["publish_metadata"])
+            url_map.append(("^%s$" % metadata_path.path[1:], self._metadata))
 
         return url_map
 
@@ -573,7 +591,7 @@ class SamlMirrorFrontend(SamlFrontend):
         """
         target_entity_id = self._get_target_entity_id(context)
         context.internal_data["mirror.target_entity_id"] = target_entity_id
-        idp_conf_file = self._load_endpoints_to_config(self.config, self.endpoints, self.base,
+        idp_conf_file = self._load_endpoints_to_config(self.idp_config, self.endpoints, self.base,
                                                        context.target_backend, target_entity_id)
         idp_config = IdPConfig().load(idp_conf_file, metadata_construction=False)
         return Server(config=idp_config)
@@ -632,7 +650,7 @@ class SamlMirrorFrontend(SamlFrontend):
         :type exception: satosa.exception.SATOSAAuthenticationError
         :rtype: satosa.response.Response
         """
-        idp = self._load_idp_dynamic_entity_id(self.config, exception.state)
+        idp = self._load_idp_dynamic_entity_id(self.idp_config, exception.state)
         return self._handle_backend_error(exception, idp)
 
     def handle_authn_response(self, context, internal_response):
@@ -642,7 +660,7 @@ class SamlMirrorFrontend(SamlFrontend):
         :param internal_response:
         :return:
         """
-        idp = self._load_idp_dynamic_entity_id(self.config, context.state)
+        idp = self._load_idp_dynamic_entity_id(self.idp_config, context.state)
         return self._handle_authn_response(context, internal_response, idp)
 
     def register_endpoints(self, providers):

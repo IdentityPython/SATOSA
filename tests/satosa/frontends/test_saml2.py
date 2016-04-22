@@ -51,14 +51,14 @@ class TestSamlFrontend:
                                     INTERNAL_ATTRIBUTES, config)
         samlfrontend.register_endpoints(["saml"])
 
-        idp_metadata_str = create_metadata_from_config_dict(samlfrontend.config)
+        idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
 
         fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
         context = Context()
         context.state = State()
         context.request = parse.parse_qs(
-                urlparse(fakesp.make_auth_req(samlfrontend.config["entityid"], nameid_format)).query)
+                urlparse(fakesp.make_auth_req(samlfrontend.idp_config["entityid"], nameid_format)).query)
         tmp_dict = {}
         for val in context.request:
             if isinstance(context.request[val], list):
@@ -83,23 +83,29 @@ class TestSamlFrontend:
             SamlFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES, conf)
 
     def test_register_endpoints(self, idp_conf):
+        """
+        Tests the method register_endpoints
+        """
+        def get_path_from_url(url):
+            return urlparse(url).path.lstrip("/")
+
+        metadata_url = "http://example.com/SAML2IDP/metadata"
         config = {"idp_config": idp_conf, "endpoints": ENDPOINTS,
                   "base": self.construct_base_url_from_entity_id(idp_conf["entityid"]),
-                  "state_id": "state_id"}
+                  "state_id": "state_id",
+                  "publish_metadata": metadata_url}
+
         samlfrontend = SamlFrontend(lambda context, internal_req: (context, internal_req),
-                                    INTERNAL_ATTRIBUTES, config)
+                                INTERNAL_ATTRIBUTES, config)
 
         providers = ["foo", "bar"]
         url_map = samlfrontend.register_endpoints(providers)
-        for k, v in idp_conf["service"]["idp"]["endpoints"].items():
-            for endp in v:
-                match = False
-                for regex in url_map:
-                    p = re.compile(regex[0])
-                    if p.match(urlparse(endp[0]).path.lstrip("/")):
-                        match = True
-                        break
-                assert match, "Not correct regular expression for endpoint: %s" % endp[0]
+        all_idp_endpoints = [get_path_from_url(v[0][0]) for v in idp_conf["service"]["idp"]["endpoints"].values()]
+        compiled_regex = [re.compile(regex) for regex, _ in url_map]
+        for endp in all_idp_endpoints:
+            assert any(p.match(endp) for p in compiled_regex)
+
+        assert any(p.match(get_path_from_url(metadata_url)) for p in compiled_regex)
 
     def test_handle_authn_request(self, idp_conf, sp_conf):
         """
@@ -200,7 +206,7 @@ class TestSamlFrontend:
         samlfrontend = SamlFrontend(None, INTERNAL_ATTRIBUTES, conf)
         samlfrontend.register_endpoints(["foo"])
 
-        idp_metadata_str = create_metadata_from_config_dict(samlfrontend.config)
+        idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
         fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
 
@@ -241,7 +247,7 @@ class TestSamlFrontend:
         samlfrontend = SamlFrontend(None, INTERNAL_ATTRIBUTES, conf)
         samlfrontend.register_endpoints(["foo"])
 
-        idp_metadata_str = create_metadata_from_config_dict(samlfrontend.config)
+        idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
         fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
 

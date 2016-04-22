@@ -24,27 +24,10 @@ from satosa.internal_data import UserIdHashType, InternalRequest, InternalRespon
 from satosa.logging_util import satosa_logging
 from satosa.metadata_creation.description import MetadataDescription, OrganizationDesc, \
     ContactPersonDesc, UIInfoDesc
-from satosa.response import SeeOther, Response
+from satosa.response import SeeOther, Response, MetadataResponse
 from satosa.util import rndstr, get_saml_name_id_format
 
 LOGGER = logging.getLogger(__name__)
-
-
-class MetadataResponse(Response):
-    """
-    A response containing metadata for the saml backend
-    """
-
-    def __init__(self, config):
-        """
-        Creates a response containing the metadata generated from the SP config.
-        :type config: dict[str, Any]
-        :param config: The SP config
-        """
-        metadata_string = create_metadata_string(None, config, 4, None, None, None, None,
-                                                 None).decode("utf-8")
-        resp = {"content": "text/xml"}
-        super(MetadataResponse, self).__init__(message=metadata_string, **resp)
 
 
 class SamlBackend(BackendModule):
