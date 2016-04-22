@@ -50,20 +50,21 @@ class TestSamlBackend:
         """
         Tests the method register_endpoints
         """
+        def get_path_from_url(url):
+            return urlparse(url).path.lstrip("/")
+        metadata_url = "http://example.com/SAML2IDP/metadata"
         samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf,
                                                               "disco_srv": "https://my.dicso.com/role/idp.ds",
-                                                              "state_id": "saml_backend_test_id"})
+                                                              "state_id": "saml_backend_test_id",
+                                                              "publish_metadata": metadata_url})
 
         url_map = samlbackend.register_endpoints()
-        for k, v in sp_conf["service"]["sp"]["endpoints"].items():
-            for endp in v:
-                match = False
-                for regex in url_map:
-                    p = re.compile(regex[0])
-                    if p.match(urlparse(endp[0]).path.lstrip("/")):
-                        match = True
-                        break
-                assert match, "Not correct regular expression for endpoint: %s" % endp[0]
+        all_sp_endpoints = [get_path_from_url(v[0][0])for v in sp_conf["service"]["sp"]["endpoints"].values()]
+        compiled_regex = [re.compile(regex) for regex, _ in url_map]
+        for endp in all_sp_endpoints:
+            assert any(p.match(endp) for p in compiled_regex)
+
+        assert any(p.match(get_path_from_url(metadata_url)) for p in compiled_regex)
 
     def test_start_auth_no_request_info(self, sp_conf):
         """
