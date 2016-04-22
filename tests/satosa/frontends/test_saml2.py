@@ -2,6 +2,7 @@
 Tests for the SAML frontend module src/frontends/saml2.py.
 """
 import re
+from collections import Counter
 from urllib import parse
 from urllib.parse import urlparse, parse_qs
 
@@ -9,6 +10,9 @@ import pytest
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.authn_context import PASSWORD
 from saml2.config import SPConfig
+from saml2.entity_category import refeds, swamid
+from saml2.entity_category.refeds import RESEARCH_AND_SCHOLARSHIP
+from saml2.entity_category.swamid import SFS_1993_1153, RESEARCH_AND_EDUCATION, EU
 from saml2.saml import NAMEID_FORMAT_PERSISTENT, NAMEID_FORMAT_TRANSIENT
 from saml2.samlp import NameIDPolicy
 
@@ -58,7 +62,7 @@ class TestSamlFrontend:
         context = Context()
         context.state = State()
         context.request = parse.parse_qs(
-                urlparse(fakesp.make_auth_req(samlfrontend.idp_config["entityid"], nameid_format)).query)
+            urlparse(fakesp.make_auth_req(samlfrontend.idp_config["entityid"], nameid_format)).query)
         tmp_dict = {}
         for val in context.request:
             if isinstance(context.request[val], list):
@@ -86,6 +90,7 @@ class TestSamlFrontend:
         """
         Tests the method register_endpoints
         """
+
         def get_path_from_url(url):
             return urlparse(url).path.lstrip("/")
 
@@ -96,7 +101,7 @@ class TestSamlFrontend:
                   "publish_metadata": metadata_url}
 
         samlfrontend = SamlFrontend(lambda context, internal_req: (context, internal_req),
-                                INTERNAL_ATTRIBUTES, config)
+                                    INTERNAL_ATTRIBUTES, config)
 
         providers = ["foo", "bar"]
         url_map = samlfrontend.register_endpoints(providers)
@@ -188,12 +193,12 @@ class TestSamlFrontend:
                                        "Example SP")
         filtered_attributes = samlfrontend.get_filter_attributes(samlfrontend.idp,
                                                                  samlfrontend.idp.config.getattr(
-                                                                         "policy", "idp"),
+                                                                     "policy", "idp"),
                                                                  internal_req.requestor, None)
 
         assert set(filtered_attributes) == set(
-                ["edupersontargetedid", "edupersonprincipalname", "edupersonaffiliation", "mail",
-                 "displayname", "sn", "givenname"])
+            ["edupersontargetedid", "edupersonprincipalname", "edupersonaffiliation", "mail",
+             "displayname", "sn", "givenname"])
 
     def test_acr_mapping_in_authn_response(self, idp_conf, sp_conf):
         eidas_loa_low = "http://eidas.europa.eu/LoA/low"
@@ -276,3 +281,48 @@ class TestSamlFrontend:
         authn_context_class_ref = resp.assertion.authn_statement[
             0].authn_context.authn_context_class_ref
         assert authn_context_class_ref.text == expected_loa
+
+    @pytest.mark.parametrize('entity_category, expected_attributes', [
+        ([RESEARCH_AND_SCHOLARSHIP], refeds.RELEASE[RESEARCH_AND_SCHOLARSHIP]),
+        ([SFS_1993_1153], swamid.RELEASE[SFS_1993_1153]),
+        ([RESEARCH_AND_EDUCATION, EU], swamid.RELEASE[(RESEARCH_AND_EDUCATION, EU)])
+    ])
+    def test_respect_sp_entity_categories(self, entity_category, expected_attributes, idp_conf, sp_conf):
+        base = self.construct_base_url_from_entity_id(idp_conf["entityid"])
+        conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base,
+                "state_id": "state_id"}
+
+        internal_attributes = {attr_name: {"saml": [attr_name.lower()]} for attr_name in expected_attributes}
+        samlfrontend = SamlFrontend(None, dict(attributes=internal_attributes), conf)
+        samlfrontend.register_endpoints(["foo"])
+
+        idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
+        sp_conf["metadata"]["inline"].append(idp_metadata_str)
+        sp_conf["entity_category"] = entity_category
+        fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
+
+        auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", idp_conf["entityid"])
+        internal_response = InternalResponse(auth_info=auth_info)
+
+        user_attributes = {k: "foo" for k in expected_attributes}
+        user_attributes.update({k: "bar" for k in ["extra", "more", "stuff"]})
+        internal_response.add_attributes(user_attributes)
+        context = Context()
+        context.state = State()
+
+        resp_args = {
+            "name_id_policy": NameIDPolicy(format=NAMEID_FORMAT_TRANSIENT),
+            "in_response_to": None,
+            "destination": "",
+            "sp_entity_id": None,
+            "binding": BINDING_HTTP_REDIRECT
+        }
+        request_state = samlfrontend.save_state(context, resp_args, "")
+        context.state.add(conf["state_id"], request_state)
+
+        resp = samlfrontend.handle_authn_response(context, internal_response)
+        resp_dict = parse_qs(urlparse(resp.message).query)
+        resp = fakesp.parse_authn_request_response(resp_dict['SAMLResponse'][0],
+                                                   BINDING_HTTP_REDIRECT)
+
+        assert Counter(resp.ava.keys()) == Counter(expected_attributes)
