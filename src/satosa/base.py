@@ -13,7 +13,7 @@ from satosa.internal_data import UserIdHasher
 from satosa.logging_util import satosa_logging
 from satosa.plugin_loader import load_backends, load_frontends, load_micro_services
 from satosa.response import Response
-from satosa.routing import ModuleRouter
+from satosa.routing import ModuleRouter, SATOSANoBoundEndpointError
 from satosa.state import cookie_to_state, SATOSAStateError, State, state_to_cookie
 
 __author__ = 'mathiashedstrom'
@@ -273,6 +273,8 @@ class SATOSABase(object):
             spec = self.module_router.endpoint_routing(context)
             resp = self._run_bound_endpoint(context, spec)
             self._save_state(resp, context)
+        except SATOSANoBoundEndpointError:
+            raise
         except SATOSAError:
             satosa_logging(LOGGER, logging.ERROR, "Uncaught SATOSA error", context.state,
                            exc_info=True)

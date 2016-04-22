@@ -43,6 +43,10 @@ class WsgiApplication(SATOSABase):
         if ".." in path:
             resp = Unauthorized()
             return resp(environ, start_response)
+        elif path == "":
+            resp = NotFound("Couldn't find the side you asked for!")
+            return resp(environ, start_response)
+
 
         context = Context()
         context.path = path

@@ -136,8 +136,6 @@ class ModuleRouter(object):
 
         if backend in self.backends:
             context.target_backend = backend
-        else:
-            satosa_logging(LOGGER, logging.DEBUG, "Unknown backend %s" % backend, context.state)
 
         # Search for frontend endpoint
         for frontend in self.frontends.keys():
@@ -151,15 +149,19 @@ class ModuleRouter(object):
                     satosa_logging(LOGGER, logging.INFO, msg, context.state)
                     return spec
 
-        # Search for backend endpoint
-        for regex, spec in self.backends[backend]["endpoints"]:
-            match = re.search(regex, context.path)
-            if match is not None:
-                msg = "Backend request. Module name:'{name}', endpoint: {endpoint}".format(
-                    name=backend,
-                    endpoint=context.path)
-                satosa_logging(LOGGER, logging.INFO, msg, context.state)
-                return spec
-        satosa_logging(LOGGER, logging.DEBUG, "%s not bound to any function" % context.path,
-                       context.state)
+        if backend in self.backends:
+            # Search for backend endpoint
+            for regex, spec in self.backends[backend]["endpoints"]:
+                match = re.search(regex, context.path)
+                if match is not None:
+                    msg = "Backend request. Module name:'{name}', endpoint: {endpoint}".format(
+                        name=backend,
+                        endpoint=context.path)
+                    satosa_logging(LOGGER, logging.INFO, msg, context.state)
+                    return spec
+            satosa_logging(LOGGER, logging.DEBUG, "%s not bound to any function" % context.path,
+                           context.state)
+        else:
+            satosa_logging(LOGGER, logging.DEBUG, "Unknown backend %s" % backend, context.state)
+
         raise SATOSANoBoundEndpointError("'{}' not bound to any function".format(context.path))

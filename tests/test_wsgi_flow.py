@@ -10,6 +10,7 @@ from urllib.parse import urlsplit, parse_qs, urlencode, quote, urlparse
 import pytest
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.config import SPConfig, IdPConfig
+from saml2.httputil import NotFound
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse
 
@@ -303,3 +304,10 @@ class TestProxy:
 
         identity = resp.ava
         assert identity["displayName"][0] == "Test Testsson"
+
+    def test_unknown_request_path(self):
+        app = WsgiApplication(config=TestConfiguration.get_instance().proxy_config)
+        test_client = Client(app.run_server, BaseResponse)
+
+        resp = test_client.get('/unknown')
+        assert resp.status == NotFound._status
