@@ -204,7 +204,7 @@ def make_satosa_metadata(option):
             elif issubclass(frontend.module, SamlFrontend):
                 module = frontend.module(None, conf_mod.INTERNAL_ATTRIBUTES, frontend.config)
                 module.register_endpoints(backend_names)
-                xml = _make_metadata(module.config, option)
+                xml = _make_metadata(module.idp_config, option)
                 frontend_metadata[frontend.name] = [{"xml": xml, "plugin_name": frontend.name}]
 
     if option.generate_backend:
