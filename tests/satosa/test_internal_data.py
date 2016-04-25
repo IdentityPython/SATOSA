@@ -253,15 +253,21 @@ class TestDataConverter:
         mapping = {
             "attributes": {
                 "last_name": {
-                   "p1": ["sn"],
-                   "p2": ["sn"]
+                    "p1": ["sn"],
+                    "p2": ["sn"]
                 },
                 "first_name": {
-                   "p1": ["givenName"],
-                   "p2": ["givenName"]
+                    "p1": ["givenName"],
+                    "p2": ["givenName"]
                 },
                 "name": {
-                   "p2": ["cn","${givenName[0]} ${sn[0]}"]
+                    "p2": ["cn"]
+                }
+
+            },
+            "template_attributes": {
+                "name": {
+                    "p2": ["${first_name[0]} ${last_name[0]}"]
                 }
             }
         }
@@ -271,30 +277,148 @@ class TestDataConverter:
         assert "name" in internal_repr
         assert len(internal_repr["name"]) == 1
         assert internal_repr["name"][0] == "Valfrid Lindeman"
+        external_repr = converter.from_internal("p2", internal_repr)
+        assert external_repr["cn"][0] == "Valfrid Lindeman"
 
     def test_scoped_template_mapping(self):
         mapping = {
             "attributes": {
                 "unscoped_affiliation": {
-                   "p1": ["eduPersonAffiliation"]
+                    "p1": ["eduPersonAffiliation"]
                 },
                 "uid": {
-                   "p1": ["eduPersonPrincipalName"],
+                    "p1": ["eduPersonPrincipalName"],
                 },
                 "affiliation": {
-                   "p1": ["eduPersonScopedAffiliation","${eduPersonAffiliation[0]}@${eduPersonPrincipalName[0] | scope}"]
+                    "p1": ["eduPersonScopedAffiliation"]
+                }
+            },
+            "template_attributes": {
+                "affiliation": {
+                    "p1": ["${unscoped_affiliation[0]}@${uid[0] | scope}"]
                 }
             }
         }
 
         converter = DataConverter(mapping)
         internal_repr = converter.to_internal("p1", {
-             "eduPersonAffiliation": ["student"], 
-             "eduPersonPrincipalName": ["valfrid@lindeman.com"]})
+            "eduPersonAffiliation": ["student"],
+            "eduPersonPrincipalName": ["valfrid@lindeman.com"]})
         assert "affiliation" in internal_repr
         assert len(internal_repr["affiliation"]) == 1
         assert internal_repr["affiliation"][0] == "student@lindeman.com"
 
+    def test_template_attribute_overrides_existing_attribute(self):
+        mapping = {
+            "attributes": {
+                "last_name": {
+                    "p1": ["sn"],
+                },
+                "first_name": {
+                    "p1": ["givenName"],
+                },
+                "name": {
+                    "p1": ["cn"]
+                }
+            },
+            "template_attributes": {
+                "name": {
+                    "p1": ["${first_name[0]} ${last_name[0]}"]
+                }
+            }
+        }
+
+        converter = DataConverter(mapping)
+        data = {"sn": ["Surname"],
+                "givenName": ["Given"],
+                "cn": ["Common Name"]}
+        internal_repr = converter.to_internal("p1", data)
+        external_repr = converter.from_internal("p1", internal_repr)
+        assert len(internal_repr["name"]) == 1
+        assert internal_repr["name"][0] == "Given Surname"
+        assert external_repr["cn"][0] == "Given Surname"
+
+    def test_template_attribute_preserves_existing_attribute_if_template_cant_be_rendered(self):
+        mapping = {
+            "attributes": {
+                "last_name": {
+                    "p1": ["sn"],
+                },
+                "first_name": {
+                    "p1": ["givenName"],
+                },
+                "name": {
+                    "p1": ["cn"]
+                }
+            },
+            "template_attributes": {
+                "name": {
+                    "p1": ["${unknown[0]} ${last_name[0]}"]
+                }
+            }
+        }
+
+        converter = DataConverter(mapping)
+        data = {"sn": ["Surname"],
+                "givenName": ["Given"],
+                "cn": ["Common Name"]}
+        internal_repr = converter.to_internal("p1", data)
+        assert len(internal_repr["name"]) == 1
+        assert internal_repr["name"][0] == "Common Name"
+
+    def test_template_attribute_with_multiple_templates_tries_them_all_templates(self):
+        mapping = {
+            "attributes": {
+                "last_name": {
+                    "p1": ["sn"],
+                },
+                "first_name": {
+                    "p1": ["givenName"],
+                },
+                "name": {
+                    "p1": ["cn"]
+                }
+            },
+            "template_attributes": {
+                "name": {
+                    "p1": ["${first_name[0]} ${last_name[0]}", "${unknown[0]} ${unknown[1]}",
+                           "${first_name[1]} ${last_name[1]}", "${foo} ${bar}"]
+                }
+            }
+        }
+
+        converter = DataConverter(mapping)
+        data = {"sn": ["Surname1", "Surname2"],
+                "givenName": ["Given1", "Given2"],
+                "cn": ["Common Name"]}
+        internal_repr = converter.to_internal("p1", data)
+        assert len(internal_repr["name"]) == 2
+        assert internal_repr["name"][0] == "Given1 Surname1"
+        assert internal_repr["name"][1] == "Given2 Surname2"
+
+    def test_template_attribute_fail_does_not_insert_None_attribute_value(self):
+        mapping = {
+            "attributes": {
+                "last_name": {
+                    "p1": ["sn"],
+                },
+                "first_name": {
+                    "p1": ["givenName"],
+                },
+                "name": {
+                    "p1": ["cn"]
+                }
+            },
+            "template_attributes": {
+                "name": {
+                    "p1": ["${first_name[0]} ${last_name[0]}"]
+                }
+            }
+        }
+
+        converter = DataConverter(mapping)
+        internal_repr = converter.to_internal("p1", {})
+        assert len(internal_repr) == 0
 
     @pytest.mark.parametrize("attribute_value", [
         {"email": "test@example.com"},
@@ -312,5 +436,3 @@ class TestDataConverter:
         converter = DataConverter(mapping)
         internal_repr = converter.to_internal("foo", attribute_value)
         assert internal_repr["mail"] == ["test@example.com"]
-
-

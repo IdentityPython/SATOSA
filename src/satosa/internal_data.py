@@ -6,6 +6,8 @@ import datetime
 from enum import Enum
 import hashlib
 import json
+from itertools import chain
+
 from mako.template import Template
 from satosa.exception import SATOSAError
 
@@ -45,6 +47,7 @@ class DataConverter(object):
         self.separator = "."  # separator for nested attribute values, e.g. address.street_address
         self.multivalue_separator = ";" # separates multiple values, e.g. when using templates
         self.from_internal_attributes = internal_attributes["attributes"]
+        self.template_attributes = internal_attributes.get("template_attributes", None)
 
         self.external2internal_attribute_name_mapping = {}
         for internal_key, mappings in self.from_internal_attributes.items():
@@ -116,16 +119,13 @@ class DataConverter(object):
             if attribute_values:  # Only insert key if it has some values
                 internal_dict[internal_key] = attribute_values
 
+        internal_dict = self._handle_template_attributes(external_type, internal_dict)
         return internal_dict
 
     def _collate_attribute_values_by_priority_order(self, attribute_names, data):
         result = []
         for attr_name in attribute_names:
-            attr_val = None
-            if '$' in attr_name: # this looks like a template...
-                attr_val = self._render_attribute_template(attr_name, data)
-            else:
-                attr_val = self._get_nested_attribute_value(attr_name, data)
+            attr_val = self._get_nested_attribute_value(attr_name, data)
 
             if isinstance(attr_val, list):
                 result.extend(attr_val)
@@ -136,7 +136,29 @@ class DataConverter(object):
 
     def _render_attribute_template(self, template, data):
         t = Template(template,cache_enabled=True,imports=["from satosa.util import scope"])
-        return t.render(**data).split(self.multivalue_separator)
+        try:
+            return t.render(**data).split(self.multivalue_separator)
+        except (NameError, TypeError) as e:
+            return []
+
+    def _handle_template_attributes(self, external_type, internal_dict):
+        if not self.template_attributes:
+            return internal_dict
+
+        for internal_key, mapping in self.template_attributes.items():
+            if external_type not in mapping:
+                # skip this internal attribute if we have no mapping in the specified profile
+                continue
+
+            external_key = mapping[external_type]
+            templates = [t for t in external_key if "$" in t] # these looks like templates...
+            template_attribute_values = [self._render_attribute_template(template, internal_dict) for template in templates]
+            flattened_attribute_values = list(chain.from_iterable(template_attribute_values))
+            attribute_values = flattened_attribute_values or internal_dict.get(internal_key, None)
+            if attribute_values:  # only insert key if it has some values
+                internal_dict[internal_key] = attribute_values
+
+        return internal_dict
 
     def _get_nested_attribute_value(self, nested_key, data):
         keys = nested_key.split(self.separator)
