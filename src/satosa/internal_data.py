@@ -135,7 +135,7 @@ class DataConverter(object):
         return result
 
     def _render_attribute_template(self, template, data):
-        t = Template(template,cache_enabled=True)
+        t = Template(template,cache_enabled=True,imports=["from satosa.util import scope"])
         return t.render(**data).split(self.multivalue_separator)
 
     def _get_nested_attribute_value(self, nested_key, data):
