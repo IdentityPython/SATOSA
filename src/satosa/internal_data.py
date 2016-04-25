@@ -6,6 +6,7 @@ import datetime
 from enum import Enum
 import hashlib
 import json
+from mako.template import Template
 from satosa.exception import SATOSAError
 
 __author__ = 'haho0032'
@@ -42,6 +43,7 @@ class DataConverter(object):
         (dict[internal_name, dict[external_type, external_name]])
         """
         self.separator = "."  # separator for nested attribute values, e.g. address.street_address
+        self.multivalue_separator = ";" # separates multiple values, e.g. when using templates
         self.from_internal_attributes = internal_attributes["attributes"]
 
         self.external2internal_attribute_name_mapping = {}
@@ -119,13 +121,22 @@ class DataConverter(object):
     def _collate_attribute_values_by_priority_order(self, attribute_names, data):
         result = []
         for attr_name in attribute_names:
-            attr_val = self._get_nested_attribute_value(attr_name, data)
+            attr_val = None
+            if '$' in attr_name: # this looks like a template...
+                attr_val = self._render_attribute_template(attr_name, data)
+            else:
+                attr_val = self._get_nested_attribute_value(attr_name, data)
+
             if isinstance(attr_val, list):
                 result.extend(attr_val)
             elif attr_val:
                 result.append(attr_val)
 
         return result
+
+    def _render_attribute_template(self, template, data):
+        t = Template(template,cache_enabled=True)
+        return t.render(**data).split(self.multivalue_separator)
 
     def _get_nested_attribute_value(self, nested_key, data):
         keys = nested_key.split(self.separator)
