@@ -25,6 +25,7 @@ setup(
         "requests",
         "PyYAML",
         "gunicorn",
+        "mako",
         "Werkzeug"
     ],
     zip_safe=False,
