@@ -249,6 +249,52 @@ class TestDataConverter:
         filter = converter.to_internal_filter("bar", ["email", "uid"])
         assert Counter(filter) == Counter(["id"])
 
+    def test_simple_template_mapping(self):
+        mapping = {
+            "attributes": {
+                "last_name": {
+                   "p1": ["sn"],
+                   "p2": ["sn"]
+                },
+                "first_name": {
+                   "p1": ["givenName"],
+                   "p2": ["givenName"]
+                },
+                "name": {
+                   "p2": ["cn","${givenName[0]} ${sn[0]}"]
+                }
+            }
+        }
+
+        converter = DataConverter(mapping)
+        internal_repr = converter.to_internal("p2", {"givenName": ["Valfrid"], "sn": ["Lindeman"]})
+        assert "name" in internal_repr
+        assert len(internal_repr["name"]) == 1
+        assert internal_repr["name"][0] == "Valfrid Lindeman"
+
+    def test_scoped_template_mapping(self):
+        mapping = {
+            "attributes": {
+                "unscoped_affiliation": {
+                   "p1": ["eduPersonAffiliation"]
+                },
+                "uid": {
+                   "p1": ["eduPersonPrincipalName"],
+                },
+                "affiliation": {
+                   "p1": ["eduPersonScopedAffiliation","${eduPersonAffiliation[0]}@${eduPersonPrincipalName[0] | scope}"]
+                }
+            }
+        }
+
+        converter = DataConverter(mapping)
+        internal_repr = converter.to_internal("p1", {
+             "eduPersonAffiliation": ["student"], 
+             "eduPersonPrincipalName": ["valfrid@lindeman.com"]})
+        assert "affiliation" in internal_repr
+        assert len(internal_repr["affiliation"]) == 1
+        assert internal_repr["affiliation"][0] == "student@lindeman.com"
+
 
     @pytest.mark.parametrize("attribute_value", [
         {"email": "test@example.com"},
