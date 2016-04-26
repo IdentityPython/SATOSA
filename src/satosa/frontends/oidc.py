@@ -7,6 +7,7 @@ import json
 import logging
 from urllib.parse import urlencode
 
+from oic.oic import scope2claims
 from oic.oic.message import AuthorizationResponse, AuthorizationRequest, AuthorizationErrorResponse, \
     RegistrationResponse, ProviderConfigurationResponse
 from oic.oic.provider import Provider, RegistrationEndpoint, AuthorizationEndpoint
@@ -149,6 +150,7 @@ class OIDCFrontend(FrontendModule):
             "claims_parameter_supported": True,
             "request_parameter_supported": False,
             "request_uri_parameter_supported": False,
+            "scopes_supported": ["openid"]
         }
 
         if "client_db_path" in self.conf:
@@ -177,7 +179,7 @@ class OIDCFrontend(FrontendModule):
         """
         requested_claims = requested_claims or {}
         scopes = scopes or []
-        claims_requested_by_scope = Provider._scope2claims(scopes)
+        claims_requested_by_scope = scope2claims(scopes)
         claims_requested_by_scope.update(
                 requested_claims)  # let explicit claims request override scope
 
