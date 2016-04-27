@@ -236,7 +236,7 @@ class SamlFrontend(FrontendModule):
             http_args = idp.apply_binding(
                 _binding, "%s" % extracted_request["response"],
                 extracted_request["resp_args"]["destination"],
-                request["RelayState"], response=True)
+                request.get("RelayState"), response=True)
 
             satosa_logging(LOGGER, logging.DEBUG, "HTTPargs: %s" % http_args, context.state,
                            exc_info=True)
@@ -250,7 +250,7 @@ class SamlFrontend(FrontendModule):
 
             request_state = self.save_state(context,
                                             idp.response_args(extracted_request["authn_req"]),
-                                            request["RelayState"])
+                                            request.get("RelayState"))
             context.state.add(self.state_id, request_state)
 
             extensions = idp.metadata.extension(

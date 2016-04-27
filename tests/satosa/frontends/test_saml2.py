@@ -44,7 +44,7 @@ class TestSamlFrontend:
     def construct_base_url_from_entity_id(self, entity_id):
         return "{parsed.scheme}://{parsed.netloc}".format(parsed=urlparse(entity_id))
 
-    def setup_for_authn_req(self, idp_conf, sp_conf, nameid_format):
+    def setup_for_authn_req(self, idp_conf, sp_conf, nameid_format=None, relay_state="relay_state"):
         base = self.construct_base_url_from_entity_id(idp_conf["entityid"])
         config = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base,
                   "state_id": "state_id"}
@@ -62,7 +62,7 @@ class TestSamlFrontend:
         context = Context()
         context.state = State()
         context.request = parse.parse_qs(
-            urlparse(fakesp.make_auth_req(samlfrontend.idp_config["entityid"], nameid_format)).query)
+            urlparse(fakesp.make_auth_req(samlfrontend.idp_config["entityid"], nameid_format, relay_state)).query)
         tmp_dict = {}
         for val in context.request:
             if isinstance(context.request[val], list):
@@ -116,7 +116,7 @@ class TestSamlFrontend:
         """
         Performs a complete test for the module. The flow should be accepted.
         """
-        context, samlfrontend = self.setup_for_authn_req(idp_conf, sp_conf, None)
+        context, samlfrontend = self.setup_for_authn_req(idp_conf, sp_conf)
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
         assert internal_req.requestor == sp_conf["entityid"]
 
@@ -138,7 +138,29 @@ class TestSamlFrontend:
         """
         Performs a complete test for the module. The flow should be accepted.
         """
-        context, samlfrontend = self.setup_for_authn_req(idp_conf, sp_conf, "")
+        context, samlfrontend = self.setup_for_authn_req(idp_conf, sp_conf, nameid_format="")
+        _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
+        assert internal_req.requestor == sp_conf["entityid"]
+
+        auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
+        internal_response = InternalResponse(auth_info=auth_info)
+        internal_response.set_user_id_hash_type(internal_req.user_id_hash_type)
+        internal_response.add_attributes(USERS["testuser1"])
+
+        resp = samlfrontend.handle_authn_response(context, internal_response)
+        resp_dict = parse_qs(urlparse(resp.message).query)
+
+        fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
+        resp = fakesp.parse_authn_request_response(resp_dict['SAMLResponse'][0],
+                                                   BINDING_HTTP_REDIRECT)
+        for key in resp.ava:
+            assert USERS["testuser1"][key] == resp.ava[key]
+
+    def test_handle_authn_response_without_relay_state(self, idp_conf, sp_conf):
+        """
+        Performs a complete test for the module. The flow should be accepted.
+        """
+        context, samlfrontend = self.setup_for_authn_req(idp_conf, sp_conf, relay_state=None)
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
         assert internal_req.requestor == sp_conf["entityid"]
 
