@@ -12,6 +12,7 @@ from saml2.httputil import Response
 from saml2.httputil import Redirect
 from saml2.httputil import Unauthorized
 from saml2.s_utils import UnknownPrincipal
+from saml2.s_utils import UnknownSystemEntity
 from saml2.s_utils import UnsupportedBinding
 from saml2.saml import NameID
 from saml2.samlp import name_id_policy_from_string
@@ -230,6 +231,9 @@ class SamlFrontend(FrontendModule):
             satosa_logging(LOGGER, logging.ERROR, "UnsupportedBinding", context.state,
                            exc_info=True)
             return ServiceError("UnsupportedBinding: %s" % excp)
+        except UnknownSystemEntity as e:
+            satosa_logging(LOGGER, logging.ERROR, "UnknownSystemEntity", context.state)
+            return ServiceError("UnknownSystemEntity: %s" % e)
 
         _binding = extracted_request["resp_args"]["binding"]
         if extracted_request["response"]:  # An error response
