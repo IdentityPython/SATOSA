@@ -6,13 +6,15 @@ from collections import Counter
 from urllib import parse
 from urllib.parse import urlparse, parse_qs
 
+import itertools
 import pytest
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.authn_context import PASSWORD
 from saml2.config import SPConfig
-from saml2.entity_category import refeds, swamid
+from saml2.entity_category import refeds, swamid, edugain
+from saml2.entity_category.edugain import COCO
 from saml2.entity_category.refeds import RESEARCH_AND_SCHOLARSHIP
-from saml2.entity_category.swamid import SFS_1993_1153, RESEARCH_AND_EDUCATION, EU
+from saml2.entity_category.swamid import SFS_1993_1153, RESEARCH_AND_EDUCATION, EU, HEI, NREN
 from saml2.saml import NAMEID_FORMAT_PERSISTENT, NAMEID_FORMAT_TRANSIENT
 from saml2.samlp import NameIDPolicy
 
@@ -44,7 +46,8 @@ class TestSamlFrontend:
     def construct_base_url_from_entity_id(self, entity_id):
         return "{parsed.scheme}://{parsed.netloc}".format(parsed=urlparse(entity_id))
 
-    def setup_for_authn_req(self, idp_conf, sp_conf, nameid_format=None, relay_state="relay_state"):
+    def setup_for_authn_req(self, idp_conf, sp_conf, nameid_format=None, relay_state="relay_state",
+                            internal_attributes=INTERNAL_ATTRIBUTES):
         base = self.construct_base_url_from_entity_id(idp_conf["entityid"])
         config = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base,
                   "state_id": "state_id"}
@@ -52,7 +55,7 @@ class TestSamlFrontend:
         idp_conf["metadata"]["inline"] = [sp_metadata_str]
 
         samlfrontend = SamlFrontend(lambda context, internal_req: (context, internal_req),
-                                    INTERNAL_ATTRIBUTES, config)
+                                    internal_attributes, config)
         samlfrontend.register_endpoints(["saml"])
 
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
@@ -304,30 +307,40 @@ class TestSamlFrontend:
             0].authn_context.authn_context_class_ref
         assert authn_context_class_ref.text == expected_loa
 
-    @pytest.mark.parametrize('entity_category, expected_attributes', [
-        ([RESEARCH_AND_SCHOLARSHIP], refeds.RELEASE[RESEARCH_AND_SCHOLARSHIP]),
-        ([SFS_1993_1153], swamid.RELEASE[SFS_1993_1153]),
-        ([RESEARCH_AND_EDUCATION, EU], swamid.RELEASE[(RESEARCH_AND_EDUCATION, EU)])
+    @pytest.mark.parametrize('entity_category, entity_category_module, expected_attributes', [
+        ([""], "swamid", swamid.RELEASE[""]),
+        ([COCO], "edugain", edugain.RELEASE[""] + edugain.RELEASE[COCO]),
+        ([RESEARCH_AND_SCHOLARSHIP], "refeds", refeds.RELEASE[""] + refeds.RELEASE[RESEARCH_AND_SCHOLARSHIP]),
+        ([RESEARCH_AND_EDUCATION, EU], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, EU)]),
+        ([RESEARCH_AND_EDUCATION, HEI], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, HEI)]),
+        ([RESEARCH_AND_EDUCATION, NREN], "swamid", swamid.RELEASE[""] +  swamid.RELEASE[(RESEARCH_AND_EDUCATION, NREN)]),
+        ([SFS_1993_1153], "swamid", swamid.RELEASE[""] +  swamid.RELEASE[SFS_1993_1153]),
     ])
-    def test_respect_sp_entity_categories(self, entity_category, expected_attributes, idp_conf, sp_conf):
-        base = self.construct_base_url_from_entity_id(idp_conf["entityid"])
-        conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base,
-                "state_id": "state_id"}
+    def test_respect_sp_entity_categories(self, entity_category, entity_category_module, expected_attributes, idp_conf,
+                                          sp_conf):
+        idp_conf["service"]["idp"]["policy"]["default"]["entity_categories"] = [entity_category_module]
+        sp_conf["entity_category"] = entity_category
+        expected_attributes_in_all_entity_categories = list(itertools.chain(swamid.RELEASE[""],
+                                                                            edugain.RELEASE[COCO],
+                                                                            refeds.RELEASE[RESEARCH_AND_SCHOLARSHIP],
+                                                                            swamid.RELEASE[(RESEARCH_AND_EDUCATION, EU)],
+                                                                            swamid.RELEASE[(RESEARCH_AND_EDUCATION, HEI)],
+                                                                            swamid.RELEASE[(RESEARCH_AND_EDUCATION, NREN)],
+                                                                            swamid.RELEASE[SFS_1993_1153]))
+        internal_attributes = {}
+        for expected_attribute in expected_attributes_in_all_entity_categories:
+            internal_attributes[expected_attribute] = {"saml": [expected_attribute.lower()]}
 
-        internal_attributes = {attr_name: {"saml": [attr_name.lower()]} for attr_name in expected_attributes}
-        samlfrontend = SamlFrontend(None, dict(attributes=internal_attributes), conf)
-        samlfrontend.register_endpoints(["foo"])
+        _, samlfrontend = self.setup_for_authn_req(idp_conf, sp_conf,
+                                                   internal_attributes=dict(attributes=internal_attributes))
 
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
-        sp_conf["entity_category"] = entity_category
         fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
 
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", idp_conf["entityid"])
         internal_response = InternalResponse(auth_info=auth_info)
-
-        user_attributes = {k: "foo" for k in expected_attributes}
-        user_attributes.update({k: "bar" for k in ["extra", "more", "stuff"]})
+        user_attributes = {k: "foo" for k in expected_attributes_in_all_entity_categories}
         internal_response.add_attributes(user_attributes)
         context = Context()
         context.state = State()
@@ -336,11 +349,11 @@ class TestSamlFrontend:
             "name_id_policy": NameIDPolicy(format=NAMEID_FORMAT_TRANSIENT),
             "in_response_to": None,
             "destination": "",
-            "sp_entity_id": None,
+            "sp_entity_id": sp_conf["entityid"],
             "binding": BINDING_HTTP_REDIRECT
         }
         request_state = samlfrontend.save_state(context, resp_args, "")
-        context.state.add(conf["state_id"], request_state)
+        context.state.add(samlfrontend.state_id, request_state)
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
