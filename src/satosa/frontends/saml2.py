@@ -3,6 +3,7 @@
 A pysaml2 frontend module for the satosa proxy
 """
 import copy
+import json
 import logging
 from urllib.parse import urlparse
 
@@ -339,6 +340,8 @@ class SamlFrontend(FrontendModule):
                          format=get_saml_name_id_format(internal_response.user_id_hash_type),
                          sp_name_qualifier=None,
                          name_qualifier=None)
+
+        LOGGER.debug("returning attributes %s", json.dumps(ava))
 
         # Will signed the response by default
         resp = self.construct_authn_response(idp,
