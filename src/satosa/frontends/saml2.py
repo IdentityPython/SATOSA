@@ -257,18 +257,7 @@ class SamlFrontend(FrontendModule):
                                             request.get("RelayState"))
             context.state.add(self.state_id, request_state)
 
-            extensions = idp.metadata.extension(
-                extracted_request['resp_args']['sp_entity_id'],
-                'spsso_descriptor',
-                'urn:oasis:names:tc:SAML:metadata:ui&UIInfo'
-            )
-
-            requester_name = None
-            try:
-                requester_name = extensions[0]['display_name']
-            except IndexError:
-                pass
-
+            requester_name = self._get_sp_display_name(idp, extracted_request['resp_args']['sp_entity_id'])
             name_format = None
             if 'name_id_policy' in extracted_request['req_args']:
                 name_format = saml_name_format_to_hash_type(
@@ -515,6 +504,21 @@ class SamlFrontend(FrontendModule):
             config["service"]["idp"]["endpoints"][endp_category] = idp_endpoints
 
         return config
+
+    def _get_sp_display_name(self, idp, entity_id):
+        extensions = idp.metadata.extension(
+            entity_id,
+            'spsso_descriptor',
+            'urn:oasis:names:tc:SAML:metadata:ui&UIInfo')
+
+        if not extensions:
+            return None
+        try:
+            return extensions[0]['display_name']
+        except (IndexError, KeyError) as e:
+            pass
+
+        return None
 
 
 class SamlMirrorFrontend(SamlFrontend):

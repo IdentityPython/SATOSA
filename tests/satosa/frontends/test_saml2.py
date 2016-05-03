@@ -348,3 +348,18 @@ class TestSamlFrontend:
                                                    BINDING_HTTP_REDIRECT)
 
         assert Counter(resp.ava.keys()) == Counter(expected_attributes)
+
+    def test_sp_metadata_including_uiinfo_display_name(self, idp_conf, sp_conf):
+        sp_conf["service"]["sp"]["ui_info"] = dict(display_name="Test SP")
+        _, samlfrontend = self.setup_for_authn_req(idp_conf, sp_conf)
+        display_names = samlfrontend._get_sp_display_name(samlfrontend.idp, sp_conf["entityid"])
+        assert display_names[0]["text"] == "Test SP"
+
+    def test_sp_metadata_including_uiinfo_without_display_name(self, idp_conf, sp_conf):
+        sp_conf["service"]["sp"]["ui_info"] = dict(information_url="http://info.example.com")
+        _, samlfrontend = self.setup_for_authn_req(idp_conf, sp_conf)
+        assert samlfrontend._get_sp_display_name(samlfrontend.idp, sp_conf["entityid"]) is None
+
+    def test_sp_metadata_without_uiinfo(self, idp_conf, sp_conf):
+        _, samlfrontend = self.setup_for_authn_req(idp_conf, sp_conf)
+        assert samlfrontend._get_sp_display_name(samlfrontend.idp, sp_conf["entityid"]) is None
