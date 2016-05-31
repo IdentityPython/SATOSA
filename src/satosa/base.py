@@ -85,12 +85,12 @@ class SATOSABase(object):
         satosa_logging(LOGGER, logging.INFO,
                        "Requesting provider: {}".format(internal_request.requestor), state)
         context.request = None
-        backend = self.module_router.backend_routing(context)
         self.consent_module.save_state(internal_request, state)
         UserIdHasher.save_state(internal_request, state)
         if self.request_micro_services:
             internal_request = self.request_micro_services.process_service_queue(context,
                                                                                  internal_request)
+        backend = self.module_router.backend_routing(context)
         return backend.start_auth(context, internal_request)
 
     def _auth_resp_callback_func(self, context, internal_response):

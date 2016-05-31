@@ -1,0 +1,6 @@
+module: satosa.micro_service.custom_routing.DecideBackendByRequester
+plugin: RequestMicroService
+config:
+  requester_mapping:
+    requester1: Saml2
+    requester2: openid_connect
