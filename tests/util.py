@@ -2,6 +2,7 @@
 Contains help methods and classes to perform tests.
 """
 import base64
+import json
 import re
 import tempfile
 from urllib.parse import parse_qsl, urlparse
@@ -18,6 +19,7 @@ from saml2.samlp import NameIDPolicy
 
 from satosa.backends.base import BackendModule
 from satosa.frontends.base import FrontendModule
+from satosa.response import Response
 
 
 class FakeSP(Saml2Client):
@@ -387,3 +389,27 @@ class FakeFrontend(FrontendModule):
         """
         if self.register_endpoints_func:
             return self.register_endpoints_func(providers)
+
+
+class TestBackend(BackendModule):
+    provider = "TestBackend"
+
+    def __init__(self, auth_callback_func, internal_attributes, config):
+        super().__init__(auth_callback_func, internal_attributes)
+
+    def register_endpoints(self):
+        return [("^{}/response$".format(TestBackend.provider), self.handle_response)]
+
+    def handle_response(self, context):
+        return Response(json.dumps({"foo": "bar"}))
+
+
+class TestFrontend(FrontendModule):
+    def __init__(self, auth_req_callback_func, internal_attributes, config):
+        super().__init__(auth_req_callback_func, internal_attributes)
+
+    def register_endpoints(self, providers):
+        return [("^{}/request$".format(providers[0]), self.handle_request)]
+
+    def handle_request(self, context):
+        return Response('Request received OK')
