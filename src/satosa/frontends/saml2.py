@@ -8,20 +8,19 @@ import logging
 from urllib.parse import urlparse
 
 from saml2.config import IdPConfig
-from saml2.httputil import ServiceError
-from saml2.httputil import Response
 from saml2.httputil import Redirect
+from saml2.httputil import Response
+from saml2.httputil import ServiceError
 from saml2.httputil import Unauthorized
 from saml2.s_utils import UnknownPrincipal
 from saml2.s_utils import UnknownSystemEntity
 from saml2.s_utils import UnsupportedBinding
 from saml2.saml import NameID
 from saml2.samlp import name_id_policy_from_string
-
 from saml2.server import Server
 
 from satosa.frontends.base import FrontendModule
-from satosa.internal_data import InternalRequest, DataConverter, UserIdHashType
+from satosa.internal_data import InternalRequest, UserIdHashType
 from satosa.logging_util import satosa_logging
 from satosa.response import MetadataResponse
 from satosa.util import response, get_saml_name_id_format, saml_name_format_to_hash_type
@@ -305,7 +304,7 @@ class SamlFrontend(FrontendModule):
         for aconv in attrconvs:
             if aconv.name_format == name_format:
                 attribute_filter = list(
-                        idp_policy.restrict(aconv._to, sp_entity_id, idp.metadata).keys())
+                    idp_policy.restrict(aconv._to, sp_entity_id, idp.metadata).keys())
         attribute_filter = self.converter.to_internal_filter(self.attribute_profile,
                                                              attribute_filter, True)
         satosa_logging(LOGGER, logging.DEBUG, "Filter: %s" % attribute_filter, state)

@@ -9,6 +9,7 @@ def test_set_user_id():
     internal_response.set_user_id(uid)
     assert uid == internal_response.get_user_id()
 
+
 def test_set_user_id_from_attributes():
     # uid = "my_id"
     attributes = {"attr_1": "v1", "attr_2": "v2", "attr_3": "v3"}

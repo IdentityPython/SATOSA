@@ -1,12 +1,12 @@
 """
 Tests for the SAML frontend module src/frontends/saml2.py.
 """
+import itertools
 import re
 from collections import Counter
 from urllib import parse
 from urllib.parse import urlparse, parse_qs
 
-import itertools
 import pytest
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.authn_context import PASSWORD

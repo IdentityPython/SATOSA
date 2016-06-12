@@ -22,6 +22,7 @@ INTERNAL_ATTRIBUTES = {
                    'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
                                'facebook': ['last_name']}}}
 
+
 def create_frontend_endpoint_func(receiver):
     def register_frontend_url(providers):
         endpoints = []

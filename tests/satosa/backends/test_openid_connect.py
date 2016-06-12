@@ -34,6 +34,7 @@ def verify_userinfo_callback(context, response):
     for attribute in [("name", "name"), ("mail", "email")]:
         assert response._attributes[attribute[0]][0] == USERDB[USERNAME][attribute[1]]
 
+
 class TestOpenIdBackend:
     @pytest.fixture(autouse=True)
     def setup(self):

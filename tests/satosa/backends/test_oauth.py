@@ -2,9 +2,8 @@ import json
 from unittest.mock import Mock
 from urllib.parse import quote_plus, parse_qs
 
-import responses
-
 import pytest
+import responses
 
 from satosa.backends.oauth import FacebookBackend
 from satosa.context import Context

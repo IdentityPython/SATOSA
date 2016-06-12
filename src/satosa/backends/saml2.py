@@ -2,25 +2,23 @@
 """
 A saml2 backend module for the satosa proxy
 """
-from base64 import urlsafe_b64encode, urlsafe_b64decode
 import copy
 import json
 import logging
+from base64 import urlsafe_b64encode, urlsafe_b64decode
 from urllib.parse import urlparse
 
-from saml2 import BINDING_HTTP_REDIRECT
 from saml2 import BINDING_HTTP_POST
+from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client_base import Base
 from saml2.config import SPConfig
-from saml2.metadata import create_metadata_string
-from saml2.samlp import NameIDPolicy
-
 from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
+from saml2.samlp import NameIDPolicy
 
 from satosa.backends.base import BackendModule
 from satosa.exception import SATOSAAuthenticationError
 from satosa.internal_data import UserIdHashType, InternalRequest, InternalResponse, \
-    AuthenticationInformation, DataConverter
+    AuthenticationInformation
 from satosa.logging_util import satosa_logging
 from satosa.metadata_creation.description import MetadataDescription, OrganizationDesc, \
     ContactPersonDesc, UIInfoDesc

@@ -59,6 +59,7 @@ def oidc_subject_type_to_hash_type(subject_type):
         return UserIdHashType.public
     return None
 
+
 def unpack(environ, binding):
     """
     Unpacks a request query string.
@@ -169,8 +170,9 @@ def rndstr(size=16, alphabet=""):
         alphabet = string.ascii_letters[0:52] + string.digits
     return type(alphabet)().join(rng.choice(alphabet) for _ in range(size))
 
+
 def scope(s):
-   if not '@' in s:
-      raise ValueError("Unscoped string")
-   (local_part, _, domain_part) = s.partition('@')
-   return domain_part
+    if not '@' in s:
+        raise ValueError("Unscoped string")
+    (local_part, _, domain_part) = s.partition('@')
+    return domain_part

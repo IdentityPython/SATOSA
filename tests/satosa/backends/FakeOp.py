@@ -2,6 +2,7 @@ import json
 import time
 from urllib.parse import urlparse
 
+import responses
 from jwkest.jwk import RSAKey
 from oic import rndstr
 from oic.oic import DEF_SIGN_ALG
@@ -16,11 +17,8 @@ from oic.utils.authz import AuthzHandling
 from oic.utils.http_util import Response
 from oic.utils.keyio import KeyJar, KeyBundle, UnknownKeyType
 from oic.utils.sdb import SessionDB, AuthnEvent
-
 from oic.utils.userinfo import UserInfo
-
 from oic.utils.webfinger import WebFinger
-import responses
 
 from satosa.backends.openid_connect import StateKeys, RpConfig
 from satosa.context import Context

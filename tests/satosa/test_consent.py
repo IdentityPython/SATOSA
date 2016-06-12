@@ -32,7 +32,7 @@ def internal_response():
     internal_response = InternalResponse(auth_info=auth_info)
     internal_response.set_user_id_hash_type(UserIdHashType.persistent)
     internal_response.add_attributes(
-            {"displayName": "Test", "co": "example", "sn": "removed_by_filter"})
+        {"displayName": "Test", "co": "example", "sn": "removed_by_filter"})
     internal_response.user_id = "usrID"
     return internal_response
 

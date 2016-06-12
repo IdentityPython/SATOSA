@@ -48,8 +48,10 @@ class TestSamlBackend:
         """
         Tests the method register_endpoints
         """
+
         def get_path_from_url(url):
             return urlparse(url).path.lstrip("/")
+
         metadata_url = "http://example.com/SAML2IDP/metadata"
         samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf,
                                                               "disco_srv": "https://my.dicso.com/role/idp.ds",
@@ -57,7 +59,7 @@ class TestSamlBackend:
                                                               "publish_metadata": metadata_url})
 
         url_map = samlbackend.register_endpoints()
-        all_sp_endpoints = [get_path_from_url(v[0][0])for v in sp_conf["service"]["sp"]["endpoints"].values()]
+        all_sp_endpoints = [get_path_from_url(v[0][0]) for v in sp_conf["service"]["sp"]["endpoints"].values()]
         compiled_regex = [re.compile(regex) for regex, _ in url_map]
         for endp in all_sp_endpoints:
             assert any(p.match(endp) for p in compiled_regex)
@@ -154,11 +156,11 @@ class TestSamlBackend:
         assert resp.status == "303 See Other"
         req_params = dict(parse_qsl(urlparse(resp.message).query))
         url, fake_idp_resp = fakeidp.handle_auth_req(
-                req_params["SAMLRequest"],
-                req_params["RelayState"],
-                BINDING_HTTP_REDIRECT,
-                "testuser1",
-                response_binding=response_binding)
+            req_params["SAMLRequest"],
+            req_params["RelayState"],
+            BINDING_HTTP_REDIRECT,
+            "testuser1",
+            response_binding=response_binding)
         context = Context()
         context.request = fake_idp_resp
         context.state = state
@@ -189,6 +191,6 @@ class TestSamlBackend:
         assert resp.status == "303 See Other"
         parsed = urlparse(resp.message)
         assert "{parsed.scheme}://{parsed.netloc}{parsed.path}".format(
-                parsed=parsed) == \
+            parsed=parsed) == \
                idp_conf["service"]["idp"]["endpoints"]["single_sign_on_service"][0][0]
         assert "SAMLRequest" in parse_qs(parsed.query)

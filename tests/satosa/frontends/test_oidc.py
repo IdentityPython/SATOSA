@@ -51,7 +51,7 @@ class TestOIDCFrontend(object):
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
         internal_response = InternalResponse(auth_info=auth_info)
         internal_response.add_attributes(
-                DataConverter(INTERNAL_ATTRIBUTES).to_internal("saml", USERS["testuser1"]))
+            DataConverter(INTERNAL_ATTRIBUTES).to_internal("saml", USERS["testuser1"]))
         internal_response.set_user_id(USERS["testuser1"]["eduPersonTargetedID"][0])
 
         self.instance.provider.cdb = {
@@ -149,7 +149,7 @@ class TestOIDCFrontend(object):
         registration_response = self.instance._register_client(context)
         assert registration_response.status == "400 Bad Request"
         error_response = ClientRegistrationErrorResponse().deserialize(
-                registration_response.message, "json")
+            registration_response.message, "json")
         assert error_response["error"] == "invalid_request"
         assert "response_type" in error_response["error_description"]
 
@@ -169,5 +169,5 @@ class TestOIDCFrontend(object):
         http_response = self.instance._provider_config(Context())
         provider_config = ProviderConfigurationResponse().deserialize(http_response.message, "json")
         assert all(
-                item in provider_config.to_dict().items() for item in expected_capabilities.items())
+            item in provider_config.to_dict().items() for item in expected_capabilities.items())
         assert provider_config["authorization_endpoint"] == "{}/foo_backend/authorization".format(self.ISSUER)

@@ -1,9 +1,9 @@
 """
 Converter for transforming image files to bas64 raw data
 """
+import base64
 import logging
 import os
-import base64
 
 from satosa.exception import SATOSAError
 

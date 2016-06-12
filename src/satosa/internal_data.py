@@ -3,12 +3,13 @@ The module contains internal data representation in SATOSA and general converter
 for converting from SAML/OAuth/OpenID connect to the internal representation.
 """
 import datetime
-from enum import Enum
 import hashlib
 import json
+from enum import Enum
 from itertools import chain
 
 from mako.template import Template
+
 from satosa.exception import SATOSAError
 
 
@@ -43,7 +44,7 @@ class DataConverter(object):
         (dict[internal_name, dict[external_type, external_name]])
         """
         self.separator = "."  # separator for nested attribute values, e.g. address.street_address
-        self.multivalue_separator = ";" # separates multiple values, e.g. when using templates
+        self.multivalue_separator = ";"  # separates multiple values, e.g. when using templates
         self.from_internal_attributes = internal_attributes["attributes"]
         self.template_attributes = internal_attributes.get("template_attributes", None)
 
@@ -133,7 +134,7 @@ class DataConverter(object):
         return result
 
     def _render_attribute_template(self, template, data):
-        t = Template(template,cache_enabled=True,imports=["from satosa.util import scope"])
+        t = Template(template, cache_enabled=True, imports=["from satosa.util import scope"])
         try:
             return t.render(**data).split(self.multivalue_separator)
         except (NameError, TypeError) as e:
@@ -149,8 +150,9 @@ class DataConverter(object):
                 continue
 
             external_key = mapping[external_type]
-            templates = [t for t in external_key if "$" in t] # these looks like templates...
-            template_attribute_values = [self._render_attribute_template(template, internal_dict) for template in templates]
+            templates = [t for t in external_key if "$" in t]  # these looks like templates...
+            template_attribute_values = [self._render_attribute_template(template, internal_dict) for template in
+                                         templates]
             flattened_attribute_values = list(chain.from_iterable(template_attribute_values))
             attribute_values = flattened_attribute_values or internal_dict.get(internal_key, None)
             if attribute_values:  # only insert key if it has some values

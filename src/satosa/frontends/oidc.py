@@ -53,7 +53,7 @@ class OIDCFrontend(FrontendModule):
         attributes = self.converter.from_internal("openid", internal_resp.get_attributes())
         satosa_logging(LOGGER, logging.DEBUG,
                        "Attributes delivered by backend to OIDC frontend: {}".format(
-                               json.dumps(attributes)), context.state)
+                           json.dumps(attributes)), context.state)
         flattened_attributes = {k: v[0] for k, v in attributes.items()}
         requested_id_token_claims = auth_req.get("claims", {}).get("id_token")
         user_claims = self._get_user_info(flattened_attributes,
@@ -61,7 +61,7 @@ class OIDCFrontend(FrontendModule):
                                           auth_req["scope"])
         satosa_logging(LOGGER, logging.DEBUG,
                        "Attributes filtered by requested claims/scope: {}".format(
-                               json.dumps(user_claims)), context.state)
+                           json.dumps(user_claims)), context.state)
 
         # construct epoch timestamp of reported authentication time
         auth_time = datetime.datetime.strptime(internal_resp.auth_info.timestamp,
@@ -97,8 +97,8 @@ class OIDCFrontend(FrontendModule):
                                                 error_description=exception.message)
         satosa_logging(LOGGER, logging.DEBUG, exception.message, exception.state)
         return SeeOther(
-                error_resp.request(auth_req["redirect_uri"],
-                                   self._should_fragment_encode(auth_req)))
+            error_resp.request(auth_req["redirect_uri"],
+                               self._should_fragment_encode(auth_req)))
 
     def register_endpoints(self, providers):
         """
@@ -181,7 +181,7 @@ class OIDCFrontend(FrontendModule):
         scopes = scopes or []
         claims_requested_by_scope = scope2claims(scopes)
         claims_requested_by_scope.update(
-                requested_claims)  # let explicit claims request override scope
+            requested_claims)  # let explicit claims request override scope
 
         return UserInfo().filter(user_attributes, claims_requested_by_scope)
 
@@ -197,8 +197,8 @@ class OIDCFrontend(FrontendModule):
         for k in self.MANDATORY_CONFIG:
             if k not in config:
                 raise ValueError(
-                        "Missing configuration parameter '{}' for OpenID Connect frontend.".format(
-                                k))
+                    "Missing configuration parameter '{}' for OpenID Connect frontend.".format(
+                        k))
 
     def _should_fragment_encode(self, authn_req):
         """
@@ -294,7 +294,7 @@ class OIDCFrontend(FrontendModule):
 
         context.state.add(self.state_id, {"oidc_request": request})
         hash_type = oidc_subject_type_to_hash_type(
-                self.provider.cdb[client_id].get("subject_type", self.subject_type_default))
+            self.provider.cdb[client_id].get("subject_type", self.subject_type_default))
         internal_req = InternalRequest(hash_type, client_id,
                                        self.provider.cdb[client_id].get("client_name"))
 

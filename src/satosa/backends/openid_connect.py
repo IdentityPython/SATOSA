@@ -1,28 +1,26 @@
 """
 OIDC backend module.
 """
+import logging
 from datetime import datetime
 from urllib.parse import urlparse
-import logging
 
-from oic import rndstr
-from oic.utils.authn.authn_context import UNSPECIFIED
-from oic.utils.keyio import KeyJar
-from oic.exception import MissingAttribute
 from oic import oic
+from oic import rndstr
+from oic.exception import MissingAttribute
 from oic.oauth2 import ErrorResponse
+from oic.oic import AuthorizationRequest
 from oic.oic import ProviderConfigurationResponse, AuthorizationResponse
 from oic.oic import RegistrationResponse
-from oic.oic import AuthorizationRequest
-
+from oic.utils.authn.authn_context import UNSPECIFIED
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
+from oic.utils.keyio import KeyJar
 
+from satosa.backends.base import BackendModule, get_metadata_desc_for_oidc_backend
 from satosa.exception import SATOSAAuthenticationError, SATOSAError
+from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
 from satosa.logging_util import satosa_logging
 from satosa.response import Redirect
-from satosa.backends.base import BackendModule, get_metadata_desc_for_oidc_backend
-from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType, \
-    DataConverter
 
 LOGGER = logging.getLogger(__name__)
 
@@ -45,6 +43,7 @@ class RpConfig(object):
     """
     OIDC connect configuration class for clients.
     """
+
     def __init__(self, config):
         self.CLIENTS = {
             config["authz_page"]: config["client"]
@@ -64,6 +63,7 @@ class OpenIdBackend(BackendModule):
     """
     OIDC module
     """
+
     def __init__(self, auth_callback_func, internal_attributes, config):
         """
         OIDC backend module.
@@ -375,6 +375,7 @@ class Client(oic.Client):
     """
     OIDC client
     """
+
     def __init__(self, client_id=None, ca_certs=None,
                  client_prefs=None, client_authn_method=None, keyjar=None,
                  verify_ssl=True, behaviour=None):
@@ -535,6 +536,7 @@ class OIDCClients(object):
     """
     Holds all oidc clients.
     """
+
     def __init__(self, config):
         """
         :type: RpConfig

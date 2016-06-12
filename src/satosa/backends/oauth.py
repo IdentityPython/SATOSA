@@ -4,16 +4,14 @@ This module contains classes to create OAuth 2 backends for SATOSA.
 import json
 import logging
 
-from oic.utils.authn.authn_context import UNSPECIFIED
 import requests
 from oic.oauth2.consumer import Consumer, stateID
-
 from oic.oauth2.message import AuthorizationRequest, AuthorizationResponse
+from oic.utils.authn.authn_context import UNSPECIFIED
 
 from satosa.backends.base import BackendModule, get_metadata_desc_for_oidc_backend
 from satosa.exception import SATOSAAuthenticationError, SATOSAError
-from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType, \
-    DataConverter
+from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
 from satosa.logging_util import satosa_logging
 from satosa.response import Redirect
 from satosa.util import rndstr

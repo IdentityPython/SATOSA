@@ -1,4 +1,4 @@
-from satosa.internal_data import InternalRequest, UserIdHashType, UserIdHasher, InternalResponse
+from satosa.internal_data import InternalRequest, UserIdHashType, UserIdHasher
 from satosa.state import State
 
 SALT = "asdasdasdasdewr234"

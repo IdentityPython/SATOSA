@@ -1,4 +1,5 @@
 import pytest
+
 from satosa.context import Context
 
 

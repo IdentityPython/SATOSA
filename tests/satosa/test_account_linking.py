@@ -53,15 +53,15 @@ class TestAccountLinking():
     def test_store_existing_uuid_in_internal_attributes(self):
         uuid = "uuid"
         responses.add(
-                responses.GET,
-                "%s/get_id" % self.account_linking_config['rest_uri'],
-                status=200,
-                body=uuid,
-                content_type='text/html'
+            responses.GET,
+            "%s/get_id" % self.account_linking_config['rest_uri'],
+            status=200,
+            body=uuid,
+            content_type='text/html'
         )
         account_linking = AccountLinkingModule(
-                SATOSAConfig(self.satosa_config),
-                self.callback_func
+            SATOSAConfig(self.satosa_config),
+            self.callback_func
         )
         account_linking.manage_al(self.context, self.internal_response)
         assert self.internal_response.get_user_id() == uuid
@@ -70,15 +70,15 @@ class TestAccountLinking():
     def test_account_link_does_not_exists(self):
         ticket = "ticket"
         responses.add(
-                responses.GET,
-                "%s/get_id" % self.account_linking_config['rest_uri'],
-                status=404,
-                body=ticket,
-                content_type='text/html'
+            responses.GET,
+            "%s/get_id" % self.account_linking_config['rest_uri'],
+            status=404,
+            body=ticket,
+            content_type='text/html'
         )
         account_linking = AccountLinkingModule(
-                SATOSAConfig(self.satosa_config),
-                self.callback_func
+            SATOSAConfig(self.satosa_config),
+            self.callback_func
         )
         result = account_linking.manage_al(self.context, self.internal_response)
         assert isinstance(result, Redirect)
@@ -90,8 +90,8 @@ class TestAccountLinking():
         responses.add(responses.GET, "%s/get_id" % self.account_linking_config['rest_uri'],
                       body=exception)
         account_linking = AccountLinkingModule(
-                SATOSAConfig(self.satosa_config),
-                self.callback_func
+            SATOSAConfig(self.satosa_config),
+            self.callback_func
         )
 
         with pytest.raises(SATOSAAuthenticationError):

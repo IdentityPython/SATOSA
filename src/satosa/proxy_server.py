@@ -47,7 +47,6 @@ class WsgiApplication(SATOSABase):
             resp = NotFound("Couldn't find the side you asked for!")
             return resp(environ, start_response)
 
-
         context = Context()
         context.path = path
 

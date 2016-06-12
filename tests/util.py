@@ -47,9 +47,9 @@ class FakeSP(Saml2Client):
         """
         # Picks a binding to use for sending the Request to the IDP
         _binding, destination = self.pick_binding(
-                'single_sign_on_service',
-                [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST], 'idpsso',
-                entity_id=entity_id)
+            'single_sign_on_service',
+            [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST], 'idpsso',
+            entity_id=entity_id)
         # Binding here is the response binding that is which binding the
         # IDP shou  ld use to return the response.
         acs = self.config.getattr('endpoints', 'sp')[
@@ -106,8 +106,8 @@ class FakeIdP(server.Server):
         """
         auth_req = self.parse_authn_request(saml_request, binding)
         binding_out, destination = self.pick_binding(
-                'assertion_consumer_service',
-                entity_id=auth_req.message.issuer.text, request=auth_req.message)
+            'assertion_consumer_service',
+            entity_id=auth_req.message.issuer.text, request=auth_req.message)
 
         resp_args = self.response_args(auth_req.message)
         authn_broker = AuthnBroker()

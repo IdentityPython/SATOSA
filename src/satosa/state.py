@@ -4,14 +4,13 @@ server.
 """
 import base64
 import copy
-from http.cookies import SimpleCookie
-import json
 import hashlib
+import json
 import logging
+from http.cookies import SimpleCookie
 from lzma import LZMADecompressor, LZMACompressor
 
 from Crypto import Random
-
 from Crypto.Cipher import AES
 
 from satosa.exception import SATOSAStateError

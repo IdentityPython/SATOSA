@@ -7,15 +7,13 @@ import logging
 from base64 import urlsafe_b64encode
 
 import requests
-from requests.exceptions import ConnectionError
-from jwkest.jws import JWS
-
-from jwkest.jwk import rsa_load
-
 from jwkest.jwk import RSAKey
+from jwkest.jwk import rsa_load
+from jwkest.jws import JWS
+from requests.exceptions import ConnectionError
 
-from satosa.logging_util import satosa_logging
 from satosa.internal_data import InternalResponse
+from satosa.logging_util import satosa_logging
 from satosa.response import Redirect
 
 LOGGER = logging.getLogger(__name__)

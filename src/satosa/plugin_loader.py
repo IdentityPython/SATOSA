@@ -3,10 +3,10 @@ Some help functions to load satosa backend and frontend modules
 """
 import inspect
 import json
-import os
-from pydoc import locate
 import logging
+import os
 import sys
+from pydoc import locate
 
 from pluginbase import PluginBase
 
@@ -35,10 +35,10 @@ def load_backends(config, callback, internal_attributes):
     :return: A list of backend modules
     """
     return _load_endpoint_modules(
-            _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter,
-                          BackendModulePlugin.__name__,
-                          config.BASE),
-            callback, internal_attributes)
+        _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter,
+                      BackendModulePlugin.__name__,
+                      config.BASE),
+        callback, internal_attributes)
 
 
 def load_frontends(config, callback, internal_attributes):
@@ -57,10 +57,10 @@ def load_frontends(config, callback, internal_attributes):
     :return: A dict of frontend modules
     """
     return _load_endpoint_modules(
-            _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter,
-                          FrontendModulePlugin.__name__,
-                          config.BASE),
-            callback, internal_attributes)
+        _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter,
+                      FrontendModulePlugin.__name__,
+                      config.BASE),
+        callback, internal_attributes)
 
 
 def _member_filter(member):
@@ -211,7 +211,7 @@ def _load_json(config):
             if file_config is not None and os.path.isfile(file_config):
                 LOGGER.exception("The configuration file %s is corrupt." % file_config)
                 raise SATOSAConfigurationError(
-                        "The configuration file %s is corrupt." % file_config)
+                    "The configuration file %s is corrupt." % file_config)
             return None
     except ValueError as error:
         if file_config is not None and os.path.isfile(file_config):
@@ -248,7 +248,7 @@ def _load_yaml(config):
             if file_config is not None and os.path.isfile(file_config):
                 LOGGER.exception("The configuration file %s is corrupt." % file_config)
                 raise SATOSAConfigurationError(
-                        "The configuration file %s is corrupt." % file_config)
+                    "The configuration file %s is corrupt." % file_config)
             return None
     except Exception as error:
         if file_config is not None and os.path.isfile(file_config):
@@ -370,7 +370,7 @@ def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, base_url,
         except Exception as error:
             LOGGER.exception("The configuration file %s is corrupt." % module_file_name)
             raise SATOSAConfigurationError(
-                    "The configuration file %s is corrupt." % module_file_name) from error
+                "The configuration file %s is corrupt." % module_file_name) from error
     LOGGER.debug("Loaded plugins: {}".format(loaded_plugin_names))
     return loaded_plugins
 
@@ -396,10 +396,10 @@ def load_micro_services(plugin_path, plugins, internal_attributes):
                                       internal_attributes=internal_attributes)
 
     LOGGER.info(
-            "Loaded request micro services: %s" % [k.__class__.__name__ for k in request_services])
+        "Loaded request micro services: %s" % [k.__class__.__name__ for k in request_services])
     LOGGER.info(
-            "Loaded response micro services: %s" % [k.__class__.__name__ for k in
-                                                    response_services])
+        "Loaded response micro services: %s" % [k.__class__.__name__ for k in
+                                                response_services])
 
     return (
         build_micro_service_queue(request_services), build_micro_service_queue(response_services))

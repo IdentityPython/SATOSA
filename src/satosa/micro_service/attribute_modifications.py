@@ -13,6 +13,7 @@ class AddStaticAttributes(ResponseMicroService):
     The path to the file describing the mapping (as YAML) of static attributes must be specified
     with the environment variable 'SATOSA_STATIC_ATTRIBUTES'.
     """
+
     def __init__(self, internal_attributes):
         super(AddStaticAttributes, self).__init__()
         self.data_converter = DataConverter(internal_attributes)
