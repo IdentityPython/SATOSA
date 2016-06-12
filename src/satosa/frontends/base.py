@@ -64,8 +64,7 @@ class FrontendModule(object):
 
 
         :type providers: list[str]
-        :rtype list[(str, ((satosa.context.Context, Any) -> satosa.response.Response, Any))] |
-               list[(str, (satosa.context.Context) -> satosa.response.Response)]
+        :rtype List[Tuple[str, Tuple[Callable[[satosa.context.Context, Any], satosa.response.Response], Any]]]
 
         :param providers: A list of all possible endpoints.
         :return: A list with functions and args bound to a specific endpoint url,

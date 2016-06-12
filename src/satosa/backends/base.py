@@ -53,7 +53,7 @@ class BackendModule(object):
             ]
 
 
-        :rtype list[(str, ((satosa.context.Context, Any) -> Any, Any))]
+        :rtype List[Tuple[str, Tuple[Callable[[satosa.context.Context, Any], satosa.response.Response], Any]]]
 
         :return: A list with functions and args bound to a specific endpoint url,
                  [(regexp, (function, arguments)), ...]
