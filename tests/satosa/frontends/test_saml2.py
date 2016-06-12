@@ -8,6 +8,8 @@ from urllib import parse
 from urllib.parse import urlparse, parse_qs
 
 import pytest
+import saml2
+from pkg_resources import parse_version
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.authn_context import PASSWORD
 from saml2.config import SPConfig
@@ -307,6 +309,8 @@ class TestSamlFrontend:
             0].authn_context.authn_context_class_ref
         assert authn_context_class_ref.text == expected_loa
 
+    @pytest.mark.skipif(parse_version(saml2.__version__) <= parse_version('4.0.5'),
+                        reason="requires pysaml2 which does not modify input data")
     @pytest.mark.parametrize('entity_category, entity_category_module, expected_attributes', [
         ([""], "swamid", swamid.RELEASE[""]),
         ([COCO], "edugain", edugain.RELEASE[""] + edugain.RELEASE[COCO]),
