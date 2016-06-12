@@ -2,7 +2,8 @@ _build
 .idea
 *.pyc
 *.log*
-example/*_conf.py
+example/*
+!example/*.example
 *.xml
 *.db
 *static/
