@@ -122,7 +122,7 @@ def test_state_cookie():
     encrypt_key = "2781y4hef90"
 
     cookie = state_to_cookie(state, cookie_name, path, encrypt_key)
-    cookie_str = cookie.output()
+    cookie_str = cookie[cookie_name].OutputString()
     loaded_state = cookie_to_state(cookie_str, cookie_name, encrypt_key)
 
     assert loaded_state.get(state_key) == saved_data
