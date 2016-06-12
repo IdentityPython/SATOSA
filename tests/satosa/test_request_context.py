@@ -1,8 +1,6 @@
 import pytest
 from satosa.context import Context
 
-__author__ = 'mathiashedstrom'
-
 
 def test_path():
     context = Context()

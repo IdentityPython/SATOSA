@@ -7,8 +7,6 @@ from satosa.internal_data import DataConverter
 from satosa.metadata_creation.description import MetadataDescription, ContactPersonDesc, \
     OrganizationDesc, UIInfoDesc
 
-__author__ = 'mathiashedstrom'
-
 
 class BackendModule(object):
     """

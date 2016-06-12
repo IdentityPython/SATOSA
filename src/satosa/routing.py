@@ -8,8 +8,6 @@ from satosa.context import SATOSABadContextError
 from satosa.exception import SATOSAError
 from satosa.logging_util import satosa_logging
 
-__author__ = 'mathiashedstrom'
-
 LOGGER = logging.getLogger(__name__)
 
 

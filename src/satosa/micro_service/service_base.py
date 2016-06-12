@@ -6,8 +6,6 @@ import logging
 from satosa.exception import SATOSAAuthenticationError
 from satosa.logging_util import satosa_logging
 
-__author__ = 'mathiashedstrom'
-
 LOGGER = logging.getLogger(__name__)
 
 

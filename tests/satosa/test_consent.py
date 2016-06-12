@@ -18,8 +18,6 @@ from satosa.satosa_config import SATOSAConfig
 from satosa.state import State
 from tests.util import private_to_public_key
 
-__author__ = 'mathiashedstrom'
-
 FILTER = ["displayName", "co"]
 CONSENT_SERVICE_URL = "https://consent.example.com"
 

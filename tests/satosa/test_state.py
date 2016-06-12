@@ -9,8 +9,6 @@ import pytest
 
 from satosa.state import State, state_to_cookie, cookie_to_state, SATOSAStateError
 
-__author__ = 'haho0032'
-
 
 def get_dict(size, key_prefix, value_preix):
     """

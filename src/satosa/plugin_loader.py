@@ -17,8 +17,6 @@ from satosa.micro_service.service_base import MicroService, RequestMicroService,
 from satosa.plugin_base.endpoint import InterfaceModulePlugin, BackendModulePlugin, \
     FrontendModulePlugin
 
-__author__ = 'mathiashedstrom'
-
 LOGGER = logging.getLogger(__name__)
 
 

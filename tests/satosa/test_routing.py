@@ -5,8 +5,6 @@ from satosa.routing import ModuleRouter
 from satosa.state import State
 from tests.util import FakeFrontend, FakeBackend
 
-__author__ = 'mathiashedstrom'
-
 RECEIVERS = ["Saml2IDP", "VOPaaSSaml2IDP"]
 PROVIDERS = ["Saml2SP", "VOPaaSSaml2SP"]
 FRONTEND_ENDPOINTS = ["sso/redirect", "sso/post"]

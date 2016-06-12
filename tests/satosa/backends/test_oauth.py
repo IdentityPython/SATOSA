@@ -11,8 +11,6 @@ from satosa.context import Context
 from satosa.internal_data import UserIdHashType, InternalRequest
 from satosa.state import State
 
-__author__ = 'haho0032'
-
 FB_RESPONSE_CHECK = {'edupersontargetedid': ['fb_id'], 'surname': ['fb_last_name'],
                      'name': ['fb_name'], 'mail': ['fb_email'], 'givenname': ['fb_first_name']}
 FB_RESPONSE = {

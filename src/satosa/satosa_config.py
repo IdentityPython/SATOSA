@@ -7,8 +7,6 @@ import os
 
 import yaml
 
-__author__ = 'mathiashedstrom'
-
 LOGGER = logging.getLogger(__name__)
 
 

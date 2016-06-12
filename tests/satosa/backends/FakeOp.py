@@ -27,8 +27,6 @@ from satosa.context import Context
 from satosa.state import State
 from tests.util import FileGenerator
 
-__author__ = 'danielevertsson'
-
 PROVIDER = "testprovider"
 
 

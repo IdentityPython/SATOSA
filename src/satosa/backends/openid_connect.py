@@ -24,8 +24,6 @@ from satosa.backends.base import BackendModule, get_metadata_desc_for_oidc_backe
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType, \
     DataConverter
 
-__author__ = 'danielevertsson'
-
 LOGGER = logging.getLogger(__name__)
 
 

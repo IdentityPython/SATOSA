@@ -29,8 +29,6 @@ from satosa.plugin_loader import _load_plugins, frontend_filter, backend_filter,
     _load_endpoint_modules
 from satosa.satosa_config import SATOSAConfig
 
-__author__ = 'mathiashedstrom'
-
 LOGGER = logging.getLogger("")
 handler = logging.StreamHandler()
 logFormatter = logging.Formatter("[%(name)-12.12s] [%(levelname)-5.5s]  %(message)s")

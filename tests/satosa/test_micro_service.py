@@ -5,8 +5,6 @@ from satosa.exception import SATOSAAuthenticationError
 from satosa.micro_service.service_base import MicroService, build_micro_service_queue
 from satosa.state import State
 
-__author__ = 'mathiashedstrom'
-
 
 def create_process_func(data_str):
     def process(context, data):

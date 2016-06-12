@@ -16,8 +16,6 @@ from satosa.response import Response
 from satosa.routing import ModuleRouter, SATOSANoBoundEndpointError
 from satosa.state import cookie_to_state, SATOSAStateError, State, state_to_cookie
 
-__author__ = 'mathiashedstrom'
-
 LOGGER = logging.getLogger(__name__)
 
 

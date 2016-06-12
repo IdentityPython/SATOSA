@@ -11,8 +11,6 @@ from satosa.internal_data import InternalResponse
 from satosa.state import State
 from tests.satosa.backends.FakeOp import FakeOP, CLIENT_ID, TestConfiguration, USERDB, USERNAME
 
-__author__ = 'danielevertsson'
-
 INTERNAL_ATTRIBUTES = {
     'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
                    'givenname': {'saml': ['givenName'], 'openid': ['given_name'],

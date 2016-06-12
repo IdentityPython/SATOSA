@@ -12,8 +12,6 @@ from satosa.response import Redirect
 from satosa.satosa_config import SATOSAConfig
 from satosa.state import State
 
-__author__ = 'danielevertsson'
-
 
 class TestAccountLinking():
     @pytest.fixture(autouse=True)

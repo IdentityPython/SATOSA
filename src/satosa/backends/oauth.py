@@ -18,8 +18,6 @@ from satosa.logging_util import satosa_logging
 from satosa.response import Redirect
 from satosa.util import rndstr
 
-__author__ = 'haho0032'
-
 LOGGER = logging.getLogger(__name__)
 
 

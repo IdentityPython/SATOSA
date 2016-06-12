@@ -6,8 +6,6 @@ import logging
 from satosa.backends.base import BackendModule
 from satosa.frontends.base import FrontendModule
 
-__author__ = 'mathiashedstrom'
-
 LOGGER = logging.getLogger(__name__)
 
 

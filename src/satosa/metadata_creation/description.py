@@ -3,8 +3,6 @@ Help classes for creating the VOPaaS frontend metadata
 """
 from satosa.image_converter import convert_to_base64
 
-__author__ = 'mathiashedstrom'
-
 
 class ContactPersonDesc(object):
     """

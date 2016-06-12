@@ -1,8 +1,6 @@
 """
 A static dictionary with SAML testusers that can be used as response.
 """
-__author__ = 'haho0032'
-
 USERS = {
     "testuser1": {
         "sn": ["Testsson 1"],

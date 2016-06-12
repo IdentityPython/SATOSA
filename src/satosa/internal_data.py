@@ -11,8 +11,6 @@ from itertools import chain
 from mako.template import Template
 from satosa.exception import SATOSAError
 
-__author__ = 'haho0032'
-
 
 class CaseInsensitiveMapping:
     def __init__(self):

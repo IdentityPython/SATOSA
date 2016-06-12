@@ -16,8 +16,6 @@ from satosa.state import State
 from tests.users import USERS
 from tests.util import FakeIdP, create_metadata_from_config_dict
 
-__author__ = 'haho0032'
-
 INTERNAL_ATTRIBUTES = {
     'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
                    'givenname': {'saml': ['givenName'], 'openid': ['given_name'],

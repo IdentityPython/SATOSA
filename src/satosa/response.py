@@ -6,8 +6,6 @@ from urllib.parse import quote
 import six
 from saml2.metadata import create_metadata_string
 
-__author__ = 'mathiashedstrom'
-
 
 class Response(object):
     """
