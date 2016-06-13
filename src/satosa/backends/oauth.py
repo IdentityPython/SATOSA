@@ -9,12 +9,12 @@ from oic.oauth2.consumer import Consumer, stateID
 from oic.oauth2.message import AuthorizationRequest, AuthorizationResponse
 from oic.utils.authn.authn_context import UNSPECIFIED
 
-from satosa.backends.base import BackendModule, get_metadata_desc_for_oidc_backend
-from satosa.exception import SATOSAAuthenticationError, SATOSAError
-from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
-from satosa.logging_util import satosa_logging
-from satosa.response import Redirect
-from satosa.util import rndstr
+from .base import BackendModule, get_metadata_desc_for_oidc_backend
+from ..exception import SATOSAAuthenticationError, SATOSAError
+from ..internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
+from ..logging_util import satosa_logging
+from ..response import Redirect
+from ..util import rndstr
 
 LOGGER = logging.getLogger(__name__)
 

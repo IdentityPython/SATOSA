@@ -5,16 +5,16 @@ import json
 import logging
 from uuid import uuid4
 
-from satosa.account_linking import AccountLinkingModule
-from satosa.consent import ConsentModule
-from satosa.context import Context
-from satosa.exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
-from satosa.internal_data import UserIdHasher
-from satosa.logging_util import satosa_logging
-from satosa.plugin_loader import load_backends, load_frontends, load_micro_services
-from satosa.response import Response
-from satosa.routing import ModuleRouter, SATOSANoBoundEndpointError
-from satosa.state import cookie_to_state, SATOSAStateError, State, state_to_cookie
+from .account_linking import AccountLinkingModule
+from .consent import ConsentModule
+from .context import Context
+from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
+from .internal_data import UserIdHasher
+from .logging_util import satosa_logging
+from .plugin_loader import load_backends, load_frontends, load_micro_services
+from .response import Response
+from .routing import ModuleRouter, SATOSANoBoundEndpointError
+from .state import cookie_to_state, SATOSAStateError, State, state_to_cookie
 
 LOGGER = logging.getLogger(__name__)
 

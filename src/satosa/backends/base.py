@@ -3,9 +3,9 @@ Holds a base class for backend modules used in the SATOSA proxy.
 """
 from base64 import urlsafe_b64encode
 
-from satosa.internal_data import DataConverter
-from satosa.metadata_creation.description import MetadataDescription, ContactPersonDesc, \
-    OrganizationDesc, UIInfoDesc
+from ..internal_data import DataConverter
+from ..metadata_creation.description import (MetadataDescription, ContactPersonDesc,
+    OrganizationDesc, UIInfoDesc)
 
 
 class BackendModule(object):

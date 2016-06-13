@@ -10,12 +10,11 @@ from pydoc import locate
 
 from pluginbase import PluginBase
 
-from satosa.exception import SATOSAConfigurationError
-from satosa.micro_service.service_base import MicroService, RequestMicroService, \
-    ResponseMicroService, \
-    build_micro_service_queue
-from satosa.plugin_base.endpoint import InterfaceModulePlugin, BackendModulePlugin, \
-    FrontendModulePlugin
+from .exception import SATOSAConfigurationError
+from .micro_service.service_base import (MicroService, RequestMicroService,
+    ResponseMicroService, build_micro_service_queue)
+from .plugin_base.endpoint import (InterfaceModulePlugin, BackendModulePlugin,
+    FrontendModulePlugin)
 
 LOGGER = logging.getLogger(__name__)
 

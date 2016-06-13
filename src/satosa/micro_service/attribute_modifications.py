@@ -2,8 +2,8 @@ import os
 
 import yaml
 
-from satosa.internal_data import DataConverter
-from satosa.micro_service.service_base import ResponseMicroService
+from .service_base import ResponseMicroService
+from ..internal_data import DataConverter
 
 
 class AddStaticAttributes(ResponseMicroService):

@@ -5,10 +5,10 @@ from saml2.httputil import NotFound
 from saml2.httputil import ServiceError
 from saml2.httputil import Unauthorized
 
-from satosa.base import SATOSABase
-from satosa.context import Context
-from satosa.routing import SATOSANoBoundEndpointError
-from satosa.util import unpack_either
+from .base import SATOSABase
+from .context import Context
+from .routing import SATOSANoBoundEndpointError
+from .util import unpack_either
 
 logger = logging.getLogger(__name__)
 

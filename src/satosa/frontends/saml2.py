@@ -19,11 +19,11 @@ from saml2.saml import NameID
 from saml2.samlp import name_id_policy_from_string
 from saml2.server import Server
 
-from satosa.frontends.base import FrontendModule
-from satosa.internal_data import InternalRequest, UserIdHashType
-from satosa.logging_util import satosa_logging
-from satosa.response import MetadataResponse
-from satosa.util import response, get_saml_name_id_format, saml_name_format_to_hash_type
+from .base import FrontendModule
+from ..internal_data import InternalRequest, UserIdHashType
+from ..logging_util import satosa_logging
+from ..response import MetadataResponse
+from ..util import response, get_saml_name_id_format, saml_name_format_to_hash_type
 
 LOGGER = logging.getLogger(__name__)
 

@@ -10,7 +10,7 @@ from itertools import chain
 
 from mako.template import Template
 
-from satosa.exception import SATOSAError
+from .exception import SATOSAError
 
 
 class CaseInsensitiveMapping:

@@ -8,18 +8,18 @@ import logging
 from urllib.parse import urlencode
 
 from oic.oic import scope2claims
-from oic.oic.message import AuthorizationResponse, AuthorizationRequest, AuthorizationErrorResponse, \
-    RegistrationResponse, ProviderConfigurationResponse
+from oic.oic.message import (AuthorizationResponse, AuthorizationRequest, AuthorizationErrorResponse,
+    RegistrationResponse, ProviderConfigurationResponse)
 from oic.oic.provider import Provider, RegistrationEndpoint, AuthorizationEndpoint
 from oic.utils import shelve_wrapper
 from oic.utils.http_util import SeeOther, Created, Response
 from oic.utils.keyio import KeyBundle, KeyJar
 from oic.utils.userinfo import UserInfo
 
-from satosa.frontends.base import FrontendModule
-from satosa.internal_data import InternalRequest
-from satosa.logging_util import satosa_logging
-from satosa.util import oidc_subject_type_to_hash_type
+from .base import FrontendModule
+from ..internal_data import InternalRequest
+from ..logging_util import satosa_logging
+from ..util import oidc_subject_type_to_hash_type
 
 LOGGER = logging.getLogger(__name__)
 

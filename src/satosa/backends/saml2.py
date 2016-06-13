@@ -15,15 +15,15 @@ from saml2.config import SPConfig
 from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
 from saml2.samlp import NameIDPolicy
 
-from satosa.backends.base import BackendModule
-from satosa.exception import SATOSAAuthenticationError
-from satosa.internal_data import UserIdHashType, InternalRequest, InternalResponse, \
-    AuthenticationInformation
-from satosa.logging_util import satosa_logging
-from satosa.metadata_creation.description import MetadataDescription, OrganizationDesc, \
-    ContactPersonDesc, UIInfoDesc
-from satosa.response import SeeOther, Response, MetadataResponse
-from satosa.util import rndstr, get_saml_name_id_format
+from .base import BackendModule
+from ..exception import SATOSAAuthenticationError
+from ..internal_data import (UserIdHashType, InternalRequest, InternalResponse,
+    AuthenticationInformation)
+from ..logging_util import satosa_logging
+from ..metadata_creation.description import (MetadataDescription, OrganizationDesc,
+    ContactPersonDesc, UIInfoDesc)
+from ..response import SeeOther, Response, MetadataResponse
+from ..util import rndstr, get_saml_name_id_format
 
 LOGGER = logging.getLogger(__name__)
 

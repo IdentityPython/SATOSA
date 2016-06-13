@@ -7,8 +7,8 @@ import sys
 from werkzeug.debug import DebuggedApplication
 from werkzeug.serving import run_simple
 
-from satosa.proxy_server import ToBytesMiddleware, WsgiApplication
-from satosa.satosa_config import SATOSAConfig
+from .proxy_server import ToBytesMiddleware, WsgiApplication
+from .satosa_config import SATOSAConfig
 
 try:
     config_file = os.environ.get("SATOSA_CONFIG", "proxy_conf.yaml")

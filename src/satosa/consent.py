@@ -12,9 +12,9 @@ from jwkest.jwk import rsa_load
 from jwkest.jws import JWS
 from requests.exceptions import ConnectionError
 
-from satosa.internal_data import InternalResponse
-from satosa.logging_util import satosa_logging
-from satosa.response import Redirect
+from .internal_data import InternalResponse
+from .logging_util import satosa_logging
+from .response import Redirect
 
 LOGGER = logging.getLogger(__name__)
 

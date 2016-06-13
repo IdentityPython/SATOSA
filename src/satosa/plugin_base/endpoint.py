@@ -3,8 +3,8 @@ Interfaces for frontend / backend plugins
 """
 import logging
 
-from satosa.backends.base import BackendModule
-from satosa.frontends.base import FrontendModule
+from ..backends.base import BackendModule
+from ..frontends.base import FrontendModule
 
 LOGGER = logging.getLogger(__name__)
 

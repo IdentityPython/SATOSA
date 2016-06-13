@@ -1,7 +1,7 @@
 """
 Holds a base class for frontend modules used in the SATOSA proxy.
 """
-from satosa.internal_data import DataConverter
+from ..internal_data import DataConverter
 
 
 class FrontendModule(object):

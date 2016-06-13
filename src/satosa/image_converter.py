@@ -5,7 +5,7 @@ import base64
 import logging
 import os
 
-from satosa.exception import SATOSAError
+from .exception import SATOSAError
 
 LOGGER = logging.getLogger(__name__)
 

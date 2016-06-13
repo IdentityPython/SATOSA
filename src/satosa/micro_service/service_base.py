@@ -3,8 +3,8 @@ Micro service for SATOSA
 """
 import logging
 
-from satosa.exception import SATOSAAuthenticationError
-from satosa.logging_util import satosa_logging
+from ..exception import SATOSAAuthenticationError
+from ..logging_util import satosa_logging
 
 LOGGER = logging.getLogger(__name__)
 

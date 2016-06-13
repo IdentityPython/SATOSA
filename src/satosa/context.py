@@ -1,7 +1,7 @@
 """
 Holds methods for sending internal data through the satosa proxy
 """
-from satosa.exception import SATOSAError
+from .exception import SATOSAError
 
 
 class SATOSABadContextError(SATOSAError):

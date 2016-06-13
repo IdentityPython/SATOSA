@@ -4,9 +4,9 @@ Holds satosa routing logic
 import logging
 import re
 
-from satosa.context import SATOSABadContextError
-from satosa.exception import SATOSAError
-from satosa.logging_util import satosa_logging
+from .context import SATOSABadContextError
+from .exception import SATOSAError
+from .logging_util import satosa_logging
 
 LOGGER = logging.getLogger(__name__)
 

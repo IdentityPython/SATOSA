@@ -13,8 +13,8 @@ from lzma import LZMADecompressor, LZMACompressor
 from Crypto import Random
 from Crypto.Cipher import AES
 
-from satosa.exception import SATOSAStateError
-from satosa.logging_util import satosa_logging
+from .exception import SATOSAStateError
+from .logging_util import satosa_logging
 
 LOGGER = logging.getLogger(__name__)
 

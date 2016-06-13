@@ -15,8 +15,8 @@ from saml2.extension import shibmd
 from saml2.extension import ui
 from saml2 import xmldsig
 from saml2 import xmlenc
-from saml2.metadata import entity_descriptor, entities_descriptor, sign_entity_descriptor, \
-    metadata_tostring_fix
+from saml2.metadata import (entity_descriptor, entities_descriptor, sign_entity_descriptor,
+    metadata_tostring_fix)
 from saml2.sigver import security_context
 
 from saml2.validate import valid_instance
@@ -25,8 +25,8 @@ from satosa.backends.saml2 import SamlBackend
 from satosa.frontends.saml2 import SamlFrontend
 from satosa.frontends.saml2 import SamlMirrorFrontend
 from satosa.plugin_base.endpoint import FrontendModulePlugin, BackendModulePlugin
-from satosa.plugin_loader import _load_plugins, frontend_filter, backend_filter, \
-    _load_endpoint_modules
+from satosa.plugin_loader import (_load_plugins, frontend_filter, backend_filter,
+    _load_endpoint_modules)
 from satosa.satosa_config import SATOSAConfig
 
 LOGGER = logging.getLogger("")
