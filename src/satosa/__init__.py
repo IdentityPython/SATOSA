@@ -9,4 +9,3 @@
     :copyright: (c) 2016 by Umeå University.
     :license: APACHE 2.0, see LICENSE for more details.
 """
-# pylint: disable = missing-docstring
