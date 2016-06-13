@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 A OpenID Connect frontend module for the satosa proxy
 """

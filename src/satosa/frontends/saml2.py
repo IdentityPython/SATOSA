@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 A pysaml2 frontend module for the satosa proxy
 """

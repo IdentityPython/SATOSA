@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 A saml2 backend module for the satosa proxy
 """

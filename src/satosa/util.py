@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Python package file for util functions.
 """
