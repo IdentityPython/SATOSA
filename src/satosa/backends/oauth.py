@@ -16,7 +16,7 @@ from ..logging_util import satosa_logging
 from ..response import Redirect
 from ..util import rndstr
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class OAuthBackend(BackendModule):
@@ -119,7 +119,7 @@ class OAuthBackend(BackendModule):
             tmp_state = ""
             if "state" in resp:
                 tmp_state = resp["state"]
-            satosa_logging(LOGGER, logging.DEBUG,
+            satosa_logging(logger, logging.DEBUG,
                            "Missing or invalid state [%s] in response!" % tmp_state, state,
                            exc_info=True)
             raise SATOSAAuthenticationError(state,
@@ -165,7 +165,7 @@ class OAuthBackend(BackendModule):
             context.state.remove(self.config["state_id"])
             return self.auth_callback_func(context, internal_response)
         except Exception as error:
-            satosa_logging(LOGGER, logging.DEBUG, "Not a valid authentication", state,
+            satosa_logging(logger, logging.DEBUG, "Not a valid authentication", state,
                            exc_info=True)
             if isinstance(error, SATOSAError):
                 raise error

@@ -8,7 +8,7 @@ from .context import SATOSABadContextError
 from .exception import SATOSAError
 from .logging_util import satosa_logging
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class SATOSANoBoundEndpointError(SATOSAError):
@@ -60,8 +60,8 @@ class ModuleRouter(object):
                                         "endpoints": frontends[frontend].register_endpoints(
                                             providers)}
 
-        LOGGER.debug("Loaded backends with endpoints: %s" % backends)
-        LOGGER.debug("Loaded frontends with endpoints: %s" % frontends)
+        logger.debug("Loaded backends with endpoints: %s" % backends)
+        logger.debug("Loaded frontends with endpoints: %s" % frontends)
 
     def backend_routing(self, context):
         """
@@ -74,7 +74,7 @@ class ModuleRouter(object):
         :return: backend
         """
         state = context.state
-        satosa_logging(LOGGER, logging.INFO, "Routing to backend: %s " % context.target_backend,
+        satosa_logging(logger, logging.INFO, "Routing to backend: %s " % context.target_backend,
                        state)
         backend = self.backends[context.target_backend]["instance"]
         state.add(ModuleRouter.STATE_KEY, context.target_frontend)
@@ -93,7 +93,7 @@ class ModuleRouter(object):
 
         state = context.state
         target_frontend = state.get(ModuleRouter.STATE_KEY)
-        satosa_logging(LOGGER, logging.INFO, "Routing to frontend: %s " % target_frontend, state)
+        satosa_logging(logger, logging.INFO, "Routing to frontend: %s " % target_frontend, state)
         context.target_frontend = target_frontend
         frontend = self.frontends[context.target_frontend]["instance"]
         return frontend
@@ -110,10 +110,10 @@ class ModuleRouter(object):
         :return: None
         """
         if not context:
-            satosa_logging(LOGGER, logging.DEBUG, "Context was None!", context.state)
+            satosa_logging(logger, logging.DEBUG, "Context was None!", context.state)
             raise SATOSABadContextError("Context is None")
         if context.path is None:
-            satosa_logging(LOGGER, logging.DEBUG, "Context did not contain a path!", context.state)
+            satosa_logging(logger, logging.DEBUG, "Context did not contain a path!", context.state)
             raise SATOSABadContextError("Context did not contain any path")
 
     def endpoint_routing(self, context):
@@ -126,7 +126,7 @@ class ModuleRouter(object):
         :param context: The request context
         :return: registered endpoint and bound parameters
         """
-        satosa_logging(LOGGER, logging.DEBUG, "Routing path: %s" % context.path, context.state)
+        satosa_logging(logger, logging.DEBUG, "Routing path: %s" % context.path, context.state)
         self._validate_context(context)
 
         path_split = context.path.split('/')
@@ -144,7 +144,7 @@ class ModuleRouter(object):
                     msg = "Frontend request. Module name:'{name}', endpoint: {endpoint}".format(
                         name=frontend,
                         endpoint=context.path)
-                    satosa_logging(LOGGER, logging.INFO, msg, context.state)
+                    satosa_logging(logger, logging.INFO, msg, context.state)
                     return spec
 
         if backend in self.backends:
@@ -155,11 +155,11 @@ class ModuleRouter(object):
                     msg = "Backend request. Module name:'{name}', endpoint: {endpoint}".format(
                         name=backend,
                         endpoint=context.path)
-                    satosa_logging(LOGGER, logging.INFO, msg, context.state)
+                    satosa_logging(logger, logging.INFO, msg, context.state)
                     return spec
-            satosa_logging(LOGGER, logging.DEBUG, "%s not bound to any function" % context.path,
+            satosa_logging(logger, logging.DEBUG, "%s not bound to any function" % context.path,
                            context.state)
         else:
-            satosa_logging(LOGGER, logging.DEBUG, "Unknown backend %s" % backend, context.state)
+            satosa_logging(logger, logging.DEBUG, "Unknown backend %s" % backend, context.state)
 
         raise SATOSANoBoundEndpointError("'{}' not bound to any function".format(context.path))

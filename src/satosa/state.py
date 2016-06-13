@@ -16,7 +16,7 @@ from Crypto.Cipher import AES
 from .exception import SATOSAStateError
 from .logging_util import satosa_logging
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 # TODO MOVE TO CONFIG
 STATE_COOKIE_MAX_AGE = 1200
@@ -39,7 +39,7 @@ def state_to_cookie(state, name, path, encryption_key, max_age=STATE_COOKIE_MAX_
     :param encryption_key: Key to encrypt the state information
     :return: A cookie
     """
-    satosa_logging(LOGGER, logging.DEBUG,
+    satosa_logging(logger, logging.DEBUG,
                    "Saving state as cookie, secure: %s, max-age: %s, path: %s" %
                    (STATE_COOKIE_SECURE, STATE_COOKIE_MAX_AGE, path), state)
     cookie = SimpleCookie()
@@ -66,10 +66,10 @@ def cookie_to_state(cookie_str, name, encryption_key):
     """
     try:
         state = State(SimpleCookie(cookie_str)[name].value, encryption_key)
-        satosa_logging(LOGGER, logging.DEBUG, "Loading state from cookie: %s" % cookie_str, state)
+        satosa_logging(logger, logging.DEBUG, "Loading state from cookie: %s" % cookie_str, state)
         return state
     except KeyError:
-        LOGGER.debug("Did not find cookie named '%s' in cookie string '%s'" % (name, cookie_str))
+        logger.debug("Did not find cookie named '%s' in cookie string '%s'" % (name, cookie_str))
         raise SATOSAStateError(
             "No cookie named '{}' in cookie string '{}'".format(name, cookie_str))
 

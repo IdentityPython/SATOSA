@@ -5,7 +5,7 @@ import base64
 import logging
 import os
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def image_to_base64(image_path):
@@ -30,5 +30,5 @@ def image_to_base64(image_path):
             encoded_string = base64.b64encode(image_file.read())
             return "data:image/%s;base64,%s" % (file_extension, encoded_string.decode("utf-8"))
     except IOError as e:
-        LOGGER.debug("Image could not be read: %s", str(e))
+        logger.debug("Image could not be read: %s", str(e))
         raise

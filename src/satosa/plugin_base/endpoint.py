@@ -6,7 +6,7 @@ import logging
 from ..backends.base import BackendModule
 from ..frontends.base import FrontendModule
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class InterfaceModulePlugin(object):
@@ -48,7 +48,7 @@ class FrontendModulePlugin(InterfaceModulePlugin):
         """
         if not issubclass(module, FrontendModule):
             msg = "module is not subclass of {}".format(FrontendModule.__name__)
-            LOGGER.error(msg)
+            logger.error(msg)
             raise AttributeError(msg)
         super(FrontendModulePlugin, self).__init__(module, receiver, config)
 
@@ -71,6 +71,6 @@ class BackendModulePlugin(InterfaceModulePlugin):
         """
         if not issubclass(module, BackendModule):
             msg = "module is not subclass of {}".format(BackendModule.__name__)
-            LOGGER.error(msg)
+            logger.error(msg)
             raise AttributeError(msg)
         super(BackendModulePlugin, self).__init__(module, provider, config)

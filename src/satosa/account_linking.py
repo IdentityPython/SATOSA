@@ -13,7 +13,7 @@ from .internal_data import InternalResponse
 from .logging_util import satosa_logging
 from .response import Redirect
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class AccountLinkingModule(object):
@@ -46,9 +46,9 @@ class AccountLinkingModule(object):
             _bkey = rsa_load(config.ACCOUNT_LINKING["sign_key"])
             self.sign_key = RSAKey().load_key(_bkey)
             self.sign_key.use = "sig"
-            LOGGER.info("Account linking is active")
+            logger.info("Account linking is active")
         else:
-            LOGGER.info("Account linking is not active")
+            logger.info("Account linking is not active")
 
     def _handle_al_response(self, context):
         """
@@ -85,7 +85,7 @@ class AccountLinkingModule(object):
         status_code, message = self._get_uuid(context, issuer, id)
 
         if status_code == 200:
-            satosa_logging(LOGGER, logging.INFO, "issuer/id pair is linked in AL service",
+            satosa_logging(logger, logging.INFO, "issuer/id pair is linked in AL service",
                            context.state)
             internal_response.set_user_id(message)
             try:
@@ -110,7 +110,7 @@ class AccountLinkingModule(object):
         :param ticket: The ticket given by the al service
         :return: A redirect to approve the new id linking
         """
-        satosa_logging(LOGGER, logging.INFO, "A new ID must be linked by the AL service",
+        satosa_logging(logger, logging.INFO, "A new ID must be linked by the AL service",
                        context.state)
         context.state.add(AccountLinkingModule.STATE_KEY, internal_response.to_dict())
         return Redirect("%s/%s" % (self.al_redirect, ticket))
@@ -142,12 +142,12 @@ class AccountLinkingModule(object):
             response = requests.get(request, verify=self.verify_ssl)
         except requests.ConnectionError as con_exc:
             msg = "Could not connect to account linking service"
-            satosa_logging(LOGGER, logging.CRITICAL, msg, context.state, exc_info=True)
+            satosa_logging(logger, logging.CRITICAL, msg, context.state, exc_info=True)
             raise SATOSAAuthenticationError(context.state, msg) from con_exc
 
         if response.status_code != 200 and response.status_code != 404:
             msg = "Got status code '%s' from account linking service" % (response.status_code)
-            satosa_logging(LOGGER, logging.CRITICAL, msg, context.state)
+            satosa_logging(logger, logging.CRITICAL, msg, context.state)
             raise SATOSAAuthenticationError(context.state, msg)
 
         return response.status_code, response.text

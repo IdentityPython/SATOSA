@@ -16,7 +16,7 @@ from .response import Response
 from .routing import ModuleRouter, SATOSANoBoundEndpointError
 from .state import cookie_to_state, SATOSAStateError, State, state_to_cookie
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class SATOSABase(object):
@@ -39,10 +39,10 @@ class SATOSABase(object):
             raise ValueError("Missing configuration")
 
         self.config = config
-        LOGGER.info("Loading backend modules...")
+        logger.info("Loading backend modules...")
         backends = load_backends(self.config, self._auth_resp_callback_func,
                                  self.config.INTERNAL_ATTRIBUTES)
-        LOGGER.info("Loading frontend modules...")
+        logger.info("Loading frontend modules...")
         frontends = load_frontends(self.config, self._auth_req_callback_func,
                                    self.config.INTERNAL_ATTRIBUTES)
         self.consent_module = ConsentModule(config, self._consent_resp_callback_func)
@@ -54,7 +54,7 @@ class SATOSABase(object):
         if self.account_linking_module.enabled:
             backends["account_linking"] = self.account_linking_module
 
-        LOGGER.info("Loading micro services...")
+        logger.info("Loading micro services...")
         self.request_micro_services = None
         self.response_micro_services = None
         if "MICRO_SERVICES" in self.config:
@@ -80,7 +80,7 @@ class SATOSABase(object):
         """
         state = context.state
         state.add(SATOSABase.STATE_KEY, internal_request.requestor)
-        satosa_logging(LOGGER, logging.INFO,
+        satosa_logging(logger, logging.INFO,
                        "Requesting provider: {}".format(internal_request.requestor), state)
         context.request = None
         self.consent_module.save_state(internal_request, state)
@@ -206,7 +206,7 @@ class SATOSABase(object):
                                                                 state=json.dumps(
                                                                     error.state.state_dict,
                                                                     indent=4))
-            satosa_logging(LOGGER, logging.ERROR, msg, error.state, exc_info=True)
+            satosa_logging(logger, logging.ERROR, msg, error.state, exc_info=True)
             return self._handle_satosa_authentication_error(error)
 
     def _load_state(self, context):
@@ -252,7 +252,7 @@ class SATOSABase(object):
             try:
                 resp.headers.append(tuple(cookie.output().split(": ", 1)))
             except:
-                satosa_logging(LOGGER, logging.WARN,
+                satosa_logging(logger, logging.WARN,
                                "can't add cookie to response '%s'" % resp.__class__, context.state)
                 pass
 
@@ -274,11 +274,11 @@ class SATOSABase(object):
         except SATOSANoBoundEndpointError:
             raise
         except SATOSAError:
-            satosa_logging(LOGGER, logging.ERROR, "Uncaught SATOSA error", context.state,
+            satosa_logging(logger, logging.ERROR, "Uncaught SATOSA error", context.state,
                            exc_info=True)
             raise
         except Exception as err:
-            satosa_logging(LOGGER, logging.ERROR, "Uncaught exception", context.state,
+            satosa_logging(logger, logging.ERROR, "Uncaught exception", context.state,
                            exc_info=True)
             raise SATOSAUnknownError("Unknown error") from err
         return resp

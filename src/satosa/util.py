@@ -17,7 +17,7 @@ from saml2.saml import NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
 
 from .internal_data import UserIdHashType
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def saml_name_format_to_hash_type(name_format):
@@ -103,7 +103,7 @@ def unpack_post(environ):
     elif environ["CONTENT_TYPE"] == "application/json":
         data = json.loads(post_body)
 
-    LOGGER.debug("unpack_post:: %s", data)
+    logger.debug("unpack_post:: %s", data)
     return data
 
 
@@ -132,7 +132,7 @@ def unpack_either(environ):
         _dict = unpack_post(environ)
     else:
         _dict = None
-    LOGGER.debug("_dict: %s", _dict)
+    logger.debug("_dict: %s", _dict)
     return _dict
 
 

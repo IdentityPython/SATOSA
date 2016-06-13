@@ -29,12 +29,12 @@ from satosa.plugin_loader import (_load_plugins, frontend_filter, backend_filter
     _load_endpoint_modules)
 from satosa.satosa_config import SATOSAConfig
 
-LOGGER = logging.getLogger("")
+logger = logging.getLogger("")
 handler = logging.StreamHandler()
 logFormatter = logging.Formatter("[%(name)-12.12s] [%(levelname)-5.5s]  %(message)s")
 handler.setFormatter(logFormatter)
-LOGGER.addHandler(handler)
-LOGGER.setLevel(logging.INFO)
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 NSPAIR = {"xs": "http://www.w3.org/2001/XMLSchema"}
 
@@ -167,14 +167,14 @@ def make_satosa_metadata(option):
 
     frontend_names = [p.name for p in frontend_plugins]
     backend_names = [p.name for p in backend_plugins]
-    LOGGER.info("Loaded frontend plugins: {}".format(frontend_names))
-    LOGGER.info("Loaded backend plugins: {}".format(backend_names))
+    logger.info("Loaded frontend plugins: {}".format(frontend_names))
+    logger.info("Loaded backend plugins: {}".format(backend_names))
 
     backend_metadata = {}
     if option.generate_backend:
         for plugin in backend_plugins:
             if issubclass(plugin.module, SamlBackend):
-                LOGGER.info("Generating saml backend '%s' metadata..." % plugin.name)
+                logger.info("Generating saml backend '%s' metadata..." % plugin.name)
                 backend_metadata[plugin.name] = _make_metadata(plugin.config["config"], option)
 
     frontend_metadata = {}
@@ -184,7 +184,7 @@ def make_satosa_metadata(option):
                 frontend_metadata[frontend.name] = []
                 for plugin in backend_plugins:
                     provider = plugin.name
-                    LOGGER.info(
+                    logger.info(
                         "Creating metadata for frontend '{}' and backend '{}'".format(frontend.name,
                                                                                       provider))
 
@@ -208,7 +208,7 @@ def make_satosa_metadata(option):
     if option.generate_backend:
         for backend, data in backend_metadata.items():
             path = "%s/%s_backend_metadata.xml" % (option.output, backend)
-            LOGGER.info("Writing backend '%s' metadata to '%s'" % (backend, path))
+            logger.info("Writing backend '%s' metadata to '%s'" % (backend, path))
             file = open(path, "w")
             file.write(data)
             file.close()
@@ -221,7 +221,7 @@ def make_satosa_metadata(option):
                                                  meta["entity_id"])
                 else:
                     path = "{}/{}.xml".format(option.output, meta["plugin_name"])
-                LOGGER.info("Writing metadata '{}".format(path))
+                logger.info("Writing metadata '{}".format(path))
                 out_file = open(path, 'w')
                 out_file.write(meta["xml"])
                 out_file.close()
@@ -313,11 +313,11 @@ if __name__ == '__main__':
         generate_frontend = True
         generate_backend = True
 
-    LOGGER.info("Generating: frontends: %s, backends: %s" % (generate_frontend, generate_backend))
+    logger.info("Generating: frontends: %s, backends: %s" % (generate_frontend, generate_backend))
 
-    LOGGER.info("Generating metadata for proxy config: '{}'".format(args.config))
+    logger.info("Generating metadata for proxy config: '{}'".format(args.config))
     option = MetadataOption(args.config, args.valid, args.cert, args.id, args.keyfile, args.name,
                             args.sign, args.xmlsec,
                             generate_frontend, generate_backend, args.output)
-    LOGGER.info("Settings: {}".format(option))
+    logger.info("Settings: {}".format(option))
     make_satosa_metadata(option)

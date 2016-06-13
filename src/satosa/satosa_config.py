@@ -7,7 +7,7 @@ import os
 
 import yaml
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class SATOSAConfig(object):
@@ -63,12 +63,12 @@ class SATOSAConfig(object):
         """
         if not (conf is not None and isinstance(conf, dict)):
             msg = "Missing configuration or unknown format"
-            LOGGER.critical(msg)
+            logger.critical(msg)
             raise AssertionError(msg)
         for mand_key in SATOSAConfig.mandatory_dict_keys:
             if mand_key not in conf:
                 msg = "Missing key '%s' in config" % mand_key
-                LOGGER.critical(msg)
+                logger.critical(msg)
                 raise AssertionError(msg)
 
     def __getattr__(self, item):
@@ -132,7 +132,7 @@ class SATOSAConfig(object):
             config = SATOSAConfig._readfile(config)
             return json.loads(config)
         except ValueError as error:  # not a json config
-            LOGGER.debug("Could not parse config as json: {}", str(error))
+            logger.debug("Could not parse config as json: {}", str(error))
 
     @staticmethod
     def _load_yaml(config):
@@ -149,7 +149,7 @@ class SATOSAConfig(object):
             config = SATOSAConfig._readfile(config)
             return yaml.safe_load(config)
         except yaml.YAMLError as error:
-            LOGGER.debug("Could not parse config as YAML: {}", str(error))
+            logger.debug("Could not parse config as YAML: {}", str(error))
 
     @staticmethod
     def _readfile(config):

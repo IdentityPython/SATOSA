@@ -16,7 +16,7 @@ from .internal_data import InternalResponse
 from .logging_util import satosa_logging
 from .response import Redirect
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class ConsentModule(object):
@@ -43,9 +43,9 @@ class ConsentModule(object):
             _bkey = rsa_load(config.CONSENT["sign_key"])
             self.sign_key = RSAKey().load_key(_bkey)
             self.sign_key.use = "sig"
-            LOGGER.info("Consent flow is active")
+            logger.info("Consent flow is active")
         else:
-            LOGGER.info("Consent flow is not active")
+            logger.info("Consent flow is not active")
 
     def save_state(self, internal_request, state):
         """
@@ -88,17 +88,17 @@ class ConsentModule(object):
         try:
             consent_attributes = self._verify_consent(hash_id)
         except ConnectionError:
-            satosa_logging(LOGGER, logging.ERROR,
+            satosa_logging(logger, logging.ERROR,
                            "Consent service is not reachable, no consent given.", state)
             # Send an internal_response without any attributes
             consent_attributes = None
 
         if consent_attributes is None:
-            satosa_logging(LOGGER, logging.INFO, "Consent was NOT given", state)
+            satosa_logging(logger, logging.INFO, "Consent was NOT given", state)
             # If consent was not given, then don't send any attributes
             consent_attributes = []
         else:
-            satosa_logging(LOGGER, logging.INFO, "Consent was given", state)
+            satosa_logging(logger, logging.INFO, "Consent was given", state)
 
         internal_response = self._filter_attributes(internal_response, consent_attributes)
         return self._end_consent(context, internal_response)
@@ -117,7 +117,7 @@ class ConsentModule(object):
         """
         state = context.state
         if not self.enabled:
-            satosa_logging(LOGGER, logging.INFO, "Consent flow not activated", state)
+            satosa_logging(logger, logging.INFO, "Consent flow not activated", state)
             return self._end_consent(context, internal_response)
 
         consent_state = state.get(ConsentModule.STATE_KEY)
@@ -137,7 +137,7 @@ class ConsentModule(object):
                 internal_response = self._filter_attributes(internal_response, consent_attributes)
                 return self._end_consent(context, internal_response)
         except ConnectionError:
-            satosa_logging(LOGGER, logging.ERROR,
+            satosa_logging(logger, logging.ERROR,
                            "Consent service is not reachable, no consent given.", state)
             # Send an internal_response without any attributes
             internal_response._attributes = {}
@@ -157,7 +157,7 @@ class ConsentModule(object):
         try:
             ticket = self._consent_registration(consent_args_jws)
         except (ConnectionError, AssertionError):
-            satosa_logging(LOGGER, logging.ERROR,
+            satosa_logging(logger, logging.ERROR,
                            "Consent service is not reachable, no consent given.", state)
             # Send an internal_response without any attributes
             internal_response._attributes = {}

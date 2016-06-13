@@ -21,7 +21,7 @@ from ..internal_data import InternalRequest
 from ..logging_util import satosa_logging
 from ..util import oidc_subject_type_to_hash_type
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class OIDCFrontend(FrontendModule):
@@ -51,7 +51,7 @@ class OIDCFrontend(FrontendModule):
 
         # filter attributes to return in ID Token as claims
         attributes = self.converter.from_internal("openid", internal_resp.get_attributes())
-        satosa_logging(LOGGER, logging.DEBUG,
+        satosa_logging(logger, logging.DEBUG,
                        "Attributes delivered by backend to OIDC frontend: {}".format(
                            json.dumps(attributes)), context.state)
         flattened_attributes = {k: v[0] for k, v in attributes.items()}
@@ -59,7 +59,7 @@ class OIDCFrontend(FrontendModule):
         user_claims = self._get_user_info(flattened_attributes,
                                           requested_id_token_claims,
                                           auth_req["scope"])
-        satosa_logging(LOGGER, logging.DEBUG,
+        satosa_logging(logger, logging.DEBUG,
                        "Attributes filtered by requested claims/scope: {}".format(
                            json.dumps(user_claims)), context.state)
 
@@ -95,7 +95,7 @@ class OIDCFrontend(FrontendModule):
         auth_req = self._get_authn_request_from_state(exception.state)
         error_resp = AuthorizationErrorResponse(error="access_denied",
                                                 error_description=exception.message)
-        satosa_logging(LOGGER, logging.DEBUG, exception.message, exception.state)
+        satosa_logging(logger, logging.DEBUG, exception.message, exception.state)
         return SeeOther(
             error_resp.request(auth_req["redirect_uri"],
                                self._should_fragment_encode(auth_req)))
@@ -281,12 +281,12 @@ class OIDCFrontend(FrontendModule):
 
         # verify auth req (correct redirect_uri, contains nonce and response_type='id_token')
         request = urlencode(context.request)
-        satosa_logging(LOGGER, logging.DEBUG, "Authn req from client: {}".format(request),
+        satosa_logging(logger, logging.DEBUG, "Authn req from client: {}".format(request),
                        context.state)
 
         info = self.provider.auth_init(request, request_class=AuthorizationRequest)
         if isinstance(info, Response):
-            satosa_logging(LOGGER, logging.ERROR, "Error in authn req: {}".format(info.message),
+            satosa_logging(logger, logging.ERROR, "Error in authn req: {}".format(info.message),
                            context.state)
             return info
 

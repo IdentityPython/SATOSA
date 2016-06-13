@@ -16,7 +16,7 @@ from .micro_service.service_base import (MicroService, RequestMicroService,
 from .plugin_base.endpoint import (InterfaceModulePlugin, BackendModulePlugin,
     FrontendModulePlugin)
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def load_backends(config, callback, internal_attributes):
@@ -166,7 +166,7 @@ def _load_endpoint_modules(plugins, callback, internal_attributes=None):
     for plugin in plugins:
         module_inst = plugin.module(callback, internal_attributes, plugin.config)
         endpoint_modules[plugin.name] = module_inst
-    LOGGER.info("Loaded modules: %s" % list(endpoint_modules.keys()))
+    logger.info("Loaded modules: %s" % list(endpoint_modules.keys()))
     return endpoint_modules
 
 
@@ -208,13 +208,13 @@ def _load_json(config):
             if isinstance(_dict, dict):
                 return _dict
             if file_config is not None and os.path.isfile(file_config):
-                LOGGER.exception("The configuration file %s is corrupt." % file_config)
+                logger.exception("The configuration file %s is corrupt." % file_config)
                 raise SATOSAConfigurationError(
                     "The configuration file %s is corrupt." % file_config)
             return None
     except ValueError as error:
         if file_config is not None and os.path.isfile(file_config):
-            LOGGER.exception("The configuration file %s is corrupt." % file_config)
+            logger.exception("The configuration file %s is corrupt." % file_config)
             raise SATOSAConfigurationError("The configuration file %s is corrupt." % file_config)
 
 
@@ -245,13 +245,13 @@ def _load_yaml(config):
             if isinstance(_dict, dict):
                 return _dict
             if file_config is not None and os.path.isfile(file_config):
-                LOGGER.exception("The configuration file %s is corrupt." % file_config)
+                logger.exception("The configuration file %s is corrupt." % file_config)
                 raise SATOSAConfigurationError(
                     "The configuration file %s is corrupt." % file_config)
             return None
     except Exception as error:
         if file_config is not None and os.path.isfile(file_config):
-            LOGGER.exception("The configuration file %s is corrupt." % file_config)
+            logger.exception("The configuration file %s is corrupt." % file_config)
             raise SATOSAConfigurationError("The configuration file %s is corrupt." % file_config)
 
 
@@ -306,7 +306,7 @@ def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, base_url,
                 loaded_plugins.append(obj(base_url, *args))
                 loaded_plugin_names.append(module_file_name)
         except ImportError as error:
-            LOGGER.debug("Not a py file or import error '%s': %s", module_file_name, error)
+            logger.debug("Not a py file or import error '%s': %s", module_file_name, error)
             dict_parsers = [_load_dict,
                             _load_json,
                             _load_yaml]
@@ -337,7 +337,7 @@ def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, base_url,
                                 instance = module_class(internal_attributes)
                             loaded_plugins.append(instance)
                         else:
-                            LOGGER.warn("Missing mandatory configuration parameters in "
+                            logger.warn("Missing mandatory configuration parameters in "
                                         "the micro service plugin %s ('plugin', 'module')."
                                         % module_file_name)
                     else:
@@ -361,16 +361,16 @@ def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, base_url,
                             loaded_plugin_names.append(module_file_name)
                         else:
 
-                            LOGGER.warn("Missing mandatory configuration parameters in "
+                            logger.warn("Missing mandatory configuration parameters in "
                                         "the plugin %s (plugin, module, receiver and/or config)."
                                         % module_file_name)
                 except Exception as e:
-                    LOGGER.exception("Cannot create the module %s." % module_file_name)
+                    logger.exception("Cannot create the module %s." % module_file_name)
         except Exception as error:
-            LOGGER.exception("The configuration file %s is corrupt." % module_file_name)
+            logger.exception("The configuration file %s is corrupt." % module_file_name)
             raise SATOSAConfigurationError(
                 "The configuration file %s is corrupt." % module_file_name) from error
-    LOGGER.debug("Loaded plugins: {}".format(loaded_plugin_names))
+    logger.debug("Loaded plugins: {}".format(loaded_plugin_names))
     return loaded_plugins
 
 
@@ -394,9 +394,9 @@ def load_micro_services(plugin_path, plugins, internal_attributes):
                                       ResponseMicroService.__name__, "",
                                       internal_attributes=internal_attributes)
 
-    LOGGER.info(
+    logger.info(
         "Loaded request micro services: %s" % [k.__class__.__name__ for k in request_services])
-    LOGGER.info(
+    logger.info(
         "Loaded response micro services: %s" % [k.__class__.__name__ for k in
                                                 response_services])
 
