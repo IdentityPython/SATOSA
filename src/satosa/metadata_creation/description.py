@@ -1,12 +1,12 @@
 """
-Help classes for creating the VOPaaS frontend metadata
+Helper classes for creating frontend metadata
 """
-from ..image_converter import convert_to_base64
+from satosa.metadata_creation.image_converter import image_to_base64
 
 
 class ContactPersonDesc(object):
     """
-    Description class for a contact preson
+    Description class for a contact person
     """
 
     def __init__(self):
@@ -91,7 +91,7 @@ class UIInfoDesc(object):
         :param height: height of logo
         :param lang: language
         """
-        text = convert_to_base64(text)
+        text = image_to_base64(text)
         self._logos.append({"text": text, "width": width, "height": height, "lang": lang})
 
     def to_dict(self):
@@ -182,28 +182,31 @@ class MetadataDescription(object):
     def set_organization(self, organization):
         """
         Set an organization to the description
-        :type organization: vopaas.metadata_creation.description.OrganizationDesc
+        :type organization: satosa.metadata_creation.description.OrganizationDesc
         :param organization: Organization description
         """
-        assert isinstance(organization, OrganizationDesc)
+        if not isinstance(organization, OrganizationDesc):
+            raise ValueError("organization must be of type OrganizationDesc")
         self._organization = organization
 
     def add_contact_person(self, person):
         """
         Adds a contact person to the description
-        :type person: vopaas.metadata_creation.description.ContactPersonDesc
+        :type person: satosa.metadata_creation.description.ContactPersonDesc
         :param person: The contact person to be added
         """
-        assert isinstance(person, ContactPersonDesc)
+        if not isinstance(person, ContactPersonDesc):
+            raise ValueError("person must be of type ContactPersonDesc")
         self._contact_person.append(person)
 
     def set_ui_info(self, ui_info):
         """
         Set an ui info to the description
-        :type ui_info: vopaas.metadata_creation.description.UIInfoDesc
+        :type ui_info: satosa.metadata_creation.description.UIInfoDesc
         :param ui_info: The ui info to be set
         """
-        assert isinstance(ui_info, UIInfoDesc)
+        if not isinstance(ui_info, UIInfoDesc):
+            raise ValueError("ui_info must be of type UIInfoDesc")
         self._ui_info = ui_info
 
     def to_dict(self):

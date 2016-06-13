@@ -5,7 +5,7 @@ import base64
 import logging
 import os
 
-from .exception import SATOSAError
+from satosa.exception import SATOSAError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class SATOSAUnsupportedImageFormat(SATOSAError):
     pass
 
 
-def convert_to_base64(image_path):
+def image_to_base64(image_path):
     """
     Converts an image to base64 raw data
 
