@@ -30,7 +30,6 @@ class TestUIInfoDesc(object):
         desc.add_display_name("my company", "en")
         with patch("builtins.open", mock_open(read_data=logo_data)) as mock_file:
             desc.add_logo("logo.jpg", 80, 80, "en")
-        mock_file.assert_called_once_with("logo.jpg", "rb")
 
         serialized = desc.to_dict()
         ui_info = serialized["service"]["idp"]["ui_info"]
