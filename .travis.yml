@@ -12,6 +12,7 @@ install:
 
 env:
   - TOXENV=py34
+  - TOXENV=py35
 
 script:
   - tox
