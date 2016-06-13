@@ -63,7 +63,7 @@ class BackendModule(object):
     def get_metadata_desc(self):
         """
         Returns a description of the backend module.
-        This is used when creating the VOPaaS frontend metadata
+        This is used when creating SAML metadata for the frontend of the proxy
         :rtype: satosa.metadata_creation.description.MetadataDescription
         :return: A description of the backend
         """
@@ -72,7 +72,7 @@ class BackendModule(object):
 
 def get_metadata_desc_for_oidc_backend(config, entity_id=None):
     """
-    Returns a description of an VOPaaSOpenIdBackend
+    Returns a SAML metadata entity (IdP) descriptor for a configured OpenID Connect Backend.
     :type config: dict[str, Any]
     :type entity_id: str
     :rtype: satosa.metadata_creation.description.MetadataDescription

@@ -60,7 +60,7 @@ def create_config_file(frontend_config, frontend_endpoints, url_base, metadata_d
     :type frontend_config: dict[str, Any]
     :type frontend_endpoints: dict[str, dict[str, str]]
     :type url_base: str
-    :type metadata_desc: vopaas.metadata_creation.description.MetadataDescription
+    :type metadata_desc: satosa.metadata_creation.description.MetadataDescription
     :type backend_name: str
     :rtype: dict[str, Any]
 
@@ -109,7 +109,7 @@ def _make_metadata(config_dict, option):
     Creates metadata from the given idp config
 
     :type config_dict: dict[str, Any]
-    :type option: vopaas.metadata_creation.make_vopaas_metadata.MetadataOption
+    :type option: MetadataOption
     :rtype: str
 
     :param config_dict: config
@@ -153,7 +153,7 @@ def _make_metadata(config_dict, option):
 def make_satosa_metadata(option):
     """
     Creates metadata files from a VOPaaS proxy config
-    :type option: vopaas.metadata_creation.make_vopaas_metadata.MetadataOption
+    :type option: MetadataOption
     :param option: The creation settings
     """
     conf_mod = SATOSAConfig(option.config_file)

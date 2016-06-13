@@ -33,7 +33,7 @@ in the [example directory](../example).
 | Parameter name | Data type | Example value | Description |
 | -------------- | --------- | ------------- | ----------- |
 | `BASE` | string | `https://proxy.example.com` | base url of the proxy |
-| `COOKIE_STATE_NAME` | string | `vopaas_state` | name of cooke VOPaaS uses for preserving state between requests |
+| `COOKIE_STATE_NAME` | string | `satosa_state` | name of cooke SATOSA uses for preserving state between requests |
 | `STATE_ENCRYPTION_KEY` | string | `52fddd3528a44157` | key used for encrypting the state cookie, will be overriden by the environment variable `SATOSA_STATE_ENCRYPTION_KEY` if it is set |
 | `INTERNAL_ATTRIBUTES` | string | `example/internal_attributes.yaml` | path to attribute mapping
 | `PLUGIN_PATH` | string[] | `[example/plugins/backends, example/plugins/frontends]` | list of directory paths containing any front-/backend plugins |
@@ -52,7 +52,7 @@ in the [example directory](../example).
 | `enable` | bool | `Yes` | whether the service should be used |
 | `rest_uri` | string | `https://localhost` | url to the REST endpoint of the service |
 | `redirect` | string | `https://localhost/redirect` | url to the endpoint where the user should be redirected for necessary interaction |
-| `endpoint` | string | `handle_consent` | name of the endpoint in VOPaas where the response from the service is received |
+| `endpoint` | string | `handle_consent` | name of the endpoint in SATOSA where the response from the service is received |
 | `sign_key`| string | `pki/consent.key` | path to key used for signing the requests to the service |
 | `verify_ssl` | bool | `No` | whether the HTTPS certificate of the service should be verified when doing requests to it |
 

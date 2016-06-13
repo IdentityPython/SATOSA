@@ -316,7 +316,7 @@ class SamlBackend(BackendModule):
 
     def get_metadata_desc(self):
         """
-        See super class vopaas.backends.backend_base.VOPaaSBackendModule#get_metadata_desc
+        See super class satosa.backends.backend_base.BackendModule#get_metadata_desc
         :rtype: satosa.metadata_creation.description.MetadataDescription
         """
         # TODO Only get IDPs
