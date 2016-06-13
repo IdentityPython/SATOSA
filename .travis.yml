@@ -10,9 +10,12 @@ addons:
 install:
   - pip install -U tox
 
-env:
-  - TOXENV=py34
-  - TOXENV=py35
+matrix:
+  include:
+      - python: 3.4.4
+        env: TOXENV=py34
+      - python: 3.5
+        env: TOXENV=py35
 
 script:
   - tox
