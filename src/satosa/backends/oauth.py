@@ -6,7 +6,7 @@ import logging
 
 import requests
 from oic.oauth2.consumer import Consumer, stateID
-from oic.oauth2.message import AuthorizationRequest, AuthorizationResponse
+from oic.oauth2.message import AuthorizationResponse
 from oic.utils.authn.authn_context import UNSPECIFIED
 
 from .base import BackendModule, get_metadata_desc_for_oidc_backend
@@ -71,24 +71,21 @@ class OAuthBackend(BackendModule):
         See super class method satosa.backends.base#start_auth
         :param get_state: Generates a state to be used in the authentication call.
 
-        :type get_state: (str, bytes) -> str
+        :type get_state: Callable[[str, bytes], str]
         :type context: satosa.context.Context
         :type internal_request: satosa.internal_data.InternalRequest
         :rtype satosa.response.Redirect
         """
         consumer = self.get_consumer()
-        request_args = {"redirect_uri": self.redirect_url,
-                        "state": get_state(self.config["base_url"], rndstr().encode())}
-        state_data = {
-            "state": request_args["state"]
-        }
+        oauth_state = get_state(self.config["base_url"], rndstr().encode())
+
+        state_data = dict(state=oauth_state)
         state = context.state
         state.add(self.config["state_id"], state_data)
+
+        request_args = {"redirect_uri": self.redirect_url, "state": oauth_state}
         cis = consumer.construct_AuthorizationRequest(request_args=request_args)
-        url, body, ht_args, cis = consumer.uri_and_body(AuthorizationRequest, cis,
-                                                        method="GET",
-                                                        request_args=request_args)
-        return Redirect(url)
+        return Redirect(cis.request(consumer.authorization_endpoint))
 
     def register_endpoints(self):
         """
@@ -115,16 +112,14 @@ class OAuthBackend(BackendModule):
         :param state: The current state for the proxy and this backend.
         Only used for raising errors.
         """
-        if not ("state" in resp and "state" in state_data and resp["state"] == state_data["state"]):
-            tmp_state = ""
-            if "state" in resp:
-                tmp_state = resp["state"]
+        is_known_state = "state" in resp and "state" in state_data and resp["state"] == state_data["state"]
+        if not is_known_state:
+            received_state = resp.get("state", "")
             satosa_logging(logger, logging.DEBUG,
-                           "Missing or invalid state [%s] in response!" % tmp_state, state,
-                           exc_info=True)
+                           "Missing or invalid state [%s] in response!" % received_state, state)
             raise SATOSAAuthenticationError(state,
                                             "Missing or invalid state [%s] in response!" %
-                                            tmp_state)
+                                            received_state)
 
     def authn_response(self, context):
         """
@@ -137,41 +132,33 @@ class OAuthBackend(BackendModule):
         which generates the Response object.
         """
         state = context.state
-        try:
-            state_data = state.get(self.config["state_id"])
-            consumer = self.get_consumer()
-            request = context.request
-            aresp = consumer.parse_response(AuthorizationResponse, info=json.dumps(request))
-            self.verify_state(aresp, state_data, state)
-            rargs = {"code": aresp["code"], "redirect_uri": self.redirect_url,
-                     "state": state_data["state"]}
-            atresp = consumer.do_access_token_request(request_args=rargs, state=aresp["state"])
-            if ("verify_accesstoken_state" not in self.config or
-                    self.config["verify_accesstoken_state"]):
-                self.verify_state(atresp, state_data, state)
-            user_info = self.user_information(atresp["access_token"])
-            internal_response = InternalResponse(auth_info=self.auth_info(request))
-            internal_response.add_attributes(self.converter.to_internal(self.external_type,
-                                                                        user_info))
-            internal_response.set_user_id(user_info[self.user_id_attr])
-            if "user_id_params" in self.config:
-                user_id = ""
-                for param in self.config["user_id_params"]:
-                    try:
-                        user_id += user_info[param]
-                    except Exception as error:
-                        raise SATOSAAuthenticationError from error
-                internal_response.set_user_id(user_id)
-            context.state.remove(self.config["state_id"])
-            return self.auth_callback_func(context, internal_response)
-        except Exception as error:
-            satosa_logging(logger, logging.DEBUG, "Not a valid authentication", state,
-                           exc_info=True)
-            if isinstance(error, SATOSAError):
-                raise error
-            if state is not None:
-                raise SATOSAAuthenticationError(state, "Not a valid authentication") from error
-            raise
+        state_data = state.get(self.config["state_id"])
+        consumer = self.get_consumer()
+        request = context.request
+        aresp = consumer.parse_response(AuthorizationResponse, info=json.dumps(request))
+        self.verify_state(aresp, state_data, state)
+
+        rargs = {"code": aresp["code"], "redirect_uri": self.redirect_url,
+                 "state": state_data["state"]}
+
+        atresp = consumer.do_access_token_request(request_args=rargs, state=aresp["state"])
+        if "verify_accesstoken_state" not in self.config or self.config["verify_accesstoken_state"]:
+            self.verify_state(atresp, state_data, state)
+
+        user_info = self.user_information(atresp["access_token"])
+        internal_response = InternalResponse(auth_info=self.auth_info(request))
+        internal_response.add_attributes(self.converter.to_internal(self.external_type,
+                                                                    user_info))
+        internal_response.set_user_id(user_info[self.user_id_attr])
+        if "user_id_params" in self.config:
+            try:
+                user_id = "".join([user_info[param] for param in self.config["user_id_params"]])
+            except KeyError as e:
+                raise SATOSAAuthenticationError(
+                    "Could not construct user id from response, missing param: ".format(str(e))) from e
+            internal_response.set_user_id(user_id)
+        context.state.remove(self.config["state_id"])
+        return self.auth_callback_func(context, internal_response)
 
     def auth_info(self, request):
         """
@@ -253,21 +240,6 @@ class FacebookBackend(OAuthBackend):
                                               self.config["server_info"]["authorization_endpoint"])
         return auth_info
 
-    def request_fb(self, url, payload):
-        """
-        Performs a get call.
-
-        :type url: str
-        :type payload: dict[str, str]
-        :rtype: requests.Response
-
-        :param url: The url to perform a get on.
-        :param payload: The parameters to send.
-        :return: A requests response object.
-        """
-        r = requests.get(url, params=payload)
-        return r
-
     def user_information(self, access_token):
         """
         Will retrieve the user information data for the authenticated user.
@@ -280,21 +252,12 @@ class FacebookBackend(OAuthBackend):
         payload = {'access_token': access_token}
         url = "https://graph.facebook.com/v2.5/me"
         if self.fields is not None:
-            # url += "?fields="
-            fields_str = ""
-            first = True
-            for field in self.fields:
-                if not first:
-                    # url += ","
-                    fields_str += ","
-                else:
-                    first = False
-                # url += field
-                fields_str += field
-            payload["fields"] = fields_str
-        r = self.request_fb(url, payload)
-        data = json.loads(r.text)
-        if "picture" in data and "data" in data["picture"] and "url" in data["picture"]["data"]:
+            payload["fields"] = ",".join(self.fields)
+        resp = requests.get(url, params=payload)
+        data = json.loads(resp.text)
+        try:
             picture_url = data["picture"]["data"]["url"]
             data["picture"] = picture_url
+        except KeyError as e:
+            pass
         return data
