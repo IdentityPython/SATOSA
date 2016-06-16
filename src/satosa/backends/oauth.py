@@ -1,5 +1,5 @@
 """
-This module contains classes to create OAuth 2 backends for SATOSA.
+OAuth 2 backends for SATOSA.
 """
 import json
 import logging
@@ -12,7 +12,7 @@ from oic.utils.authn.authn_context import UNSPECIFIED
 
 from .base import BackendModule
 from ..exception import SATOSAAuthenticationError
-from ..internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
+from ..internal_data import InternalResponse, AuthenticationInformation
 from ..logging_util import satosa_logging
 from ..metadata_creation.description import OrganizationDesc, UIInfoDesc, ContactPersonDesc, MetadataDescription
 from ..response import Redirect
@@ -21,9 +21,10 @@ from ..util import rndstr
 logger = logging.getLogger(__name__)
 
 
-class OAuthBackend(BackendModule):
+class _OAuthBackend(BackendModule):
     """
-    Backend module for OAuth 2.0
+    Backend module for OAuth 2.0, should not be directly used.
+    See satosa.backends.oauth.FacebookBackend.
     """
 
     def __init__(self, outgoing, internal_attributes, config, external_type, user_id_attr):
@@ -42,31 +43,18 @@ class OAuthBackend(BackendModule):
         :type config: dict[str, dict[str, str] | list[str]]
         :type external_type: str
         """
-        super(OAuthBackend, self).__init__(outgoing, internal_attributes)
+        super().__init__(outgoing, internal_attributes)
         self.config = config
         self.redirect_url = "%s/%s" % (self.config["base_url"], self.config["authz_page"])
         self.external_type = external_type
         self.user_id_attr = user_id_attr
-
-    def get_consumer(self):
-        """
-        Creates a OAuth 2.0 consumer from a given configuration.
-
-        :param user_id_hash_type: Tells the OAuth consumer how to ask for user id. In oidc can
-        pairwise and public be used.
-
-        :type user_id_hash_type: UserIdHashType
-        :rtype: Consumer
-        :return: An OAuth 2.0 consumer.
-        """
-        consumer = Consumer(
+        self.consumer = Consumer(
             session_db=None,
             client_config=self.config["client_config"],
             server_info=self.config["server_info"],
             authz_page=self.config["authz_page"],
             response_type=self.config["response_type"])
-        consumer.client_secret = self.config["client_secret"]
-        return consumer
+        self.consumer.client_secret = self.config["client_secret"]
 
     def start_auth(self, context, internal_request, get_state=stateID):
         """
@@ -78,38 +66,33 @@ class OAuthBackend(BackendModule):
         :type internal_request: satosa.internal_data.InternalRequest
         :rtype satosa.response.Redirect
         """
-        consumer = self.get_consumer()
         oauth_state = get_state(self.config["base_url"], rndstr().encode())
 
         state_data = dict(state=oauth_state)
-        state = context.state
-        state.add(self.config["state_id"], state_data)
+        context.state.add(self.config["state_id"], state_data)
 
         request_args = {"redirect_uri": self.redirect_url, "state": oauth_state}
-        cis = consumer.construct_AuthorizationRequest(request_args=request_args)
-        return Redirect(cis.request(consumer.authorization_endpoint))
+        cis = self.consumer.construct_AuthorizationRequest(request_args=request_args)
+        return Redirect(cis.request(self.consumer.authorization_endpoint))
 
     def register_endpoints(self):
         """
         Creates a list of all the endpoints this backend module needs to listen to. In this case
         it's the authentication response from the underlying OP that is redirected from the OP to
         the proxy.
-        :rtype:
-        list[(str, (satosa.context.Context) -> satosa.response.Response)]
+        :rtype: Sequence[(str, Callable[[satosa.context.Context], satosa.response.Response]]
         :return: A list that can be used to map the request to SATOSA to this endpoint.
         """
-        url_map = [("^%s?(.*)$" % self.config["authz_page"], self.authn_response),
-                   ("^%s$" % self.config["authz_page"], self.authn_response)]
-        return url_map
+        return [("^%s$" % self.config["authz_page"], self._authn_response)]
 
-    def verify_state(self, resp, state_data, state):
+    def _verify_state(self, resp, state_data, state):
         """
         Will verify the state and throw and error if the state is invalid.
         :type resp: AuthorizationResponse
         :type state_data: dict[str, str]
         :type state: satosa.state.State
 
-        :param resp: The authorization response from the OP, created by pyoidc.
+        :param resp: The authorization response from the AS, created by pyoidc.
         :param state_data: The state data for this backend.
         :param state: The current state for the proxy and this backend.
         Only used for raising errors.
@@ -123,9 +106,9 @@ class OAuthBackend(BackendModule):
                                             "Missing or invalid state [%s] in response!" %
                                             received_state)
 
-    def authn_response(self, context):
+    def _authn_response(self, context):
         """
-        Handles the authentication response from the OP.
+        Handles the authentication response from the AS.
 
         :type context: satosa.context.Context
         :rtype: satosa.response.Response
@@ -133,32 +116,22 @@ class OAuthBackend(BackendModule):
         :return: A SATOSA response. This method is only responsible to call the callback function
         which generates the Response object.
         """
-        state = context.state
-        state_data = state.get(self.config["state_id"])
-        consumer = self.get_consumer()
-        request = context.request
-        aresp = consumer.parse_response(AuthorizationResponse, info=json.dumps(request))
-        self.verify_state(aresp, state_data, state)
+        state_data = context.state.get(self.config["state_id"])
+        aresp = self.consumer.parse_response(AuthorizationResponse, info=json.dumps(context.request))
+        self._verify_state(aresp, state_data, context.state)
 
         rargs = {"code": aresp["code"], "redirect_uri": self.redirect_url,
                  "state": state_data["state"]}
 
-        atresp = consumer.do_access_token_request(request_args=rargs, state=aresp["state"])
+        atresp = self.consumer.do_access_token_request(request_args=rargs, state=aresp["state"])
         if "verify_accesstoken_state" not in self.config or self.config["verify_accesstoken_state"]:
-            self.verify_state(atresp, state_data, state)
+            self._verify_state(atresp, state_data, context.state)
 
         user_info = self.user_information(atresp["access_token"])
-        internal_response = InternalResponse(auth_info=self.auth_info(request))
+        internal_response = InternalResponse(auth_info=self.auth_info(context.request))
         internal_response.add_attributes(self.converter.to_internal(self.external_type,
                                                                     user_info))
         internal_response.set_user_id(user_info[self.user_id_attr])
-        if "user_id_params" in self.config:
-            try:
-                user_id = "".join([user_info[param] for param in self.config["user_id_params"]])
-            except KeyError as e:
-                raise SATOSAAuthenticationError(
-                    "Could not construct user id from response, missing param: ".format(str(e))) from e
-            internal_response.set_user_id(user_id)
         context.state.remove(self.config["state_id"])
         return self.auth_callback_func(context, internal_response)
 
@@ -168,7 +141,7 @@ class OAuthBackend(BackendModule):
         :type request: dict[str, str]
         :rtype: AuthenticationInformation
 
-        :param request: The request parameters in the authentication response sent by the OP.
+        :param request: The request parameters in the authentication response sent by the AS.
         :return: How, who and when the autentication took place.
         """
         raise NotImplementedError("Method user_information must be implemented!")
@@ -186,15 +159,14 @@ class OAuthBackend(BackendModule):
 
     def get_metadata_desc(self):
         """
-        See super class satosa.backends.base.BackendModule#get_metadata_desc
+        See satosa.backends.oauth.get_metadata_desc
         :rtype: satosa.metadata_creation.description.MetadataDescription
         """
-        return get_metadata_desc_for_oidc_backend(self.config,
-                                                  self.config["server_info"][
-                                                      "authorization_endpoint"])
+        return get_metadata_desc_for_oauth_backend(self.config,
+                                                   self.config["server_info"]["authorization_endpoint"])
 
 
-class FacebookBackend(OAuthBackend):
+class FacebookBackend(_OAuthBackend):
     """
     Backend module for facebook.
     """
@@ -202,7 +174,7 @@ class FacebookBackend(OAuthBackend):
 
     def __init__(self, outgoing, internal_attributes, config):
         """
-
+        Constructor.
         :param outgoing: Callback should be called by the module after the authorization in the
         backend is done.
         :param internal_attributes: Mapping dictionary between SATOSA internal attribute names and
@@ -215,18 +187,12 @@ class FacebookBackend(OAuthBackend):
         :type internal_attributes: dict[string, dict[str, str | list[str]]]
         :type config: dict[str, dict[str, str] | list[str]]
         """
-        super(FacebookBackend, self).__init__(outgoing, internal_attributes, config, "facebook",
-                                              "id")
+        config.setdefault("response_type", "code")
+        super().__init__(outgoing, internal_attributes, config, "facebook", "id")
+
         self.fields = None
-        self.convert_dict = None
-        if "state_id" not in self.config:
-            self.config["state_id"] = FacebookBackend.STATE_ID
-        if "verify_accesstoken_state" not in self.config:
-            self.config["verify_accesstoken_state"] = False
-        if "response_type" not in self.config:
-            self.config["response_type"] = "code"
-        if "fields" in self.config:
-            self.fields = self.config["fields"]
+        self.config["state_id"] = FacebookBackend.STATE_ID
+        self.config.setdefault("verify_accesstoken_state", False)
 
     def auth_info(self, request):
         """
@@ -234,7 +200,7 @@ class FacebookBackend(OAuthBackend):
         :type request: dict[str, str]
         :rtype: AuthenticationInformation
 
-        :param request: The request parameters in the authentication response sent by the OP.
+        :param request: The request parameters in the authentication response sent by the AS.
         :return: How, who and when the autentication took place.
         """
         auth_info = AuthenticationInformation(UNSPECIFIED,
@@ -253,8 +219,8 @@ class FacebookBackend(OAuthBackend):
         """
         payload = {'access_token': access_token}
         url = "https://graph.facebook.com/v2.5/me"
-        if self.fields is not None:
-            payload["fields"] = ",".join(self.fields)
+        if self.config["fields"]:
+            payload["fields"] = ",".join(self.config["fields"])
         resp = requests.get(url, params=payload)
         data = json.loads(resp.text)
         try:
@@ -267,11 +233,11 @@ class FacebookBackend(OAuthBackend):
 
 def get_metadata_desc_for_oauth_backend(config, entity_id=None):
     """
-    Returns a SAML metadata entity (IdP) descriptor for a configured OpenID Connect Backend.
+    Returns a SAML metadata entity (IdP) descriptor for a configured OAuth/OpenID Connect Backend.
     :type config: dict[str, Any]
     :type entity_id: str
     :rtype: satosa.metadata_creation.description.MetadataDescription
-    :param config: The openid_connect module config
+    :param config: The backend module config
     :param entity_id: If entity_id is None, the id will be retrieved from the config
     :return: A description
     """

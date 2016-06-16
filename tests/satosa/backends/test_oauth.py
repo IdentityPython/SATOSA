@@ -18,7 +18,9 @@ FB_RESPONSE = {
     "picture": {
         "data": {
             "is_silhouette": False,
-            "url": "fb_picture"}},
+            "url": "fb_picture"
+        }
+    },
     "email": "fb_email",
     "verified": True,
     "gender": "fb_gender",
@@ -62,14 +64,53 @@ mock_get_state = Mock(return_value="abcdef")
 
 class TestFacebookBackend(object):
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.fb_backend = FacebookBackend(None, INTERNAL_ATTRIBUTES, FB_CONFIG)
+    def create_backend(self):
+        self.fb_backend = FacebookBackend(Mock(), INTERNAL_ATTRIBUTES, FB_CONFIG)
+
+    @pytest.fixture
+    def incoming_authn_response(self):
+        context = Context()
+        context.path = 'facebook/sso/redirect'
+        context.state = State()
+        state_data = dict(state=mock_get_state.return_value)
+        context.state.add(self.fb_backend.config["state_id"], state_data)
+        context.request = {
+            "code": FB_RESPONSE_CODE,
+            "state": mock_get_state.return_value
+        }
+
+        return context
+
+    def setup_facebook_response(self):
+        responses.add(responses.GET,
+                      "https://graph.facebook.com/v2.5/me",
+                      body=json.dumps(FB_RESPONSE),
+                      status=200,
+                      content_type='application/json')
+
+    def assert_expected_attributes(self):
+        expected_attributes = {
+            "edupersontargetedid": [FB_RESPONSE["id"]],
+            "surname": [FB_RESPONSE["last_name"]],
+            "name": [FB_RESPONSE["name"]],
+            "mail": [FB_RESPONSE["email"]],
+            "givenname": [FB_RESPONSE["first_name"]],
+            "gender": [FB_RESPONSE["gender"]],
+        }
+
+        context, internal_resp = self.fb_backend.auth_callback_func.call_args[0]
+        assert internal_resp.get_attributes() == expected_attributes
+
+    def assert_token_request(self, request_args, state, **kwargs):
+        assert request_args["code"] == FB_RESPONSE_CODE
+        assert request_args["redirect_uri"] == "%s/%s" % (BASE_URL, AUTHZ_PAGE)
+        assert request_args["state"] == mock_get_state.return_value
+        assert state == mock_get_state.return_value
 
     def test_register_endpoints(self):
         url_map = self.fb_backend.register_endpoints()
-        test_map = [('^facebook?(.*)$', self.fb_backend.authn_response),
-                    ('^facebook$', self.fb_backend.authn_response)]
-        assert url_map == test_map
+        expected_url_map = [('^facebook$', self.fb_backend._authn_response)]
+        assert url_map == expected_url_map
 
     def test_start_auth(self):
         context = Context()
@@ -89,48 +130,16 @@ class TestFacebookBackend(object):
         actual_params = dict(parse_qsl(urlparse(login_url).query))
         assert actual_params == expected_params
 
-    def verify_callback(self, context, internal_response):
-        expected_attributes = {
-            "edupersontargetedid": [FB_RESPONSE["id"]],
-            "surname": [FB_RESPONSE["last_name"]],
-            "name": [FB_RESPONSE["name"]],
-            "mail": [FB_RESPONSE["email"]],
-            "givenname": [FB_RESPONSE["first_name"]],
-            "gender": [FB_RESPONSE["gender"]],
-        }
-
-        assert internal_response.get_attributes() == expected_attributes
-
-    def verify_do_access_token_request(self, request_args, state, **kwargs):
-        assert request_args["code"] == FB_RESPONSE_CODE
-        assert request_args["redirect_uri"] == "%s/%s" % (BASE_URL, AUTHZ_PAGE)
-        assert request_args["state"] == mock_get_state.return_value
-        assert state == mock_get_state.return_value
-        return {"access_token": "fb access token"}
-
     @responses.activate
-    def test_authn_response(self):
-        responses.add(responses.GET,
-                      "https://graph.facebook.com/v2.5/me",
-                      body=json.dumps(FB_RESPONSE),
-                      status=200,
-                      content_type='application/json')
+    def test_authn_response(self, incoming_authn_response):
+        self.setup_facebook_response()
 
-        context = Context()
-        context.path = 'facebook/sso/redirect'
-        context.state = State()
-        internal_request = InternalRequest(UserIdHashType.transient, 'test_requestor')
-        self.fb_backend.start_auth(context, internal_request, mock_get_state)
-        context.request = {
-            "code": FB_RESPONSE_CODE,
-            "state": mock_get_state.return_value
-        }
+        mock_do_access_token_request = Mock(return_value={"access_token": "fb access token"})
+        self.fb_backend.consumer.do_access_token_request = mock_do_access_token_request
+        self.fb_backend._authn_response(incoming_authn_response)
 
-        self.fb_backend.auth_callback_func = self.verify_callback
-        consumer = self.fb_backend.get_consumer()
-        consumer.do_access_token_request = self.verify_do_access_token_request
-        self.fb_backend.get_consumer = Mock(return_value=consumer)
-        self.fb_backend.authn_response(context)
+        self.assert_expected_attributes()
+        self.assert_token_request(**mock_do_access_token_request.call_args[1])
 
     @responses.activate
     def test_entire_flow(self):
@@ -142,11 +151,7 @@ class TestFacebookBackend(object):
                                        "expires_in": 9999999999999}),
                       status=200,
                       content_type='application/json')
-        responses.add(responses.GET,
-                      "https://graph.facebook.com/v2.5/me",
-                      body=json.dumps(FB_RESPONSE),
-                      status=200,
-                      content_type='application/json')
+        self.setup_facebook_response()
 
         context = Context()
         context.path = 'facebook/sso/redirect'
@@ -158,5 +163,5 @@ class TestFacebookBackend(object):
             "code": FB_RESPONSE_CODE,
             "state": mock_get_state.return_value
         }
-        self.fb_backend.auth_callback_func = self.verify_callback
-        self.fb_backend.authn_response(context)
+        self.fb_backend._authn_response(context)
+        self.assert_expected_attributes()
