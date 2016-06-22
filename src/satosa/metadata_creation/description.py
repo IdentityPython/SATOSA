@@ -1,7 +1,7 @@
 """
 Helper classes for creating frontend metadata
 """
-from satosa.metadata_creation.image_converter import image_to_base64
+from ..metadata_creation.image_converter import image_to_base64
 
 
 class ContactPersonDesc(object):
