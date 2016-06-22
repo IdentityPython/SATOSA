@@ -17,7 +17,7 @@ config:
   op_url: https://accounts.google.com
   state_id: <name>
   verify_ssl: true
-  op_info:
+  entity_info:
     organization:
       display_name:
       - ["Google", "en"]

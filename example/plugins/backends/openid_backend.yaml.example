@@ -17,7 +17,7 @@ config:
   op_url: https://op.example.com
   state_id: <name>
   verify_ssl: true
-  op_info:
+  entity_info:
     contact_person:
       - contact_type: "technical"
         email_address: ["technical_test@example.com", "support_test@example.com"]

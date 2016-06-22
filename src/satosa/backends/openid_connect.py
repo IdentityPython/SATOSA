@@ -227,7 +227,7 @@ class OpenIDConnectBackend(BackendModule):
         See satosa.backends.oauth.get_metadata_desc
         :rtype: satosa.metadata_creation.description.MetadataDescription
         """
-        return get_metadata_desc_for_oauth_backend(self.config)
+        return get_metadata_desc_for_oauth_backend(self.config["provider_metadata"]["issuer"], self.config)
 
 
 def create_client(provider_metadata, client_metadata):

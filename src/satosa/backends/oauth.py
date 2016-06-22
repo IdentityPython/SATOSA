@@ -232,27 +232,25 @@ class FacebookBackend(_OAuthBackend):
         return data
 
 
-def get_metadata_desc_for_oauth_backend(config, entity_id=None):
+def get_metadata_desc_for_oauth_backend(entity_id, config):
     """
     Returns a SAML metadata entity (IdP) descriptor for a configured OAuth/OpenID Connect Backend.
-    :type config: dict[str, Any]
-    :type entity_id: str
-    :rtype: satosa.metadata_creation.description.MetadataDescription
-    :param config: The backend module config
     :param entity_id: If entity_id is None, the id will be retrieved from the config
-    :return: A description
+    :type entity_id: str
+    :param config: The backend module config
+    :type config: dict[str, Any]
+    :return: metadata description
+    :rtype: satosa.metadata_creation.description.MetadataDescription
     """
     metadata_description = []
-    if entity_id is None:
-        entity_id = config["op_url"]
     entity_id = urlsafe_b64encode(entity_id.encode("utf-8")).decode("utf-8")
     description = MetadataDescription(entity_id)
 
-    if "op_info" in config:
-        op_info = config["op_info"]
+    if "entity_info" in config:
+        entity_info = config["entity_info"]
 
         # Add contact person information
-        for contact_person in op_info.get("contact_person", []):
+        for contact_person in entity_info.get("contact_person", []):
             person = ContactPersonDesc()
             if 'contact_type' in contact_person:
                 person.contact_type = contact_person['contact_type']
@@ -266,8 +264,8 @@ def get_metadata_desc_for_oauth_backend(config, entity_id=None):
             description.add_contact_person(person)
 
         # Add organization information
-        if "organization" in op_info:
-            organization_info = op_info["organization"]
+        if "organization" in entity_info:
+            organization_info = entity_info["organization"]
             organization = OrganizationDesc()
 
             for name_info in organization_info.get("organization_name", []):
@@ -280,8 +278,8 @@ def get_metadata_desc_for_oauth_backend(config, entity_id=None):
             description.set_organization(organization)
 
         # Add ui information
-        if "ui_info" in op_info:
-            ui_info = op_info["ui_info"]
+        if "ui_info" in entity_info:
+            ui_info = entity_info["ui_info"]
             ui_description = UIInfoDesc()
             for desc in ui_info.get("description", []):
                 ui_description.add_description(desc[0], desc[1])
