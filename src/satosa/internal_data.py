@@ -401,7 +401,7 @@ class InternalResponse(InternalData):
     """
 
     def __init__(self, auth_info=None):
-        super(InternalResponse, self).__init__()
+        super().__init__()
         self._user_id = None
         self._user_id_attributes = []
         # This dict is a data carrier between frontend and backend modules.

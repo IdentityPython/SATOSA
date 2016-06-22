@@ -47,7 +47,7 @@ class OpenIDConnectBackend(BackendModule):
         :type config: dict[str, dict[str, str] | list[str]]
         :type name: str
         """
-        super(OpenIDConnectBackend, self).__init__(auth_callback_func, internal_attributes, name)
+        super().__init__(auth_callback_func, internal_attributes, name)
         self.auth_callback_func = auth_callback_func
         self.config = config
         self.client = create_client(config["provider_metadata"], config["client"]["client_metadata"])

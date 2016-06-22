@@ -301,7 +301,7 @@ def create_name_id_policy_persistent():
 class FakeBackend(BackendModule):
     def __init__(self, start_auth_func=None, internal_attributes=None,
                  register_endpoints_func=None):
-        super(FakeBackend, self).__init__(None, internal_attributes, "FakeBackend")
+        super().__init__(None, internal_attributes, "FakeBackend")
 
         self.start_auth_func = start_auth_func
         self.register_endpoints_func = register_endpoints_func
@@ -338,7 +338,7 @@ class FakeFrontend(FrontendModule):
     def __init__(self, handle_authn_request_func=None, internal_attributes=None,
                  handle_authn_response_func=None,
                  register_endpoints_func=None):
-        super(FakeFrontend, self).__init__(None, internal_attributes, "FakeFrontend")
+        super().__init__(None, internal_attributes, "FakeFrontend")
         self.handle_authn_request_func = handle_authn_request_func
         self.handle_authn_response_func = handle_authn_response_func
         self.register_endpoints_func = register_endpoints_func

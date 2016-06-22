@@ -55,7 +55,7 @@ class SATOSAAuthenticationError(SATOSAError):
         :param args: whatever
         :param kwargs: whatever
         """
-        super(SATOSAError, self).__init__(message, *args, **kwargs)
+        super().__init__(message, *args, **kwargs)
         self._message = "Authentication failed. Error id [{error_id}]"
         self.state = state.copy()
         self.error_id = 0

@@ -15,7 +15,7 @@ class AddStaticAttributes(ResponseMicroService):
     """
 
     def __init__(self, internal_attributes):
-        super(AddStaticAttributes, self).__init__()
+        super().__init__()
         self.data_converter = DataConverter(internal_attributes)
 
         mapping_file = os.environ.get("SATOSA_STATIC_ATTRIBUTES")

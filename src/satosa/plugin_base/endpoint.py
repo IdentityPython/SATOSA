@@ -50,7 +50,7 @@ class FrontendModulePlugin(InterfaceModulePlugin):
             msg = "module is not subclass of {}".format(FrontendModule.__name__)
             logger.error(msg)
             raise AttributeError(msg)
-        super(FrontendModulePlugin, self).__init__(module, receiver, config)
+        super().__init__(module, receiver, config)
 
 
 class BackendModulePlugin(InterfaceModulePlugin):
@@ -73,4 +73,4 @@ class BackendModulePlugin(InterfaceModulePlugin):
             msg = "module is not subclass of {}".format(BackendModule.__name__)
             logger.error(msg)
             raise AttributeError(msg)
-        super(BackendModulePlugin, self).__init__(module, provider, config)
+        super().__init__(module, provider, config)

@@ -13,7 +13,7 @@ class DecideBackendByRequester(RequestMicroService):
         backend module name under the key 'requester_mapping'
         :type config: Dict[str, Dict[str, str]]
         """
-        super(DecideBackendByRequester, self).__init__()
+        super().__init__()
         self.requester_mapping = config['requester_mapping']
 
     def process(self, context, data):

@@ -98,7 +98,7 @@ class Redirect(Response):
         :param headers: A list of headers
         :param content: Content type
         """
-        super(Redirect, self).__init__(message=redirect_url, headers=headers, content=content)
+        super().__init__(message=redirect_url, headers=headers, content=content)
 
     def __call__(self, environ, start_response):
         """
@@ -132,7 +132,7 @@ class SeeOther(Response):
         :param headers: A list of headers
         :param content: The content type
         """
-        super(SeeOther, self).__init__(message=redirect_url, headers=headers, content=content)
+        super().__init__(message=redirect_url, headers=headers, content=content)
 
     def __call__(self, environ, start_response):
         """
@@ -164,7 +164,7 @@ class MetadataResponse(Response):
         metadata_string = create_metadata_string(None, config, 4, None, None, None, None,
                                                  None).decode("utf-8")
         resp = {"content": "text/xml"}
-        super(MetadataResponse, self).__init__(message=metadata_string, **resp)
+        super().__init__(message=metadata_string, **resp)
 
 
 def geturl(environ, query=True, path=True, use_server_name=False):

@@ -46,7 +46,7 @@ class SamlBackend(BackendModule):
         :param config: The module config
         :param name: name of the plugin
         """
-        super(SamlBackend, self).__init__(outgoing, internal_attributes, name)
+        super().__init__(outgoing, internal_attributes, name)
         sp_config = SPConfig().load(copy.deepcopy(config["config"]), False)
 
         self.sp = Base(sp_config)

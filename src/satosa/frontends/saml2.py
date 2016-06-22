@@ -35,7 +35,7 @@ class SamlFrontend(FrontendModule):
     def __init__(self, auth_req_callback_func, internal_attributes, conf, name):
         self._validate_config(conf)
 
-        super(SamlFrontend, self).__init__(auth_req_callback_func, internal_attributes, name)
+        super().__init__(auth_req_callback_func, internal_attributes, name)
         self.config = conf
         self.idp_config = conf["idp_config"]
         self.endpoints = conf["endpoints"]
@@ -647,7 +647,7 @@ class SamlMirrorFrontend(SamlFrontend):
         :type relay_state: str
         :rtype: dict[str, dict[str, str] | str]
         """
-        state = super(SamlMirrorFrontend, self).save_state(context, resp_args, relay_state)
+        state = super().save_state(context, resp_args, relay_state)
         state["proxy_idp_entityid"] = self._get_target_entity_id(context)
         return state
 

@@ -36,7 +36,7 @@ class ToBytesMiddleware:
 
 class WsgiApplication(SATOSABase):
     def __init__(self, config):
-        super(WsgiApplication, self).__init__(config)
+        super().__init__(config)
 
     def run_server(self, environ, start_response, debug=False):
         path = environ.get('PATH_INFO', '').lstrip('/')
