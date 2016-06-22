@@ -81,7 +81,6 @@ class TestSamlBackend:
         assert resp.message.startswith("https://my.dicso.com/role/idp.ds"), \
             "Redirect to wrong URL."
 
-        # create_name_id_policy_transient()
         state = State()
         context = Context()
         context.state = state
@@ -138,7 +137,7 @@ class TestSamlBackend:
         disco_resp = parse_qs(urlparse(resp.message).query)
 
         info = parse_qs(urlparse(disco_resp["return"][0]).query)
-        info[samlbackend.idp_disco_query_param] = idp_conf["entityid"]
+        info["entityID"] = idp_conf["entityid"]
         context = Context()
         context.request = info
         context.state = state

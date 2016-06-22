@@ -17,10 +17,10 @@ from saml2.samlp import NameIDPolicy
 from .base import BackendModule
 from ..exception import SATOSAAuthenticationError
 from ..internal_data import (UserIdHashType, InternalRequest, InternalResponse,
-    AuthenticationInformation)
+                             AuthenticationInformation)
 from ..logging_util import satosa_logging
 from ..metadata_creation.description import (MetadataDescription, OrganizationDesc,
-    ContactPersonDesc, UIInfoDesc)
+                                             ContactPersonDesc, UIInfoDesc)
 from ..response import SeeOther, Response, MetadataResponse
 from ..util import rndstr, get_saml_name_id_format
 
@@ -50,19 +50,12 @@ class SamlBackend(BackendModule):
         sp_config = SPConfig().load(copy.deepcopy(config["config"]), False)
 
         self.sp = Base(sp_config)
-        self.idp_disco_query_param = "entityID"
         self.config = config
         self.attribute_profile = config.get("attribute_profile", "saml")
         self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST]
-        self.discosrv = None
-        self.state_id = config["state_id"]
-        try:
-            self.discosrv = config["disco_srv"]
-        except KeyError:
-            pass
+        self.discosrv = config.get("disco_srv")
 
-    @staticmethod
-    def create_name_id_policy(usr_id_hash_type):
+    def _create_name_id_policy(self, usr_id_hash_type):
         """
         Creates a name id policy
 
@@ -108,17 +101,12 @@ class SamlBackend(BackendModule):
         :param internal_req: The request
         :return: Response
         """
-        state = context.state
-
-        _cli = self.sp
-
-        eid = _cli.config.entityid
+        eid = self.sp.config.entityid
         # returns list of 2-tuples
-        disco_resp = _cli.config.getattr("endpoints", "sp")["discovery_response"]
+        disco_resp = self.sp.config.getattr("endpoints", "sp")["discovery_response"]
         # The first value of the first tuple is the one I want
         ret = disco_resp[0][0]
-        loc = _cli.create_discovery_service_request(self.discosrv, eid,
-                                                    **{"return": ret})
+        loc = self.sp.create_discovery_service_request(self.discosrv, eid, **{"return": ret})
         return SeeOther(loc)
 
     def authn_request(self, context, entity_id, internal_req):
@@ -136,32 +124,27 @@ class SamlBackend(BackendModule):
         :param internal_req: The request
         :return: Response
         """
-        _cli = self.sp
-        hash_type = UserIdHashType.persistent.name
-        if "hash_type" in self.config:
-            hash_type = self.config["hash_type"]
-        req_args = {"name_id_policy": self.create_name_id_policy(hash_type)}
-
+        hash_type = self.config.get("hash_type", UserIdHashType.persistent.name)
+        req_args = {"name_id_policy": self._create_name_id_policy(hash_type)}
         state = context.state
 
         try:
             # Picks a binding to use for sending the Request to the IDP
-            _binding, destination = _cli.pick_binding(
+            _binding, destination = self.sp.pick_binding(
                 "single_sign_on_service", self.bindings, "idpsso",
                 entity_id=entity_id)
             satosa_logging(logger, logging.DEBUG,
                            "binding: %s, destination: %s" % (_binding, destination), state)
             # Binding here is the response binding that is which binding the
             # IDP should use to return the response.
-            acs = _cli.config.getattr("endpoints", "sp")[
-                "assertion_consumer_service"]
+            acs = self.sp.config.getattr("endpoints", "sp")["assertion_consumer_service"]
             # just pick one
             endp, return_binding = acs[0]
-            req_id, req = _cli.create_authn_request(destination,
+            req_id, req = self.sp.create_authn_request(destination,
                                                     binding=return_binding,
                                                     **req_args)
             relay_state = rndstr()
-            ht_args = _cli.apply_binding(_binding, "%s" % req, destination, relay_state=relay_state)
+            ht_args = self.sp.apply_binding(_binding, "%s" % req, destination, relay_state=relay_state)
             satosa_logging(logger, logging.DEBUG, "ht_args: %s" % ht_args, state)
         except Exception as exc:
             satosa_logging(logger, logging.DEBUG,
@@ -195,7 +178,6 @@ class SamlBackend(BackendModule):
         :return: response
         """
         _authn_response = context.request
-
         state = context.state
 
         if not _authn_response["SAMLResponse"]:
@@ -231,11 +213,10 @@ class SamlBackend(BackendModule):
         :return: response
         """
         info = context.request
-
         state = context.state
 
         try:
-            entity_id = info[self.idp_disco_query_param]
+            entity_id = info["entityID"]
         except KeyError as err:
             satosa_logging(logger, logging.DEBUG, "No IDP chosen for state", state, exc_info=True)
             raise SATOSAAuthenticationError(state, "No IDP chosen") from err
