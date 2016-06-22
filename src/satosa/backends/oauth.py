@@ -188,6 +188,7 @@ class FacebookBackend(_OAuthBackend):
         :type config: dict[str, dict[str, str] | list[str]]
         """
         config.setdefault("response_type", "code")
+        config["verify_accesstoken_state"] = False
         super().__init__(outgoing, internal_attributes, config, "facebook", "id")
 
         self.fields = None

@@ -11,7 +11,6 @@ config:
   response_type: code
   server_info: {authorization_endpoint: 'https://www.facebook.com/dialog/oauth', token_endpoint: 'https://graph.facebook.com/v2.5/oauth/access_token'}
   state_id: <name>
-  verify_accesstoken_state: false
   op_info:
     organization:
       display_name:
