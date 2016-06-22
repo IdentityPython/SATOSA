@@ -172,7 +172,6 @@ class FacebookBackend(_OAuthBackend):
     """
     Backend module for facebook.
     """
-    STATE_ID = "facebook_backend"
 
     def __init__(self, outgoing, internal_attributes, config, name):
         """
