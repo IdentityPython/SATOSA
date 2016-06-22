@@ -260,6 +260,6 @@ def create_client(provider_metadata, client_metadata):
         client.register(client.provider_info['registration_endpoint'],
                         **client_metadata)
 
-    client.subject_type = (client.registration_response["subject_type"] or
+    client.subject_type = (client.registration_response.get("subject_type") or
                            client.provider_info["subject_types_supported"][0])
     return client
