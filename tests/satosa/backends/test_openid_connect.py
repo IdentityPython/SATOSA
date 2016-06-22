@@ -14,7 +14,7 @@ from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
 from satosa.backends.openid_connect import OpenIDConnectBackend, create_client, STATE_KEY, NONCE_KEY
 from satosa.context import Context
-from satosa.internal_data import InternalResponse
+from satosa.internal_data import InternalResponse, InternalRequest, UserIdHashType
 from satosa.response import Response
 from satosa.state import State
 
@@ -214,6 +214,21 @@ class TestOpenIDConnectBackend(object):
         self.oidc_backend.response_endpoint(incoming_authn_response)
         with pytest.raises(KeyError):
             incoming_authn_response.state.get(backend_config["state_id"])
+
+    @responses.activate
+    def test_entire_flow(self, backend_config):
+        self.setup_userinfo_endpoint(backend_config["provider_metadata"]["userinfo_endpoint"])
+        context = Context()
+        context.state = State()
+        internal_request = InternalRequest(UserIdHashType.transient, 'test_requestor')  # TODO
+        auth_response = self.oidc_backend.start_auth(context, None)
+        auth_params = dict(parse_qsl(urlparse(auth_response.message).query))
+
+        access_token = 12345
+        context.request = {"state": auth_params["state"], "access_token": access_token}
+        self.oidc_backend.response_endpoint(context)
+        args = self.oidc_backend.auth_callback_func.call_args[0]
+        self.assert_expected_attributes(args[1].get_attributes())
 
 
 class TestCreateClient(object):

@@ -87,8 +87,7 @@ class OpenIDConnectBackend(BackendModule):
         Creates a list of all the endpoints this backend module needs to listen to. In this case
         it's the authentication response from the underlying OP that is redirected from the OP to
         the proxy.
-        :rtype:
-        Sequence[(str, Callable[[satosa.context.Context], satosa.response.Response]]
+        :rtype: Sequence[(str, Callable[[satosa.context.Context], satosa.response.Response]]
         :return: A list that can be used to map the request to SATOSA to this endpoint.
         """
         url_map = []
@@ -183,6 +182,8 @@ class OpenIDConnectBackend(BackendModule):
         access_token, id_token_claims = self._get_tokens(authn_resp, context)
         if id_token_claims:
             self._verify_nonce(id_token_claims["nonce"], context)
+        else:
+            id_token_claims = {}
 
         userinfo = {}
         if access_token:
@@ -223,7 +224,7 @@ class OpenIDConnectBackend(BackendModule):
 
     def get_metadata_desc(self):
         """
-        See super satosa.backends.oauth.get_metadata_desc
+        See satosa.backends.oauth.get_metadata_desc
         :rtype: satosa.metadata_creation.description.MetadataDescription
         """
         return get_metadata_desc_for_oauth_backend(self.config)
