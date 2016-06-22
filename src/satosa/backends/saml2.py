@@ -32,19 +32,21 @@ class SamlBackend(BackendModule):
     A saml2 backend module
     """
 
-    def __init__(self, outgoing, internal_attributes, config):
+    def __init__(self, outgoing, internal_attributes, config, name):
         """
         :type outgoing:
         (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
         :type internal_attributes: dict[str, dict[str, list[str] | str]]
         :type config: dict[str, Any]
+        :type name: str
 
         :param outgoing: Callback should be called by the module after
                                    the authorization in the backend is done.
         :param internal_attributes: Internal attribute map
         :param config: The module config
+        :param name: name of the plugin
         """
-        super(SamlBackend, self).__init__(outgoing, internal_attributes)
+        super(SamlBackend, self).__init__(outgoing, internal_attributes, name)
         sp_config = SPConfig().load(copy.deepcopy(config["config"]), False)
 
         self.sp = Base(sp_config)
@@ -166,7 +168,7 @@ class SamlBackend(BackendModule):
                            "Failed to construct the AuthnRequest for state", state, exc_info=True)
             raise SATOSAAuthenticationError(state, "Failed to construct the AuthnRequest") from exc
 
-        state.add(self.state_id, relay_state)
+        state.add(self.name, relay_state)
 
         if _binding == BINDING_HTTP_REDIRECT:
             for param, value in ht_args["headers"]:
@@ -210,12 +212,12 @@ class SamlBackend(BackendModule):
             raise SATOSAAuthenticationError(state, "Failed to parse authn request") from err
 
         # check if the relay_state matches the cookie state
-        if state.get(self.state_id) != _authn_response['RelayState']:
+        if state.get(self.name) != _authn_response['RelayState']:
             satosa_logging(logger, logging.DEBUG,
                            "State did not match relay state for state", state)
             raise SATOSAAuthenticationError(state, "State did not match relay state")
 
-        context.state.remove(self.state_id)
+        context.state.remove(self.name)
         return self.auth_callback_func(context, self._translate_response(_response, context.state))
 
     def disco_response(self, context):

@@ -36,12 +36,12 @@ class TestOIDCFrontend(object):
     @pytest.fixture(autouse=True)
     def setup(self, signing_key):
         self.instance = OIDCFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
-                                     dict(issuer=self.ISSUER, signing_key_path=signing_key))
+                                     dict(issuer=self.ISSUER, signing_key_path=signing_key), "oidc_frontend")
         self.instance.register_endpoints(["foo_backend"])
 
     def create_state(self, auth_req):
         state = State()
-        state.add(type(self.instance).__name__, {"oidc_request": auth_req.to_urlencoded()})
+        state.add(self.instance.name, {"oidc_request": auth_req.to_urlencoded()})
         return state
 
     def setup_for_authn_response(self, auth_req):

@@ -164,7 +164,7 @@ def _load_endpoint_modules(plugins, callback, internal_attributes=None):
     """
     endpoint_modules = {}
     for plugin in plugins:
-        module_inst = plugin.module(callback, internal_attributes, plugin.config)
+        module_inst = plugin.module(callback, internal_attributes, plugin.config, plugin.name)
         endpoint_modules[plugin.name] = module_inst
     logger.info("Loaded modules: %s" % list(endpoint_modules.keys()))
     return endpoint_modules

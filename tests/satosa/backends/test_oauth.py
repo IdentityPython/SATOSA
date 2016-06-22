@@ -65,7 +65,7 @@ mock_get_state = Mock(return_value="abcdef")
 class TestFacebookBackend(object):
     @pytest.fixture(autouse=True)
     def create_backend(self):
-        self.fb_backend = FacebookBackend(Mock(), INTERNAL_ATTRIBUTES, FB_CONFIG)
+        self.fb_backend = FacebookBackend(Mock(), INTERNAL_ATTRIBUTES, FB_CONFIG, "facebook")
 
     @pytest.fixture
     def incoming_authn_response(self):
@@ -73,7 +73,7 @@ class TestFacebookBackend(object):
         context.path = 'facebook/sso/redirect'
         context.state = State()
         state_data = dict(state=mock_get_state.return_value)
-        context.state.add(self.fb_backend.config["state_id"], state_data)
+        context.state.add(self.fb_backend.name, state_data)
         context.request = {
             "code": FB_RESPONSE_CODE,
             "state": mock_get_state.return_value

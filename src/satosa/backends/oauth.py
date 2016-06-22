@@ -27,7 +27,7 @@ class _OAuthBackend(BackendModule):
     See satosa.backends.oauth.FacebookBackend.
     """
 
-    def __init__(self, outgoing, internal_attributes, config, external_type, user_id_attr):
+    def __init__(self, outgoing, internal_attributes, config, name, external_type, user_id_attr):
         """
         :param outgoing: Callback should be called by the module after the authorization in the
         backend is done.
@@ -35,15 +35,17 @@ class _OAuthBackend(BackendModule):
         the names returned by underlying IdP's/OP's as well as what attributes the calling SP's and
         RP's expects namevice.
         :param config: Configuration parameters for the module.
+        :param name: name of the plugin
         :param external_type: The name for this module in the internal attributes.
 
         :type outgoing:
         (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
         :type internal_attributes: dict[string, dict[str, str | list[str]]]
         :type config: dict[str, dict[str, str] | list[str]]
+        :type name: str
         :type external_type: str
         """
-        super().__init__(outgoing, internal_attributes)
+        super().__init__(outgoing, internal_attributes, name)
         self.config = config
         self.redirect_url = "%s/%s" % (self.config["base_url"], self.config["authz_page"])
         self.external_type = external_type
@@ -69,7 +71,7 @@ class _OAuthBackend(BackendModule):
         oauth_state = get_state(self.config["base_url"], rndstr().encode())
 
         state_data = dict(state=oauth_state)
-        context.state.add(self.config["state_id"], state_data)
+        context.state.add(self.name, state_data)
 
         request_args = {"redirect_uri": self.redirect_url, "state": oauth_state}
         cis = self.consumer.construct_AuthorizationRequest(request_args=request_args)
@@ -116,7 +118,7 @@ class _OAuthBackend(BackendModule):
         :return: A SATOSA response. This method is only responsible to call the callback function
         which generates the Response object.
         """
-        state_data = context.state.get(self.config["state_id"])
+        state_data = context.state.get(self.name)
         aresp = self.consumer.parse_response(AuthorizationResponse, info=json.dumps(context.request))
         self._verify_state(aresp, state_data, context.state)
 
@@ -132,7 +134,7 @@ class _OAuthBackend(BackendModule):
         internal_response.add_attributes(self.converter.to_internal(self.external_type,
                                                                     user_info))
         internal_response.set_user_id(user_info[self.user_id_attr])
-        context.state.remove(self.config["state_id"])
+        context.state.remove(self.name)
         return self.auth_callback_func(context, internal_response)
 
     def auth_info(self, request):
@@ -172,7 +174,7 @@ class FacebookBackend(_OAuthBackend):
     """
     STATE_ID = "facebook_backend"
 
-    def __init__(self, outgoing, internal_attributes, config):
+    def __init__(self, outgoing, internal_attributes, config, name):
         """
         Constructor.
         :param outgoing: Callback should be called by the module after the authorization in the
@@ -181,18 +183,19 @@ class FacebookBackend(_OAuthBackend):
         the names returned by underlying IdP's/OP's as well as what attributes the calling SP's and
         RP's expects namevice.
         :param config: Configuration parameters for the module.
+        :param name: name of the plugin
 
         :type outgoing:
         (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
         :type internal_attributes: dict[string, dict[str, str | list[str]]]
         :type config: dict[str, dict[str, str] | list[str]]
+        :type name: str
         """
         config.setdefault("response_type", "code")
         config["verify_accesstoken_state"] = False
-        super().__init__(outgoing, internal_attributes, config, "facebook", "id")
+        super().__init__(outgoing, internal_attributes, config, name, "facebook", "id")
 
         self.fields = None
-        self.config["state_id"] = FacebookBackend.STATE_ID
         self.config.setdefault("verify_accesstoken_state", False)
 
     def auth_info(self, request):

@@ -9,18 +9,21 @@ class FrontendModule(object):
     Base class for a frontend module.
     """
 
-    def __init__(self, auth_req_callback_func, internal_attributes):
+    def __init__(self, auth_req_callback_func, internal_attributes, name):
         """
         :type auth_req_callback_func:
         (satosa.context.Context, satosa.internal_data.InternalData) -> satosa.response.Response
         :type internal_attributes: dict[str, dict[str, str | list[str]]]
+        :type name: str
 
         :param auth_req_callback_func: Callback should be called by the module after the
         authorization response has been processed.
+        :param name: name of the plugin
         """
         self.auth_req_callback_func = auth_req_callback_func
         self.internal_attrbiutes = internal_attributes
         self.converter = DataConverter(internal_attributes)
+        self.name = name
 
     def handle_authn_response(self, context, internal_resp):
         """

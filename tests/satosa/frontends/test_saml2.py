@@ -51,13 +51,12 @@ class TestSamlFrontend:
     def setup_for_authn_req(self, idp_conf, sp_conf, nameid_format=None, relay_state="relay_state",
                             internal_attributes=INTERNAL_ATTRIBUTES):
         base = self.construct_base_url_from_entity_id(idp_conf["entityid"])
-        config = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base,
-                  "state_id": "state_id"}
+        config = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base}
         sp_metadata_str = create_metadata_from_config_dict(sp_conf)
         idp_conf["metadata"]["inline"] = [sp_metadata_str]
 
         samlfrontend = SamlFrontend(lambda context, internal_req: (context, internal_req),
-                                    internal_attributes, config)
+                                    internal_attributes, config, "saml_frontend")
         samlfrontend.register_endpoints(["saml"])
 
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
@@ -80,16 +79,13 @@ class TestSamlFrontend:
 
     @pytest.mark.parametrize("conf", [
         None,
-        {"idp_config_notok": {}, "endpoints": {}, "base": "base",
-         "state_id": "state_id"},
-        {"idp_config": {}, "endpoints_notok": {}, "base": "base",
-         "state_id": "state_id"},
-        {"idp_config": {}, "endpoints": {}, "base_notok": "base",
-         "state_id": "state_id"}
+        {"idp_config_notok": {}, "endpoints": {}, "base": "base"},
+        {"idp_config": {}, "endpoints_notok": {}, "base": "base"},
+        {"idp_config": {}, "endpoints": {}, "base_notok": "base"}
     ])
     def test_config_error_handling(self, conf):
         with pytest.raises(AssertionError):
-            SamlFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES, conf)
+            SamlFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES, conf, "saml_frontend")
 
     def test_register_endpoints(self, idp_conf):
         """
@@ -102,11 +98,10 @@ class TestSamlFrontend:
         metadata_url = "http://example.com/SAML2IDP/metadata"
         config = {"idp_config": idp_conf, "endpoints": ENDPOINTS,
                   "base": self.construct_base_url_from_entity_id(idp_conf["entityid"]),
-                  "state_id": "state_id",
                   "publish_metadata": metadata_url}
 
         samlfrontend = SamlFrontend(lambda context, internal_req: (context, internal_req),
-                                    INTERNAL_ATTRIBUTES, config)
+                                    INTERNAL_ATTRIBUTES, config, "saml_frontend")
 
         providers = ["foo", "bar"]
         url_map = samlfrontend.register_endpoints(providers)
@@ -204,15 +199,14 @@ class TestSamlFrontend:
         idp_conf["metadata"] = {"inline": [sp_metadata_str]}
 
         base = self.construct_base_url_from_entity_id(idp_conf["entityid"])
-        conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base,
-                "state_id": "state_id"}
+        conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base}
 
         internal_attributes = {"attributes": {attr_name: {"saml": [attr_name]} for attr_name in
                                               ["edupersontargetedid", "edupersonprincipalname",
                                                "edupersonaffiliation", "mail", "displayname", "sn",
                                                "givenname"]}}  # no op mapping for saml attribute names
 
-        samlfrontend = SamlFrontend(None, internal_attributes, conf)
+        samlfrontend = SamlFrontend(None, internal_attributes, conf, "saml_frontend")
         samlfrontend.register_endpoints(["testprovider"])
 
         internal_req = InternalRequest(saml_name_format_to_hash_type(NAMEID_FORMAT_PERSISTENT),
@@ -233,9 +227,9 @@ class TestSamlFrontend:
 
         base = self.construct_base_url_from_entity_id(idp_conf["entityid"])
         conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base,
-                "state_id": "state_id", "acr_mapping": loa}
+                "acr_mapping": loa}
 
-        samlfrontend = SamlFrontend(None, INTERNAL_ATTRIBUTES, conf)
+        samlfrontend = SamlFrontend(None, INTERNAL_ATTRIBUTES, conf, "saml_frontend")
         samlfrontend.register_endpoints(["foo"])
 
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
@@ -256,7 +250,7 @@ class TestSamlFrontend:
 
         }
         request_state = samlfrontend.save_state(context, resp_args, "")
-        context.state.add(conf["state_id"], request_state)
+        context.state.add(samlfrontend.name, request_state)
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
@@ -274,9 +268,9 @@ class TestSamlFrontend:
 
         base = self.construct_base_url_from_entity_id(idp_conf["entityid"])
         conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base,
-                "state_id": "state_id", "acr_mapping": loa}
+                "acr_mapping": loa}
 
-        samlfrontend = SamlFrontend(None, INTERNAL_ATTRIBUTES, conf)
+        samlfrontend = SamlFrontend(None, INTERNAL_ATTRIBUTES, conf, "saml_frontend")
         samlfrontend.register_endpoints(["foo"])
 
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
@@ -297,7 +291,7 @@ class TestSamlFrontend:
 
         }
         request_state = samlfrontend.save_state(context, resp_args, "")
-        context.state.add(conf["state_id"], request_state)
+        context.state.add(samlfrontend.name, request_state)
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
@@ -357,7 +351,7 @@ class TestSamlFrontend:
             "binding": BINDING_HTTP_REDIRECT
         }
         request_state = samlfrontend.save_state(context, resp_args, "")
-        context.state.add(samlfrontend.state_id, request_state)
+        context.state.add(samlfrontend.name, request_state)
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)

@@ -2,6 +2,7 @@
 Tests for the SAML frontend module src/backends/saml2.py.
 """
 import re
+from unittest.mock import Mock
 from urllib.parse import urlparse, parse_qs, parse_qsl
 
 import pytest
@@ -29,21 +30,27 @@ INTERNAL_ATTRIBUTES = {
                                'facebook': ['last_name']}}}
 
 
-@pytest.fixture
-def setup_test_config(sp_conf, idp_conf):
-    idp_metadata_str = create_metadata_from_config_dict(idp_conf)
-    sp_conf["metadata"]["inline"].append(idp_metadata_str)
-    idp2_config = idp_conf.copy()
-    idp2_config["entityid"] = "just_an_extra_idp"
-    idp_metadata_str2 = create_metadata_from_config_dict(idp2_config)
-    sp_conf["metadata"]["inline"].append(idp_metadata_str2)
-
-    sp_metadata_str = create_metadata_from_config_dict(sp_conf)
-    idp_conf["metadata"]["inline"] = [sp_metadata_str]
-
-
-@pytest.mark.usefixtures("setup_test_config")
+METADATA_URL = "http://example.com/SAML2IDP/metadata"
 class TestSamlBackend:
+    def setup_test_config(self, sp_conf, idp_conf):
+        idp_metadata_str = create_metadata_from_config_dict(idp_conf)
+        sp_conf["metadata"]["inline"].append(idp_metadata_str)
+        idp2_config = idp_conf.copy()
+        idp2_config["entityid"] = "just_an_extra_idp"
+        idp_metadata_str2 = create_metadata_from_config_dict(idp2_config)
+        sp_conf["metadata"]["inline"].append(idp_metadata_str2)
+
+        sp_metadata_str = create_metadata_from_config_dict(sp_conf)
+        idp_conf["metadata"]["inline"] = [sp_metadata_str]
+
+    @pytest.fixture(autouse=True)
+    def create_backend(self, sp_conf, idp_conf):
+        self.setup_test_config(sp_conf, idp_conf)
+        self.samlbackend = SamlBackend(Mock(), INTERNAL_ATTRIBUTES, {"config": sp_conf,
+                                                                   "disco_srv": "https://my.dicso.com/role/idp.ds",
+                                                                   "publish_metadata": METADATA_URL},
+                                       "samlbackend")
+
     def test_register_endpoints(self, sp_conf):
         """
         Tests the method register_endpoints
@@ -52,34 +59,24 @@ class TestSamlBackend:
         def get_path_from_url(url):
             return urlparse(url).path.lstrip("/")
 
-        metadata_url = "http://example.com/SAML2IDP/metadata"
-        samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf,
-                                                              "disco_srv": "https://my.dicso.com/role/idp.ds",
-                                                              "state_id": "saml_backend_test_id",
-                                                              "publish_metadata": metadata_url})
-
-        url_map = samlbackend.register_endpoints()
+        url_map = self.samlbackend.register_endpoints()
         all_sp_endpoints = [get_path_from_url(v[0][0]) for v in sp_conf["service"]["sp"]["endpoints"].values()]
         compiled_regex = [re.compile(regex) for regex, _ in url_map]
         for endp in all_sp_endpoints:
             assert any(p.match(endp) for p in compiled_regex)
 
-        assert any(p.match(get_path_from_url(metadata_url)) for p in compiled_regex)
+        assert any(p.match(get_path_from_url(METADATA_URL)) for p in compiled_regex)
 
-    def test_start_auth_no_request_info(self, sp_conf):
+    def test_start_auth_no_request_info(self):
         """
         Performs a complete test for the module satosa.backends.saml2. The flow should be accepted.
         """
-        disco_srv = "https://my.dicso.com/role/idp.ds"
-        samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf,
-                                                              "disco_srv": disco_srv,
-                                                              "state_id": "saml_backend_test_id"})
         internal_data = InternalRequest(None, None)
 
         state = State()
         context = Context()
         context.state = state
-        resp = samlbackend.start_auth(context, internal_data)
+        resp = self.samlbackend.start_auth(context, internal_data)
         assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
         assert resp.message.startswith("https://my.dicso.com/role/idp.ds"), \
             "Redirect to wrong URL."
@@ -90,16 +87,13 @@ class TestSamlBackend:
         context.state = state
         user_id_hash_type = UserIdHashType.transient
         internal_data = InternalRequest(user_id_hash_type, None)
-        resp = samlbackend.start_auth(context, internal_data)
+        resp = self.samlbackend.start_auth(context, internal_data)
         assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
 
     def test_start_auth_name_id_policy(self, sp_conf):
         """
         Performs a complete test for the module satosa.backends.saml2. The flow should be accepted.
         """
-        samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf,
-                                                              "disco_srv": "https://my.dicso.com/role/idp.ds",
-                                                              "state_id": "saml_backend_test_id"})
         test_state_key = "sauyghj34589fdh"
 
         state = State()
@@ -108,7 +102,7 @@ class TestSamlBackend:
         context.state = state
 
         internal_req = InternalRequest(UserIdHashType.transient, None)
-        resp = samlbackend.start_auth(context, internal_req)
+        resp = self.samlbackend.start_auth(context, internal_req)
 
         assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
 
@@ -123,14 +117,10 @@ class TestSamlBackend:
         request_info_tmp = context.state
         assert request_info_tmp.get(test_state_key) == "my_state", "Wrong state!"
 
-    def test_start_auth_disco(self, sp_conf, idp_conf):
+    def test_start_auth_disco(self, idp_conf):
         """
         Performs a complete test for the module satosa.backends.saml2. The flow should be accepted.
         """
-        samlbackend = SamlBackend(lambda context, internal_resp: (context, internal_resp),
-                                  INTERNAL_ATTRIBUTES, {"config": sp_conf,
-                                                        "disco_srv": "https://my.dicso.com/role/idp.ds",
-                                                        "state_id": "saml_backend_test_id"})
         test_state_key = "test_state_key_456afgrh"
         response_binding = BINDING_HTTP_REDIRECT
         fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf, metadata_construction=False))
@@ -142,7 +132,7 @@ class TestSamlBackend:
         context = Context()
         context.state = state
 
-        resp = samlbackend.start_auth(context, internal_req)
+        resp = self.samlbackend.start_auth(context, internal_req)
         assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
 
         disco_resp = parse_qs(urlparse(resp.message).query)
@@ -152,7 +142,7 @@ class TestSamlBackend:
         context = Context()
         context.request = info
         context.state = state
-        resp = samlbackend.disco_response(context)
+        resp = self.samlbackend.disco_response(context)
         assert resp.status == "303 See Other"
         req_params = dict(parse_qsl(urlparse(resp.message).query))
         url, fake_idp_resp = fakeidp.handle_auth_req(
@@ -164,21 +154,20 @@ class TestSamlBackend:
         context = Context()
         context.request = fake_idp_resp
         context.state = state
-        context, internal_resp = samlbackend.authn_response(context, response_binding)
+        self.samlbackend.authn_response(context, response_binding)
+        context, internal_resp = self.samlbackend.auth_callback_func.call_args[0]
         assert isinstance(context, Context), "Not correct instance!"
         assert context.state.get(test_state_key) == "my_state", "Not correct state!"
         assert internal_resp.auth_info.auth_class_ref == PASSWORD, "Not correct authentication!"
-        _dict = internal_resp.get_attributes()
         expected_data = {'surname': ['Testsson 1'], 'mail': ['test@example.com'],
                          'displayname': ['Test Testsson'], 'givenname': ['Test 1'],
                          'edupersontargetedid': ['one!for!all']}
-        for key in _dict:
-            assert expected_data[key] == _dict[key]
+        assert expected_data == internal_resp.get_attributes()
 
     def test_redirect_to_idp_if_only_one_idp_in_metadata(self, sp_conf, idp_conf):
         sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
-        samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES,
-                                  {"config": sp_conf, "state_id": "saml_backend_test_id"})
+        # instantiate new backend, without any discovery service configured
+        samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf}, "saml_backend")
 
         state = State()
         state.add("test", "state")

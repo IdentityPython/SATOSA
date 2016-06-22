@@ -30,7 +30,6 @@ config:
     "": default-LoA
     "https://accounts.google.com": LoA1
 
-  state_id: <name>
   base: <base_url>
   publish_metadata: <base_url>/<name>/metadata
   endpoints:

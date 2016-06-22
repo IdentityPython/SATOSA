@@ -30,11 +30,10 @@ class OIDCFrontend(FrontendModule):
 
     MANDATORY_CONFIG = {"issuer", "signing_key_path"}
 
-    def __init__(self, auth_req_callback_func, internal_attributes, conf):
+    def __init__(self, auth_req_callback_func, internal_attributes, conf, name):
         self._validate_config(conf)
-        super(OIDCFrontend, self).__init__(auth_req_callback_func, internal_attributes)
+        super(OIDCFrontend, self).__init__(auth_req_callback_func, internal_attributes, name)
 
-        self.state_id = type(self).__name__
         self.sign_alg = "RS256"
         self.subject_type_default = "pairwise"
         self.conf = conf
@@ -220,7 +219,7 @@ class OIDCFrontend(FrontendModule):
         :param state: the current state
         :return: the parsed authentication request
         """
-        stored_state = state.get(self.state_id)
+        stored_state = state.get(self.name)
         oidc_request = stored_state["oidc_request"]
         return AuthorizationRequest().deserialize(oidc_request)
 
@@ -291,7 +290,7 @@ class OIDCFrontend(FrontendModule):
 
         client_id = info["areq"]["client_id"]
 
-        context.state.add(self.state_id, {"oidc_request": request})
+        context.state.add(self.name, {"oidc_request": request})
         hash_type = oidc_subject_type_to_hash_type(
             self.provider.cdb[client_id].get("subject_type", self.subject_type_default))
         internal_req = InternalRequest(hash_type, client_id,

@@ -32,15 +32,14 @@ class SamlFrontend(FrontendModule):
     A pysaml2 frontend module
     """
 
-    def __init__(self, auth_req_callback_func, internal_attributes, conf):
+    def __init__(self, auth_req_callback_func, internal_attributes, conf, name):
         self._validate_config(conf)
 
-        super(SamlFrontend, self).__init__(auth_req_callback_func, internal_attributes)
+        super(SamlFrontend, self).__init__(auth_req_callback_func, internal_attributes, name)
         self.config = conf
         self.idp_config = conf["idp_config"]
         self.endpoints = conf["endpoints"]
         self.base = conf["base"]
-        self.state_id = conf["state_id"]
         self.acr_mapping = conf.get("acr_mapping")
         self.attribute_profile = conf.get("attribute_profile", "saml")
         self.response_bindings = None
@@ -117,7 +116,7 @@ class SamlFrontend(FrontendModule):
         :param state: The current state
         :return: The dictionary given by the save_state function
         """
-        loaded_state = state.get(self.state_id)
+        loaded_state = state.get(self.name)
         if isinstance(loaded_state["resp_args"]["name_id_policy"], str):
             loaded_state["resp_args"]["name_id_policy"] = name_id_policy_from_string(
                 loaded_state["resp_args"]["name_id_policy"])
@@ -254,7 +253,7 @@ class SamlFrontend(FrontendModule):
             request_state = self.save_state(context,
                                             idp.response_args(extracted_request["authn_req"]),
                                             request.get("RelayState"))
-            context.state.add(self.state_id, request_state)
+            context.state.add(self.name, request_state)
 
             requester_name = self._get_sp_display_name(idp, extracted_request['resp_args']['sp_entity_id'])
             name_format = None

@@ -26,12 +26,11 @@ NONCE = "the nonce"
 class TestOpenIDConnectBackend(object):
     @pytest.fixture(autouse=True)
     def create_backend(self, internal_attributes, backend_config):
-        self.oidc_backend = OpenIDConnectBackend(Mock(), internal_attributes, backend_config)
+        self.oidc_backend = OpenIDConnectBackend(Mock(), internal_attributes, backend_config, "oidc")
 
     @pytest.fixture
     def backend_config(self):
         return {
-            "state_id": "OpenID_backend",
             "client": {
                 "client_metadata": {
                     "client_id": CLIENT_ID,
@@ -147,7 +146,7 @@ class TestOpenIDConnectBackend(object):
             STATE_KEY: oidc_state,
             NONCE_KEY: NONCE
         }
-        state.add(backend_config["state_id"], state_data)
+        state.add(self.oidc_backend.name, state_data)
 
         context.state = state
         return context
@@ -203,7 +202,7 @@ class TestOpenIDConnectBackend(object):
         context = Context()
         context.state = state
         self.oidc_backend.start_auth(context, None)
-        assert context.state.get(backend_config["state_id"])
+        assert context.state.get(self.oidc_backend.name)
 
     @responses.activate
     def test_remove_state_in_response_endpoint(self, backend_config, signing_key, incoming_authn_response):
@@ -213,7 +212,7 @@ class TestOpenIDConnectBackend(object):
 
         self.oidc_backend.response_endpoint(incoming_authn_response)
         with pytest.raises(KeyError):
-            incoming_authn_response.state.get(backend_config["state_id"])
+            incoming_authn_response.state.get(self.oidc_backend.name)
 
     @responses.activate
     def test_entire_flow(self, backend_config):

@@ -26,7 +26,6 @@ config:
   # disco_srv must be defined if there is more than one IdP in the metadata specified above
   disco_srv: http://disco.example.com
   publish_metadata: <base_url>/<name>/metadata
-  state_id: <name>
   hash_type: persistent
 module: satosa.backends.saml2.SamlBackend
 name: Saml2
