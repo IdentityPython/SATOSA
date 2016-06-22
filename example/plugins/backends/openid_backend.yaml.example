@@ -1,22 +1,20 @@
-module: satosa.backends.openid_connect.OpenIdBackend
+module: satosa.backends.openid_connect.OpenIDConnectBackend
 name: openid_connect
 plugin: BackendModulePlugin
 config:
-  acr_values: Null
-  authz_page: <name>
+  provider_metadata:
+    issuer: https://op.example.com
   client:
-    behaviour:
+    auth_req_params:
       response_type: code
       scope: [openid, profile, email, address, phone]
-    client_info:
+    client_metadata:
       application_name: SATOSA
       application_type: web
       contacts: [ops@example.com]
       redirect_uris: [<base_url>/<name>]
       subject_type: public
-  op_url: https://op.example.com
   state_id: <name>
-  verify_ssl: true
   entity_info:
     contact_person:
       - contact_type: "technical"

@@ -240,7 +240,7 @@ The OpenID Connect backend acts as an OpenID Connect Relying Party (RP), making
 authentication requests to OpenID Connect Provider (OP). The default
 configuration file can be found [here](../example/plugins/backends/openid_backend.yaml.example).
 
-Only the `op_url` must be configured to specify the OP issuer url.
+Only the `provider_metadata['issuer']` must be configured to specify the OP issuer url.
 
 The example configuration assumes the OP supports [discovery](http://openid.net/specs/openid-connect-discovery-1_0.html)
 and [dynamic client registration](https://openid.net/specs/openid-connect-registration-1_0.html).
