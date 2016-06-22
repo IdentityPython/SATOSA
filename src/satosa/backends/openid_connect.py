@@ -2,6 +2,7 @@
 OIDC backend module.
 """
 import logging
+import uuid
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -48,7 +49,7 @@ class OpenIDConnectBackend(BackendModule):
         super(OpenIDConnectBackend, self).__init__(auth_callback_func, internal_attributes)
         self.auth_callback_func = auth_callback_func
         self.config = config
-
+        self.config["state_id"] = uuid.uuid4().hex
         self.client = create_client(config["provider_metadata"], config["client"]["client_metadata"])
         if "scope" not in config["client"]["auth_req_params"]:
             config["auth_req_params"]["scope"] = "openid"

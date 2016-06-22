@@ -13,7 +13,6 @@ config:
       client_secret: <client secret>
       redirect_uris: [<base_url>/<name>]
     userinfo_request_method: GET
-  state_id: <name>
   entity_info:
     organization:
       display_name:

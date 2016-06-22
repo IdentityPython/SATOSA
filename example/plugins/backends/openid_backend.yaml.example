@@ -14,7 +14,6 @@ config:
       contacts: [ops@example.com]
       redirect_uris: [<base_url>/<name>]
       subject_type: public
-  state_id: <name>
   entity_info:
     contact_person:
       - contact_type: "technical"
