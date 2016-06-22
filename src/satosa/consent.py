@@ -222,11 +222,8 @@ class ConsentModule(object):
         :param jws: A jws containing id, redirect_endpoint and attr
         :return: Ticket received from the consent service
         """
-        try:
-            request = "{}/creq/{}".format(self.consent_uri, jws)
-            res = requests.get(request, verify=self.verify_ssl)
-        except ConnectionError as con_exc:
-            raise ConnectionError("Could not connect to consent service") from con_exc
+        request = "{}/creq/{}".format(self.consent_uri, jws)
+        res = requests.get(request, verify=self.verify_ssl)
 
         if res.status_code != 200:
             raise UnexpectedResponseError("Consent service error: %s %s", res.status_code, res.text)
