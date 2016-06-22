@@ -92,7 +92,6 @@ class TestConsent:
             "endpoint": "handle_consent",
             "sign_key": signing_key_path,
             "state_enc_key": "fsghajf90984jkflds",
-            "verify_ssl": False
         }
         self.satosa_config = {
             "BASE": "https://proxy.example.com",

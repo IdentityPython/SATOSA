@@ -22,7 +22,6 @@ class TestAccountLinking():
             "redirect": "https://localhost:8167/approve",
             "endpoint": "handle_account_linking",
             "sign_key": signing_key_path,
-            "verify_ssl": False
         }
         self.satosa_config = {
             "BASE": "https://proxy.example.com",

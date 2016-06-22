@@ -37,7 +37,6 @@ class ConsentModule(object):
             self.consent_uri = config.CONSENT["rest_uri"]
             self.consent_redirect_url = config.CONSENT["redirect"]
             self.endpoint = config.CONSENT["endpoint"]
-            self.verify_ssl = config.CONSENT["verify_ssl"]
             self.locked_attr = None
             if "user_id_to_attr" in config.INTERNAL_ATTRIBUTES:
                 self.locked_attr = config.INTERNAL_ATTRIBUTES["user_id_to_attr"]
@@ -223,7 +222,7 @@ class ConsentModule(object):
         :return: Ticket received from the consent service
         """
         request = "{}/creq/{}".format(self.consent_uri, jws)
-        res = requests.get(request, verify=self.verify_ssl)
+        res = requests.get(request)
 
         if res.status_code != 200:
             raise UnexpectedResponseError("Consent service error: %s %s", res.status_code, res.text)
@@ -244,7 +243,7 @@ class ConsentModule(object):
         """
         try:
             request = "{}/verify/{}".format(self.consent_uri, consent_id)
-            res = requests.get(request, verify=self.verify_ssl)
+            res = requests.get(request)
         except ConnectionError as con_exc:
             raise ConnectionError("Could not connect to consent service") from con_exc
 

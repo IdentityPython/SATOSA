@@ -41,8 +41,6 @@ class AccountLinkingModule(object):
             self.al_rest_uri = config.ACCOUNT_LINKING["rest_uri"]
             self.al_redirect = config.ACCOUNT_LINKING["redirect"]
             self.endpoint = config.ACCOUNT_LINKING["endpoint"]
-            self.verify_ssl = True if "verify_ssl" not in config.ACCOUNT_LINKING else \
-                config.ACCOUNT_LINKING["verify_ssl"]
             _bkey = rsa_load(config.ACCOUNT_LINKING["sign_key"])
             self.sign_key = RSAKey().load_key(_bkey)
             self.sign_key.use = "sig"
@@ -139,7 +137,7 @@ class AccountLinkingModule(object):
 
         try:
             request = "{}/get_id?jwt={}".format(self.al_rest_uri, jws)
-            response = requests.get(request, verify=self.verify_ssl)
+            response = requests.get(request)
         except requests.ConnectionError as con_exc:
             msg = "Could not connect to account linking service"
             satosa_logging(logger, logging.CRITICAL, msg, context.state, exc_info=True)
