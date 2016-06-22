@@ -9,7 +9,7 @@ from jwkest import jws
 from jwkest.jwk import RSAKey, import_rsa_key
 from jwkest.jwt import JWT
 
-from satosa.consent import ConsentModule
+from satosa.consent import ConsentModule, UnexpectedResponseError
 from satosa.context import Context
 from satosa.internal_data import InternalResponse, UserIdHashType, InternalRequest, \
     AuthenticationInformation
@@ -141,7 +141,7 @@ class TestConsent:
 
         responses.add(responses.GET, "{}/creq/{}".format(consent_config.CONSENT["rest_uri"], jws),
                       status=401)
-        with pytest.raises(AssertionError):
+        with pytest.raises(UnexpectedResponseError):
             consent_module._consent_registration(jws)
 
     @responses.activate

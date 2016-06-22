@@ -52,24 +52,21 @@ class SATOSAConfig(object):
     @staticmethod
     def _verify_dict(conf):
         """
-        Raises assertion error if any of the mandatory keys are missing in the conf.
+        Check that the configuration contains all necessary keys.
 
         :type conf: dict
         :rtype: None
-        :exception AssertionError
+        :raise ValueError: if the configuration is incorrect
 
         :param conf: config to verify
         :return: None
         """
-        if not (conf is not None and isinstance(conf, dict)):
-            msg = "Missing configuration or unknown format"
-            logger.critical(msg)
-            raise AssertionError(msg)
-        for mand_key in SATOSAConfig.mandatory_dict_keys:
-            if mand_key not in conf:
-                msg = "Missing key '%s' in config" % mand_key
-                logger.critical(msg)
-                raise AssertionError(msg)
+        if not conf:
+            raise ValueError("Missing configuration or unknown format")
+
+        for key in SATOSAConfig.mandatory_dict_keys:
+            if key not in conf:
+                raise ValueError("Missing key '%s' in config" % key)
 
     def __getattr__(self, item):
         """
@@ -81,7 +78,7 @@ class SATOSAConfig(object):
         :param item: key to data
         :return: data bound to key 'item'
         """
-        if self._config is not None and item in self._config:
+        if self._config and item in self._config:
             return self._config[item]
         raise AttributeError("'module' object has no attribute '%s'" % item)
 

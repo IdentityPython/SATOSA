@@ -128,11 +128,13 @@ class SamlFrontend(FrontendModule):
         :type config: dict[str, dict[str, Any] | str]
         :param config: The module config
         """
-        assert config is not None, "conf can't be 'None'"
+        if not config:
+            raise ValueError("conf can't be 'None'")
 
         mandatory_keys = ["idp_config", "endpoints", "base"]
         for key in mandatory_keys:
-            assert key in config, "Missing key '%s' in config" % key
+            if key not in config:
+                raise ValueError("Missing key '%s' in config" % key)
 
     def extract_request(self, idp, query, binding, state):
         """

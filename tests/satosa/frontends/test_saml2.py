@@ -84,7 +84,7 @@ class TestSamlFrontend:
         {"idp_config": {}, "endpoints": {}, "base_notok": "base"}
     ])
     def test_config_error_handling(self, conf):
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             SamlFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES, conf, "saml_frontend")
 
     def test_register_endpoints(self, idp_conf):

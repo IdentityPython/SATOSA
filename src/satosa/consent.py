@@ -18,6 +18,8 @@ from .response import Redirect
 
 logger = logging.getLogger(__name__)
 
+class UnexpectedResponseError(Exception):
+    pass
 
 class ConsentModule(object):
     """
@@ -156,9 +158,9 @@ class ConsentModule(object):
 
         try:
             ticket = self._consent_registration(consent_args_jws)
-        except (ConnectionError, AssertionError):
+        except (ConnectionError, UnexpectedResponseError) as e:
             satosa_logging(logger, logging.ERROR,
-                           "Consent service is not reachable, no consent given.", state)
+                           "Consent service is not reachable, no consent given: {}".format(str(e)), state)
             # Send an internal_response without any attributes
             internal_response._attributes = {}
             return self._end_consent(context, internal_response)
@@ -226,7 +228,8 @@ class ConsentModule(object):
         except ConnectionError as con_exc:
             raise ConnectionError("Could not connect to consent service") from con_exc
 
-        assert res.status_code == 200, "Consent service: {}".format(res.status_code)
+        if res.status_code != 200:
+            raise UnexpectedResponseError("Consent service error: %s %s", res.status_code, res.text)
 
         ticket = res.text
         return ticket
