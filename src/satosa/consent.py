@@ -33,10 +33,10 @@ class ConsentModule(object):
         self.enabled = \
             "CONSENT" in config and ("enable" not in config.CONSENT or config.CONSENT["enable"])
         if self.enabled:
+            self.endpoint = "handle_consent"
             self.proxy_base = config.BASE
             self.consent_uri = config.CONSENT["rest_uri"]
             self.consent_redirect_url = config.CONSENT["redirect"]
-            self.endpoint = config.CONSENT["endpoint"]
             self.locked_attr = None
             if "user_id_to_attr" in config.INTERNAL_ATTRIBUTES:
                 self.locked_attr = config.INTERNAL_ATTRIBUTES["user_id_to_attr"]
