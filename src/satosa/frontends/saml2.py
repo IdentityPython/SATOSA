@@ -39,7 +39,6 @@ class SamlFrontend(FrontendModule):
         self.config = conf
         self.idp_config = conf["idp_config"]
         self.endpoints = conf["endpoints"]
-        self.base = conf["base"]
         self.acr_mapping = conf.get("acr_mapping")
         self.attribute_profile = conf.get("attribute_profile", "saml")
         self.response_bindings = None
@@ -131,7 +130,7 @@ class SamlFrontend(FrontendModule):
         if not config:
             raise ValueError("conf can't be 'None'")
 
-        mandatory_keys = ["idp_config", "endpoints", "base"]
+        mandatory_keys = ["idp_config", "endpoints"]
         for key in mandatory_keys:
             if key not in config:
                 raise ValueError("Missing key '%s' in config" % key)
@@ -499,7 +498,7 @@ class SamlFrontend(FrontendModule):
             for func, endpoint in self.endpoints[endp_category].items():
                 for provider in providers:
                     _endpoint = "{base}/{provider}/{endpoint}".format(
-                        base=self.base, provider=provider, endpoint=endpoint)
+                        base=self.base_url, provider=provider, endpoint=endpoint)
                     idp_endpoints.append((_endpoint, func))
             config["service"]["idp"]["endpoints"][endp_category] = idp_endpoints
 
@@ -599,7 +598,7 @@ class SamlMirrorFrontend(SamlFrontend):
         """
         target_entity_id = self._get_target_entity_id(context)
         context.internal_data["mirror.target_entity_id"] = target_entity_id
-        idp_conf_file = self._load_endpoints_to_config(self.idp_config, self.endpoints, self.base,
+        idp_conf_file = self._load_endpoints_to_config(self.idp_config, self.endpoints, self.base_url,
                                                        context.target_backend, target_entity_id)
         idp_config = IdPConfig().load(idp_conf_file, metadata_construction=False)
         return Server(config=idp_config)

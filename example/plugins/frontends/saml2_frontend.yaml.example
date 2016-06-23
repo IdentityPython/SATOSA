@@ -30,7 +30,6 @@ config:
     "": default-LoA
     "https://accounts.google.com": LoA1
 
-  base: <base_url>
   publish_metadata: <base_url>/<name>/metadata
   endpoints:
     single_sign_on_service: {'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST': sso/post,
