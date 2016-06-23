@@ -29,16 +29,15 @@ from tests.users import USERS
 from tests.util import FakeSP, create_metadata_from_config_dict
 
 INTERNAL_ATTRIBUTES = {
-    'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
-                   'givenname': {'saml': ['givenName'], 'openid': ['given_name'],
-                                 'facebook': ['first_name']},
-                   'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
-                            'facebook': ['email']},
-                   'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
-                                           'facebook': ['id']},
-                   'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
-                   'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
-                               'facebook': ['last_name']}}}
+    'attributes': {
+        'displayname': {'saml': ['displayName']},
+        'givenname': {'saml': ['givenName']},
+        'mail': {'saml': ['email', 'emailAdress', 'mail']},
+        'edupersontargetedid': {'saml': ['eduPersonTargetedID']},
+        'name': {'saml': ['cn']},
+        'surname': {'saml': ['sn', 'surname']}
+    }
+}
 
 ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
                                         BINDING_HTTP_POST: "sso/post"}}
@@ -311,8 +310,8 @@ class TestSamlFrontend:
         ([RESEARCH_AND_SCHOLARSHIP], "refeds", refeds.RELEASE[""] + refeds.RELEASE[RESEARCH_AND_SCHOLARSHIP]),
         ([RESEARCH_AND_EDUCATION, EU], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, EU)]),
         ([RESEARCH_AND_EDUCATION, HEI], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, HEI)]),
-        ([RESEARCH_AND_EDUCATION, NREN], "swamid", swamid.RELEASE[""] +  swamid.RELEASE[(RESEARCH_AND_EDUCATION, NREN)]),
-        ([SFS_1993_1153], "swamid", swamid.RELEASE[""] +  swamid.RELEASE[SFS_1993_1153]),
+        ([RESEARCH_AND_EDUCATION, NREN], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, NREN)]),
+        ([SFS_1993_1153], "swamid", swamid.RELEASE[""] + swamid.RELEASE[SFS_1993_1153]),
     ])
     def test_respect_sp_entity_categories(self, entity_category, entity_category_module, expected_attributes, idp_conf,
                                           sp_conf):
@@ -321,9 +320,12 @@ class TestSamlFrontend:
         expected_attributes_in_all_entity_categories = list(itertools.chain(swamid.RELEASE[""],
                                                                             edugain.RELEASE[COCO],
                                                                             refeds.RELEASE[RESEARCH_AND_SCHOLARSHIP],
-                                                                            swamid.RELEASE[(RESEARCH_AND_EDUCATION, EU)],
-                                                                            swamid.RELEASE[(RESEARCH_AND_EDUCATION, HEI)],
-                                                                            swamid.RELEASE[(RESEARCH_AND_EDUCATION, NREN)],
+                                                                            swamid.RELEASE[
+                                                                                (RESEARCH_AND_EDUCATION, EU)],
+                                                                            swamid.RELEASE[
+                                                                                (RESEARCH_AND_EDUCATION, HEI)],
+                                                                            swamid.RELEASE[
+                                                                                (RESEARCH_AND_EDUCATION, NREN)],
                                                                             swamid.RELEASE[SFS_1993_1153]))
         internal_attributes = {}
         for expected_attribute in expected_attributes_in_all_entity_categories:

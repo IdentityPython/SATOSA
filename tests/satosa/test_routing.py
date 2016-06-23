@@ -10,18 +10,6 @@ PROVIDERS = ["Saml2SP", "VOPaaSSaml2SP"]
 FRONTEND_ENDPOINTS = ["sso/redirect", "sso/post"]
 BACKEND_ENDPOINTS = ["disco", "auth"]
 
-INTERNAL_ATTRIBUTES = {
-    'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
-                   'givenname': {'saml': ['givenName'], 'openid': ['given_name'],
-                                 'facebook': ['first_name']},
-                   'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
-                            'facebook': ['email']},
-                   'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
-                                           'facebook': ['id']},
-                   'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
-                   'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
-                               'facebook': ['last_name']}}}
-
 
 def create_frontend_endpoint_func(receiver):
     def register_frontend_url(providers):
@@ -52,11 +40,11 @@ def router_fixture():
     backends = {}
 
     for provider in PROVIDERS:
-        backends[provider] = FakeBackend(internal_attributes=INTERNAL_ATTRIBUTES)
+        backends[provider] = FakeBackend(internal_attributes={"attributes": {}})
         backends[provider].register_endpoints_func = create_backend_endpoint_func(provider)
 
     for receiver in RECEIVERS:
-        frontends[receiver] = FakeFrontend(internal_attributes=INTERNAL_ATTRIBUTES)
+        frontends[receiver] = FakeFrontend(internal_attributes={"attributes": {}})
         frontends[receiver].register_endpoints_func = create_frontend_endpoint_func(receiver)
 
     return ModuleRouter(frontends, backends), frontends, backends

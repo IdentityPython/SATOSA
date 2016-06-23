@@ -18,19 +18,19 @@ from tests.users import USERS
 from tests.util import FakeIdP, create_metadata_from_config_dict
 
 INTERNAL_ATTRIBUTES = {
-    'attributes': {'displayname': {'openid': ['nickname'], 'saml': ['displayName']},
-                   'givenname': {'saml': ['givenName'], 'openid': ['given_name'],
-                                 'facebook': ['first_name']},
-                   'mail': {'saml': ['email', 'emailAdress', 'mail'], 'openid': ['email'],
-                            'facebook': ['email']},
-                   'edupersontargetedid': {'saml': ['eduPersonTargetedID'], 'openid': ['sub'],
-                                           'facebook': ['id']},
-                   'name': {'saml': ['cn'], 'openid': ['name'], 'facebook': ['name']},
-                   'surname': {'saml': ['sn', 'surname'], 'openid': ['family_name'],
-                               'facebook': ['last_name']}}}
-
+    'attributes': {
+        'displayname': {'saml': ['displayName']},
+        'givenname': {'saml': ['givenName']},
+        'mail': {'saml': ['email', 'emailAdress', 'mail']},
+        'edupersontargetedid': {'saml': ['eduPersonTargetedID']},
+        'name': {'saml': ['cn']},
+        'surname': {'saml': ['sn', 'surname']}
+    }
+}
 
 METADATA_URL = "http://example.com/SAML2IDP/metadata"
+
+
 class TestSamlBackend:
     def setup_test_config(self, sp_conf, idp_conf):
         idp_metadata_str = create_metadata_from_config_dict(idp_conf)
@@ -47,8 +47,8 @@ class TestSamlBackend:
     def create_backend(self, sp_conf, idp_conf):
         self.setup_test_config(sp_conf, idp_conf)
         self.samlbackend = SamlBackend(Mock(), INTERNAL_ATTRIBUTES, {"config": sp_conf,
-                                                                   "disco_srv": "https://my.dicso.com/role/idp.ds",
-                                                                   "publish_metadata": METADATA_URL},
+                                                                     "disco_srv": "https://my.dicso.com/role/idp.ds",
+                                                                     "publish_metadata": METADATA_URL},
                                        "samlbackend")
 
     def test_register_endpoints(self, sp_conf):
