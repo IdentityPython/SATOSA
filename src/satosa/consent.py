@@ -291,4 +291,4 @@ class ConsentModule(object):
 
         :return: A list of endpoints bound to a function
         """
-        return [("^consent/%s?(.*)$" % self.endpoint, self._handle_consent_response)]
+        return [("^consent/%s$" % self.endpoint, self._handle_consent_response)]

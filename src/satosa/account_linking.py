@@ -172,4 +172,4 @@ class AccountLinkingModule(object):
 
         :return: A list of endpoints bound to a function
         """
-        return [("^account_linking/%s?(.*)$" % self.endpoint, self._handle_al_response)]
+        return [("^account_linking/%s$" % self.endpoint, self._handle_al_response)]
