@@ -12,9 +12,9 @@ from pluginbase import PluginBase
 
 from .exception import SATOSAConfigurationError
 from .micro_service.service_base import (MicroService, RequestMicroService,
-    ResponseMicroService, build_micro_service_queue)
+                                         ResponseMicroService, build_micro_service_queue)
 from .plugin_base.endpoint import (InterfaceModulePlugin, BackendModulePlugin,
-    FrontendModulePlugin)
+                                   FrontendModulePlugin)
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +34,10 @@ def load_backends(config, callback, internal_attributes):
     :return: A list of backend modules
     """
     return _load_endpoint_modules(config.BASE,
-        _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter,
-                      BackendModulePlugin.__name__,
-                      config.BASE),
-        callback, internal_attributes)
+                                  _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter,
+                                                BackendModulePlugin.__name__,
+                                                config.BASE),
+                                  callback, internal_attributes)
 
 
 def load_frontends(config, callback, internal_attributes):
@@ -56,10 +56,10 @@ def load_frontends(config, callback, internal_attributes):
     :return: A dict of frontend modules
     """
     return _load_endpoint_modules(config.BASE,
-        _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter,
-                      FrontendModulePlugin.__name__,
-                      config.BASE),
-        callback, internal_attributes)
+                                  _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter,
+                                                FrontendModulePlugin.__name__,
+                                                config.BASE),
+                                  callback, internal_attributes)
 
 
 def _member_filter(member):
@@ -67,14 +67,15 @@ def _member_filter(member):
     Will only give a find on classes that is a subclass of InterfaceModulePlugin, with the exception
     that the class is not allowed to be a direct BackendModulePlugin or FrontendModulePlugin.
 
-    :type member: type | str
+    :type member: type
     :rtype: bool
 
     :param member: A class object
     :return: True if match, else false
     """
-    return (inspect.isclass(member) and issubclass(member, InterfaceModulePlugin) and
-            member is not BackendModulePlugin and member is not FrontendModulePlugin)
+    is_module = inspect.isclass(member) and issubclass(member, InterfaceModulePlugin)
+    is_correct_subclass = member != InterfaceModulePlugin and member != BackendModulePlugin and member != FrontendModulePlugin
+    return is_module and is_correct_subclass
 
 
 def backend_filter(member):
@@ -116,10 +117,9 @@ def _micro_service_filter(member):
     :param member: A class object
     :return: True if match, else false
     """
-    return (inspect.isclass(member) and
-            issubclass(member, MicroService) and
-            member is not ResponseMicroService and
-            member is not RequestMicroService)
+    is_module = inspect.isclass(member) and issubclass(member, MicroService)
+    is_correct_subclass = member != MicroService and member != ResponseMicroService and member != RequestMicroService
+    return is_module and is_correct_subclass
 
 
 def _request_micro_service_filter(member):
