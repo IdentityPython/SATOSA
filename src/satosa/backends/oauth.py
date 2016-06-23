@@ -27,7 +27,7 @@ class _OAuthBackend(BackendModule):
     See satosa.backends.oauth.FacebookBackend.
     """
 
-    def __init__(self, outgoing, internal_attributes, config, name, external_type, user_id_attr):
+    def __init__(self, outgoing, internal_attributes, config, base_url, name, external_type, user_id_attr):
         """
         :param outgoing: Callback should be called by the module after the authorization in the
         backend is done.
@@ -35,6 +35,7 @@ class _OAuthBackend(BackendModule):
         the names returned by underlying IdP's/OP's as well as what attributes the calling SP's and
         RP's expects namevice.
         :param config: Configuration parameters for the module.
+        :param base_url: base url of the service
         :param name: name of the plugin
         :param external_type: The name for this module in the internal attributes.
 
@@ -42,10 +43,11 @@ class _OAuthBackend(BackendModule):
         (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
         :type internal_attributes: dict[string, dict[str, str | list[str]]]
         :type config: dict[str, dict[str, str] | list[str]]
+        :type base_url: str
         :type name: str
         :type external_type: str
         """
-        super().__init__(outgoing, internal_attributes, name)
+        super().__init__(outgoing, internal_attributes, base_url, name)
         self.config = config
         self.redirect_url = "%s/%s" % (self.config["base_url"], self.config["authz_page"])
         self.external_type = external_type
@@ -173,7 +175,7 @@ class FacebookBackend(_OAuthBackend):
     Backend module for facebook.
     """
 
-    def __init__(self, outgoing, internal_attributes, config, name):
+    def __init__(self, outgoing, internal_attributes, config, base_url, name):
         """
         Constructor.
         :param outgoing: Callback should be called by the module after the authorization in the
@@ -182,17 +184,19 @@ class FacebookBackend(_OAuthBackend):
         the names returned by underlying IdP's/OP's as well as what attributes the calling SP's and
         RP's expects namevice.
         :param config: Configuration parameters for the module.
+        :param base_url: base url of the service
         :param name: name of the plugin
 
         :type outgoing:
         (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
         :type internal_attributes: dict[string, dict[str, str | list[str]]]
         :type config: dict[str, dict[str, str] | list[str]]
+        :type base_url: str
         :type name: str
         """
         config.setdefault("response_type", "code")
         config["verify_accesstoken_state"] = False
-        super().__init__(outgoing, internal_attributes, config, name, "facebook", "id")
+        super().__init__(outgoing, internal_attributes, config, base_url, name, "facebook", "id")
 
         self.fields = None
         self.config.setdefault("verify_accesstoken_state", False)

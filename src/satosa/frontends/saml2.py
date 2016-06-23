@@ -32,10 +32,10 @@ class SamlFrontend(FrontendModule):
     A pysaml2 frontend module
     """
 
-    def __init__(self, auth_req_callback_func, internal_attributes, conf, name):
+    def __init__(self, auth_req_callback_func, internal_attributes, conf, base_url, name):
         self._validate_config(conf)
 
-        super().__init__(auth_req_callback_func, internal_attributes, name)
+        super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
         self.config = conf
         self.idp_config = conf["idp_config"]
         self.endpoints = conf["endpoints"]

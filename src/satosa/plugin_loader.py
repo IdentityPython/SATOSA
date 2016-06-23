@@ -33,7 +33,7 @@ def load_backends(config, callback, internal_attributes):
     :param callback: Function that will be called by the backend after the authentication is done.
     :return: A list of backend modules
     """
-    return _load_endpoint_modules(
+    return _load_endpoint_modules(config.BASE,
         _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter,
                       BackendModulePlugin.__name__,
                       config.BASE),
@@ -55,7 +55,7 @@ def load_frontends(config, callback, internal_attributes):
     has been processed.
     :return: A dict of frontend modules
     """
-    return _load_endpoint_modules(
+    return _load_endpoint_modules(config.BASE,
         _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter,
                       FrontendModulePlugin.__name__,
                       config.BASE),
@@ -150,21 +150,23 @@ def _response_micro_service_filter(member):
     return _micro_service_filter(member) and issubclass(member, ResponseMicroService)
 
 
-def _load_endpoint_modules(plugins, callback, internal_attributes=None):
+def _load_endpoint_modules(base_url, plugins, callback, internal_attributes=None):
     """
     Loads endpoint modules from plugins
 
+    :type base_url: str
     :type plugins: list[satosa.plugins_base.endpoint.InterfaceModulePlugin]
     :type callback: (satosa.context.Context, dict, str) -> T
     :rtype dict[str, satosa.frontends.base.FrontendModule | satosa.backends.base.BackendModule]
 
+    :param base_url: base url of the service
     :param plugins: A list of plugins
     :param callback: A function that will be called by the loaded endpoint module
     :return: a dict with the laoded modules. Key as module name and value as module instance
     """
     endpoint_modules = {}
     for plugin in plugins:
-        module_inst = plugin.module(callback, internal_attributes, plugin.config, plugin.name)
+        module_inst = plugin.module(callback, internal_attributes, plugin.config, base_url, plugin.name)
         endpoint_modules[plugin.name] = module_inst
     logger.info("Loaded modules: %s" % list(endpoint_modules.keys()))
     return endpoint_modules

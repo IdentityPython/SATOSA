@@ -32,21 +32,23 @@ class SamlBackend(BackendModule):
     A saml2 backend module
     """
 
-    def __init__(self, outgoing, internal_attributes, config, name):
+    def __init__(self, outgoing, internal_attributes, config, base_url, name):
         """
         :type outgoing:
         (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
         :type internal_attributes: dict[str, dict[str, list[str] | str]]
         :type config: dict[str, Any]
+        :type base_url: str
         :type name: str
 
         :param outgoing: Callback should be called by the module after
                                    the authorization in the backend is done.
         :param internal_attributes: Internal attribute map
         :param config: The module config
+        :param base_url: base url of the service
         :param name: name of the plugin
         """
-        super().__init__(outgoing, internal_attributes, name)
+        super().__init__(outgoing, internal_attributes, base_url, name)
         sp_config = SPConfig().load(copy.deepcopy(config["config"]), False)
 
         self.sp = Base(sp_config)

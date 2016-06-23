@@ -163,7 +163,7 @@ def make_satosa_metadata(option):
                                      FrontendModulePlugin.__name__, conf_mod.BASE)
     backend_plugins = _load_plugins(conf_mod.PLUGIN_PATH, conf_mod.BACKEND_MODULES, backend_filter,
                                     BackendModulePlugin.__name__, conf_mod.BASE)
-    backend_modules = _load_endpoint_modules(backend_plugins, None, conf_mod.INTERNAL_ATTRIBUTES)
+    backend_modules = _load_endpoint_modules(conf_mod.BASE, backend_plugins, None, conf_mod.INTERNAL_ATTRIBUTES)
 
     frontend_names = [p.name for p in frontend_plugins]
     backend_names = [p.name for p in backend_plugins]

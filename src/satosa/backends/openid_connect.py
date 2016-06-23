@@ -30,7 +30,7 @@ class OpenIDConnectBackend(BackendModule):
     OIDC module
     """
 
-    def __init__(self, auth_callback_func, internal_attributes, config, name):
+    def __init__(self, auth_callback_func, internal_attributes, config, base_url, name):
         """
         OIDC backend module.
         :param auth_callback_func: Callback should be called by the module after the authorization
@@ -39,15 +39,17 @@ class OpenIDConnectBackend(BackendModule):
         the names returned by underlying IdP's/OP's as well as what attributes the calling SP's and
         RP's expects namevice.
         :param config: Configuration parameters for the module.
+        :param base_url: base url of the service
         :param name: name of the plugin
 
         :type auth_callback_func:
         (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
         :type internal_attributes: dict[string, dict[str, str | list[str]]]
         :type config: dict[str, dict[str, str] | list[str]]
+        :type base_url: str
         :type name: str
         """
-        super().__init__(auth_callback_func, internal_attributes, name)
+        super().__init__(auth_callback_func, internal_attributes, base_url, name)
         self.auth_callback_func = auth_callback_func
         self.config = config
         self.client = create_client(config["provider_metadata"], config["client"]["client_metadata"])
