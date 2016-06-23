@@ -47,9 +47,7 @@ class FrontendModulePlugin(InterfaceModulePlugin):
         :param config: configuration for the module
         """
         if not issubclass(module, FrontendModule):
-            msg = "module is not subclass of {}".format(FrontendModule.__name__)
-            logger.error(msg)
-            raise AttributeError(msg)
+            raise ValueError("module is not subclass of {} (!={})".format(FrontendModule.__name__, type(module).__name__))
         super().__init__(module, receiver, config)
 
 
@@ -70,7 +68,5 @@ class BackendModulePlugin(InterfaceModulePlugin):
         :param config: configuration for the module
         """
         if not issubclass(module, BackendModule):
-            msg = "module is not subclass of {}".format(BackendModule.__name__)
-            logger.error(msg)
-            raise AttributeError(msg)
+            raise ValueError("module is not subclass of {} (!={})".format(BackendModule.__name__, type(module).__name__))
         super().__init__(module, provider, config)
