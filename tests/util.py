@@ -390,19 +390,20 @@ class FakeFrontend(FrontendModule):
 
 
 class TestBackend(BackendModule):
-    provider = "TestBackend"
+    NAME = "TestBackend"
 
     def __init__(self, auth_callback_func, internal_attributes, config, base_url, name):
         super().__init__(auth_callback_func, internal_attributes, base_url, name)
 
     def register_endpoints(self):
-        return [("^{}/response$".format(TestBackend.provider), self.handle_response)]
+        return [("^{}/response$".format(TestBackend.NAME), self.handle_response)]
 
     def handle_response(self, context):
         return Response(json.dumps({"foo": "bar"}))
 
 
 class TestFrontend(FrontendModule):
+    NAME = "TestFrontend"
     def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name):
         super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
 

@@ -3,18 +3,19 @@ import json
 import pytest
 import yaml
 
+from satosa.backends.base import BackendModule
 from satosa.exception import SATOSAConfigurationError
+from satosa.frontends.base import FrontendModule
 from satosa.micro_service.service_base import RequestMicroService, ResponseMicroService, MicroService
-from satosa.plugin_base.endpoint import BackendModulePlugin, FrontendModulePlugin, InterfaceModulePlugin
-from satosa.plugin_loader import _member_filter, backend_filter, frontend_filter, _micro_service_filter, \
+from satosa.plugin_loader import backend_filter, frontend_filter, _micro_service_filter, \
     _request_micro_service_filter, _response_micro_service_filter, _load_plugin_config
 
 
 class TestFilters(object):
-    class BackendTestPlugin(BackendModulePlugin):
+    class BackendTestPluginModule(BackendModule):
         pass
 
-    class FrontendTestPlugin(FrontendModulePlugin):
+    class FrontendTestPluginModule(FrontendModule):
         pass
 
     class RequestTestMicroService(RequestMicroService):
@@ -23,32 +24,23 @@ class TestFilters(object):
     class ResponseTestMicroService(ResponseMicroService):
         pass
 
-    @pytest.mark.parametrize('cls', [
-        BackendModulePlugin,
-        FrontendModulePlugin,
-        InterfaceModulePlugin
-    ])
-    def test_member_filter_rejects_base_classes(self, cls):
-        assert not _member_filter(cls)
-
-    @pytest.mark.parametrize('cls', [
-        BackendTestPlugin,
-        FrontendTestPlugin
-    ])
-    def test_member_filter_accepts_subclasses(self, cls):
-        assert _member_filter(cls)
+    def test_backend_filter_rejects_base_class(self):
+        assert not backend_filter(BackendModule)
 
     def test_backend_filter_rejects_frontend_plugin(self):
-        assert not backend_filter(TestFilters.FrontendTestPlugin)
+        assert not backend_filter(TestFilters.FrontendTestPluginModule)
 
     def test_backend_filter_accepts_backend_plugin(self):
-        assert backend_filter(TestFilters.BackendTestPlugin)
+        assert backend_filter(TestFilters.BackendTestPluginModule)
+
+    def test_frontend_filter_rejects_base_class(self):
+        assert not frontend_filter(FrontendModule)
 
     def test_frontend_filter_rejects_backend_plugin(self):
-        assert not frontend_filter(TestFilters.BackendTestPlugin)
+        assert not frontend_filter(TestFilters.BackendTestPluginModule)
 
     def test_frontend_filter_accepts_backend_plugin(self):
-        assert frontend_filter(TestFilters.FrontendTestPlugin)
+        assert frontend_filter(TestFilters.FrontendTestPluginModule)
 
     @pytest.mark.parametrize('cls', [
         ResponseMicroService,

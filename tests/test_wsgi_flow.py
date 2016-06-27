@@ -1,30 +1,54 @@
 """
 Complete test for a SAML to SAML proxy.
 """
-import inspect
 import json
 import os
 import os.path
 
 import pytest
+import yaml
 from saml2.httputil import NotFound
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse
 
-from satosa.plugin_base.endpoint import BackendModulePlugin, FrontendModulePlugin
 from satosa.proxy_server import WsgiApplication
 from satosa.satosa_config import SATOSAConfig
 from tests.util import TestBackend, TestFrontend
 
 
-class TestBackendPlugin(BackendModulePlugin):
-    def __init__(self, base_url):
-        super().__init__(TestBackend, TestBackend.provider, {})
+@pytest.fixture(scope="session")
+def plugin_directory(tmpdir_factory):
+    return str(tmpdir_factory.mktemp("plugins"))
 
 
-class TestFrontendPlugin(FrontendModulePlugin):
-    def __init__(self, base_url):
-        super().__init__(TestFrontend, "TestFrontend", {})
+@pytest.fixture(scope="session")
+def backend_plugin_config(plugin_directory):
+    data = {
+        "module": "util.TestBackend",
+        "name": TestBackend.NAME,
+        "plugin": "BackendModulePlugin",
+        "config": {"foo": "bar"}
+    }
+
+    backend_file = os.path.join(plugin_directory, "backend_conf.yaml")
+    with open(backend_file, "w") as f:
+        yaml.dump(data, f)
+    return backend_file
+
+
+@pytest.fixture(scope="session")
+def frontend_plugin_config(plugin_directory):
+    data = {
+        "module": "util.TestFrontend",
+        "name": TestFrontend.NAME,
+        "plugin": "FrontendModulePlugin",
+        "config": {"abc": "xyz"}
+    }
+
+    frontend_filename = os.path.join(plugin_directory, "frontend_conf.yaml")
+    with open(frontend_filename, "w") as f:
+        yaml.dump(data, f)
+    return frontend_filename
 
 
 class TestProxy:
@@ -34,13 +58,13 @@ class TestProxy:
     """
 
     @pytest.fixture(autouse=True)
-    def setup(self):
+    def setup(self, backend_plugin_config, frontend_plugin_config):
         proxy_config_dict = {"BASE": "https://localhost:8090",
                              "COOKIE_STATE_NAME": "TEST_STATE",
                              "STATE_ENCRYPTION_KEY": "ASDasd123",
                              "PLUGIN_PATH": [os.path.dirname(__file__)],
-                             "BACKEND_MODULES": [inspect.getmodulename(__file__)],
-                             "FRONTEND_MODULES": [inspect.getmodulename(__file__)],
+                             "BACKEND_MODULES": [backend_plugin_config],
+                             "FRONTEND_MODULES": [frontend_plugin_config],
                              "USER_ID_HASH_SALT": "qwerty",
                              "INTERNAL_ATTRIBUTES": {"attributes": {}}}
 
@@ -54,13 +78,13 @@ class TestProxy:
         test_client = Client(app.run_server, BaseResponse)
 
         # Make request to frontend
-        resp = test_client.get('/{}/request'.format(TestBackend.provider))
+        resp = test_client.get('/{}/request'.format(TestBackend.NAME))
         assert resp.status == '200 OK'
         headers = dict(resp.headers)
         assert headers["Set-Cookie"], "Did not save state in cookie!"
 
         # Fake response coming in to backend
-        resp = test_client.get('/{}/response'.format(TestBackend.provider), headers=[("Cookie", headers["Set-Cookie"])])
+        resp = test_client.get('/{}/response'.format(TestBackend.NAME), headers=[("Cookie", headers["Set-Cookie"])])
         assert resp.status == '200 OK'
         assert json.loads(resp.data.decode('utf-8'))["foo"] == "bar"
 

@@ -9,14 +9,14 @@ import sys
 from pydoc import locate
 
 import yaml
-from pluginbase import PluginBase
 from yaml.error import YAMLError
 
+from .backends.base import BackendModule
 from .exception import SATOSAConfigurationError
+from .frontends.base import FrontendModule
 from .micro_service.service_base import (MicroService, RequestMicroService,
                                          ResponseMicroService, build_micro_service_queue)
-from .plugin_base.endpoint import (InterfaceModulePlugin, BackendModulePlugin,
-                                   FrontendModulePlugin)
+from .plugin_base.endpoint import FrontendModulePlugin, BackendModulePlugin
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,6 @@ def load_backends(config, callback, internal_attributes):
     """
     return _load_endpoint_modules(config.BASE,
                                   _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter,
-                                                BackendModulePlugin.__name__,
                                                 config.BASE),
                                   callback, internal_attributes)
 
@@ -59,53 +58,34 @@ def load_frontends(config, callback, internal_attributes):
     """
     return _load_endpoint_modules(config.BASE,
                                   _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter,
-                                                FrontendModulePlugin.__name__,
                                                 config.BASE),
                                   callback, internal_attributes)
 
 
-def _member_filter(member):
+def backend_filter(cls):
     """
-    Will only give a find on classes that is a subclass of InterfaceModulePlugin, with the exception
-    that the class is not allowed to be a direct BackendModulePlugin or FrontendModulePlugin.
+    Verify that the type proper subclass of BackendModule.
 
-    :type member: type
+    :type cls: type
     :rtype: bool
 
-    :param member: A class object
+    :param cls: A class object
     :return: True if match, else false
     """
-    is_module = inspect.isclass(member) and issubclass(member, InterfaceModulePlugin)
-    is_correct_subclass = member != InterfaceModulePlugin and member != BackendModulePlugin and member != FrontendModulePlugin
-    return is_module and is_correct_subclass
+    return issubclass(cls, BackendModule) and cls != BackendModule
 
 
-def backend_filter(member):
+def frontend_filter(cls):
     """
-    Will only give a find on classes that is a subclass of BackendModulePlugin.
-    Use this filter to only find backend plugins
+    Verify that the type proper subclass of FrontendModule.
 
-    :type member: type | str
+    :type cls: type
     :rtype: bool
 
-    :param member: A class object
+    :param cls: A class object
     :return: True if match, else false
     """
-    return _member_filter(member) and issubclass(member, BackendModulePlugin)
-
-
-def frontend_filter(member):
-    """
-    Will only give a find on classes that is a subclass of FrontendModulePlugin.
-    Use this filter to only find frontend plugins
-
-    :type member: type | str
-    :rtype: bool
-
-    :param member: A class object
-    :return: True if match, else false
-    """
-    return _member_filter(member) and issubclass(member, FrontendModulePlugin)
+    return issubclass(cls, FrontendModule) and cls != FrontendModule
 
 
 def _micro_service_filter(member):
@@ -206,96 +186,74 @@ def _readfile(config):
     return None
 
 
-def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, base_url,
-                  internal_attributes=None, *args):
+def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attributes=None):
     """
     Loads endpoint plugins
 
-    :type plugin_path: list[str]
+    :type plugin_paths: list[str]
     :type plugins: list[str]
     :type plugin_filter: (type | str) -> bool
     :type internal_attributes: dict[string, dict[str, str | list[str]]]
-    :type args: Any
     :rtype list[satosa.plugin_base.endpoint.InterfaceModulePlugin]
 
-    :param plugin_path: Path to the plugin directory
+    :param plugin_paths: Path to the plugin directory
     :param plugins: A list with the name of the plugin files
     :param plugin_filter: Filter what to load from the module file
     :param args: Arguments to the plugin
     :return: A list with all the loaded plugins
     """
-    plugin_base = PluginBase(package='satosa_plugins')
-    plugin_source = plugin_base.make_plugin_source(searchpath=plugin_path)
+    for p in reversed(plugin_paths):  # insert the specified plugin paths in the same order
+        sys.path.insert(0, p)
     loaded_plugins = []
     loaded_plugin_names = []
     for module_file_name in plugins:
-        try:
-            module = plugin_source.load_plugin(module_file_name)
-            for name, obj in inspect.getmembers(module, plugin_filter):
-                loaded_plugins.append(obj(base_url, *args))
-                loaded_plugin_names.append(module_file_name)
-        except ImportError as error:
-            logger.debug("Not a py file or import error '%s': %s", module_file_name, error)
-            _config = None
-            for path in plugin_path:
-                try:
-                    f = open("%s/%s" % (path, module_file_name))
-                except IOError as e:
-                    continue  # do nothing, move on the next directory
+        with open(module_file_name) as f:
+            _config = _load_plugin_config(f.read())
+
+        if "plugin" in _config and "MicroService" in _config["plugin"]:
+            # Load micro service
+            if all(k in _config for k in ("plugin", "module")):
+                module_class = locate(_config["module"])
+                if not plugin_filter(module_class):
+                    continue
+                if "config" in _config:
+                    instance = module_class(internal_attributes, _config["config"])
                 else:
-                    with f:
-                        _config = _config_loader(f.read())
-                    if _config and "plugin" in _config and config["plugin"] == filter_class:
-                        break  # successfully loaded a config
+                    instance = module_class(internal_attributes)
+                loaded_plugins.append(instance)
+            else:
+                logger.warn("Missing mandatory configuration parameters in "
+                            "the micro service plugin %s ('plugin', 'module')."
+                            % module_file_name)
+        else:
+            if all(k in _config for k in ("name", "plugin", "module", "config")):
+                module_class = locate(_config["module"])
+                # TODO refactor to remove plugin class
+                plugin_class = FrontendModulePlugin if frontend_filter(module_class) else BackendModulePlugin
+                if not module_class:
+                    raise ValueError("Can't find module '%s'" % _config["module"])
+                if not plugin_filter(module_class):
+                    continue
+                name = _config["name"]
+                config = json.dumps(_config["config"])
+                replace = [
+                    ("<base_url>", base_url),
+                    ("<name>", _config["name"])
+                ]
+                for _replace in replace:
+                    config = config.replace(_replace[0], _replace[1])
+                config = json.loads(config)
+                module = plugin_class(module_class, name, config)
+                loaded_plugins.append(module)
+                loaded_plugin_names.append(module_file_name)
+            else:
 
-            if _config:
-                try:
+                logger.warn("Missing mandatory configuration parameters in "
+                            "the plugin %s (plugin, module, receiver and/or config)."
+                            % module_file_name)
 
-                    if "plugin" in _config and "MicroService" in _config["plugin"]:
-                        # Load micro service
-                        if all(k in _config for k in ("plugin", "module")):
-                            module_class = locate(_config["module"])
-                            instance = None
-                            if "config" in _config:
-                                instance = module_class(internal_attributes, _config["config"])
-                            else:
-                                instance = module_class(internal_attributes)
-                            loaded_plugins.append(instance)
-                        else:
-                            logger.warn("Missing mandatory configuration parameters in "
-                                        "the micro service plugin %s ('plugin', 'module')."
-                                        % module_file_name)
-                    else:
-                        if all(k in _config for k in ("name", "plugin", "module", "config")):
-
-                            plugin_class = getattr(sys.modules[__name__], _config["plugin"])
-                            module_class = locate(_config["module"])
-                            if not module_class:
-                                raise ValueError("Can't find module '%s'" % _config["module"])
-                            name = _config["name"]
-                            config = json.dumps(_config["config"])
-                            replace = [
-                                ("<base_url>", base_url),
-                                ("<name>", _config["name"])
-                            ]
-                            for _replace in replace:
-                                config = config.replace(_replace[0], _replace[1])
-                            config = json.loads(config)
-                            module = plugin_class(module_class, name, config)
-                            loaded_plugins.append(module)
-                            loaded_plugin_names.append(module_file_name)
-                        else:
-
-                            logger.warn("Missing mandatory configuration parameters in "
-                                        "the plugin %s (plugin, module, receiver and/or config)."
-                                        % module_file_name)
-                except Exception as e:
-                    logger.exception("Cannot create the module %s." % module_file_name)
-        except Exception as error:
-            logger.exception("The configuration file %s is corrupt." % module_file_name)
-            raise SATOSAConfigurationError(
-                "The configuration file %s is corrupt." % module_file_name) from error
-    logger.debug("Loaded plugins: {}".format(loaded_plugin_names))
+    del sys.path[0:len(plugin_paths)]  # restore sys.path
+    logger.info("Loaded plugins: {}".format(loaded_plugin_names))
     return loaded_plugins
 
 
@@ -313,10 +271,8 @@ def load_micro_services(plugin_path, plugins, internal_attributes):
     :param plugins: A list with the name of the plugin files
     :return: (Request micro service, response micro service)
     """
-    request_services = _load_plugins(plugin_path, plugins, _request_micro_service_filter,
-                                     RequestMicroService.__name__, "")
-    response_services = _load_plugins(plugin_path, plugins, _response_micro_service_filter,
-                                      ResponseMicroService.__name__, "",
+    request_services = _load_plugins(plugin_path, plugins, _request_micro_service_filter, "")
+    response_services = _load_plugins(plugin_path, plugins, _response_micro_service_filter, "",
                                       internal_attributes=internal_attributes)
 
     logger.info(
