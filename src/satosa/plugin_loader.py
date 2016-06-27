@@ -5,6 +5,7 @@ import inspect
 import json
 import logging
 import sys
+from contextlib import contextmanager
 from pydoc import locate
 
 import yaml
@@ -17,6 +18,14 @@ from .micro_service.service_base import (MicroService, RequestMicroService,
                                          ResponseMicroService, build_micro_service_queue)
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def prepend_to_import_path(import_paths):
+    for p in reversed(import_paths):  # insert the specified plugin paths in the same order
+        sys.path.insert(0, p)
+    yield
+    del sys.path[0:len(import_paths)]  # restore sys.path
 
 
 def load_backends(config, callback, internal_attributes):
@@ -141,7 +150,6 @@ def _load_plugin_config(config):
             logger.error("Error position: (%s:%s)" % (mark.line + 1, mark.column + 1))
             raise SATOSAConfigurationError("The configuration is corrupt.") from exc
 
-
 def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attributes, callback):
     """
     Loads endpoint plugins
@@ -158,39 +166,36 @@ def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attri
     :param args: Arguments to the plugin
     :return: A list with all the loaded plugins
     """
-    for p in reversed(plugin_paths):  # insert the specified plugin paths in the same order
-        sys.path.insert(0, p)
 
-    loaded_plugin_modules = []
-    for module_file_name in plugins:
-        with open(module_file_name) as f:
-            _config = _load_plugin_config(f.read())
+    with prepend_to_import_path(plugin_paths):
+        loaded_plugin_modules = []
+        for module_file_name in plugins:
+            with open(module_file_name) as f:
+                _config = _load_plugin_config(f.read())
 
-        if "plugin" in _config and "MicroService" in _config["plugin"]:
-            # Load micro service
-            if all(k in _config for k in ("plugin", "module")):
-                module_class = locate(_config["module"])
-                if not plugin_filter(module_class):
-                    continue
-                if "config" in _config:
-                    instance = module_class(internal_attributes, _config["config"])
+            if "plugin" in _config and "MicroService" in _config["plugin"]:
+                # Load micro service
+                if all(k in _config for k in ("plugin", "module")):
+                    module_class = locate(_config["module"])
+                    if not plugin_filter(module_class):
+                        continue
+                    if "config" in _config:
+                        instance = module_class(internal_attributes, _config["config"])
+                    else:
+                        instance = module_class(internal_attributes)
+                    loaded_plugin_modules.append(instance)
                 else:
-                    instance = module_class(internal_attributes)
-                loaded_plugin_modules.append(instance)
+                    logger.warn("Missing mandatory configuration parameters in "
+                                "the micro service plugin %s ('plugin', 'module')."
+                                % module_file_name)
             else:
-                logger.warn("Missing mandatory configuration parameters in "
-                            "the micro service plugin %s ('plugin', 'module')."
-                            % module_file_name)
-        else:
-            try:
-                plugin_module = _load_plugin_module(_config, plugin_filter, internal_attributes, callback, base_url)
-                if plugin_module:
-                    loaded_plugin_modules.append(plugin_module)
-                    logger.debug("Loaded plugin from %s", module_file_name)
-            except SATOSAConfigurationError as e:
-                raise SATOSAConfigurationError("Configuration error in {}".format(module_file_name)) from e
-
-    del sys.path[0:len(plugin_paths)]  # restore sys.path
+                try:
+                    plugin_module = _load_plugin_module(_config, plugin_filter, internal_attributes, callback, base_url)
+                    if plugin_module:
+                        loaded_plugin_modules.append(plugin_module)
+                        logger.debug("Loaded plugin from %s", module_file_name)
+                except SATOSAConfigurationError as e:
+                    raise SATOSAConfigurationError("Configuration error in {}".format(module_file_name)) from e
     return loaded_plugin_modules
 
 
