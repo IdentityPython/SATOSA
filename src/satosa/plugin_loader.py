@@ -201,7 +201,7 @@ def _load_plugin_module(plugin_config, plugin_filter, internal_attributes, callb
 
     module_class = locate(plugin_config["module"])
     if not module_class:
-        raise ValueError("Can't find module '%s'" % plugin_filter["module"])
+        raise ValueError("Can't find module '%s'" % plugin_config["module"])
     if not plugin_filter(module_class):
         return None
 
