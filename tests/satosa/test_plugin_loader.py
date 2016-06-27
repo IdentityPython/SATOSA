@@ -7,7 +7,7 @@ from satosa.exception import SATOSAConfigurationError
 from satosa.micro_service.service_base import RequestMicroService, ResponseMicroService, MicroService
 from satosa.plugin_base.endpoint import BackendModulePlugin, FrontendModulePlugin, InterfaceModulePlugin
 from satosa.plugin_loader import _member_filter, backend_filter, frontend_filter, _micro_service_filter, \
-    _request_micro_service_filter, _response_micro_service_filter, _config_loader
+    _request_micro_service_filter, _response_micro_service_filter, _load_plugin_config
 
 
 class TestFilters(object):
@@ -71,18 +71,18 @@ class TestFilters(object):
         assert _response_micro_service_filter(TestFilters.ResponseTestMicroService)
 
 
-class TestConfigLoader(object):
-    def test_config_loader_can_load_json(self):
+class TestLoadPluginConfig(object):
+    def test_load_json(self):
         data = {"foo": "bar"}
-        config = _config_loader(json.dumps(data))
+        config = _load_plugin_config(json.dumps(data))
         assert config == data
 
-    def test_config_loader_can_load_yaml(self):
+    def test_can_load_yaml(self):
         data = {"foo": "bar"}
-        config = _config_loader(yaml.dump(data, default_flow_style=False))
+        config = _load_plugin_config(yaml.dump(data, default_flow_style=False))
         assert config == data
 
-    def test_config_loader_handles_malformed_data(self):
-        data = """{foo: bar""" # missing closing bracket
+    def test_handles_malformed_data(self):
+        data = """{foo: bar"""  # missing closing bracket
         with pytest.raises(SATOSAConfigurationError):
-            _config_loader(data)
+            _load_plugin_config(data)

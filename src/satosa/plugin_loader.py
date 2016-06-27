@@ -174,7 +174,7 @@ def _load_endpoint_modules(base_url, plugins, callback, internal_attributes=None
     return endpoint_modules
 
 
-def _config_loader(config):
+def _load_plugin_config(config):
     try:
         return yaml.safe_load(config)
     except YAMLError as exc:
