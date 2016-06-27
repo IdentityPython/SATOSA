@@ -11,7 +11,8 @@ from .context import Context
 from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
 from .internal_data import UserIdHasher
 from .logging_util import satosa_logging
-from .plugin_loader import load_backends, load_frontends, load_micro_services
+from .plugin_loader import load_backends, load_frontends
+from .plugin_loader import load_request_microservices, load_response_microservices
 from .response import Response
 from .routing import ModuleRouter, SATOSANoBoundEndpointError
 from .state import cookie_to_state, SATOSAStateError, State, state_to_cookie
@@ -58,10 +59,12 @@ class SATOSABase(object):
         self.request_micro_services = None
         self.response_micro_services = None
         if "MICRO_SERVICES" in self.config:
-            self.request_micro_services, self.response_micro_services = load_micro_services(
-                self.config.PLUGIN_PATH,
-                self.config.MICRO_SERVICES,
-                self.config.INTERNAL_ATTRIBUTES)
+            self.request_micro_services = load_request_microservices(self.config.PLUGIN_PATH,
+                                                                     self.config.MICRO_SERVICES,
+                                                                     self.config.INTERNAL_ATTRIBUTES)
+            self.response_micro_services = load_response_microservices(self.config.PLUGIN_PATH,
+                                                                       self.config.MICRO_SERVICES,
+                                                                       self.config.INTERNAL_ATTRIBUTES)
         self.module_router = ModuleRouter(frontends, backends)
 
     def _auth_req_callback_func(self, context, internal_request):

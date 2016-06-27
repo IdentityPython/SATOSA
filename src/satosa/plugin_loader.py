@@ -244,25 +244,36 @@ def _replace_variables_in_plugin_module_config(module_config, base_url, name):
     return json.loads(config)
 
 
-def load_micro_services(plugin_path, plugins, internal_attributes):
+def load_request_microservices(plugin_path, plugins, internal_attributes):
     """
-    Loads micro services
+    Loads request micro services (handling incoming requests).
 
     :type plugin_path: list[str]
     :type plugins: list[str]
     :type internal_attributes: dict[string, dict[str, str | list[str]]]
-    :rtype (satosa.micro_service.service_base.RequestMicroService,
-    satosa.micro_service.service_base.ResponseMicroService)
+    :rtype satosa.micro_service.service_base.RequestMicroService
 
     :param plugin_path: Path to the plugin directory
     :param plugins: A list with the name of the plugin files
-    :return: (Request micro service, response micro service)
+    :return: Request micro service
     """
     request_services = _load_microservices(plugin_path, plugins, _request_micro_service_filter, internal_attributes)
-    response_services = _load_microservices(plugin_path, plugins, _response_micro_service_filter, internal_attributes)
-
     logger.info("Loaded request micro services: %s" % [type(k).__name__ for k in request_services])
-    logger.info("Loaded response micro services: %s" % [type(k).__name__ for k in response_services])
+    return build_micro_service_queue(request_services)
 
-    return (
-        build_micro_service_queue(request_services), build_micro_service_queue(response_services))
+def load_response_microservices(plugin_path, plugins, internal_attributes):
+    """
+    Loads response micro services (handling outgoing responses).
+
+    :type plugin_path: list[str]
+    :type plugins: list[str]
+    :type internal_attributes: dict[string, dict[str, str | list[str]]]
+    :rtype satosa.micro_service.service_base.ResponseMicroService
+
+    :param plugin_path: Path to the plugin directory
+    :param plugins: A list with the name of the plugin files
+    :return: Response micro service
+    """
+    response_services = _load_microservices(plugin_path, plugins, _response_micro_service_filter, internal_attributes)
+    logger.info("Loaded response micro services: %s" % [type(k).__name__ for k in response_services])
+    return build_micro_service_queue(response_services)
