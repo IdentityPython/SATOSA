@@ -1,5 +1,4 @@
 module: satosa.backends.oauth.FacebookBackend
-plugin: BackendModulePlugin
 name: facebook
 config:
   authz_page: <name>

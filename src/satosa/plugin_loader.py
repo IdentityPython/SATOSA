@@ -16,7 +16,6 @@ from .exception import SATOSAConfigurationError
 from .frontends.base import FrontendModule
 from .micro_service.service_base import (MicroService, RequestMicroService,
                                          ResponseMicroService, build_micro_service_queue)
-from .plugin_base.endpoint import FrontendModulePlugin, BackendModulePlugin
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +34,11 @@ def load_backends(config, callback, internal_attributes):
     :param callback: Function that will be called by the backend after the authentication is done.
     :return: A list of backend modules
     """
-    return _load_endpoint_modules(config.BASE,
-                                  _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter,
-                                                config.BASE),
-                                  callback, internal_attributes)
+    backend_modules = _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter,
+                                    config.BASE, internal_attributes, callback)
+    endpoint_modules = {module.name: module for module in backend_modules}
+    logger.info("Setup backends: %s" % list(endpoint_modules.keys()))
+    return endpoint_modules
 
 
 def load_frontends(config, callback, internal_attributes):
@@ -56,10 +56,11 @@ def load_frontends(config, callback, internal_attributes):
     has been processed.
     :return: A dict of frontend modules
     """
-    return _load_endpoint_modules(config.BASE,
-                                  _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter,
-                                                config.BASE),
-                                  callback, internal_attributes)
+    frontend_modules = _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter,
+                                     config.BASE, internal_attributes, callback)
+    endpoint_modules = {module.name: module for module in frontend_modules}
+    logger.info("Setup frontends: %s" % list(endpoint_modules.keys()))
+    return endpoint_modules
 
 
 def backend_filter(cls):
@@ -186,7 +187,7 @@ def _readfile(config):
     return None
 
 
-def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attributes=None):
+def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attributes, callback):
     """
     Loads endpoint plugins
 
@@ -204,8 +205,8 @@ def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attri
     """
     for p in reversed(plugin_paths):  # insert the specified plugin paths in the same order
         sys.path.insert(0, p)
-    loaded_plugins = []
-    loaded_plugin_names = []
+
+    loaded_plugin_modules = []
     for module_file_name in plugins:
         with open(module_file_name) as f:
             _config = _load_plugin_config(f.read())
@@ -220,41 +221,48 @@ def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attri
                     instance = module_class(internal_attributes, _config["config"])
                 else:
                     instance = module_class(internal_attributes)
-                loaded_plugins.append(instance)
+                loaded_plugin_modules.append(instance)
             else:
                 logger.warn("Missing mandatory configuration parameters in "
                             "the micro service plugin %s ('plugin', 'module')."
                             % module_file_name)
         else:
-            if all(k in _config for k in ("name", "plugin", "module", "config")):
-                module_class = locate(_config["module"])
-                # TODO refactor to remove plugin class
-                plugin_class = FrontendModulePlugin if frontend_filter(module_class) else BackendModulePlugin
-                if not module_class:
-                    raise ValueError("Can't find module '%s'" % _config["module"])
-                if not plugin_filter(module_class):
-                    continue
-                name = _config["name"]
-                config = json.dumps(_config["config"])
-                replace = [
-                    ("<base_url>", base_url),
-                    ("<name>", _config["name"])
-                ]
-                for _replace in replace:
-                    config = config.replace(_replace[0], _replace[1])
-                config = json.loads(config)
-                module = plugin_class(module_class, name, config)
-                loaded_plugins.append(module)
-                loaded_plugin_names.append(module_file_name)
-            else:
-
-                logger.warn("Missing mandatory configuration parameters in "
-                            "the plugin %s (plugin, module, receiver and/or config)."
-                            % module_file_name)
+            try:
+                plugin_module = _load_plugin_module(_config, plugin_filter, internal_attributes, callback, base_url)
+                if plugin_module:
+                    loaded_plugin_modules.append(plugin_module)
+                    logger.debug("Loaded plugin from %s", module_file_name)
+            except SATOSAConfigurationError as e:
+                raise SATOSAConfigurationError("Configuration error in {}".format(module_file_name)) from e
 
     del sys.path[0:len(plugin_paths)]  # restore sys.path
-    logger.info("Loaded plugins: {}".format(loaded_plugin_names))
-    return loaded_plugins
+    return loaded_plugin_modules
+
+
+def _load_plugin_module(plugin_config, plugin_filter, internal_attributes, callback, base_url):
+    _mandatory_params = ("name", "module", "config")
+    if not all(k in plugin_config for k in _mandatory_params):
+        raise SATOSAConfigurationError("Missing mandatory plugin configuration parameter: {}".format(_mandatory_params))
+
+    module_class = locate(plugin_config["module"])
+    if not module_class:
+        raise ValueError("Can't find module '%s'" % plugin_filter["module"])
+    if not plugin_filter(module_class):
+        return None
+
+    module_config = _replace_variables_in_plugin_module_config(plugin_config["config"], base_url, plugin_config["name"])
+    return module_class(callback, internal_attributes, module_config, base_url, plugin_config["name"])
+
+
+def _replace_variables_in_plugin_module_config(module_config, base_url, name):
+    config = json.dumps(module_config)
+    replace = [
+        ("<base_url>", base_url),
+        ("<name>", name)
+    ]
+    for _replace in replace:
+        config = config.replace(_replace[0], _replace[1])
+    return json.loads(config)
 
 
 def load_micro_services(plugin_path, plugins, internal_attributes):

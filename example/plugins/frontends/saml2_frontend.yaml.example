@@ -1,3 +1,5 @@
+module: satosa.frontends.saml2.SamlFrontend
+name: Saml2IDP
 config:
   idp_config:
     organization: {display_name: Example Identities, name: Example Identities Org., url: 'http://www.example.com'}
@@ -34,6 +36,3 @@ config:
   endpoints:
     single_sign_on_service: {'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST': sso/post,
       'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect': sso/redirect}
-module: satosa.frontends.saml2.SamlFrontend
-plugin: FrontendModulePlugin
-name: Saml2IDP

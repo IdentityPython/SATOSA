@@ -1,3 +1,5 @@
+module: satosa.backends.saml2.SamlBackend
+name: Saml2
 config:
   config:
     key_file: backend.key
@@ -27,6 +29,3 @@ config:
   disco_srv: http://disco.example.com
   publish_metadata: <base_url>/<name>/metadata
   hash_type: persistent
-module: satosa.backends.saml2.SamlBackend
-name: Saml2
-plugin: BackendModulePlugin

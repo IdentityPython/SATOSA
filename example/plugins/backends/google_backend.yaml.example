@@ -1,6 +1,5 @@
 module: satosa.backends.openid_connect.OpenIDConnectBackend
 name: google
-plugin: BackendModulePlugin
 config:
   provider_metadata:
     issuer: https://accounts.google.com

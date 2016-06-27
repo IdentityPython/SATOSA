@@ -1,6 +1,5 @@
 module: satosa.backends.openid_connect.OpenIDConnectBackend
 name: openid_connect
-plugin: BackendModulePlugin
 config:
   provider_metadata:
     issuer: https://op.example.com
