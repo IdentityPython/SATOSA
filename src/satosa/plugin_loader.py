@@ -150,6 +150,7 @@ def _load_plugin_config(config):
             logger.error("Error position: (%s:%s)" % (mark.line + 1, mark.column + 1))
             raise SATOSAConfigurationError("The configuration is corrupt.") from exc
 
+
 def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attributes, callback):
     """
     Loads endpoint plugins
@@ -166,53 +167,70 @@ def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attri
     :param args: Arguments to the plugin
     :return: A list with all the loaded plugins
     """
-
+    loaded_plugin_modules = []
     with prepend_to_import_path(plugin_paths):
-        loaded_plugin_modules = []
         for module_file_name in plugins:
             with open(module_file_name) as f:
                 _config = _load_plugin_config(f.read())
-
-            if "plugin" in _config and "MicroService" in _config["plugin"]:
-                # Load micro service
-                if all(k in _config for k in ("plugin", "module")):
-                    module_class = locate(_config["module"])
-                    if not plugin_filter(module_class):
-                        continue
-                    if "config" in _config:
-                        instance = module_class(internal_attributes, _config["config"])
-                    else:
-                        instance = module_class(internal_attributes)
-                    loaded_plugin_modules.append(instance)
-                else:
-                    logger.warn("Missing mandatory configuration parameters in "
-                                "the micro service plugin %s ('plugin', 'module')."
-                                % module_file_name)
-            else:
-                try:
-                    plugin_module = _load_plugin_module(_config, plugin_filter, internal_attributes, callback, base_url)
-                    if plugin_module:
-                        loaded_plugin_modules.append(plugin_module)
-                        logger.debug("Loaded plugin from %s", module_file_name)
-                except SATOSAConfigurationError as e:
-                    raise SATOSAConfigurationError("Configuration error in {}".format(module_file_name)) from e
+            try:
+                plugin_module = _load_endpoint_module(_config, plugin_filter, internal_attributes, callback, base_url)
+                if plugin_module:
+                    loaded_plugin_modules.append(plugin_module)
+                    logger.debug("Loaded plugin from %s", module_file_name)
+            except SATOSAConfigurationError as e:
+                raise SATOSAConfigurationError("Configuration error in {}".format(module_file_name)) from e
     return loaded_plugin_modules
 
 
-def _load_plugin_module(plugin_config, plugin_filter, internal_attributes, callback, base_url):
+def _load_endpoint_module(plugin_config, plugin_filter, internal_attributes, callback, base_url):
     _mandatory_params = ("name", "module", "config")
     if not all(k in plugin_config for k in _mandatory_params):
         raise SATOSAConfigurationError("Missing mandatory plugin configuration parameter: {}".format(_mandatory_params))
 
+    module_class = _load_plugin_module(plugin_config, plugin_filter)
+    if module_class:
+        module_config = _replace_variables_in_plugin_module_config(plugin_config["config"], base_url,
+                                                                   plugin_config["name"])
+        return module_class(callback, internal_attributes, module_config, base_url, plugin_config["name"])
+
+    return None
+
+
+def _load_plugin_module(plugin_config, plugin_filter):
     module_class = locate(plugin_config["module"])
     if not module_class:
         raise ValueError("Can't find module '%s'" % plugin_config["module"])
     if not plugin_filter(module_class):
         return None
 
-    module_config = _replace_variables_in_plugin_module_config(plugin_config["config"], base_url, plugin_config["name"])
-    return module_class(callback, internal_attributes, module_config, base_url, plugin_config["name"])
+    return module_class
 
+
+def _load_microservice(plugin_config, plugin_filter):
+    _mandatory_params = ("name", "module")
+    if not all(k in plugin_config for k in _mandatory_params):
+        raise SATOSAConfigurationError("Missing mandatory plugin configuration parameter: {}".format(_mandatory_params))
+
+    return _load_plugin_module(plugin_config, plugin_filter)
+
+
+def _load_microservices(plugin_paths, plugins, plugin_filter, internal_attributes):
+    loaded_plugin_modules = []
+    with prepend_to_import_path(plugin_paths):
+        for module_file_name in plugins:
+            with open(module_file_name) as f:
+                _config = _load_plugin_config(f.read())
+
+            try:
+                module_class = _load_microservice(_config, plugin_filter)
+            except SATOSAConfigurationError as e:
+                raise SATOSAConfigurationError("Configuration error in {}".format(module_file_name)) from e
+
+            if module_class:
+                instance = module_class(internal_attributes=internal_attributes, config=_config.get("config"))
+                loaded_plugin_modules.append(instance)
+
+    return loaded_plugin_modules
 
 def _replace_variables_in_plugin_module_config(module_config, base_url, name):
     config = json.dumps(module_config)
@@ -239,15 +257,11 @@ def load_micro_services(plugin_path, plugins, internal_attributes):
     :param plugins: A list with the name of the plugin files
     :return: (Request micro service, response micro service)
     """
-    request_services = _load_plugins(plugin_path, plugins, _request_micro_service_filter, "")
-    response_services = _load_plugins(plugin_path, plugins, _response_micro_service_filter, "",
-                                      internal_attributes=internal_attributes)
+    request_services = _load_microservices(plugin_path, plugins, _request_micro_service_filter, internal_attributes)
+    response_services = _load_microservices(plugin_path, plugins, _response_micro_service_filter, internal_attributes)
 
-    logger.info(
-        "Loaded request micro services: %s" % [k.__class__.__name__ for k in request_services])
-    logger.info(
-        "Loaded response micro services: %s" % [k.__class__.__name__ for k in
-                                                response_services])
+    logger.info("Loaded request micro services: %s" % [type(k).__name__ for k in request_services])
+    logger.info("Loaded response micro services: %s" % [type(k).__name__ for k in response_services])
 
     return (
         build_micro_service_queue(request_services), build_micro_service_queue(response_services))

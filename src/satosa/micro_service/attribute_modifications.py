@@ -14,7 +14,7 @@ class AddStaticAttributes(ResponseMicroService):
     with the environment variable 'SATOSA_STATIC_ATTRIBUTES'.
     """
 
-    def __init__(self, internal_attributes):
+    def __init__(self, internal_attributes, **kwargs):
         super().__init__()
         self.data_converter = DataConverter(internal_attributes)
 

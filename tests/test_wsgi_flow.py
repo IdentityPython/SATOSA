@@ -26,7 +26,6 @@ def backend_plugin_config(plugin_directory):
     data = {
         "module": "util.TestBackend",
         "name": TestBackend.NAME,
-        "plugin": "BackendModulePlugin",
         "config": {"foo": "bar"}
     }
 
@@ -41,7 +40,6 @@ def frontend_plugin_config(plugin_directory):
     data = {
         "module": "util.TestFrontend",
         "name": TestFrontend.NAME,
-        "plugin": "FrontendModulePlugin",
         "config": {"abc": "xyz"}
     }
 
@@ -49,6 +47,31 @@ def frontend_plugin_config(plugin_directory):
     with open(frontend_filename, "w") as f:
         yaml.dump(data, f)
     return frontend_filename
+
+@pytest.fixture(scope="session")
+def request_microservice_config(plugin_directory):
+    data = {
+        "module": "util.TestRequestMicroservice",
+        "name": "request-microservice",
+    }
+
+    request_file = os.path.join(plugin_directory, "request_conf.yaml")
+    with open(request_file, "w") as f:
+        yaml.dump(data, f)
+    return request_file
+
+@pytest.fixture(scope="session")
+def response_microservice_config(plugin_directory):
+    data = {
+        "module": "util.TestResponseMicroservice",
+        "name": "response-microservice",
+        "conf": {"qwe": "rty"}
+    }
+
+    response_file = os.path.join(plugin_directory, "response_conf.yaml")
+    with open(response_file, "w") as f:
+        yaml.dump(data, f)
+    return response_file
 
 
 class TestProxy:
@@ -58,13 +81,14 @@ class TestProxy:
     """
 
     @pytest.fixture(autouse=True)
-    def setup(self, backend_plugin_config, frontend_plugin_config):
+    def setup(self, backend_plugin_config, frontend_plugin_config, request_microservice_config, response_microservice_config):
         proxy_config_dict = {"BASE": "https://localhost:8090",
                              "COOKIE_STATE_NAME": "TEST_STATE",
                              "STATE_ENCRYPTION_KEY": "ASDasd123",
                              "PLUGIN_PATH": [os.path.dirname(__file__)],
                              "BACKEND_MODULES": [backend_plugin_config],
                              "FRONTEND_MODULES": [frontend_plugin_config],
+                             "MICRO_SERVICES": [request_microservice_config, response_microservice_config],
                              "USER_ID_HASH_SALT": "qwerty",
                              "INTERNAL_ATTRIBUTES": {"attributes": {}}}
 

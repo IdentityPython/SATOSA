@@ -19,6 +19,7 @@ from saml2.samlp import NameIDPolicy
 
 from satosa.backends.base import BackendModule
 from satosa.frontends.base import FrontendModule
+from satosa.micro_service.service_base import RequestMicroService, ResponseMicroService
 from satosa.response import Response
 
 
@@ -404,6 +405,7 @@ class TestBackend(BackendModule):
 
 class TestFrontend(FrontendModule):
     NAME = "TestFrontend"
+
     def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name):
         super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
 
@@ -412,3 +414,15 @@ class TestFrontend(FrontendModule):
 
     def handle_request(self, context):
         return Response('Request received OK')
+
+
+class TestRequestMicroservice(RequestMicroService):
+
+
+    def process(self, context, data):
+        return data
+
+
+class TestResponseMicroservice(ResponseMicroService):
+    def process(self, context, data):
+        return data

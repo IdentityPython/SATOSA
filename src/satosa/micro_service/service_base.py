@@ -58,6 +58,17 @@ class ResponseMicroService(MicroService):
     Base class for response micro services
     """
 
+    def __init__(self, **kwargs):
+        """
+        Constructor.
+
+        Subclasses MUST also accept keyword arguments.
+        :param kwargs:
+            internal_attributes: attribute mapping between internal and external attribute names
+            config: the microservice plugin configuration, defined under the 'config' key in the config file
+        """
+        super().__init__()
+
     def process(self, context, data):
         """
         @see MicroService#process
@@ -72,6 +83,17 @@ class RequestMicroService(MicroService):
     """
     Base class for request micro services
     """
+
+    def __init__(self, **kwargs):
+        """
+        Constructor.
+
+        Subclasses MUST also accept keyword arguments.
+        :param kwargs:
+            internal_attributes: attribute mapping between internal and external attribute names
+            config: the microservice plugin configuration, defined under the 'config' key in the config file
+        """
+        super().__init__()
 
     def process(self, context, data):
         """

@@ -6,7 +6,7 @@ class DecideBackendByRequester(RequestMicroService):
     Select which backend should be used based on who the requester is.
     """
 
-    def __init__(self, internal_attributes, config):
+    def __init__(self, config, **kwargs):
         """
         Constructor.
         :param config: mapping from requester identifier to
