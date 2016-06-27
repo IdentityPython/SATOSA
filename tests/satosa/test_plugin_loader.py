@@ -1,9 +1,13 @@
-import pytest
+import json
 
+import pytest
+import yaml
+
+from satosa.exception import SATOSAConfigurationError
 from satosa.micro_service.service_base import RequestMicroService, ResponseMicroService, MicroService
 from satosa.plugin_base.endpoint import BackendModulePlugin, FrontendModulePlugin, InterfaceModulePlugin
 from satosa.plugin_loader import _member_filter, backend_filter, frontend_filter, _micro_service_filter, \
-    _request_micro_service_filter, _response_micro_service_filter
+    _request_micro_service_filter, _response_micro_service_filter, _config_loader
 
 
 class TestFilters(object):
@@ -65,3 +69,20 @@ class TestFilters(object):
 
     def test_response_micro_service_filter_accepts_response_micro_service(self):
         assert _response_micro_service_filter(TestFilters.ResponseTestMicroService)
+
+
+class TestConfigLoader(object):
+    def test_config_loader_can_load_json(self):
+        data = {"foo": "bar"}
+        config = _config_loader(json.dumps(data))
+        assert config == data
+
+    def test_config_loader_can_load_yaml(self):
+        data = {"foo": "bar"}
+        config = _config_loader(yaml.dump(data, default_flow_style=False))
+        assert config == data
+
+    def test_config_loader_handles_malformed_data(self):
+        data = """{foo: bar""" # missing closing bracket
+        with pytest.raises(SATOSAConfigurationError):
+            _config_loader(data)

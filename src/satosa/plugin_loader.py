@@ -8,7 +8,9 @@ import os
 import sys
 from pydoc import locate
 
+import yaml
 from pluginbase import PluginBase
+from yaml.error import YAMLError
 
 from .exception import SATOSAConfigurationError
 from .micro_service.service_base import (MicroService, RequestMicroService,
@@ -172,89 +174,14 @@ def _load_endpoint_modules(base_url, plugins, callback, internal_attributes=None
     return endpoint_modules
 
 
-def _load_dict(config):
-    """
-    Load config from dict
-
-    :type config: dict
-    :rtype: dict
-
-    :param config: config to load
-    :return: Loaded config
-    """
-    if isinstance(config, dict):
-        return config
-
-
-def _load_json(config):
-    """
-    Load config from json file or string
-
-    :type config: str
-    :rtype: dict
-
-    :param config: config to load. Can be file path or json string
-    :return: Loaded config
-    """
-    file_config = None
+def _config_loader(config):
     try:
-        if not config.endswith('.json'):
-            file_config = config + ".json"
-        else:
-            file_config = config
-        config = _readfile(file_config)
-        if config is not None:
-            import json
-
-            _dict = json.loads(config)
-            if isinstance(_dict, dict):
-                return _dict
-            if file_config is not None and os.path.isfile(file_config):
-                logger.exception("The configuration file %s is corrupt." % file_config)
-                raise SATOSAConfigurationError(
-                    "The configuration file %s is corrupt." % file_config)
-            return None
-    except ValueError as error:
-        if file_config is not None and os.path.isfile(file_config):
-            logger.exception("The configuration file %s is corrupt." % file_config)
-            raise SATOSAConfigurationError("The configuration file %s is corrupt." % file_config)
-
-
-def _load_yaml(config):
-    """
-    Load config from yaml file or string
-
-    :type config: str
-    :rtype: dict
-
-    :param config: config to load. Can be file path or yaml string
-    :return: Loaded config
-    """
-    file_config = None
-    try:
-        if not (config.endswith('.yaml') or config.endswith('.yml')):
-            if os.path.isfile(config + ".yaml"):
-                file_config = config + ".yaml"
-            elif os.path.isfile(config + ".yml"):
-                file_config = config + ".yml"
-        else:
-            file_config = config
-        if config is not None:
-            config = _readfile(file_config)
-            import yaml
-
-            _dict = yaml.load(config)
-            if isinstance(_dict, dict):
-                return _dict
-            if file_config is not None and os.path.isfile(file_config):
-                logger.exception("The configuration file %s is corrupt." % file_config)
-                raise SATOSAConfigurationError(
-                    "The configuration file %s is corrupt." % file_config)
-            return None
-    except Exception as error:
-        if file_config is not None and os.path.isfile(file_config):
-            logger.exception("The configuration file %s is corrupt." % file_config)
-            raise SATOSAConfigurationError("The configuration file %s is corrupt." % file_config)
+        return yaml.safe_load(config)
+    except YAMLError as exc:
+        if hasattr(exc, 'problem_mark'):
+            mark = exc.problem_mark
+            logger.error("Error position: (%s:%s)" % (mark.line + 1, mark.column + 1))
+            raise SATOSAConfigurationError("The configuration is corrupt.") from exc
 
 
 def _readfile(config):
@@ -309,23 +236,19 @@ def _load_plugins(plugin_path, plugins, plugin_filter, filter_class, base_url,
                 loaded_plugin_names.append(module_file_name)
         except ImportError as error:
             logger.debug("Not a py file or import error '%s': %s", module_file_name, error)
-            dict_parsers = [_load_dict,
-                            _load_json,
-                            _load_yaml]
             _config = None
             for path in plugin_path:
-                done = False
-                for parser in dict_parsers:
-                    _config = parser("%s/%s" % (path, module_file_name))
-                    if _config and "plugin" in _config:
-                        if _config["plugin"] == filter_class:
-                            done = True
-                            break
-                        else:
-                            _config = None
-                if done:
-                    break
-            if _config is not None:
+                try:
+                    f = open("%s/%s" % (path, module_file_name))
+                except IOError as e:
+                    continue  # do nothing, move on the next directory
+                else:
+                    with f:
+                        _config = _config_loader(f.read())
+                    if _config and "plugin" in _config and config["plugin"] == filter_class:
+                        break  # successfully loaded a config
+
+            if _config:
                 try:
 
                     if "plugin" in _config and "MicroService" in _config["plugin"]:
