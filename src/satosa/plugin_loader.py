@@ -97,48 +97,48 @@ def frontend_filter(cls):
     return issubclass(cls, FrontendModule) and cls != FrontendModule
 
 
-def _micro_service_filter(member):
+def _micro_service_filter(cls):
     """
     Will only give a find on classes that is a subclass of MicroService, with the exception that
     the class is not allowed to be a direct ResponseMicroService or RequestMicroService.
 
-    :type member: type | str
+    :type cls: type
     :rtype: bool
 
-    :param member: A class object
+    :param cls: A class object
     :return: True if match, else false
     """
-    is_module = inspect.isclass(member) and issubclass(member, MicroService)
-    is_correct_subclass = member != MicroService and member != ResponseMicroService and member != RequestMicroService
-    return is_module and is_correct_subclass
+    is_microservice_module = issubclass(cls, MicroService)
+    is_correct_subclass = cls != MicroService and cls != ResponseMicroService and cls != RequestMicroService
+    return is_microservice_module and is_correct_subclass
 
 
-def _request_micro_service_filter(member):
+def _request_micro_service_filter(cls):
     """
     Will only give a find on classes that is a subclass of RequestMicroService.
     Use this filter to only find frontend plugins
 
-    :type member: type | str
+    :type cls: type
     :rtype: bool
 
-    :param member: A class object
+    :param cls: A class object
     :return: True if match, else false
     """
-    return _micro_service_filter(member) and issubclass(member, RequestMicroService)
+    return issubclass(cls, RequestMicroService) and cls != RequestMicroService
 
 
-def _response_micro_service_filter(member):
+def _response_micro_service_filter(cls):
     """
     Will only give a find on classes that is a subclass of ResponseMicroService.
     Use this filter to only find frontend plugins
 
-    :type member: type | str
+    :type cls: type
     :rtype: bool
 
-    :param member: A class object
+    :param cls: A class object
     :return: True if match, else false
     """
-    return _micro_service_filter(member) and issubclass(member, ResponseMicroService)
+    return issubclass(cls, ResponseMicroService) and cls != ResponseMicroService
 
 
 def _load_plugin_config(config):

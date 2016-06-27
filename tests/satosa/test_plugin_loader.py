@@ -42,19 +42,17 @@ class TestFilters(object):
     def test_frontend_filter_accepts_backend_plugin(self):
         assert frontend_filter(TestFilters.FrontendTestPluginModule)
 
-    @pytest.mark.parametrize('cls', [
-        ResponseMicroService,
-        RequestMicroService,
-        MicroService
-    ])
-    def test_microservice_filter_rejects_base_classes(self, cls):
-        assert not _micro_service_filter(cls)
+    def test_request_micro_service_filter_rejects_base_class(self):
+        assert not _request_micro_service_filter(RequestMicroService)
 
     def test_request_micro_service_filter_rejects_response_micro_service(self):
         assert not _request_micro_service_filter(TestFilters.ResponseTestMicroService)
 
     def test_request_micro_service_filter_accepts_request_micro_service(self):
         assert _request_micro_service_filter(TestFilters.RequestTestMicroService)
+
+    def test_response_micro_service_filter_rejects_base_class(self):
+        assert not _response_micro_service_filter(ResponseMicroService)
 
     def test_response_micro_service_filter_rejects_request_micro_service(self):
         assert not _response_micro_service_filter(TestFilters.RequestTestMicroService)
