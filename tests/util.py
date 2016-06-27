@@ -300,8 +300,9 @@ def create_name_id_policy_persistent():
 
 class FakeBackend(BackendModule):
     def __init__(self, start_auth_func=None, internal_attributes=None,
+                 base_url="", name="FakeBackend",
                  register_endpoints_func=None):
-        super().__init__(None, internal_attributes, "FakeBackend")
+        super().__init__(None, internal_attributes, base_url, name)
 
         self.start_auth_func = start_auth_func
         self.register_endpoints_func = register_endpoints_func
@@ -336,9 +337,10 @@ class FakeFrontend(FrontendModule):
     """
 
     def __init__(self, handle_authn_request_func=None, internal_attributes=None,
+                 base_url="", name="FakeFrontend",
                  handle_authn_response_func=None,
                  register_endpoints_func=None):
-        super().__init__(None, internal_attributes, "FakeFrontend")
+        super().__init__(None, internal_attributes, base_url, name)
         self.handle_authn_request_func = handle_authn_request_func
         self.handle_authn_response_func = handle_authn_response_func
         self.register_endpoints_func = register_endpoints_func
@@ -390,8 +392,8 @@ class FakeFrontend(FrontendModule):
 class TestBackend(BackendModule):
     provider = "TestBackend"
 
-    def __init__(self, auth_callback_func, internal_attributes, config, name):
-        super().__init__(auth_callback_func, internal_attributes, name)
+    def __init__(self, auth_callback_func, internal_attributes, config, base_url, name):
+        super().__init__(auth_callback_func, internal_attributes, base_url, name)
 
     def register_endpoints(self):
         return [("^{}/response$".format(TestBackend.provider), self.handle_response)]
@@ -401,8 +403,8 @@ class TestBackend(BackendModule):
 
 
 class TestFrontend(FrontendModule):
-    def __init__(self, auth_req_callback_func, internal_attributes, config, name):
-        super().__init__(auth_req_callback_func, internal_attributes, name)
+    def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name):
+        super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
 
     def register_endpoints(self, providers):
         return [("^{}/request$".format(providers[0]), self.handle_request)]

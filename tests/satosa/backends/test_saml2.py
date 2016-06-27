@@ -49,6 +49,7 @@ class TestSamlBackend:
         self.samlbackend = SamlBackend(Mock(), INTERNAL_ATTRIBUTES, {"config": sp_conf,
                                                                      "disco_srv": "https://my.dicso.com/role/idp.ds",
                                                                      "publish_metadata": METADATA_URL},
+                                       "base_url",
                                        "samlbackend")
 
     def test_register_endpoints(self, sp_conf):
@@ -166,7 +167,7 @@ class TestSamlBackend:
     def test_redirect_to_idp_if_only_one_idp_in_metadata(self, sp_conf, idp_conf):
         sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
         # instantiate new backend, without any discovery service configured
-        samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf}, "saml_backend")
+        samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf}, "base_url", "saml_backend")
 
         state = State()
         state.add("test", "state")

@@ -49,13 +49,13 @@ class TestSamlFrontend:
 
     def setup_for_authn_req(self, idp_conf, sp_conf, nameid_format=None, relay_state="relay_state",
                             internal_attributes=INTERNAL_ATTRIBUTES):
-        base = self.construct_base_url_from_entity_id(idp_conf["entityid"])
-        config = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base}
+        config = {"idp_config": idp_conf, "endpoints": ENDPOINTS}
         sp_metadata_str = create_metadata_from_config_dict(sp_conf)
         idp_conf["metadata"]["inline"] = [sp_metadata_str]
 
+        base_url = self.construct_base_url_from_entity_id(idp_conf["entityid"])
         samlfrontend = SamlFrontend(lambda context, internal_req: (context, internal_req),
-                                    internal_attributes, config, "saml_frontend")
+                                    internal_attributes, config, base_url, "saml_frontend")
         samlfrontend.register_endpoints(["saml"])
 
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
@@ -78,13 +78,12 @@ class TestSamlFrontend:
 
     @pytest.mark.parametrize("conf", [
         None,
-        {"idp_config_notok": {}, "endpoints": {}, "base": "base"},
-        {"idp_config": {}, "endpoints_notok": {}, "base": "base"},
-        {"idp_config": {}, "endpoints": {}, "base_notok": "base"}
+        {"idp_config_notok": {}, "endpoints": {}},
+        {"idp_config": {}, "endpoints_notok": {}}
     ])
     def test_config_error_handling(self, conf):
         with pytest.raises(ValueError):
-            SamlFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES, conf, "saml_frontend")
+            SamlFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES, conf, "base_url", "saml_frontend")
 
     def test_register_endpoints(self, idp_conf):
         """
@@ -96,11 +95,11 @@ class TestSamlFrontend:
 
         metadata_url = "http://example.com/SAML2IDP/metadata"
         config = {"idp_config": idp_conf, "endpoints": ENDPOINTS,
-                  "base": self.construct_base_url_from_entity_id(idp_conf["entityid"]),
                   "publish_metadata": metadata_url}
 
+        base_url = self.construct_base_url_from_entity_id(idp_conf["entityid"])
         samlfrontend = SamlFrontend(lambda context, internal_req: (context, internal_req),
-                                    INTERNAL_ATTRIBUTES, config, "saml_frontend")
+                                    INTERNAL_ATTRIBUTES, config, base_url, "saml_frontend")
 
         providers = ["foo", "bar"]
         url_map = samlfrontend.register_endpoints(providers)
@@ -197,15 +196,15 @@ class TestSamlFrontend:
 
         idp_conf["metadata"] = {"inline": [sp_metadata_str]}
 
-        base = self.construct_base_url_from_entity_id(idp_conf["entityid"])
-        conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base}
+        base_url = self.construct_base_url_from_entity_id(idp_conf["entityid"])
+        conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS}
 
         internal_attributes = {"attributes": {attr_name: {"saml": [attr_name]} for attr_name in
                                               ["edupersontargetedid", "edupersonprincipalname",
                                                "edupersonaffiliation", "mail", "displayname", "sn",
                                                "givenname"]}}  # no op mapping for saml attribute names
 
-        samlfrontend = SamlFrontend(None, internal_attributes, conf, "saml_frontend")
+        samlfrontend = SamlFrontend(None, internal_attributes, conf, base_url, "saml_frontend")
         samlfrontend.register_endpoints(["testprovider"])
 
         internal_req = InternalRequest(saml_name_format_to_hash_type(NAMEID_FORMAT_PERSISTENT),
@@ -224,11 +223,11 @@ class TestSamlFrontend:
         eidas_loa_low = "http://eidas.europa.eu/LoA/low"
         loa = {"": eidas_loa_low}
 
-        base = self.construct_base_url_from_entity_id(idp_conf["entityid"])
-        conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base,
+        base_url = self.construct_base_url_from_entity_id(idp_conf["entityid"])
+        conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS,
                 "acr_mapping": loa}
 
-        samlfrontend = SamlFrontend(None, INTERNAL_ATTRIBUTES, conf, "saml_frontend")
+        samlfrontend = SamlFrontend(None, INTERNAL_ATTRIBUTES, conf, base_url, "saml_frontend")
         samlfrontend.register_endpoints(["foo"])
 
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
@@ -265,11 +264,11 @@ class TestSamlFrontend:
         expected_loa = "LoA1"
         loa = {"": "http://eidas.europa.eu/LoA/low", idp_conf["entityid"]: expected_loa}
 
-        base = self.construct_base_url_from_entity_id(idp_conf["entityid"])
-        conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS, "base": base,
+        base_url = self.construct_base_url_from_entity_id(idp_conf["entityid"])
+        conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS,
                 "acr_mapping": loa}
 
-        samlfrontend = SamlFrontend(None, INTERNAL_ATTRIBUTES, conf, "saml_frontend")
+        samlfrontend = SamlFrontend(None, INTERNAL_ATTRIBUTES, conf, base_url, "saml_frontend")
         samlfrontend.register_endpoints(["foo"])
 
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
