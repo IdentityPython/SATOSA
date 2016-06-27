@@ -3,9 +3,11 @@ import argparse
 import copy
 import logging
 
-from saml2.config import Config
-from saml2 import saml
 from saml2 import md
+from saml2 import saml
+from saml2 import xmldsig
+from saml2 import xmlenc
+from saml2.config import Config
 from saml2.extension import dri
 from saml2.extension import idpdisc
 from saml2.extension import mdattr
@@ -13,20 +15,15 @@ from saml2.extension import mdrpi
 from saml2.extension import mdui
 from saml2.extension import shibmd
 from saml2.extension import ui
-from saml2 import xmldsig
-from saml2 import xmlenc
 from saml2.metadata import (entity_descriptor, entities_descriptor, sign_entity_descriptor,
     metadata_tostring_fix)
 from saml2.sigver import security_context
-
 from saml2.validate import valid_instance
 
 from satosa.backends.saml2 import SamlBackend
 from satosa.frontends.saml2 import SamlFrontend
 from satosa.frontends.saml2 import SamlMirrorFrontend
-from satosa.plugin_base.endpoint import FrontendModulePlugin, BackendModulePlugin
-from satosa.plugin_loader import (_load_plugins, frontend_filter, backend_filter,
-    _load_endpoint_modules)
+from satosa.plugin_loader import (load_frontends, load_backends)
 from satosa.satosa_config import SATOSAConfig
 
 logger = logging.getLogger("")
@@ -158,29 +155,28 @@ def make_satosa_metadata(option):
     """
     conf_mod = SATOSAConfig(option.config_file)
 
-    frontend_plugins = _load_plugins(conf_mod.PLUGIN_PATH, conf_mod.FRONTEND_MODULES, frontend_filter, conf_mod.BASE)
-    backend_plugins = _load_plugins(conf_mod.PLUGIN_PATH, conf_mod.BACKEND_MODULES, backend_filter, conf_mod.BASE)
-    backend_modules = _load_endpoint_modules(conf_mod.BASE, backend_plugins, None, conf_mod.INTERNAL_ATTRIBUTES)
+    frontend_modules = load_frontends(conf_mod, None, conf_mod.INTERNAL_ATTRIBUTES).values()
+    backend_modules = load_backends(conf_mod, None, conf_mod.INTERNAL_ATTRIBUTES).values()
 
-    frontend_names = [p.name for p in frontend_plugins]
-    backend_names = [p.name for p in backend_plugins]
+    frontend_names = [p.name for p in frontend_modules]
+    backend_names = [p.name for p in backend_modules]
     logger.info("Loaded frontend plugins: {}".format(frontend_names))
     logger.info("Loaded backend plugins: {}".format(backend_names))
 
     backend_metadata = {}
     if option.generate_backend:
-        for plugin in backend_plugins:
-            if issubclass(plugin.module, SamlBackend):
-                logger.info("Generating saml backend '%s' metadata..." % plugin.name)
-                backend_metadata[plugin.name] = _make_metadata(plugin.config["config"], option)
+        for plugin_module in backend_modules:
+            if isinstance(plugin_module, SamlBackend):
+                logger.info("Generating saml backend '%s' metadata..." % plugin_module.name)
+                backend_metadata[plugin_module.name] = _make_metadata(plugin_module.config["config"], option)
 
     frontend_metadata = {}
     if option.generate_frontend:
-        for frontend in frontend_plugins:
-            if issubclass(frontend.module, SamlMirrorFrontend):
+        for frontend in frontend_modules:
+            if isinstance(frontend, SamlMirrorFrontend):
                 frontend_metadata[frontend.name] = []
-                for plugin in backend_plugins:
-                    provider = plugin.name
+                for plugin_module in backend_modules:
+                    provider = plugin_module.name
                     logger.info(
                         "Creating metadata for frontend '{}' and backend '{}'".format(frontend.name,
                                                                                       provider))
@@ -196,10 +192,9 @@ def make_satosa_metadata(option):
                         frontend_metadata[frontend.name].append(
                             {"xml": xml, "plugin_name": frontend.name, "entity_id": desc.entity_id}
                         )
-            elif issubclass(frontend.module, SamlFrontend):
-                module = frontend.module(None, conf_mod.INTERNAL_ATTRIBUTES, frontend.config)
-                module.register_endpoints(backend_names)
-                xml = _make_metadata(module.idp_config, option)
+            elif isinstance(frontend, SamlFrontend):
+                frontend.register_endpoints(backend_names)
+                xml = _make_metadata(frontend.idp_config, option)
                 frontend_metadata[frontend.name] = [{"xml": xml, "plugin_name": frontend.name}]
 
     if option.generate_backend:
