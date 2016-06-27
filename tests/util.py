@@ -19,7 +19,7 @@ from saml2.samlp import NameIDPolicy
 
 from satosa.backends.base import BackendModule
 from satosa.frontends.base import FrontendModule
-from satosa.micro_service.service_base import RequestMicroService, ResponseMicroService
+from satosa.microservices.service_base import RequestMicroService, ResponseMicroService
 from satosa.response import Response
 
 
