@@ -4,7 +4,6 @@ Some help functions to load satosa backend and frontend modules
 import inspect
 import json
 import logging
-import os
 import sys
 from pydoc import locate
 
@@ -133,28 +132,6 @@ def _response_micro_service_filter(member):
     return _micro_service_filter(member) and issubclass(member, ResponseMicroService)
 
 
-def _load_endpoint_modules(base_url, plugins, callback, internal_attributes=None):
-    """
-    Loads endpoint modules from plugins
-
-    :type base_url: str
-    :type plugins: list[satosa.plugins_base.endpoint.InterfaceModulePlugin]
-    :type callback: (satosa.context.Context, dict, str) -> T
-    :rtype dict[str, satosa.frontends.base.FrontendModule | satosa.backends.base.BackendModule]
-
-    :param base_url: base url of the service
-    :param plugins: A list of plugins
-    :param callback: A function that will be called by the loaded endpoint module
-    :return: a dict with the laoded modules. Key as module name and value as module instance
-    """
-    endpoint_modules = {}
-    for plugin in plugins:
-        module_inst = plugin.module(callback, internal_attributes, plugin.config, base_url, plugin.name)
-        endpoint_modules[plugin.name] = module_inst
-    logger.info("Loaded modules: %s" % list(endpoint_modules.keys()))
-    return endpoint_modules
-
-
 def _load_plugin_config(config):
     try:
         return yaml.safe_load(config)
@@ -163,28 +140,6 @@ def _load_plugin_config(config):
             mark = exc.problem_mark
             logger.error("Error position: (%s:%s)" % (mark.line + 1, mark.column + 1))
             raise SATOSAConfigurationError("The configuration is corrupt.") from exc
-
-
-def _readfile(config):
-    """
-    Reads a file path and return the data.
-    If the path doesn't point to a file, the input will be used as return data.
-
-    :type config: str
-    :rtype: str
-
-    :param config: Path to file or config string
-    :return: File data
-    """
-    try:
-        if os.path.isfile(config):
-            config_file = open(config, "r")
-            config = config_file.read()
-            config_file.close()
-            return config
-    except Exception:
-        pass
-    return None
 
 
 def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attributes, callback):
