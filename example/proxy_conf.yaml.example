@@ -8,11 +8,11 @@ PLUGIN_PATH:
   - "plugins/frontends"
   - "plugins/micro_services"
 BACKEND_MODULES:
-  - "saml2_backend"
+  - "plugins/backends/saml2_backend.yaml"
 FRONTEND_MODULES:
-  - "saml2_frontend"
+  - "plugins/frontends/saml2_frontend.yaml"
 MICRO_SERVICES:
-  - "test_service"
+  - "plugins/microservices/static_attributes.yaml"
 USER_ID_HASH_SALT: "61a89d2db0b9e1e27d490d050b478fe71f352fddd3528a44157f43e339c6c62f2362fb413179937d96172bf84233317"
 CONSENT:
   enable: Yes

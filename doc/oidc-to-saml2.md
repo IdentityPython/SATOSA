@@ -24,12 +24,10 @@ be configured with a OpenID Connect frontend and a SAML2 backend.
      To specify the necessary plugins make sure to include the following
      configuration parameter values:
      ```yaml  
-     PLUGIN_PATH:
-       - plugins
      BACKEND_MODULES:
-       - "saml2_backend"
+       - "oidc-saml2/plugins/saml2_backend.yaml"
      FRONTEND_MODULES:
-       - "oidc_frontend"
+       - "oidc-saml2/plugins/oidc_frontend.yaml"
      ```
 
 1. Configure the attribute mapping:

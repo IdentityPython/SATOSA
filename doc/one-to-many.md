@@ -46,12 +46,10 @@ be configured with a SAML2 frontend and an SAML2 backend.
      To specify the necessary plugins make sure to include the following
      configuration parameter values:
      ```yaml  
-     PLUGIN_PATH:
-       - plugins
      BACKEND_MODULES:
-       - saml2_backend
+       - saml2-saml2/plugins/saml2_backend.yaml
      FRONTEND_MODULES:
-       - saml2_frontend
+       - saml2-saml2/plugins/saml2_frontend.yaml
      ```
 
 1. Configure the attribute mapping:

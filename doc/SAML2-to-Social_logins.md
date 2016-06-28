@@ -17,10 +17,10 @@ be configured with a SAML2 frontend and an SAML2 backend.
 
 1. Copy the necessary base configurations from the `<satosa_path>/example` directory:
    ```bash
-   mkdir -p SAML2-to-Social_logins/plugins
-   cp example/{proxy_conf.yaml.example,internal_attributes.yaml.example} SAML2-to-Social_logins/
-   cp example/plugins/frontends/saml2_frontend.yaml.example SAML2-to-Social_logins/plugins/
-   cp example/plugins/backends/saml2_backend.yaml.example SAML2-to-Social_logins/plugins/
+   mkdir -p saml2-social/plugins
+   cp example/{proxy_conf.yaml.example,internal_attributes.yaml.example} saml2-social/
+   cp example/plugins/frontends/saml2_frontend.yaml.example saml2-social/plugins/
+   cp example/plugins/backends/saml2_backend.yaml.example saml2-social/plugins/
    ```
    
 1. Configure the proxy:
@@ -35,12 +35,10 @@ be configured with a SAML2 frontend and an SAML2 backend.
      To specify the necessary plugins make sure to include the following
      configuration parameter values:
      ```yaml  
-     PLUGIN_PATH:
-       - plugins
      BACKEND_MODULES:
-       - saml2_backend
+       - saml2-social/plugins/saml2_backend.yaml
      FRONTEND_MODULES:
-       - saml2_frontend
+       - saml2-social/plugins/saml2_frontend.yaml
      ```
 
 1. Configure the attribute mapping:
