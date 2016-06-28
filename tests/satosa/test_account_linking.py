@@ -20,7 +20,6 @@ class TestAccountLinking():
             "enable": True,
             "api_url": "https://localhost:8167",
             "redirect_url": "https://localhost:8167/approve",
-            "endpoint": "handle_account_linking",
             "sign_key": signing_key_path,
         }
         self.satosa_config = {

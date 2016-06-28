@@ -89,7 +89,6 @@ class TestConsent:
         self.consent_config = {
             "api_url": CONSENT_SERVICE_URL,
             "redirect_url": "{}/consent".format(CONSENT_SERVICE_URL),
-            "endpoint": "handle_consent",
             "sign_key": signing_key_path,
             "state_enc_key": "fsghajf90984jkflds",
         }
