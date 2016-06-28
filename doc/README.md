@@ -36,7 +36,7 @@ in the [example directory](../example).
 | `COOKIE_STATE_NAME` | string | `satosa_state` | name of cooke SATOSA uses for preserving state between requests |
 | `STATE_ENCRYPTION_KEY` | string | `52fddd3528a44157` | key used for encrypting the state cookie, will be overriden by the environment variable `SATOSA_STATE_ENCRYPTION_KEY` if it is set |
 | `INTERNAL_ATTRIBUTES` | string | `example/internal_attributes.yaml` | path to attribute mapping
-| `PLUGIN_PATH` | string[] | `[example/plugins/backends, example/plugins/frontends]` | list of directory paths containing any front-/backend plugins |
+| `CUSTOM_PLUGIN_MODULE_PATHS` | string[] | `[example/plugins/backends, example/plugins/frontends]` | list of directory paths containing any front-/backend plugin modules |
 | `BACKEND_MODULES` | string[] | `[oidc_backend, saml2_backend]` | list of plugin configuration file paths, describing enabled backends |
 | `FRONTEND_MODULES` | string[] | `[saml2_frontend]` | list of plugin configuration file paths, describing enabled frontends |
 | `MICRO_SERVICES` | string[] | `[statistics_service.yaml]` | list of plugin configuration file paths, describing enabled microservices |

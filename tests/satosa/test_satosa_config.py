@@ -5,7 +5,6 @@ from satosa.satosa_config import SATOSAConfig
 DEFAULT_CONFIG_DICT = {
     "BASE": "https://example.com",
     "COOKIE_STATE_NAME": "TEST_STATE",
-    "PLUGIN_PATH": ["."],
     "BACKEND_MODULES": ["foo"],
     "FRONTEND_MODULES": ["bar"],
     "INTERNAL_ATTRIBUTES": {}

@@ -3,7 +3,7 @@ BASE: https://example.com
 INTERNAL_ATTRIBUTES: "internal_attributes.yaml"
 COOKIE_STATE_NAME: "SATOSA_STATE"
 STATE_ENCRYPTION_KEY: "asdASD123"
-PLUGIN_PATH:
+CUSTOM_PLUGIN_MODULE_PATHS:
   - "plugins/backends"
   - "plugins/frontends"
   - "plugins/micro_services"

@@ -16,7 +16,7 @@ class SATOSAConfig(object):
     necessary parameters.
     """
     sensitive_dict_keys = ["STATE_ENCRYPTION_KEY", "USER_ID_HASH_SALT"]
-    mandatory_dict_keys = ["BASE", "PLUGIN_PATH", "BACKEND_MODULES", "FRONTEND_MODULES",
+    mandatory_dict_keys = ["BASE", "BACKEND_MODULES", "FRONTEND_MODULES",
                            "INTERNAL_ATTRIBUTES", "COOKIE_STATE_NAME"] + sensitive_dict_keys
 
     def __init__(self, config):

@@ -85,7 +85,7 @@ class TestProxy:
         proxy_config_dict = {"BASE": "https://localhost:8090",
                              "COOKIE_STATE_NAME": "TEST_STATE",
                              "STATE_ENCRYPTION_KEY": "ASDasd123",
-                             "PLUGIN_PATH": [os.path.dirname(__file__)],
+                             "CUSTOM_PLUGIN_MODULE_PATHS": [os.path.dirname(__file__)],
                              "BACKEND_MODULES": [backend_plugin_config],
                              "FRONTEND_MODULES": [frontend_plugin_config],
                              "MICRO_SERVICES": [request_microservice_config, response_microservice_config],

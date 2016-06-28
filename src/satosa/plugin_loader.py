@@ -41,7 +41,7 @@ def load_backends(config, callback, internal_attributes):
     :param callback: Function that will be called by the backend after the authentication is done.
     :return: A list of backend modules
     """
-    backend_modules = _load_plugins(config.PLUGIN_PATH, config.BACKEND_MODULES, backend_filter,
+    backend_modules = _load_plugins(config.CUSTOM_PLUGIN_MODULE_PATHS, config.BACKEND_MODULES, backend_filter,
                                     config.BASE, internal_attributes, callback)
     endpoint_modules = {module.name: module for module in backend_modules}
     logger.info("Setup backends: %s" % list(endpoint_modules.keys()))
@@ -63,7 +63,7 @@ def load_frontends(config, callback, internal_attributes):
     has been processed.
     :return: A dict of frontend modules
     """
-    frontend_modules = _load_plugins(config.PLUGIN_PATH, config.FRONTEND_MODULES, frontend_filter,
+    frontend_modules = _load_plugins(config.CUSTOM_PLUGIN_MODULE_PATHS, config.FRONTEND_MODULES, frontend_filter,
                                      config.BASE, internal_attributes, callback)
     endpoint_modules = {module.name: module for module in frontend_modules}
     logger.info("Setup frontends: %s" % list(endpoint_modules.keys()))

@@ -28,7 +28,6 @@ class TestAccountLinking():
             "USER_ID_HASH_SALT": "qwerty",
             "COOKIE_STATE_NAME": "SATOSA_SATE",
             "STATE_ENCRYPTION_KEY": "ASDasd123",
-            "PLUGIN_PATH": "",
             "BACKEND_MODULES": "",
             "FRONTEND_MODULES": "",
             "INTERNAL_ATTRIBUTES": {},

@@ -59,10 +59,10 @@ class SATOSABase(object):
         self.request_micro_services = None
         self.response_micro_services = None
         if "MICRO_SERVICES" in self.config:
-            self.request_micro_services = load_request_microservices(self.config.PLUGIN_PATH,
+            self.request_micro_services = load_request_microservices(self.config.CUSTOM_PLUGIN_MODULE_PATHS,
                                                                      self.config.MICRO_SERVICES,
                                                                      self.config.INTERNAL_ATTRIBUTES)
-            self.response_micro_services = load_response_microservices(self.config.PLUGIN_PATH,
+            self.response_micro_services = load_response_microservices(self.config.CUSTOM_PLUGIN_MODULE_PATHS,
                                                                        self.config.MICRO_SERVICES,
                                                                        self.config.INTERNAL_ATTRIBUTES)
         self.module_router = ModuleRouter(frontends, backends)
