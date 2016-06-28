@@ -161,7 +161,7 @@ class TestOpenIDConnectBackend(object):
             "public"
         )
         assert internal_response.get_user_id() == userinfo["sub"]
-        self.assert_expected_attributes(internal_response.get_attributes())
+        self.assert_expected_attributes(internal_response.attributes)
 
     @responses.activate
     def test_response_endpoint_calls_callback(self, backend_config, signing_key, incoming_authn_response):
@@ -173,7 +173,7 @@ class TestOpenIDConnectBackend(object):
         args = self.oidc_backend.auth_callback_func.call_args[0]
         assert isinstance(args[0], Context)
         assert isinstance(args[1], InternalResponse)
-        self.assert_expected_attributes(args[1].get_attributes())
+        self.assert_expected_attributes(args[1].attributes)
 
     def test_start_auth_redirects_to_provider_authorization_endpoint(self, context, backend_config):
         auth_response = self.oidc_backend.start_auth(context, None)
@@ -214,7 +214,7 @@ class TestOpenIDConnectBackend(object):
         context.request = {"state": auth_params["state"], "access_token": access_token}
         self.oidc_backend.response_endpoint(context)
         args = self.oidc_backend.auth_callback_func.call_args[0]
-        self.assert_expected_attributes(args[1].get_attributes())
+        self.assert_expected_attributes(args[1].attributes)
 
 
 class TestCreateClient(object):

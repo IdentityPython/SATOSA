@@ -142,7 +142,7 @@ class TestSamlBackend:
         expected_data = {'surname': ['Testsson 1'], 'mail': ['test@example.com'],
                          'displayname': ['Test Testsson'], 'givenname': ['Test 1'],
                          'edupersontargetedid': ['one!for!all']}
-        assert expected_data == internal_resp.get_attributes()
+        assert expected_data == internal_resp.attributes
 
     def test_redirect_to_idp_if_only_one_idp_in_metadata(self, context, sp_conf, idp_conf):
         sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]

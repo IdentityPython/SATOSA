@@ -11,11 +11,9 @@ from oic.oic.message import AuthorizationResponse, AuthorizationRequest, IdToken
 from oic.utils.keyio import create_and_store_rsa_key_pair
 from saml2.authn_context import PASSWORD
 
-from satosa.context import Context
 from satosa.exception import SATOSAAuthenticationError
 from satosa.frontends.oidc import OIDCFrontend
 from satosa.internal_data import InternalResponse, AuthenticationInformation, DataConverter
-from satosa.state import State
 from tests.users import USERS
 
 INTERNAL_ATTRIBUTES = {
@@ -36,7 +34,8 @@ class TestOIDCFrontend(object):
     @pytest.fixture(autouse=True)
     def setup(self, signing_key):
         self.instance = OIDCFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
-                                     dict(issuer=self.ISSUER, signing_key_path=signing_key), "base_url", "oidc_frontend")
+                                     dict(issuer=self.ISSUER, signing_key_path=signing_key), "base_url",
+                                     "oidc_frontend")
         self.instance.register_endpoints(["foo_backend"])
 
     def setup_for_authn_response(self, context, auth_req):
@@ -44,8 +43,7 @@ class TestOIDCFrontend(object):
 
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
         internal_response = InternalResponse(auth_info=auth_info)
-        internal_response.add_attributes(
-            DataConverter(INTERNAL_ATTRIBUTES).to_internal("saml", USERS["testuser1"]))
+        internal_response.attributes = DataConverter(INTERNAL_ATTRIBUTES).to_internal("saml", USERS["testuser1"])
         internal_response.set_user_id(USERS["testuser1"]["eduPersonTargetedID"][0])
 
         self.instance.provider.cdb = {

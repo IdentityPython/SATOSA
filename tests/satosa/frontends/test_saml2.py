@@ -117,7 +117,7 @@ class TestSamlFrontend:
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
         internal_response = InternalResponse(auth_info=auth_info)
         internal_response.set_user_id_hash_type(internal_req.user_id_hash_type)
-        internal_response.add_attributes(USERS["testuser1"])
+        internal_response.attributes = USERS["testuser1"]
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
@@ -139,7 +139,7 @@ class TestSamlFrontend:
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
         internal_response = InternalResponse(auth_info=auth_info)
         internal_response.set_user_id_hash_type(internal_req.user_id_hash_type)
-        internal_response.add_attributes(USERS["testuser1"])
+        internal_response.attributes = USERS["testuser1"]
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
@@ -161,7 +161,7 @@ class TestSamlFrontend:
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
         internal_response = InternalResponse(auth_info=auth_info)
         internal_response.set_user_id_hash_type(internal_req.user_id_hash_type)
-        internal_response.add_attributes(USERS["testuser1"])
+        internal_response.attributes = USERS["testuser1"]
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
@@ -332,7 +332,7 @@ class TestSamlFrontend:
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", idp_conf["entityid"])
         internal_response = InternalResponse(auth_info=auth_info)
         user_attributes = {k: "foo" for k in expected_attributes_in_all_entity_categories}
-        internal_response.add_attributes(user_attributes)
+        internal_response.attributes = user_attributes
 
         resp_args = {
             "name_id_policy": NameIDPolicy(format=NAMEID_FORMAT_TRANSIENT),

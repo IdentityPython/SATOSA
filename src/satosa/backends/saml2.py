@@ -244,7 +244,7 @@ class SamlBackend(BackendModule):
         internal_resp = InternalResponse(auth_info=auth_info)
 
         internal_resp.set_user_id(response.get_subject().text)
-        internal_resp.add_attributes(self.converter.to_internal(self.attribute_profile, response.ava))
+        internal_resp.attributes = self.converter.to_internal(self.attribute_profile, response.ava)
 
         satosa_logging(logger, logging.DEBUG,
                        "received attributes:\n%s" % json.dumps(response.ava, indent=4), state)

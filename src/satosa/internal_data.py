@@ -395,7 +395,7 @@ class InternalResponse(InternalData):
     Holds internal representation of service related data.
 
     :type _user_id: str
-    :type _attributes: dict[str, str]
+    :type attributes: dict[str, str]
     :type user_id_hash_type: UserIdHashType
     :type auth_info: AuthenticationInformation
     """
@@ -405,7 +405,7 @@ class InternalResponse(InternalData):
         self._user_id = None
         self._user_id_attributes = []
         # This dict is a data carrier between frontend and backend modules.
-        self._attributes = {}
+        self.attributes = {}
         self.auth_info = auth_info
         self.user_id_hash_type = None
         self.to_requestor = None
@@ -419,25 +419,6 @@ class InternalResponse(InternalData):
         if isinstance(user_id_hash_type, str):
             user_id_hash_type = getattr(UserIdHashType, user_id_hash_type)
         self.user_id_hash_type = user_id_hash_type
-
-    def get_attributes(self):
-        """
-        Returns all user attributes received in the authentication
-
-        :rtype: dict[str, str]
-
-        :return: all attributes
-        """
-        return self._attributes
-
-    def add_attributes(self, attr_dict):
-        """
-        Add user attributes converted to the internal format
-
-        :type attr_dict: dict[str, str]
-        :param attr_dict: A dictionary containing user attributes converted to the internal format
-        """
-        self._attributes = attr_dict
 
     def set_user_id(self, uid):
         """
@@ -467,7 +448,7 @@ class InternalResponse(InternalData):
         :return: The user id
         """
         if self._user_id_attributes:
-            attr_values = [self._attributes[attr] for attr in self._user_id_attributes]
+            attr_values = [self.attributes[attr] for attr in self._user_id_attributes]
             id = "".join(attr_values)
             return id
 
@@ -486,7 +467,7 @@ class InternalResponse(InternalData):
         if "hash_type" in int_resp_dict:
             internal_response.set_user_id_hash_type(getattr(UserIdHashType,
                                                             int_resp_dict["hash_type"]))
-        internal_response._attributes = int_resp_dict["attr"]
+        internal_response.attributes = int_resp_dict["attr"]
         internal_response._user_id = int_resp_dict["usr_id"]
         internal_response._user_id_attributes = int_resp_dict["usr_id_attr"]
         internal_response.to_requestor = int_resp_dict["to"]
@@ -500,7 +481,7 @@ class InternalResponse(InternalData):
         """
         _dict = {"usr_id": self._user_id,
                  "usr_id_attr": self._user_id_attributes,
-                 "attr": self.get_attributes(),
+                 "attr": self.attributes,
                  "to": self.to_requestor,
                  "auth_info": self.auth_info.to_dict()}
         if self.user_id_hash_type:

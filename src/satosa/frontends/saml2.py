@@ -325,8 +325,7 @@ class SamlFrontend(FrontendModule):
         request_state = self.load_state(context.state)
 
         resp_args = request_state["resp_args"]
-        ava = self.converter.from_internal(self.attribute_profile,
-                                           internal_response.get_attributes())
+        ava = self.converter.from_internal(self.attribute_profile, internal_response.attributes)
 
         auth_info = {}
         if self.acr_mapping:

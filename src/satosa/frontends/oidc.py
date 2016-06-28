@@ -48,7 +48,7 @@ class OIDCFrontend(FrontendModule):
         auth_req = self._get_authn_request_from_state(context.state)
 
         # filter attributes to return in ID Token as claims
-        attributes = self.converter.from_internal("openid", internal_resp.get_attributes())
+        attributes = self.converter.from_internal("openid", internal_resp.attributes)
         satosa_logging(logger, logging.DEBUG,
                        "Attributes delivered by backend to OIDC frontend: {}".format(
                            json.dumps(attributes)), context.state)

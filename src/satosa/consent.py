@@ -86,7 +86,7 @@ class ConsentModule(object):
         requestor = internal_response.to_requestor
 
         hash_id = self._get_consent_id(requestor, internal_response.get_user_id(),
-                                       internal_response.get_attributes())
+                                       internal_response.attributes)
 
         try:
             consent_attributes = self._verify_consent(hash_id)
@@ -127,9 +127,8 @@ class ConsentModule(object):
         filter = consent_state["filter"]
 
         internal_response = self._filter_attributes(internal_response, filter)
-        filtered_data = internal_response.get_attributes()
-
-        id_hash = self._get_consent_id(internal_response.to_requestor, internal_response.get_user_id(), filtered_data)
+        id_hash = self._get_consent_id(internal_response.to_requestor, internal_response.get_user_id(),
+                                       internal_response.attributes)
 
         try:
             # Check if consent is already given
@@ -141,13 +140,13 @@ class ConsentModule(object):
             satosa_logging(logger, logging.ERROR,
                            "Consent service is not reachable, no consent given.", state)
             # Send an internal_response without any attributes
-            internal_response._attributes = {}
+            internal_response.attributes = {}
             return self._end_consent(context, internal_response)
 
         consent_state["internal_resp"] = internal_response.to_dict()
         state.add(ConsentModule.STATE_KEY, consent_state)
 
-        consent_args = {"attr": filtered_data,
+        consent_args = {"attr": internal_response.attributes,
                         "id": id_hash,
                         "redirect_endpoint": "%s/consent/%s" % (self.proxy_base, self.endpoint),
                         "requester_name": internal_response.to_requestor}
@@ -162,7 +161,7 @@ class ConsentModule(object):
             satosa_logging(logger, logging.ERROR,
                            "Consent service is not reachable, no consent given: {}".format(str(e)), state)
             # Send an internal_response without any attributes
-            internal_response._attributes = {}
+            internal_response.attributes = {}
             return self._end_consent(context, internal_response)
 
         consent_redirect = "%s?ticket=%s" % (self.redirect_url, ticket)
@@ -172,13 +171,13 @@ class ConsentModule(object):
         # filter attributes
         filtered_data = {}
         for attr in attr_filter:
-            if attr in internal_response.get_attributes():
-                data = internal_response.get_attributes()[attr]
+            if attr in internal_response.attributes:
+                data = internal_response.attributes[attr]
                 if not isinstance(data, list):
                     data = [data]
                 filtered_data[attr] = data
         # Update internal response
-        internal_response._attributes = filtered_data
+        internal_response.attributes = filtered_data
         return internal_response
 
     def _get_consent_id(self, requestor, user_id, filtered_attr):

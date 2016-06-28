@@ -55,7 +55,7 @@ class TestConsent:
         auth_info = AuthenticationInformation("auth_class_ref", "timestamp", "issuer")
         internal_response = InternalResponse(auth_info=auth_info)
         internal_response.to_requestor = "client"
-        internal_response.add_attributes(ATTRIBUTES)
+        internal_response.attributes = ATTRIBUTES
         return internal_response
 
     @pytest.fixture
@@ -91,7 +91,7 @@ class TestConsent:
         jws.verify_compact(jwks, [sign_key])
 
         consent_args = jws.msg
-        assert consent_args["attr"] == internal_response.get_attributes()
+        assert consent_args["attr"] == internal_response.attributes
         assert consent_args["redirect_endpoint"] == satosa_config["BASE"] + "/consent/handle_consent"
         assert consent_args["requester_name"] == internal_response.to_requestor
         assert consent_args["locked_attrs"] == [USER_ID_ATTR]
@@ -150,7 +150,7 @@ class TestConsent:
             context, internal_response = self.consent_module.manage_consent(context, internal_response)
 
         assert context
-        assert not internal_response.get_attributes()
+        assert not internal_response.attributes
 
     @responses.activate
     def test_consent_prev_given(self, context, internal_response, internal_request,
@@ -161,7 +161,7 @@ class TestConsent:
         self.consent_module.save_state(internal_request, context.state)
         context, internal_response = self.consent_module.manage_consent(context, internal_response)
         assert context
-        assert "displayName" in internal_response.get_attributes()
+        assert "displayName" in internal_response.attributes
 
     @responses.activate
     def test_consent_full_flow(self, context, satosa_config, internal_response, internal_request,
@@ -188,9 +188,9 @@ class TestConsent:
 
             context, internal_response = self.consent_module._handle_consent_response(context)
 
-        assert internal_response.get_attributes()["displayName"] == ["Test"]
-        assert internal_response.get_attributes()["co"] == ["example"]
-        assert "sn" not in internal_response.get_attributes()  # 'sn' should be filtered
+        assert internal_response.attributes["displayName"] == ["Test"]
+        assert internal_response.attributes["co"] == ["example"]
+        assert "sn" not in internal_response.attributes  # 'sn' should be filtered
 
     @responses.activate
     def test_consent_not_given(self, context, satosa_config, internal_response, internal_request,
@@ -214,4 +214,4 @@ class TestConsent:
         new_context.state = context.state
         # Verify endpoint of consent service still gives 401 (no consent given)
         context, internal_response = self.consent_module._handle_consent_response(context)
-        assert not internal_response.get_attributes()
+        assert not internal_response.attributes

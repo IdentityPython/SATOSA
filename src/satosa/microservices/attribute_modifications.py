@@ -26,7 +26,5 @@ class AddStaticAttributes(ResponseMicroService):
             self.static_attributes = yaml.safe_load(f)
 
     def process(self, context, data):
-        all_attributes = data.get_attributes()
-        all_attributes.update(self.data_converter.to_internal("saml", self.static_attributes))
-        data.add_attributes(all_attributes)
+        data.attributes.update(self.data_converter.to_internal("saml", self.static_attributes))
         return data
