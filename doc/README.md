@@ -50,8 +50,8 @@ in the [example directory](../example).
 | Parameter name | Data type | Example value | Description |
 | -------------- | --------- | ------------- | ----------- |
 | `enable` | bool | `Yes` | whether the service should be used |
-| `rest_uri` | string | `https://localhost` | url to the REST endpoint of the service |
-| `redirect` | string | `https://localhost/redirect` | url to the endpoint where the user should be redirected for necessary interaction |
+| `api_url` | string | `https://localhost` | url to the REST endpoint of the service |
+| `redirect_url` | string | `https://localhost/redirect` | url to the endpoint where the user should be redirected for necessary interaction |
 | `endpoint` | string | `handle_consent` | name of the endpoint in SATOSA where the response from the service is received |
 | `sign_key`| string | `pki/consent.key` | path to key used for signing the requests to the service |
 

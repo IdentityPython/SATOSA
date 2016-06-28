@@ -16,14 +16,14 @@ MICRO_SERVICES:
 USER_ID_HASH_SALT: "61a89d2db0b9e1e27d490d050b478fe71f352fddd3528a44157f43e339c6c62f2362fb413179937d96172bf84233317"
 CONSENT:
   enable: Yes
-  rest_uri: "https://127.0.0.1:8166"
-  redirect: "https://localhost:8166/consent"
+  api_url: "https://127.0.0.1:8166"
+  redirect_url: "https://localhost:8166/consent"
   sign_key: "pki/mykey.pem"
   state_enc_key: "7D1ZGckfoiQfxvsK3DLCQFGutA6KM0ZzoSnzB"
 ACCOUNT_LINKING:
   enable: Yes
-  rest_uri: "https://localhost:8167"
-  redirect: "https://localhost:8167/approve"
+  api_url: "https://localhost:8167"
+  redirect_url: "https://localhost:8167/approve"
   sign_key: "pki/account_linking.key"
 LOGGING:
   version: 1

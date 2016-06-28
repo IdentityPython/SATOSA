@@ -35,8 +35,8 @@ class ConsentModule(object):
         if self.enabled:
             self.endpoint = "handle_consent"
             self.proxy_base = config["BASE"]
-            self.consent_uri = config["CONSENT"]["rest_uri"]
-            self.consent_redirect_url = config["CONSENT"]["redirect"]
+            self.api_url = config["CONSENT"]["api_url"]
+            self.redirect_url = config["CONSENT"]["redirect_url"]
             self.locked_attr = None
             if "user_id_to_attr" in config["INTERNAL_ATTRIBUTES"]:
                 self.locked_attr = config["INTERNAL_ATTRIBUTES"]["user_id_to_attr"]
@@ -164,7 +164,7 @@ class ConsentModule(object):
             internal_response._attributes = {}
             return self._end_consent(context, internal_response)
 
-        consent_redirect = "%s?ticket=%s" % (self.consent_redirect_url, ticket)
+        consent_redirect = "%s?ticket=%s" % (self.redirect_url, ticket)
         return Redirect(consent_redirect)
 
     def _filter_attributes(self, internal_response, attr_filter):
@@ -221,7 +221,7 @@ class ConsentModule(object):
         :param jws: A jws containing id, redirect_endpoint and attr
         :return: Ticket received from the consent service
         """
-        request = "{}/creq/{}".format(self.consent_uri, jws)
+        request = "{}/creq/{}".format(self.api_url, jws)
         res = requests.get(request)
 
         if res.status_code != 200:
@@ -242,7 +242,7 @@ class ConsentModule(object):
         :return: True if given consent, else False
         """
         try:
-            request = "{}/verify/{}".format(self.consent_uri, consent_id)
+            request = "{}/verify/{}".format(self.api_url, consent_id)
             res = requests.get(request)
         except ConnectionError as con_exc:
             raise ConnectionError("Could not connect to consent service") from con_exc

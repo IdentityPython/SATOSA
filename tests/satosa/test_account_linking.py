@@ -18,8 +18,8 @@ class TestAccountLinking():
     def setup(self, signing_key_path):
         self.account_linking_config = {
             "enable": True,
-            "rest_uri": "https://localhost:8167",
-            "redirect": "https://localhost:8167/approve",
+            "api_url": "https://localhost:8167",
+            "redirect_url": "https://localhost:8167/approve",
             "endpoint": "handle_account_linking",
             "sign_key": signing_key_path,
         }
@@ -52,7 +52,7 @@ class TestAccountLinking():
         uuid = "uuid"
         responses.add(
             responses.GET,
-            "%s/get_id" % self.account_linking_config['rest_uri'],
+            "%s/get_id" % self.account_linking_config['api_url'],
             status=200,
             body=uuid,
             content_type='text/html'
@@ -69,7 +69,7 @@ class TestAccountLinking():
         ticket = "ticket"
         responses.add(
             responses.GET,
-            "%s/get_id" % self.account_linking_config['rest_uri'],
+            "%s/get_id" % self.account_linking_config['api_url'],
             status=404,
             body=ticket,
             content_type='text/html'
@@ -80,12 +80,12 @@ class TestAccountLinking():
         )
         result = account_linking.manage_al(self.context, self.internal_response)
         assert isinstance(result, Redirect)
-        assert self.account_linking_config["redirect"] in result.message
+        assert result.message.startswith(self.account_linking_config["redirect_url"])
 
     @responses.activate
     def test_handle_failed_connection(self):
         exception = requests.ConnectionError("No connection")
-        responses.add(responses.GET, "%s/get_id" % self.account_linking_config['rest_uri'],
+        responses.add(responses.GET, "%s/get_id" % self.account_linking_config['api_url'],
                       body=exception)
         account_linking = AccountLinkingModule(
             SATOSAConfig(self.satosa_config),

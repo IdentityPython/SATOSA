@@ -39,8 +39,8 @@ class AccountLinkingModule(object):
         if self.enabled:
             self.endpoint = "handle_account_linking"
             self.proxy_base = config["BASE"]
-            self.al_rest_uri = config["ACCOUNT_LINKING"]["rest_uri"]
-            self.al_redirect = config["ACCOUNT_LINKING"]["redirect"]
+            self.api_url = config["ACCOUNT_LINKING"]["api_url"]
+            self.redirect_url = config["ACCOUNT_LINKING"]["redirect_url"]
             _bkey = rsa_load(config["ACCOUNT_LINKING"]["sign_key"])
             self.sign_key = RSAKey().load_key(_bkey)
             self.sign_key.use = "sig"
@@ -111,7 +111,7 @@ class AccountLinkingModule(object):
         satosa_logging(logger, logging.INFO, "A new ID must be linked by the AL service",
                        context.state)
         context.state.add(AccountLinkingModule.STATE_KEY, internal_response.to_dict())
-        return Redirect("%s/%s" % (self.al_redirect, ticket))
+        return Redirect("%s/%s" % (self.redirect_url, ticket))
 
     def _get_uuid(self, context, issuer, id):
         """
@@ -136,7 +136,7 @@ class AccountLinkingModule(object):
         jws = self._to_jws(data)
 
         try:
-            request = "{}/get_id?jwt={}".format(self.al_rest_uri, jws)
+            request = "{}/get_id?jwt={}".format(self.api_url, jws)
             response = requests.get(request)
         except requests.ConnectionError as con_exc:
             msg = "Could not connect to account linking service"
