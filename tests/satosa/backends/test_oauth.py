@@ -68,10 +68,8 @@ class TestFacebookBackend(object):
         self.fb_backend = FacebookBackend(Mock(), INTERNAL_ATTRIBUTES, FB_CONFIG, "base_url", "facebook")
 
     @pytest.fixture
-    def incoming_authn_response(self):
-        context = Context()
+    def incoming_authn_response(self, context):
         context.path = 'facebook/sso/redirect'
-        context.state = State()
         state_data = dict(state=mock_get_state.return_value)
         context.state.add(self.fb_backend.name, state_data)
         context.request = {
@@ -112,10 +110,8 @@ class TestFacebookBackend(object):
         expected_url_map = [('^facebook$', self.fb_backend._authn_response)]
         assert url_map == expected_url_map
 
-    def test_start_auth(self):
-        context = Context()
+    def test_start_auth(self, context):
         context.path = 'facebook/sso/redirect'
-        context.state = State()
         internal_request = InternalRequest(UserIdHashType.transient, 'test_requestor')
 
         resp = self.fb_backend.start_auth(context, internal_request, mock_get_state)
@@ -142,7 +138,7 @@ class TestFacebookBackend(object):
         self.assert_token_request(**mock_do_access_token_request.call_args[1])
 
     @responses.activate
-    def test_entire_flow(self):
+    def test_entire_flow(self, context):
         """Tests start of authentication (incoming auth req) and receiving auth response."""
         responses.add(responses.POST,
                       "https://graph.facebook.com/v2.5/oauth/access_token",
@@ -153,9 +149,7 @@ class TestFacebookBackend(object):
                       content_type='application/json')
         self.setup_facebook_response()
 
-        context = Context()
         context.path = 'facebook/sso/redirect'
-        context.state = State()
         internal_request = InternalRequest(UserIdHashType.transient, 'test_requestor')
 
         self.fb_backend.start_auth(context, internal_request, mock_get_state)

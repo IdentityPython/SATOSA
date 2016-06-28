@@ -20,10 +20,8 @@ from saml2.entity_category.swamid import SFS_1993_1153, RESEARCH_AND_EDUCATION, 
 from saml2.saml import NAMEID_FORMAT_PERSISTENT, NAMEID_FORMAT_TRANSIENT
 from saml2.samlp import NameIDPolicy
 
-from satosa.context import Context
 from satosa.frontends.saml2 import SamlFrontend
 from satosa.internal_data import InternalResponse, AuthenticationInformation, InternalRequest
-from satosa.state import State
 from satosa.util import saml_name_format_to_hash_type
 from tests.users import USERS
 from tests.util import FakeSP, create_metadata_from_config_dict
@@ -47,14 +45,14 @@ class TestSamlFrontend:
     def construct_base_url_from_entity_id(self, entity_id):
         return "{parsed.scheme}://{parsed.netloc}".format(parsed=urlparse(entity_id))
 
-    def setup_for_authn_req(self, idp_conf, sp_conf, nameid_format=None, relay_state="relay_state",
+    def setup_for_authn_req(self, context, idp_conf, sp_conf, nameid_format=None, relay_state="relay_state",
                             internal_attributes=INTERNAL_ATTRIBUTES):
         config = {"idp_config": idp_conf, "endpoints": ENDPOINTS}
         sp_metadata_str = create_metadata_from_config_dict(sp_conf)
         idp_conf["metadata"]["inline"] = [sp_metadata_str]
 
         base_url = self.construct_base_url_from_entity_id(idp_conf["entityid"])
-        samlfrontend = SamlFrontend(lambda context, internal_req: (context, internal_req),
+        samlfrontend = SamlFrontend(lambda ctx, internal_req: (ctx, internal_req),
                                     internal_attributes, config, base_url, "saml_frontend")
         samlfrontend.register_endpoints(["saml"])
 
@@ -62,8 +60,6 @@ class TestSamlFrontend:
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
 
         fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
-        context = Context()
-        context.state = State()
         context.request = parse.parse_qs(
             urlparse(fakesp.make_auth_req(samlfrontend.idp_config["entityid"], nameid_format, relay_state)).query)
         tmp_dict = {}
@@ -74,7 +70,7 @@ class TestSamlFrontend:
                 tmp_dict[val] = context.request[val]
         context.request = tmp_dict
 
-        return context, samlfrontend
+        return samlfrontend
 
     @pytest.mark.parametrize("conf", [
         None,
@@ -110,11 +106,11 @@ class TestSamlFrontend:
 
         assert any(p.match(get_path_from_url(metadata_url)) for p in compiled_regex)
 
-    def test_handle_authn_request(self, idp_conf, sp_conf):
+    def test_handle_authn_request(self, context, idp_conf, sp_conf):
         """
         Performs a complete test for the module. The flow should be accepted.
         """
-        context, samlfrontend = self.setup_for_authn_req(idp_conf, sp_conf)
+        samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf)
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
         assert internal_req.requestor == sp_conf["entityid"]
 
@@ -132,11 +128,11 @@ class TestSamlFrontend:
         for key in resp.ava:
             assert USERS["testuser1"][key] == resp.ava[key]
 
-    def test_handle_authn_request_without_name_id_policy(self, idp_conf, sp_conf):
+    def test_handle_authn_request_without_name_id_policy(self, context, idp_conf, sp_conf):
         """
         Performs a complete test for the module. The flow should be accepted.
         """
-        context, samlfrontend = self.setup_for_authn_req(idp_conf, sp_conf, nameid_format="")
+        samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, nameid_format="")
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
         assert internal_req.requestor == sp_conf["entityid"]
 
@@ -154,11 +150,11 @@ class TestSamlFrontend:
         for key in resp.ava:
             assert USERS["testuser1"][key] == resp.ava[key]
 
-    def test_handle_authn_response_without_relay_state(self, idp_conf, sp_conf):
+    def test_handle_authn_response_without_relay_state(self, context, idp_conf, sp_conf):
         """
         Performs a complete test for the module. The flow should be accepted.
         """
-        context, samlfrontend = self.setup_for_authn_req(idp_conf, sp_conf, relay_state=None)
+        samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, relay_state=None)
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
         assert internal_req.requestor == sp_conf["entityid"]
 
@@ -219,7 +215,7 @@ class TestSamlFrontend:
             ["edupersontargetedid", "edupersonprincipalname", "edupersonaffiliation", "mail",
              "displayname", "sn", "givenname"])
 
-    def test_acr_mapping_in_authn_response(self, idp_conf, sp_conf):
+    def test_acr_mapping_in_authn_response(self, context, idp_conf, sp_conf):
         eidas_loa_low = "http://eidas.europa.eu/LoA/low"
         loa = {"": eidas_loa_low}
 
@@ -236,8 +232,6 @@ class TestSamlFrontend:
 
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
         internal_response = InternalResponse(auth_info=auth_info)
-        context = Context()
-        context.state = State()
 
         resp_args = {
             "name_id_policy": NameIDPolicy(format=NAMEID_FORMAT_TRANSIENT),
@@ -260,7 +254,7 @@ class TestSamlFrontend:
             0].authn_context.authn_context_class_ref
         assert authn_context_class_ref.text == eidas_loa_low
 
-    def test_acr_mapping_per_idp_in_authn_response(self, idp_conf, sp_conf):
+    def test_acr_mapping_per_idp_in_authn_response(self, context, idp_conf, sp_conf):
         expected_loa = "LoA1"
         loa = {"": "http://eidas.europa.eu/LoA/low", idp_conf["entityid"]: expected_loa}
 
@@ -277,8 +271,6 @@ class TestSamlFrontend:
 
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", idp_conf["entityid"])
         internal_response = InternalResponse(auth_info=auth_info)
-        context = Context()
-        context.state = State()
 
         resp_args = {
             "name_id_policy": NameIDPolicy(format=NAMEID_FORMAT_TRANSIENT),
@@ -312,8 +304,8 @@ class TestSamlFrontend:
         ([RESEARCH_AND_EDUCATION, NREN], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, NREN)]),
         ([SFS_1993_1153], "swamid", swamid.RELEASE[""] + swamid.RELEASE[SFS_1993_1153]),
     ])
-    def test_respect_sp_entity_categories(self, entity_category, entity_category_module, expected_attributes, idp_conf,
-                                          sp_conf):
+    def test_respect_sp_entity_categories(self, context, entity_category, entity_category_module, expected_attributes,
+                                          idp_conf, sp_conf):
         idp_conf["service"]["idp"]["policy"]["default"]["entity_categories"] = [entity_category_module]
         sp_conf["entity_category"] = entity_category
         expected_attributes_in_all_entity_categories = list(itertools.chain(swamid.RELEASE[""],
@@ -330,8 +322,8 @@ class TestSamlFrontend:
         for expected_attribute in expected_attributes_in_all_entity_categories:
             internal_attributes[expected_attribute] = {"saml": [expected_attribute.lower()]}
 
-        _, samlfrontend = self.setup_for_authn_req(idp_conf, sp_conf,
-                                                   internal_attributes=dict(attributes=internal_attributes))
+        samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf,
+                                                internal_attributes=dict(attributes=internal_attributes))
 
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
@@ -341,8 +333,6 @@ class TestSamlFrontend:
         internal_response = InternalResponse(auth_info=auth_info)
         user_attributes = {k: "foo" for k in expected_attributes_in_all_entity_categories}
         internal_response.add_attributes(user_attributes)
-        context = Context()
-        context.state = State()
 
         resp_args = {
             "name_id_policy": NameIDPolicy(format=NAMEID_FORMAT_TRANSIENT),
@@ -361,17 +351,17 @@ class TestSamlFrontend:
 
         assert Counter(resp.ava.keys()) == Counter(expected_attributes)
 
-    def test_sp_metadata_including_uiinfo_display_name(self, idp_conf, sp_conf):
+    def test_sp_metadata_including_uiinfo_display_name(self, context, idp_conf, sp_conf):
         sp_conf["service"]["sp"]["ui_info"] = dict(display_name="Test SP")
-        _, samlfrontend = self.setup_for_authn_req(idp_conf, sp_conf)
+        samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf)
         display_names = samlfrontend._get_sp_display_name(samlfrontend.idp, sp_conf["entityid"])
         assert display_names[0]["text"] == "Test SP"
 
-    def test_sp_metadata_including_uiinfo_without_display_name(self, idp_conf, sp_conf):
+    def test_sp_metadata_including_uiinfo_without_display_name(self, context, idp_conf, sp_conf):
         sp_conf["service"]["sp"]["ui_info"] = dict(information_url="http://info.example.com")
-        _, samlfrontend = self.setup_for_authn_req(idp_conf, sp_conf)
+        samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf)
         assert samlfrontend._get_sp_display_name(samlfrontend.idp, sp_conf["entityid"]) is None
 
-    def test_sp_metadata_without_uiinfo(self, idp_conf, sp_conf):
-        _, samlfrontend = self.setup_for_authn_req(idp_conf, sp_conf)
+    def test_sp_metadata_without_uiinfo(self, context, idp_conf, sp_conf):
+        samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf)
         assert samlfrontend._get_sp_display_name(samlfrontend.idp, sp_conf["entityid"]) is None

@@ -20,7 +20,7 @@ def create_process_fail_func(data_str):
     return process
 
 
-def test_micro_service():
+def test_micro_service(context):
     """
     Test the micro service flow
     """
@@ -33,8 +33,6 @@ def test_micro_service():
 
     service_queue = build_micro_service_queue(service_list)
     test_data = "test_data"
-    context = Context()
-    context.state = State()
     data = service_queue.process_service_queue(context, test_data)
 
     for d in data_list:
@@ -43,7 +41,7 @@ def test_micro_service():
     assert data == test_data
 
 
-def test_mirco_service_error():
+def test_mirco_service_error(context):
     """
     Test that the process_service_queue raises a SATOSAAuthenticationError if anything goes wrong with a micro service
     """
@@ -61,8 +59,6 @@ def test_mirco_service_error():
 
     service_queue = build_micro_service_queue(service_list)
     test_data = "test_data"
-    context = Context()
-    context.state = State()
 
     with pytest.raises(SATOSAAuthenticationError):
         service_queue.process_service_queue(context, test_data)

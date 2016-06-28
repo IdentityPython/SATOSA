@@ -25,12 +25,6 @@ class TestAccountLinking():
         return internal_response
 
     @pytest.fixture
-    def context(self):
-        context = Context()
-        context.state = State()
-        return context
-
-    @pytest.fixture
     def satosa_config(self, signing_key_path):
         account_linking_config = {
             "enable": True,

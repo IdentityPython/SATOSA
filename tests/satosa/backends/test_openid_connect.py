@@ -132,23 +132,19 @@ class TestOpenIDConnectBackend(object):
         return urlparse(backend_config["client"]["client_metadata"]["redirect_uris"][0]).path.lstrip("/")
 
     @pytest.fixture
-    def incoming_authn_response(self, backend_config):
+    def incoming_authn_response(self, context, backend_config):
         oidc_state = "my state"
-        context = Context()
         context.path = self.get_redirect_uri_path(backend_config)
         context.request = {
             "code": "F+R4uWbN46U+Bq9moQPC4lEvRd2De4o=",
             "state": oidc_state
         }
 
-        state = State()
         state_data = {
             STATE_KEY: oidc_state,
             NONCE_KEY: NONCE
         }
-        state.add(self.oidc_backend.name, state_data)
-
-        context.state = state
+        context.state.add(self.oidc_backend.name, state_data)
         return context
 
     def test_register_endpoints(self, backend_config):
@@ -179,10 +175,7 @@ class TestOpenIDConnectBackend(object):
         assert isinstance(args[1], InternalResponse)
         self.assert_expected_attributes(args[1].get_attributes())
 
-    def test_start_auth_redirects_to_provider_authorization_endpoint(self, backend_config):
-        context = Context()
-        context.state = State()
-
+    def test_start_auth_redirects_to_provider_authorization_endpoint(self, context, backend_config):
         auth_response = self.oidc_backend.start_auth(context, None)
         assert isinstance(auth_response, Response)
 
@@ -197,10 +190,7 @@ class TestOpenIDConnectBackend(object):
         assert "state" in auth_params
         assert "nonce" in auth_params
 
-    def test_set_state_in_start_auth(self, backend_config):
-        state = State()
-        context = Context()
-        context.state = state
+    def test_set_state_in_start_auth(self, context):
         self.oidc_backend.start_auth(context, None)
         assert context.state.get(self.oidc_backend.name)
 
@@ -215,11 +205,8 @@ class TestOpenIDConnectBackend(object):
             incoming_authn_response.state.get(self.oidc_backend.name)
 
     @responses.activate
-    def test_entire_flow(self, backend_config):
+    def test_entire_flow(self, context, backend_config):
         self.setup_userinfo_endpoint(backend_config["provider_metadata"]["userinfo_endpoint"])
-        context = Context()
-        context.state = State()
-        internal_request = InternalRequest(UserIdHashType.transient, 'test_requestor')  # TODO
         auth_response = self.oidc_backend.start_auth(context, None)
         auth_params = dict(parse_qsl(urlparse(auth_response.message).query))
 
