@@ -18,8 +18,10 @@ from .response import Redirect
 
 logger = logging.getLogger(__name__)
 
+
 class UnexpectedResponseError(Exception):
     pass
+
 
 class ConsentModule(object):
     """
@@ -30,8 +32,8 @@ class ConsentModule(object):
 
     def __init__(self, config, callback_func):
         self.callback_func = callback_func
-        self.enabled = \
-            "CONSENT" in config and ("enable" not in config["CONSENT"] or config["CONSENT"]["enable"])
+        self.enabled = "CONSENT" in config and \
+                       ("enable" not in config["CONSENT"] or config["CONSENT"]["enable"])
         if self.enabled:
             self.endpoint = "handle_consent"
             self.proxy_base = config["BASE"]
@@ -123,13 +125,11 @@ class ConsentModule(object):
 
         consent_state = state.get(ConsentModule.STATE_KEY)
         filter = consent_state["filter"]
-        requestor = internal_response.to_requestor
-        requester_name = consent_state["requester_name"]
 
         internal_response = self._filter_attributes(internal_response, filter)
         filtered_data = internal_response.get_attributes()
 
-        id_hash = self._get_consent_id(requestor, internal_response.get_user_id(), filtered_data)
+        id_hash = self._get_consent_id(internal_response.to_requestor, internal_response.get_user_id(), filtered_data)
 
         try:
             # Check if consent is already given
@@ -148,11 +148,12 @@ class ConsentModule(object):
         state.add(ConsentModule.STATE_KEY, consent_state)
 
         consent_args = {"attr": filtered_data,
-                        "locked_attr": self.locked_attr,
                         "id": id_hash,
                         "redirect_endpoint": "%s/consent/%s" % (self.proxy_base, self.endpoint),
-                        "requestor": requestor,
-                        "requester_name": requester_name}
+                        "requester_name": internal_response.to_requestor}
+        if self.locked_attr:
+            consent_args["locked_attrs"] = [self.locked_attr]
+
         consent_args_jws = self._to_jws(consent_args)
 
         try:

@@ -5,6 +5,8 @@ from saml2 import BINDING_HTTP_REDIRECT
 from saml2.extension.idpdisc import BINDING_DISCO
 from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
 
+from satosa.context import Context
+from satosa.state import State
 from .util import generate_cert, write_cert
 
 
@@ -89,3 +91,10 @@ def idp_conf(cert):
     }
 
     return idpconfig
+
+
+@pytest.fixture
+def context():
+    context = Context()
+    context.state = State()
+    return context
