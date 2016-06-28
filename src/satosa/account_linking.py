@@ -15,12 +15,13 @@ from .response import Redirect
 
 logger = logging.getLogger(__name__)
 
+STATE_KEY = "ACCOUNT_LINKING"
+
 
 class AccountLinkingModule(object):
     """
     Module for handling account linking and recovery. Uses an external account linking service
     """
-    STATE_KEY = "ACCOUNT_LINKING"
 
     def __init__(self, config, callback_func):
         """
@@ -33,17 +34,14 @@ class AccountLinkingModule(object):
         """
         self.config = config
         self.callback_func = callback_func
-        self.enabled = \
-            "ACCOUNT_LINKING" in config and ("enable" not in config["ACCOUNT_LINKING"] or
-                                             config["ACCOUNT_LINKING"]["enable"])
+        self.enabled = "ACCOUNT_LINKING" in config and \
+                       ("enable" not in config["ACCOUNT_LINKING"] or config["ACCOUNT_LINKING"]["enable"])
         if self.enabled:
-            self.endpoint = "handle_account_linking"
             self.proxy_base = config["BASE"]
             self.api_url = config["ACCOUNT_LINKING"]["api_url"]
             self.redirect_url = config["ACCOUNT_LINKING"]["redirect_url"]
-            _bkey = rsa_load(config["ACCOUNT_LINKING"]["sign_key"])
-            self.sign_key = RSAKey().load_key(_bkey)
-            self.sign_key.use = "sig"
+            self.signing_key = RSAKey(key=rsa_load(config["ACCOUNT_LINKING"]["sign_key"]), use="sig", alg="RS256")
+            self.endpoint = "/handle_account_linking"
             logger.info("Account linking is active")
         else:
             logger.info("Account linking is not active")
@@ -58,7 +56,7 @@ class AccountLinkingModule(object):
         :param context: The current context
         :return: response
         """
-        saved_state = context.state.get(AccountLinkingModule.STATE_KEY)
+        saved_state = context.state.get(STATE_KEY)
         internal_response = InternalResponse.from_dict(saved_state)
         return self.manage_al(context, internal_response)
 
@@ -87,7 +85,7 @@ class AccountLinkingModule(object):
                            context.state)
             internal_response.set_user_id(message)
             try:
-                context.state.remove(AccountLinkingModule.STATE_KEY)
+                context.state.remove(STATE_KEY)
             except KeyError:
                 pass
             return self.callback_func(context, internal_response)
@@ -110,7 +108,7 @@ class AccountLinkingModule(object):
         """
         satosa_logging(logger, logging.INFO, "A new ID must be linked by the AL service",
                        context.state)
-        context.state.add(AccountLinkingModule.STATE_KEY, internal_response.to_dict())
+        context.state.add(STATE_KEY, internal_response.to_dict())
         return Redirect("%s/%s" % (self.redirect_url, ticket))
 
     def _get_uuid(self, context, issuer, id):
@@ -130,10 +128,12 @@ class AccountLinkingModule(object):
         :return: response status code and message
             (200, uuid) or (400, ticket)
         """
-        data = {"idp": issuer, "id": id,
-                "redirect_endpoint": "%s/account_linking/%s" % (self.proxy_base,
-                                                                self.endpoint)}
-        jws = self._to_jws(data)
+        data = {
+            "idp": issuer,
+            "id": id,
+            "redirect_endpoint": "%s/account_linking%s" % (self.proxy_base, self.endpoint)
+        }
+        jws = JWS(json.dumps(data), alg=self.signing_key.alg).sign_compact([self.signing_key])
 
         try:
             request = "{}/get_id?jwt={}".format(self.api_url, jws)
@@ -143,26 +143,12 @@ class AccountLinkingModule(object):
             satosa_logging(logger, logging.CRITICAL, msg, context.state, exc_info=True)
             raise SATOSAAuthenticationError(context.state, msg) from con_exc
 
-        if response.status_code != 200 and response.status_code != 404:
+        if response.status_code not in [200, 404]:
             msg = "Got status code '%s' from account linking service" % (response.status_code)
             satosa_logging(logger, logging.CRITICAL, msg, context.state)
             raise SATOSAAuthenticationError(context.state, msg)
 
         return response.status_code, response.text
-
-    def _to_jws(self, data):
-        """
-        Converts data to a jws
-
-        :type data: Any
-        :rtype: str
-
-        :param data: Data to be converted to jws
-        :return: a jws
-        """
-        algorithm = "RS256"
-        _jws = JWS(json.dumps(data), alg=algorithm)
-        return _jws.sign_compact([self.sign_key])
 
     def register_endpoints(self):
         """
@@ -172,4 +158,4 @@ class AccountLinkingModule(object):
 
         :return: A list of endpoints bound to a function
         """
-        return [("^account_linking/%s$" % self.endpoint, self._handle_al_response)]
+        return [("^account_linking%s$" % self.endpoint, self._handle_al_response)]
