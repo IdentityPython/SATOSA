@@ -466,13 +466,12 @@ class InternalResponse(InternalData):
         :rtype: str
         :return: The user id
         """
-        id = ""
         if self._user_id_attributes:
-            for attr in self._user_id_attributes:
-                id = "%s%s" % (id, self._attributes[attr])
-        else:
-            id = self._user_id
-        return id
+            attr_values = [self._attributes[attr] for attr in self._user_id_attributes]
+            id = "".join(attr_values)
+            return id
+
+        return self._user_id
 
     @staticmethod
     def from_dict(int_resp_dict):
