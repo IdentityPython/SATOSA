@@ -2,87 +2,50 @@ import pytest
 
 from satosa.context import Context
 from satosa.routing import ModuleRouter
-from satosa.state import State
-from tests.util import FakeFrontend, FakeBackend
+from tests.util import TestBackend, TestFrontend
 
-RECEIVERS = ["Saml2IDP", "VOPaaSSaml2IDP"]
-PROVIDERS = ["Saml2SP", "VOPaaSSaml2SP"]
-FRONTEND_ENDPOINTS = ["sso/redirect", "sso/post"]
-BACKEND_ENDPOINTS = ["disco", "auth"]
-
-
-def create_frontend_endpoint_func(receiver):
-    def register_frontend_url(providers):
-        endpoints = []
-        for endp in FRONTEND_ENDPOINTS:
-            frontend_endp = "%s/%s" % (receiver, endp)
-            for provider in providers:
-                endpoints.append(("^%s/%s$" % (provider, frontend_endp), (receiver, endp)))
-        return endpoints
-
-    return register_frontend_url
-
-
-def create_backend_endpoint_func(provider):
-    def register_backend_url():
-        endpoints = []
-        for endp in BACKEND_ENDPOINTS:
-            backend_endp = "%s/%s" % (provider, endp)
-            endpoints.append(("^%s$" % backend_endp, (provider, endp)))
-        return endpoints
-
-    return register_backend_url
+FRONTEND_NAMES = ["Saml2IDP", "VOPaaSSaml2IDP"]
+BACKEND_NAMES = ["Saml2SP", "VOPaaSSaml2SP"]
 
 
 @pytest.fixture
-def router_fixture():
-    frontends = {}
+def router():
     backends = {}
+    for provider in BACKEND_NAMES:
+        backends[provider] = TestBackend(None, {"attributes": {}}, None, None, provider)
 
-    for provider in PROVIDERS:
-        backends[provider] = FakeBackend(internal_attributes={"attributes": {}})
-        backends[provider].register_endpoints_func = create_backend_endpoint_func(provider)
+    frontends = {}
+    for receiver in FRONTEND_NAMES:
+        frontends[receiver] = TestFrontend(None, {"attributes": {}}, None, None, receiver)
 
-    for receiver in RECEIVERS:
-        frontends[receiver] = FakeFrontend(internal_attributes={"attributes": {}})
-        frontends[receiver].register_endpoints_func = create_frontend_endpoint_func(receiver)
-
-    return ModuleRouter(frontends, backends), frontends, backends
+    return ModuleRouter(frontends, backends)
 
 
 def foreach_frontend_endpoint(callback):
-    for receiver in RECEIVERS:
-        for provider in PROVIDERS:
-            for endp in FRONTEND_ENDPOINTS:
-                path = "%s/%s/%s" % (provider, receiver, endp)
-                callback(path, provider, receiver, endp)
+    for receiver in FRONTEND_NAMES:
+        for provider in BACKEND_NAMES:
+            path = "%s/%s/request" % (provider, receiver)
+            callback(path, provider, receiver)
 
 
 def foreach_backend_endpoint(callback):
-    for provider in PROVIDERS:
-        for endp in BACKEND_ENDPOINTS:
-            path = "%s/%s" % (provider, endp)
-            callback(path, provider, endp)
+    for provider in BACKEND_NAMES:
+        path = "%s/response" % provider
+        callback(path, provider)
 
 
-def test_url_routing(router_fixture):
-    router, _, _ = router_fixture
-
-    def test_frontend(path, provider, receiver, endpoint):
+def test_url_routing(router):
+    def test_frontend(path, provider, receiver):
         context = Context()
         context.path = path
-        spec = router.endpoint_routing(context)
-        assert spec[0] == receiver
-        assert spec[1] == endpoint
+        router.endpoint_routing(context)
         assert context.target_frontend == receiver
         assert context.target_backend == provider
 
-    def test_backend(path, provider, endpoint):
+    def test_backend(path, provider):
         context = Context()
         context.path = path
-        spec = router.endpoint_routing(context)
-        assert spec[0] == provider
-        assert spec[1] == endpoint
+        router.endpoint_routing(context)
         assert context.target_backend == provider
         assert context.target_frontend is None
 
@@ -90,18 +53,16 @@ def test_url_routing(router_fixture):
     foreach_backend_endpoint(test_backend)
 
 
-def test_module_routing(context, router_fixture):
-    router, frontends, backends = router_fixture
-
-    def test_routing(path, provider, receiver, _):
+def test_module_routing(context, router):
+    def test_routing(path, provider, receiver):
         context.path = path
         router.endpoint_routing(context)
 
         backend = router.backend_routing(context)
-        assert backend == backends[provider]
+        assert backend == router.backends[provider]["instance"]
 
         frontend = router.frontend_routing(context)
-        assert frontend == frontends[receiver]
+        assert frontend == router.frontends[receiver]["instance"]
         assert context.target_frontend == receiver
 
     foreach_frontend_endpoint(test_routing)
