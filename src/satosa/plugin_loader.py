@@ -1,7 +1,6 @@
 """
 Some help functions to load satosa backend and frontend modules
 """
-import inspect
 import json
 import logging
 import sys
