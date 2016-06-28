@@ -14,7 +14,7 @@ try:
     config_file = os.environ.get("SATOSA_CONFIG", "proxy_conf.yaml")
     server_config = SATOSAConfig(config_file)
     if "LOGGING" in server_config:
-        logging.config.dictConfig(server_config.LOGGING)
+        logging.config.dictConfig(server_config["LOGGING"])
     else:
         stdout_handler = logging.StreamHandler(sys.stdout)
         stdout_handler.setLevel(logging.DEBUG)

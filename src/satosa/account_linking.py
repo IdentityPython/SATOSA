@@ -34,14 +34,14 @@ class AccountLinkingModule(object):
         self.config = config
         self.callback_func = callback_func
         self.enabled = \
-            "ACCOUNT_LINKING" in config and ("enable" not in config.ACCOUNT_LINKING or
-                                             config.ACCOUNT_LINKING["enable"])
+            "ACCOUNT_LINKING" in config and ("enable" not in config["ACCOUNT_LINKING"] or
+                                             config["ACCOUNT_LINKING"]["enable"])
         if self.enabled:
             self.endpoint = "handle_account_linking"
-            self.proxy_base = config.BASE
-            self.al_rest_uri = config.ACCOUNT_LINKING["rest_uri"]
-            self.al_redirect = config.ACCOUNT_LINKING["redirect"]
-            _bkey = rsa_load(config.ACCOUNT_LINKING["sign_key"])
+            self.proxy_base = config["BASE"]
+            self.al_rest_uri = config["ACCOUNT_LINKING"]["rest_uri"]
+            self.al_redirect = config["ACCOUNT_LINKING"]["redirect"]
+            _bkey = rsa_load(config["ACCOUNT_LINKING"]["sign_key"])
             self.sign_key = RSAKey().load_key(_bkey)
             self.sign_key.use = "sig"
             logger.info("Account linking is active")

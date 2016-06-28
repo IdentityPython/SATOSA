@@ -42,10 +42,10 @@ class SATOSABase(object):
         self.config = config
         logger.info("Loading backend modules...")
         backends = load_backends(self.config, self._auth_resp_callback_func,
-                                 self.config.INTERNAL_ATTRIBUTES)
+                                 self.config["INTERNAL_ATTRIBUTES"])
         logger.info("Loading frontend modules...")
         frontends = load_frontends(self.config, self._auth_req_callback_func,
-                                   self.config.INTERNAL_ATTRIBUTES)
+                                   self.config["INTERNAL_ATTRIBUTES"])
         self.consent_module = ConsentModule(config, self._consent_resp_callback_func)
         self.account_linking_module = AccountLinkingModule(config,
                                                            self._account_linking_callback_func)
@@ -59,12 +59,12 @@ class SATOSABase(object):
         self.request_micro_services = None
         self.response_micro_services = None
         if "MICRO_SERVICES" in self.config:
-            self.request_micro_services = load_request_microservices(self.config.CUSTOM_PLUGIN_MODULE_PATHS,
-                                                                     self.config.MICRO_SERVICES,
-                                                                     self.config.INTERNAL_ATTRIBUTES)
-            self.response_micro_services = load_response_microservices(self.config.CUSTOM_PLUGIN_MODULE_PATHS,
-                                                                       self.config.MICRO_SERVICES,
-                                                                       self.config.INTERNAL_ATTRIBUTES)
+            self.request_micro_services = load_request_microservices(self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
+                                                                     self.config["MICRO_SERVICES"],
+                                                                     self.config["INTERNAL_ATTRIBUTES"])
+            self.response_micro_services = load_response_microservices(self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
+                                                                       self.config["MICRO_SERVICES"],
+                                                                       self.config["INTERNAL_ATTRIBUTES"])
         self.module_router = ModuleRouter(frontends, backends)
 
     def _auth_req_callback_func(self, context, internal_request):
@@ -109,11 +109,11 @@ class SATOSABase(object):
 
         context.request = None
         internal_response.to_requestor = context.state.get(SATOSABase.STATE_KEY)
-        user_id_attr = self.config.INTERNAL_ATTRIBUTES.get("user_id_from_attr", [])
+        user_id_attr = self.config["INTERNAL_ATTRIBUTES"].get("user_id_from_attr", [])
         if user_id_attr:
             internal_response.set_user_id_from_attr(user_id_attr)
         # Hash the user id
-        user_id = UserIdHasher.hash_data(self.config.USER_ID_HASH_SALT,
+        user_id = UserIdHasher.hash_data(self.config["USER_ID_HASH_SALT"],
                                          internal_response.get_user_id())
         internal_response.set_user_id(user_id)
 
@@ -134,23 +134,23 @@ class SATOSABase(object):
         :param internal_response: The authentication response
         :return: response
         """
-        user_id = UserIdHasher.hash_id(self.config.USER_ID_HASH_SALT,
+        user_id = UserIdHasher.hash_id(self.config["USER_ID_HASH_SALT"],
                                        internal_response.get_user_id(),
                                        internal_response.to_requestor,
                                        context.state)
         internal_response.set_user_id(user_id)
         internal_response.set_user_id_hash_type(UserIdHasher.hash_type(context.state))
-        user_id_to_attr = self.config.INTERNAL_ATTRIBUTES.get("user_id_to_attr", None)
+        user_id_to_attr = self.config["INTERNAL_ATTRIBUTES"].get("user_id_to_attr", None)
         if user_id_to_attr:
             attributes = internal_response.get_attributes()
             attributes[user_id_to_attr] = internal_response.get_user_id()
             internal_response.add_attributes(attributes)
 
         # Hash all attributes specified in INTERNAL_ATTRIBUTES["hash]
-        hash_attributes = self.config.INTERNAL_ATTRIBUTES.get("hash", [])
+        hash_attributes = self.config["INTERNAL_ATTRIBUTES"].get("hash", [])
         internal_attributes = internal_response.get_attributes()
         for attribute in hash_attributes:
-            internal_attributes[attribute] = UserIdHasher.hash_data(self.config.USER_ID_HASH_SALT,
+            internal_attributes[attribute] = UserIdHasher.hash_data(self.config["USER_ID_HASH_SALT"],
                                                                     internal_attributes[attribute])
 
         return self.consent_module.manage_consent(context, internal_response)
@@ -220,8 +220,8 @@ class SATOSABase(object):
         :param context: Session context
         """
         try:
-            state = cookie_to_state(context.cookie, self.config.COOKIE_STATE_NAME,
-                                    self.config.STATE_ENCRYPTION_KEY)
+            state = cookie_to_state(context.cookie, self.config["COOKIE_STATE_NAME"],
+                                    self.config["STATE_ENCRYPTION_KEY"])
         except SATOSAStateError:
             state = State()
         context.state = state
@@ -239,15 +239,15 @@ class SATOSABase(object):
         if context.state.should_delete():
             # Save empty state with a max age of 0
             cookie = state_to_cookie(State(),
-                                     self.config.COOKIE_STATE_NAME,
+                                     self.config["COOKIE_STATE_NAME"],
                                      "/",
-                                     self.config.STATE_ENCRYPTION_KEY,
+                                     self.config["STATE_ENCRYPTION_KEY"],
                                      0)
         else:
             cookie = state_to_cookie(context.state,
-                                     self.config.COOKIE_STATE_NAME,
+                                     self.config["COOKIE_STATE_NAME"],
                                      "/",
-                                     self.config.STATE_ENCRYPTION_KEY)
+                                     self.config["STATE_ENCRYPTION_KEY"])
 
         if isinstance(resp, Response):
             resp.add_cookie(cookie)

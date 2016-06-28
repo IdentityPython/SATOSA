@@ -117,7 +117,7 @@ class TestConsent:
 
         consent_id = "1234"
         responses.add(responses.GET,
-                      "{}/verify/{}".format(consent_config.CONSENT["rest_uri"], consent_id),
+                      "{}/verify/{}".format(consent_config["CONSENT"]["rest_uri"], consent_id),
                       status=400)
         assert not consent_module._verify_consent(consent_id)
 
@@ -127,7 +127,7 @@ class TestConsent:
         consent_module = ConsentModule(consent_config, lambda: None)
         consent_id = "1234"
         responses.add(responses.GET,
-                      "{}/verify/{}".format(consent_config.CONSENT["rest_uri"], consent_id),
+                      "{}/verify/{}".format(consent_config["CONSENT"]["rest_uri"], consent_id),
                       status=200, body=json.dumps(FILTER))
         assert consent_module._verify_consent(consent_id) == FILTER
 
@@ -137,7 +137,7 @@ class TestConsent:
         consent_module = ConsentModule(consent_config, lambda: None)
         jws = "A_JWS"
 
-        responses.add(responses.GET, "{}/creq/{}".format(consent_config.CONSENT["rest_uri"], jws),
+        responses.add(responses.GET, "{}/creq/{}".format(consent_config["CONSENT"]["rest_uri"], jws),
                       status=401)
         with pytest.raises(UnexpectedResponseError):
             consent_module._consent_registration(jws)
@@ -147,7 +147,7 @@ class TestConsent:
         consent_config = SATOSAConfig(self.satosa_config)
         consent_module = ConsentModule(consent_config, lambda: None)
         jws = "A_JWS"
-        responses.add(responses.GET, "{}/creq/{}".format(consent_config.CONSENT["rest_uri"], jws),
+        responses.add(responses.GET, "{}/creq/{}".format(consent_config["CONSENT"]["rest_uri"], jws),
                       status=200, body="ticket")
         assert consent_module._consent_registration(jws) == "ticket"
 
@@ -207,7 +207,7 @@ class TestConsent:
 
             self.assert_redirect(resp, expected_ticket)
             self.assert_registstration_req(rsps.calls[1].request,
-                                           consent_config.CONSENT["sign_key"])
+                                           consent_config["CONSENT"]["sign_key"])
 
         with responses.RequestsMock() as rsps:
             # Now consent has been given, consent service returns 200 OK
@@ -242,7 +242,7 @@ class TestConsent:
 
         self.assert_redirect(resp, expected_ticket)
         self.assert_registstration_req(responses.calls[1].request,
-                                       consent_config.CONSENT["sign_key"])
+                                       consent_config["CONSENT"]["sign_key"])
 
         context = Context()
         context.state = state

@@ -70,7 +70,7 @@ class SATOSAConfig(object):
             if key not in conf:
                 raise ValueError("Missing key '%s' in config" % key)
 
-    def __getattr__(self, item):
+    def __getitem__(self, item):
         """
         Returns data bound to the key 'item'.
 
@@ -80,11 +80,9 @@ class SATOSAConfig(object):
         :param item: key to data
         :return: data bound to key 'item'
         """
-        if self._config and item in self._config:
-            return self._config[item]
-        raise AttributeError("'module' object has no attribute '%s'" % item)
+        return self._config[item]
 
-    def __setattr__(self, key, value):
+    def __setitem__(self, key, value):
         """
         Inserts value into internal dict
 
@@ -95,12 +93,13 @@ class SATOSAConfig(object):
         :param value: data
         :return: None
         """
-        if key != "_config":
-            if self._config is not None:
-                self._config[key] = value
+        self._config[key] = value
 
-    def __iter__(self):
-        return iter(self._config)
+    def __contains__(self, key):
+        return key in self._config
+
+    def get(self, item, default=None):
+        return self._config.get(item, default)
 
     def _load_dict(self, config):
         """

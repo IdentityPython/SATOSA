@@ -31,17 +31,17 @@ class ConsentModule(object):
     def __init__(self, config, callback_func):
         self.callback_func = callback_func
         self.enabled = \
-            "CONSENT" in config and ("enable" not in config.CONSENT or config.CONSENT["enable"])
+            "CONSENT" in config and ("enable" not in config["CONSENT"] or config["CONSENT"]["enable"])
         if self.enabled:
             self.endpoint = "handle_consent"
-            self.proxy_base = config.BASE
-            self.consent_uri = config.CONSENT["rest_uri"]
-            self.consent_redirect_url = config.CONSENT["redirect"]
+            self.proxy_base = config["BASE"]
+            self.consent_uri = config["CONSENT"]["rest_uri"]
+            self.consent_redirect_url = config["CONSENT"]["redirect"]
             self.locked_attr = None
-            if "user_id_to_attr" in config.INTERNAL_ATTRIBUTES:
-                self.locked_attr = config.INTERNAL_ATTRIBUTES["user_id_to_attr"]
+            if "user_id_to_attr" in config["INTERNAL_ATTRIBUTES"]:
+                self.locked_attr = config["INTERNAL_ATTRIBUTES"]["user_id_to_attr"]
 
-            _bkey = rsa_load(config.CONSENT["sign_key"])
+            _bkey = rsa_load(config["CONSENT"]["sign_key"])
             self.sign_key = RSAKey().load_key(_bkey)
             self.sign_key.use = "sig"
             logger.info("Consent flow is active")
