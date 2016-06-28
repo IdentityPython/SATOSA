@@ -30,7 +30,7 @@ class TestAccountLinking():
             "STATE_ENCRYPTION_KEY": "ASDasd123",
             "BACKEND_MODULES": "",
             "FRONTEND_MODULES": "",
-            "INTERNAL_ATTRIBUTES": {},
+            "INTERNAL_ATTRIBUTES": {"attributes": {}},
             "ACCOUNT_LINKING": self.account_linking_config
         }
         self.callback_func = MagicMock()

@@ -1,11 +1,12 @@
 """
 This module contains methods to load, verify and build configurations for the satosa proxy.
 """
-import json
 import logging
 import os
 
 import yaml
+
+from satosa.exception import SATOSAConfigurationError
 
 logger = logging.getLogger(__name__)
 
@@ -26,16 +27,16 @@ class SATOSAConfig(object):
         :type config: str | dict
         :rtype: satosa.satosa_config.SATOSAConfig
 
-        :param config: Can be a file path, a string (ex. json/yaml), or a dict
+        :param config: Can be a file path or a dictionary
         :return: A verified SATOSAConfig
         """
-        dict_parsers = [SATOSAConfig._load_dict, SATOSAConfig._load_json, SATOSAConfig._load_yaml]
-        for parser in dict_parsers:
+        parsers = [self._load_dict, self._load_yaml]
+        for parser in parsers:
             self.__dict__["_config"] = parser(config)
             if self._config is not None:
                 break
 
-        # Load sensitive config
+        # Load sensitive config from environment variables
         for key in SATOSAConfig.sensitive_dict_keys:
             val = os.environ.get("SATOSA_{key}".format(key=key))
             if val:
@@ -43,14 +44,15 @@ class SATOSAConfig(object):
 
         self._verify_dict(self._config)
 
-        for parser in dict_parsers:
+        for parser in parsers:
             _internal_attributes = parser(self._config["INTERNAL_ATTRIBUTES"])
             if _internal_attributes is not None:
+                self._config["INTERNAL_ATTRIBUTES"] = _internal_attributes
                 break
-        self._config["INTERNAL_ATTRIBUTES"] = _internal_attributes
+        if not self._config["INTERNAL_ATTRIBUTES"]:
+            raise SATOSAConfigurationError("Coudl not load attribute mapping from 'INTERNAL_ATTRIBUTES.")
 
-    @staticmethod
-    def _verify_dict(conf):
+    def _verify_dict(self, conf):
         """
         Check that the configuration contains all necessary keys.
 
@@ -98,10 +100,9 @@ class SATOSAConfig(object):
                 self._config[key] = value
 
     def __iter__(self):
-        return self._config.__iter__()
+        return iter(self._config)
 
-    @staticmethod
-    def _load_dict(config):
+    def _load_dict(self, config):
         """
         Load config from dict
 
@@ -114,51 +115,22 @@ class SATOSAConfig(object):
         if isinstance(config, dict):
             return config
 
-    @staticmethod
-    def _load_json(config):
-        """
-        Load config from json file or string
+        return None
 
-        :type config: str
-        :rtype: dict
-
-        :param config: config to load. Can be file path or json string
-        :return: Loaded config
-        """
-        try:
-            config = SATOSAConfig._readfile(config)
-            return json.loads(config)
-        except ValueError as error:  # not a json config
-            logger.debug("Could not parse config as json: {}", str(error))
-
-    @staticmethod
-    def _load_yaml(config):
+    def _load_yaml(self, config_file):
         """
         Load config from yaml file or string
 
-        :type config: str
+        :type config_file: str
         :rtype: dict
 
-        :param config: config to load. Can be file path or yaml string
+        :param config_file: config to load. Can be file path or yaml string
         :return: Loaded config
         """
         try:
-            config = SATOSAConfig._readfile(config)
-            return yaml.safe_load(config)
+            with open(config_file) as f:
+                return yaml.safe_load(f.read())
         except yaml.YAMLError as error:
             logger.debug("Could not parse config as YAML: {}", str(error))
 
-    @staticmethod
-    def _readfile(config):
-        """
-        Reads a file path and return the data.
-        If the path doesn't point to a file, the input will be used as return data.
-
-        :type config: str
-        :rtype: str
-
-        :param config: Path to file or config string
-        :return: File data
-        """
-        with open(config) as f:
-            return f.read()
+        return None
