@@ -243,7 +243,7 @@ class SamlBackend(BackendModule):
         auth_info = AuthenticationInformation(auth_class_ref, timestamp, issuer)
         internal_resp = InternalResponse(auth_info=auth_info)
 
-        internal_resp.set_user_id(response.get_subject().text)
+        internal_resp.user_id = response.get_subject().text
         internal_resp.attributes = self.converter.to_internal(self.attribute_profile, response.ava)
 
         satosa_logging(logger, logging.DEBUG,

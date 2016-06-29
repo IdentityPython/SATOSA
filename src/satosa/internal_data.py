@@ -402,8 +402,7 @@ class InternalResponse(InternalData):
 
     def __init__(self, auth_info=None):
         super().__init__()
-        self._user_id = None
-        self._user_id_attributes = []
+        self.user_id = None
         # This dict is a data carrier between frontend and backend modules.
         self.attributes = {}
         self.auth_info = auth_info
@@ -420,40 +419,6 @@ class InternalResponse(InternalData):
             user_id_hash_type = getattr(UserIdHashType, user_id_hash_type)
         self.user_id_hash_type = user_id_hash_type
 
-    def set_user_id(self, uid):
-        """
-        Set the user id value
-        :type uid: str
-        :param uid: The user id
-        """
-        if not isinstance(uid, str):
-            raise SATOSAError("Wrong user id format. Excpected 'str' but got '%s'" % type(uid))
-        self._user_id_attributes = []
-        self._user_id = uid
-
-    def set_user_id_from_attr(self, attributes):
-        """
-        Build the user id from multiple attributes
-        :type attributes: list[str]
-        :param attributes: A list of attributes (internal representation)
-        """
-        if not isinstance(attributes, list):
-            attributes = [attributes]
-        self._user_id_attributes = attributes
-
-    def get_user_id(self):
-        """
-        Returns the user id.
-        :rtype: str
-        :return: The user id
-        """
-        if self._user_id_attributes:
-            attr_values = [self.attributes[attr] for attr in self._user_id_attributes]
-            id = "".join(attr_values)
-            return id
-
-        return self._user_id
-
     @staticmethod
     def from_dict(int_resp_dict):
         """
@@ -468,8 +433,7 @@ class InternalResponse(InternalData):
             internal_response.set_user_id_hash_type(getattr(UserIdHashType,
                                                             int_resp_dict["hash_type"]))
         internal_response.attributes = int_resp_dict["attr"]
-        internal_response._user_id = int_resp_dict["usr_id"]
-        internal_response._user_id_attributes = int_resp_dict["usr_id_attr"]
+        internal_response.user_id= int_resp_dict["usr_id"]
         internal_response.to_requestor = int_resp_dict["to"]
         return internal_response
 
@@ -479,8 +443,7 @@ class InternalResponse(InternalData):
         :rtype: dict[str, dict[str, str] | str]
         :return: A dict representation of the object
         """
-        _dict = {"usr_id": self._user_id,
-                 "usr_id_attr": self._user_id_attributes,
+        _dict = {"usr_id": self.user_id,
                  "attr": self.attributes,
                  "to": self.to_requestor,
                  "auth_info": self.auth_info.to_dict()}

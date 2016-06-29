@@ -160,7 +160,7 @@ class TestOpenIDConnectBackend(object):
             ISSUER,
             "public"
         )
-        assert internal_response.get_user_id() == userinfo["sub"]
+        assert internal_response.user_id == userinfo["sub"]
         self.assert_expected_attributes(internal_response.attributes)
 
     @responses.activate

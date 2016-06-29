@@ -44,7 +44,7 @@ class TestOIDCFrontend(object):
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
         internal_response = InternalResponse(auth_info=auth_info)
         internal_response.attributes = DataConverter(INTERNAL_ATTRIBUTES).to_internal("saml", USERS["testuser1"])
-        internal_response.set_user_id(USERS["testuser1"]["eduPersonTargetedID"][0])
+        internal_response.user_id = USERS["testuser1"]["eduPersonTargetedID"][0]
 
         self.instance.provider.cdb = {
             "client1": {"response_types": ["id_token"],

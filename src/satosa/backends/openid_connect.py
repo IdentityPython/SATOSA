@@ -222,7 +222,7 @@ class OpenIDConnectBackend(BackendModule):
         auth_info = AuthenticationInformation(UNSPECIFIED, str(datetime.now()), issuer)
         internal_resp = InternalResponse(auth_info=auth_info)
         internal_resp.attributes = self.converter.to_internal("openid", response)
-        internal_resp.set_user_id(response["sub"])
+        internal_resp.user_id = response["sub"]
         return internal_resp
 
     def get_metadata_desc(self):

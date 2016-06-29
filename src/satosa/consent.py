@@ -85,7 +85,7 @@ class ConsentModule(object):
 
         requestor = internal_response.to_requestor
 
-        hash_id = self._get_consent_id(requestor, internal_response.get_user_id(),
+        hash_id = self._get_consent_id(requestor, internal_response.user_id,
                                        internal_response.attributes)
 
         try:
@@ -127,7 +127,7 @@ class ConsentModule(object):
         filter = consent_state["filter"]
 
         internal_response = self._filter_attributes(internal_response, filter)
-        id_hash = self._get_consent_id(internal_response.to_requestor, internal_response.get_user_id(),
+        id_hash = self._get_consent_id(internal_response.to_requestor, internal_response.user_id,
                                        internal_response.attributes)
 
         try:

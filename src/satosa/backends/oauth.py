@@ -134,7 +134,7 @@ class _OAuthBackend(BackendModule):
         user_info = self.user_information(atresp["access_token"])
         internal_response = InternalResponse(auth_info=self.auth_info(context.request))
         internal_response.attributes = self.converter.to_internal(self.external_type, user_info)
-        internal_response.set_user_id(user_info[self.user_id_attr])
+        internal_response.user_id = user_info[self.user_id_attr]
         context.state.remove(self.name)
         return self.auth_callback_func(context, internal_response)
 

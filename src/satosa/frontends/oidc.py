@@ -67,7 +67,7 @@ class OIDCFrontend(FrontendModule):
         epoch_timestamp = (auth_time - datetime.datetime(1970, 1, 1)).total_seconds()
 
         base_claims = {"client_id": auth_req["client_id"],
-                       "sub": internal_resp.get_user_id(),
+                       "sub": internal_resp.user_id,
                        "nonce": auth_req["nonce"]}
         id_token = self.provider.id_token_as_signed_jwt(base_claims, user_info=user_claims,
                                                         auth_time=epoch_timestamp,

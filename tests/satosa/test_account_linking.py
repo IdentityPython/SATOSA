@@ -21,7 +21,7 @@ class TestAccountLinking():
     def internal_response(self):
         auth_info = AuthenticationInformation("auth_class_ref", "timestamp", "issuer")
         internal_response = InternalResponse(auth_info=auth_info)
-        internal_response.set_user_id("user1")
+        internal_response.user_id = "user1"
         return internal_response
 
     @pytest.fixture
@@ -61,7 +61,7 @@ class TestAccountLinking():
         uuid = "uuid"
         data = {
             "idp": internal_response.auth_info.issuer,
-            "id": internal_response.get_user_id(),
+            "id": internal_response.user_id,
             "redirect_endpoint": satosa_config["BASE"] + "/account_linking/handle_account_linking"
         }
         key = RSAKey(key=rsa_load(satosa_config["ACCOUNT_LINKING"]["sign_key"]), use="sig", alg="RS256")
@@ -76,7 +76,7 @@ class TestAccountLinking():
         )
 
         self.account_linking.manage_al(context, internal_response)
-        assert internal_response.get_user_id() == uuid
+        assert internal_response.user_id == uuid
 
     @responses.activate
     def test_unknown_uuid_requiring_new_account_linking(self, satosa_config, internal_response, context):

@@ -333,7 +333,7 @@ class SamlFrontend(FrontendModule):
         else:
             auth_info["class_ref"] = internal_response.auth_info.auth_class_ref
 
-        name_id = NameID(text=internal_response.get_user_id(),
+        name_id = NameID(text=internal_response.user_id,
                          format=get_saml_name_id_format(internal_response.user_id_hash_type),
                          sp_name_qualifier=None,
                          name_qualifier=None)

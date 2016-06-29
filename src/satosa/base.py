@@ -109,13 +109,13 @@ class SATOSABase(object):
 
         context.request = None
         internal_response.to_requestor = context.state.get(SATOSABase.STATE_KEY)
-        user_id_attr = self.config["INTERNAL_ATTRIBUTES"].get("user_id_from_attr", [])
-        if user_id_attr:
-            internal_response.set_user_id_from_attr(user_id_attr)
+        if "user_id_from_attr" in self.config["INTERNAL_ATTRIBUTES"]:
+            user_id = [internal_response.attributes[attr] for attr in
+                       self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attr"]]
+            internal_response.user_id = user_id
         # Hash the user id
-        user_id = UserIdHasher.hash_data(self.config["USER_ID_HASH_SALT"],
-                                         internal_response.get_user_id())
-        internal_response.set_user_id(user_id)
+        user_id = UserIdHasher.hash_data(self.config["USER_ID_HASH_SALT"], internal_response.user_id)
+        internal_response.user_id = user_id
 
         if self.response_micro_services:
             internal_response = \
@@ -135,14 +135,14 @@ class SATOSABase(object):
         :return: response
         """
         user_id = UserIdHasher.hash_id(self.config["USER_ID_HASH_SALT"],
-                                       internal_response.get_user_id(),
+                                       internal_response.user_id,
                                        internal_response.to_requestor,
                                        context.state)
-        internal_response.set_user_id(user_id)
         internal_response.set_user_id_hash_type(UserIdHasher.hash_type(context.state))
+        internal_response.user_id = user_id
         user_id_to_attr = self.config["INTERNAL_ATTRIBUTES"].get("user_id_to_attr", None)
         if user_id_to_attr:
-            internal_response.attributes[user_id_to_attr] = internal_response.get_user_id()
+            internal_response.attributes[user_id_to_attr] = internal_response.user_id
 
         # Hash all attributes specified in INTERNAL_ATTRIBUTES["hash]
         hash_attributes = self.config["INTERNAL_ATTRIBUTES"].get("hash", [])

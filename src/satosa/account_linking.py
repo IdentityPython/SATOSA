@@ -77,13 +77,13 @@ class AccountLinkingModule(object):
             return self.callback_func(context, internal_response)
 
         issuer = internal_response.auth_info.issuer
-        id = internal_response.get_user_id()
+        id = internal_response.user_id
         status_code, message = self._get_uuid(context, issuer, id)
 
         if status_code == 200:
             satosa_logging(logger, logging.INFO, "issuer/id pair is linked in AL service",
                            context.state)
-            internal_response.set_user_id(message)
+            internal_response.user_id = message
             try:
                 context.state.remove(STATE_KEY)
             except KeyError:
