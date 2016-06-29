@@ -409,16 +409,6 @@ class InternalResponse(InternalData):
         self.user_id_hash_type = None
         self.to_requestor = None
 
-    def set_user_id_hash_type(self, user_id_hash_type: UserIdHashType):
-        """
-
-        :param user_id_hash_type:
-        :type user_id_hash_type: UserIdHashType
-        """
-        if isinstance(user_id_hash_type, str):
-            user_id_hash_type = getattr(UserIdHashType, user_id_hash_type)
-        self.user_id_hash_type = user_id_hash_type
-
     @staticmethod
     def from_dict(int_resp_dict):
         """
@@ -430,8 +420,7 @@ class InternalResponse(InternalData):
         auth_info = AuthenticationInformation.from_dict(int_resp_dict["auth_info"])
         internal_response = InternalResponse(auth_info=auth_info)
         if "hash_type" in int_resp_dict:
-            internal_response.set_user_id_hash_type(getattr(UserIdHashType,
-                                                            int_resp_dict["hash_type"]))
+            internal_response.user_id_hash_type = getattr(UserIdHashType, int_resp_dict["hash_type"])
         internal_response.attributes = int_resp_dict["attr"]
         internal_response.user_id= int_resp_dict["usr_id"]
         internal_response.to_requestor = int_resp_dict["to"]

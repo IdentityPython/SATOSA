@@ -138,8 +138,8 @@ class SATOSABase(object):
                                        internal_response.user_id,
                                        internal_response.to_requestor,
                                        context.state)
-        internal_response.set_user_id_hash_type(UserIdHasher.hash_type(context.state))
         internal_response.user_id = user_id
+        internal_response.user_id_hash_type = UserIdHasher.hash_type(context.state)
         user_id_to_attr = self.config["INTERNAL_ATTRIBUTES"].get("user_id_to_attr", None)
         if user_id_to_attr:
             internal_response.attributes[user_id_to_attr] = internal_response.user_id
