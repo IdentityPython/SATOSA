@@ -19,7 +19,7 @@ from satosa.state import State
 
 FILTER = ["displayName", "co"]
 CONSENT_SERVICE_URL = "https://consent.example.com"
-ATTRIBUTES = {"displayName": "Test", "co": "example", "sn": "should be removed by consent filter"}
+ATTRIBUTES = {"displayName": ["Test"], "co": ["example"], "sn": ["should be removed by consent filter"]}
 USER_ID_ATTR = "user_id"
 
 
@@ -215,3 +215,9 @@ class TestConsent:
         # Verify endpoint of consent service still gives 401 (no consent given)
         context, internal_response = self.consent_module._handle_consent_response(context)
         assert not internal_response.attributes
+
+    def test_get_consent_id(self):
+        attributes = {"foo": ["bar", "123"], "abc": ["xyz", "456"]}
+
+        id = self.consent_module._get_consent_id("test-requestor", "user1", attributes)
+        assert id == "OWNlNzk1YmNkNzAzMGQxOGJjMWE2NWVhNTNjZjk3NDY0OTUyNzJiM2E5ZTMzMDc0YjljNjU1MmNmYjA1ODBmMDYyMWZmZGY3NDE3YWIwZmRjZmY4OTI0Y2VjY2Y3ZjBlODQyMjY2YjlhMDJhNDljMzUzODdiNzk1YTUxNmJhMmI="

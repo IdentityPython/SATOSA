@@ -194,18 +194,10 @@ class ConsentModule(object):
         :return: an id
         """
 
-        filtered_attr_key_list = list(filtered_attr.keys())
-        filtered_attr_key_list.sort()
+        filtered_attr_key_list = sorted(filtered_attr.keys())
         hash_str = ""
         for key in filtered_attr_key_list:
-            _value = filtered_attr[key]
-            _hash_value = ""
-            if isinstance(_value, list):
-                _value.sort()
-                for val in _value:
-                    _hash_value += val
-            else:
-                _hash_value = val
+            _hash_value = "".join(sorted(filtered_attr[key]))
             hash_str += key + _hash_value
         id_string = "%s%s%s" % (requestor, user_id, hash_str)
         return urlsafe_b64encode(
