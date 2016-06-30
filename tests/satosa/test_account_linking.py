@@ -45,14 +45,14 @@ class TestAccountLinking():
 
     @pytest.fixture(autouse=True)
     def create_account_linking(self, satosa_config):
-        self.mock_callback = Mock()
+        self.mock_callback = Mock(side_effect=lambda context, internal_resp: (context, internal_resp))
         self.account_linking = AccountLinkingModule(satosa_config, self.mock_callback)
 
     def test_disable_account_linking(self, satosa_config):
-        satosa_config["ACCOUNT_LINKING"]['enable'] = False
+        satosa_config["ACCOUNT_LINKING"]["enable"] = False
         account_linking = AccountLinkingModule(satosa_config, self.mock_callback)
         assert account_linking.enabled == False
-        assert not hasattr(account_linking, 'proxy_base')
+        assert not hasattr(account_linking, "proxy_base")
         account_linking.manage_al(None, None)
         assert self.mock_callback.called
 
@@ -68,34 +68,55 @@ class TestAccountLinking():
         jws = JWS(json.dumps(data), alg=key.alg).sign_compact([key])
         responses.add(
             responses.GET,
-            "%s/get_id?jwt=%s" % (satosa_config["ACCOUNT_LINKING"]['api_url'], jws),
+            "%s/get_id?jwt=%s" % (satosa_config["ACCOUNT_LINKING"]["api_url"], jws),
             status=200,
             body=uuid,
-            content_type='text/html',
+            content_type="text/html",
             match_querystring=True
         )
 
         self.account_linking.manage_al(context, internal_response)
         assert internal_response.user_id == uuid
 
-    @responses.activate
-    def test_unknown_uuid_requiring_new_account_linking(self, satosa_config, internal_response, context):
+    def test_full_flow(self, satosa_config, internal_response, context):
         ticket = "ticket"
-        responses.add(
-            responses.GET,
-            "%s/get_id" % satosa_config["ACCOUNT_LINKING"]['api_url'],
-            status=404,
-            body=ticket,
-            content_type='text/html'
-        )
-        result = self.account_linking.manage_al(context, internal_response)
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.GET,
+                "%s/get_id" % satosa_config["ACCOUNT_LINKING"]["api_url"],
+                status=404,
+                body=ticket,
+                content_type="text/html"
+            )
+            result = self.account_linking.manage_al(context, internal_response)
         assert isinstance(result, Redirect)
         assert result.message.startswith(satosa_config["ACCOUNT_LINKING"]["redirect_url"])
+
+        data = {
+            "idp": internal_response.auth_info.issuer,
+            "id": internal_response.user_id,
+            "redirect_endpoint": satosa_config["BASE"] + "/account_linking/handle_account_linking"
+        }
+        key = RSAKey(key=rsa_load(satosa_config["ACCOUNT_LINKING"]["sign_key"]), use="sig", alg="RS256")
+        jws = JWS(json.dumps(data), alg=key.alg).sign_compact([key])
+        uuid = "uuid"
+        with responses.RequestsMock() as rsps:
+            # account is linked, 200 OK
+            rsps.add(
+                responses.GET,
+                "%s/get_id?jwt=%s" % (satosa_config["ACCOUNT_LINKING"]["api_url"], jws),
+                status=200,
+                body=uuid,
+                content_type="text/html",
+                match_querystring=True
+            )
+            context, internal_response = self.account_linking._handle_al_response(context)
+        assert internal_response.user_id == uuid
 
     @responses.activate
     def test_handle_failed_connection(self, satosa_config, internal_response, context):
         exception = requests.ConnectionError("No connection")
-        responses.add(responses.GET, "%s/get_id" % satosa_config["ACCOUNT_LINKING"]['api_url'],
+        responses.add(responses.GET, "%s/get_id" % satosa_config["ACCOUNT_LINKING"]["api_url"],
                       body=exception)
 
         with pytest.raises(SATOSAAuthenticationError):
