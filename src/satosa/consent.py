@@ -144,8 +144,7 @@ class ConsentModule(object):
         """
         state = context.state
         if not self.enabled:
-            satosa_logging(logger, logging.INFO, "Consent flow not activated", state)
-            return self._end_consent(context, internal_response)
+            return self.callback_func(context, internal_response)
 
         consent_state = state.get(ConsentModule.STATE_KEY)
         filter = consent_state["filter"]
