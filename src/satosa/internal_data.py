@@ -222,6 +222,13 @@ class UserIdHashType(Enum):
     pairwise = 3
     public = 4
 
+    @classmethod
+    def from_string(cls, str):
+        try:
+            return getattr(cls, str)
+        except AttributeError:
+            raise ValueError("Unknown hash type '{}'".format(str))
+
 
 class UserIdHasher(object):
     """
@@ -256,8 +263,7 @@ class UserIdHasher(object):
     @staticmethod
     def hash_type(state):
         _dict = state.get(UserIdHasher.STATE_KEY)
-        hash_type = _dict[UserIdHasher.HASH_TYPE]
-        hash_type = getattr(UserIdHashType, hash_type)
+        hash_type = UserIdHashType.from_string(_dict[UserIdHasher.HASH_TYPE])
         return hash_type
 
     @staticmethod
@@ -279,9 +285,7 @@ class UserIdHasher(object):
         :param state: The current state
         :return: the internal_response containing the hashed user ID
         """
-        _dict = state.get(UserIdHasher.STATE_KEY)
-        hash_type = _dict[UserIdHasher.HASH_TYPE]
-        hash_type = getattr(UserIdHashType, hash_type)
+        hash_type = UserIdHasher.hash_type(state)
         if hash_type == UserIdHashType.transient:
             timestamp = datetime.datetime.now().time()
             user_id = "{req}{time}{id}".format(req=requestor, time=timestamp, id=user_id)
@@ -418,9 +422,9 @@ class InternalResponse(InternalData):
         auth_info = AuthenticationInformation.from_dict(int_resp_dict["auth_info"])
         internal_response = InternalResponse(auth_info=auth_info)
         if "hash_type" in int_resp_dict:
-            internal_response.user_id_hash_type = getattr(UserIdHashType, int_resp_dict["hash_type"])
+            internal_response.user_id_hash_type = UserIdHashType.from_string(int_resp_dict["hash_type"])
         internal_response.attributes = int_resp_dict["attr"]
-        internal_response.user_id= int_resp_dict["usr_id"]
+        internal_response.user_id = int_resp_dict["usr_id"]
         internal_response.to_requestor = int_resp_dict["to"]
         return internal_response
 
