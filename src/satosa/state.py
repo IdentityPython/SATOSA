@@ -23,7 +23,7 @@ STATE_COOKIE_MAX_AGE = 1200
 STATE_COOKIE_SECURE = True
 
 
-def state_to_cookie(state, name, path, encryption_key, max_age=STATE_COOKIE_MAX_AGE):
+def state_to_cookie(state, name, path, encryption_key):
     """
     Saves a state to a cookie
 
@@ -39,11 +39,15 @@ def state_to_cookie(state, name, path, encryption_key, max_age=STATE_COOKIE_MAX_
     :param encryption_key: Key to encrypt the state information
     :return: A cookie
     """
+
+    cookie_data = "" if state.should_delete() else state.urlstate(encryption_key)
+    max_age = 0 if state.should_delete() else STATE_COOKIE_MAX_AGE
+
     satosa_logging(logger, logging.DEBUG,
                    "Saving state as cookie, secure: %s, max-age: %s, path: %s" %
                    (STATE_COOKIE_SECURE, STATE_COOKIE_MAX_AGE, path), state)
     cookie = SimpleCookie()
-    cookie[name] = state.urlstate(encryption_key)
+    cookie[name] = cookie_data
     cookie[name]["secure"] = STATE_COOKIE_SECURE
     cookie[name]["path"] = path
     cookie[name]["max-age"] = max_age

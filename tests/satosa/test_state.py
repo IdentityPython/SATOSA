@@ -3,6 +3,7 @@ Tests for the state class.
 """
 import random
 import string
+from http.cookies import SimpleCookie
 from urllib.parse import quote_plus
 
 import pytest
@@ -108,49 +109,67 @@ def test_simple_test():
     compare_dict(tmp_dict_backend, my_dict_backend)
 
 
-def test_state_cookie():
-    """
-    Test that the state can be converted between cookie and state
-    """
-    state_key = "27614gjkrn"
-    saved_data = "data"
-    state = State()
-    state.add(state_key, saved_data)
+class TestStateAsCookie:
+    def test_encode_decode_of_state(self):
+        """
+        Test that the state can be converted between cookie and state
+        """
+        state_key = "27614gjkrn"
+        saved_data = "data"
+        state = State()
+        state.add(state_key, saved_data)
 
-    cookie_name = "state_cookie"
-    path = "/"
-    encrypt_key = "2781y4hef90"
+        cookie_name = "state_cookie"
+        path = "/"
+        encrypt_key = "2781y4hef90"
 
-    cookie = state_to_cookie(state, cookie_name, path, encrypt_key)
-    cookie_str = cookie[cookie_name].OutputString()
-    loaded_state = cookie_to_state(cookie_str, cookie_name, encrypt_key)
+        cookie = state_to_cookie(state, cookie_name, path, encrypt_key)
+        cookie_str = cookie[cookie_name].OutputString()
+        loaded_state = cookie_to_state(cookie_str, cookie_name, encrypt_key)
 
-    assert loaded_state.get(state_key) == saved_data
+        assert loaded_state.get(state_key) == saved_data
 
+    def test_state_to_cookie_produces_cookie_without_max_age_for_state_that_should_be_deleted(self):
+        state_key = "27614gjkrn"
+        saved_data = "data"
+        state = State()
+        state.add(state_key, saved_data)
+        state.set_delete_state()
 
-@pytest.mark.parametrize("cookie_str, name, encryption_key, exception", [
-    (  # Test wrong encryption_key
-            'Set-Cookie: state_cookie="_Td6WFoAAATm1rRGAgAhARYAAAB0L-WjAQCXYWt4NU9ZLWF5amdVVDdSUjhWdnkyUHE5MFhJV0J4Uzg5di1EVW1nNTR0WHZKakFsaWJmN2JMOUtlNEltMkJ0dmxOakRyUDJXZE53d0dwSGNqYnBzVng5YjVVeUYyUzkwcWVSMU42U2VNNHZDQTktUXdCQWx0WUh6LVBPX1pBYnZ1M1RsV09Qc2lKS3VpelB5a0FsMG93PT0AmlSCX0Pk2WoAAbABmAEAAGRNyZ2xxGf7AgAAAAAEWVo="; Max-Age=600; Path=/; Secure',
-            "state_cookie",
-            "wrong_encrypt_key",
-            Exception,
-    ),
-    (  # Test wrong cookie_name
-            'Set-Cookie: state_cookie="_Td6WFoAAATm1rRGAgAhARYAAAB0L-WjAQCXYWt4NU9ZLWF5amdVVDdSUjhWdnkyUHE5MFhJV0J4Uzg5di1EVW1nNTR0WHZKakFsaWJmN2JMOUtlNEltMkJ0dmxOakRyUDJXZE53d0dwSGNqYnBzVng5YjVVeUYyUzkwcWVSMU42U2VNNHZDQTktUXdCQWx0WUh6LVBPX1pBYnZ1M1RsV09Qc2lKS3VpelB5a0FsMG93PT0AmlSCX0Pk2WoAAbABmAEAAGRNyZ2xxGf7AgAAAAAEWVo="; Max-Age=600; Path=/; Secure',
-            "wrong_name",
-            "2781y4hef90",
-            SATOSAStateError,
-    ),
-    (  # Test bad cookie str
-            'not_a_cookie',
-            "state_cookie",
-            "2781y4hef90",
-            SATOSAStateError,
-    ),
-])
-def test_fail_cookie_to_state(cookie_str, name, encryption_key, exception):
-    """
-    Test that the cookie_to_state raises exception if the input is bad
-    """
-    with pytest.raises(exception):
-        cookie_to_state(cookie_str, name, encryption_key)
+        cookie_name = "state_cookie"
+        path = "/"
+        encrypt_key = "2781y4hef90"
+
+        cookie = state_to_cookie(state, cookie_name, path, encrypt_key)
+        cookie_str = cookie[cookie_name].OutputString()
+
+        parsed_cookie = SimpleCookie(cookie_str)
+        assert not parsed_cookie[cookie_name].value
+        assert parsed_cookie[cookie_name]["max-age"] == '0'
+
+    @pytest.mark.parametrize("cookie_str, name, encryption_key, expected_exception", [
+        (  # Test wrong encryption_key
+                'Set-Cookie: state_cookie="_Td6WFoAAATm1rRGAgAhARYAAAB0L-WjAQCXYWt4NU9ZLWF5amdVVDdSUjhWdnkyUHE5MFhJV0J4Uzg5di1EVW1nNTR0WHZKakFsaWJmN2JMOUtlNEltMkJ0dmxOakRyUDJXZE53d0dwSGNqYnBzVng5YjVVeUYyUzkwcWVSMU42U2VNNHZDQTktUXdCQWx0WUh6LVBPX1pBYnZ1M1RsV09Qc2lKS3VpelB5a0FsMG93PT0AmlSCX0Pk2WoAAbABmAEAAGRNyZ2xxGf7AgAAAAAEWVo="; Max-Age=600; Path=/; Secure',
+                "state_cookie",
+                "wrong_encrypt_key",
+                Exception,
+        ),
+        (  # Test wrong cookie_name
+                'Set-Cookie: state_cookie="_Td6WFoAAATm1rRGAgAhARYAAAB0L-WjAQCXYWt4NU9ZLWF5amdVVDdSUjhWdnkyUHE5MFhJV0J4Uzg5di1EVW1nNTR0WHZKakFsaWJmN2JMOUtlNEltMkJ0dmxOakRyUDJXZE53d0dwSGNqYnBzVng5YjVVeUYyUzkwcWVSMU42U2VNNHZDQTktUXdCQWx0WUh6LVBPX1pBYnZ1M1RsV09Qc2lKS3VpelB5a0FsMG93PT0AmlSCX0Pk2WoAAbABmAEAAGRNyZ2xxGf7AgAAAAAEWVo="; Max-Age=600; Path=/; Secure',
+                "wrong_name",
+                "2781y4hef90",
+                SATOSAStateError,
+        ),
+        (  # Test bad cookie str
+                'not_a_cookie',
+                "state_cookie",
+                "2781y4hef90",
+                SATOSAStateError,
+        ),
+    ])
+    def test_cookie_to_state_handle_broken_cookies(self, cookie_str, name, encryption_key, expected_exception):
+        """
+        Test that the cookie_to_state raises exception if the input is bad
+        """
+        with pytest.raises(expected_exception):
+            cookie_to_state(cookie_str, name, encryption_key)

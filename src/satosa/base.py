@@ -234,18 +234,8 @@ class SATOSABase(object):
         :param resp: The response
         :param context: Session context
         """
-        if context.state.should_delete():
-            # Save empty state with a max age of 0
-            cookie = state_to_cookie(State(),
-                                     self.config["COOKIE_STATE_NAME"],
-                                     "/",
-                                     self.config["STATE_ENCRYPTION_KEY"],
-                                     0)
-        else:
-            cookie = state_to_cookie(context.state,
-                                     self.config["COOKIE_STATE_NAME"],
-                                     "/",
-                                     self.config["STATE_ENCRYPTION_KEY"])
+
+        cookie = state_to_cookie(context.state, self.config["COOKIE_STATE_NAME"], "/", self.config["STATE_ENCRYPTION_KEY"])
 
         if isinstance(resp, Response):
             resp.add_cookie(cookie)
