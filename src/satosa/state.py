@@ -40,8 +40,8 @@ def state_to_cookie(state, name, path, encryption_key):
     :return: A cookie
     """
 
-    cookie_data = "" if state.should_delete() else state.urlstate(encryption_key)
-    max_age = 0 if state.should_delete() else STATE_COOKIE_MAX_AGE
+    cookie_data = "" if state.delete else state.urlstate(encryption_key)
+    max_age = 0 if state.delete else STATE_COOKIE_MAX_AGE
 
     satosa_logging(logger, logging.DEBUG,
                    "Saving state as cookie, secure: %s, max-age: %s, path: %s" %
@@ -166,7 +166,7 @@ class State(object):
         :return: An instance of this class.
         """
         self._state_dict = {}
-        self._delete = False
+        self.delete = False
         if urlstate_data is not None:
             urlstate_data = urlstate_data.encode("utf-8")
             urlstate_data = base64.urlsafe_b64decode(urlstate_data)
@@ -239,20 +239,12 @@ class State(object):
         urlstate_data = base64.urlsafe_b64encode(urlstate_data)
         return urlstate_data.decode("utf-8")
 
-    def set_delete_state(self, delete=True):
-        """
-        Delete state in the next redirect
-        :type delete: bool
-        :param delete: Should delete state
-        """
-        self._delete = delete
-
     def should_delete(self):
         """
         :rtype: bool
         :return: True if should be deleted, else false
         """
-        return self._delete
+        return self.delete
 
     def copy(self):
         """

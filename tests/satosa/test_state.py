@@ -134,7 +134,7 @@ class TestStateAsCookie:
         saved_data = "data"
         state = State()
         state.add(state_key, saved_data)
-        state.set_delete_state()
+        state.delete = True
 
         cookie_name = "state_cookie"
         path = "/"
