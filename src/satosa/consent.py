@@ -231,14 +231,12 @@ class ConsentModule(object):
         attributes to be sent.
         :return: True if given consent, else False
         """
-        try:
-            request = "{}/verify/{}".format(self.api_url, consent_id)
-            res = requests.get(request)
-        except ConnectionError as con_exc:
-            raise ConnectionError("Could not connect to consent service") from con_exc
+        request = "{}/verify/{}".format(self.api_url, consent_id)
+        res = requests.get(request)
 
         if res.status_code == 200:
             return json.loads(res.text)
+
         return None
 
     def _end_consent(self, context, internal_response):
