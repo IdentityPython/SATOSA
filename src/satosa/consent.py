@@ -43,9 +43,7 @@ class ConsentModule(object):
             if "user_id_to_attr" in config["INTERNAL_ATTRIBUTES"]:
                 self.locked_attr = config["INTERNAL_ATTRIBUTES"]["user_id_to_attr"]
 
-            _bkey = rsa_load(config["CONSENT"]["sign_key"])
-            self.sign_key = RSAKey().load_key(_bkey)
-            self.sign_key.use = "sig"
+            self.signing_key = RSAKey(key=rsa_load(config["CONSENT"]["sign_key"]), use="sig", alg="RS256")
             logger.info("Consent flow is active")
         else:
             logger.info("Consent flow is not active")
@@ -106,6 +104,32 @@ class ConsentModule(object):
         internal_response = self._filter_attributes(internal_response, consent_attributes)
         return self._end_consent(context, internal_response)
 
+    def _approve_new_consent(self, context, internal_response, id_hash):
+        consent_state = context.state.get(STATE_KEY)
+        consent_state["internal_resp"] = internal_response.to_dict()
+        context.state.add(STATE_KEY, consent_state)
+
+        consent_args = {
+            "attr": internal_response.attributes,
+            "id": id_hash,
+            "redirect_endpoint": "%s/consent%s" % (self.proxy_base, self.endpoint),
+            "requester_name": internal_response.to_requestor
+        }
+        if self.locked_attr:
+            consent_args["locked_attrs"] = [self.locked_attr]
+
+        try:
+            ticket = self._consent_registration(consent_args)
+        except (ConnectionError, UnexpectedResponseError) as e:
+            satosa_logging(logger, logging.ERROR, "Consent request failed, no consent given: {}".format(str(e)),
+                           context.state)
+            # Send an internal_response without any attributes
+            internal_response.attributes = {}
+            return self._end_consent(context, internal_response)
+
+        consent_redirect = "%s?ticket=%s" % (self.redirect_url, ticket)
+        return Redirect(consent_redirect)
+
     def manage_consent(self, context, internal_response):
         """
         Manage consent and attribute filtering
@@ -143,29 +167,13 @@ class ConsentModule(object):
             internal_response.attributes = {}
             return self._end_consent(context, internal_response)
 
-        consent_state["internal_resp"] = internal_response.to_dict()
-        state.add(ConsentModule.STATE_KEY, consent_state)
-
-        consent_args = {"attr": internal_response.attributes,
-                        "id": id_hash,
-                        "redirect_endpoint": "%s/consent/%s" % (self.proxy_base, self.endpoint),
-                        "requester_name": internal_response.to_requestor}
-        if self.locked_attr:
-            consent_args["locked_attrs"] = [self.locked_attr]
-
-        consent_args_jws = self._to_jws(consent_args)
-
-        try:
-            ticket = self._consent_registration(consent_args_jws)
-        except (ConnectionError, UnexpectedResponseError) as e:
-            satosa_logging(logger, logging.ERROR,
-                           "Consent service is not reachable, no consent given: {}".format(str(e)), state)
-            # Send an internal_response without any attributes
-            internal_response.attributes = {}
+        # Previous consent was given
+        if consent_attributes is not None:
+            internal_response.attributes = self._filter_attributes(internal_response.attributes, consent_attributes)
             return self._end_consent(context, internal_response)
 
-        consent_redirect = "%s?ticket=%s" % (self.redirect_url, ticket)
-        return Redirect(consent_redirect)
+        # No previous consent, request consent by user
+        return self._approve_new_consent(context, internal_response, id_hash)
 
     def _filter_attributes(self, attributes, filter):
         return {k: v for k, v in attributes.items() if k in filter}
@@ -193,24 +201,24 @@ class ConsentModule(object):
         return urlsafe_b64encode(
             hashlib.sha512(id_string.encode("utf-8")).hexdigest().encode("utf-8")).decode("utf-8")
 
-    def _consent_registration(self, jws):
+    def _consent_registration(self, consent_args):
         """
         Register a request at the consent service
 
-        :type jws: str
+        :type consent_args: dict
         :rtype: str
 
-        :param jws: A jws containing id, redirect_endpoint and attr
+        :param consent_args: All necessary parameters for the consent request
         :return: Ticket received from the consent service
         """
+        jws = JWS(json.dumps(consent_args), alg=self.signing_key.alg).sign_compact([self.signing_key])
         request = "{}/creq/{}".format(self.api_url, jws)
         res = requests.get(request)
 
         if res.status_code != 200:
             raise UnexpectedResponseError("Consent service error: %s %s", res.status_code, res.text)
 
-        ticket = res.text
-        return ticket
+        return res.text
 
     def _verify_consent(self, consent_id):
         """
@@ -250,20 +258,6 @@ class ConsentModule(object):
         except KeyError:
             pass
         return self.callback_func(context, internal_response)
-
-    def _to_jws(self, data):
-        """
-        Converts data to a jws
-
-        :type data: Any
-        :rtype: str
-
-        :param data: Data to be converted to jws
-        :return: a jws
-        """
-        algorithm = "RS256"
-        _jws = JWS(json.dumps(data), alg=algorithm)
-        return _jws.sign_compact([self.sign_key])
 
     def register_endpoints(self):
         """

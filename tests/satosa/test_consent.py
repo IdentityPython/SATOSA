@@ -123,11 +123,10 @@ class TestConsent:
     ])
     @responses.activate
     def test_consent_registration_raises_on_unexpected_status_code(self, status, satosa_config):
-        jws = "A_JWS"
-        responses.add(responses.GET, "{}/creq/{}".format(satosa_config["CONSENT"]["api_url"], jws),
+        responses.add(responses.GET, re.compile(r"{}/creq/.*".format(satosa_config["CONSENT"]["api_url"])),
                       status=status)
         with pytest.raises(UnexpectedResponseError):
-            self.consent_module._consent_registration(jws)
+            self.consent_module._consent_registration({})
 
     @responses.activate
     def test_consent_registration(self, satosa_config):
