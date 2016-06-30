@@ -221,3 +221,7 @@ class TestConsent:
 
         id = self.consent_module._get_consent_id("test-requestor", "user1", attributes)
         assert id == "OWNlNzk1YmNkNzAzMGQxOGJjMWE2NWVhNTNjZjk3NDY0OTUyNzJiM2E5ZTMzMDc0YjljNjU1MmNmYjA1ODBmMDYyMWZmZGY3NDE3YWIwZmRjZmY4OTI0Y2VjY2Y3ZjBlODQyMjY2YjlhMDJhNDljMzUzODdiNzk1YTUxNmJhMmI="
+
+    def test_filter_attributes(self):
+        filtered_attributes = self.consent_module._filter_attributes(ATTRIBUTES, FILTER)
+        assert Counter(filtered_attributes.keys()) == Counter(FILTER)

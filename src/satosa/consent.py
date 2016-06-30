@@ -167,18 +167,8 @@ class ConsentModule(object):
         consent_redirect = "%s?ticket=%s" % (self.redirect_url, ticket)
         return Redirect(consent_redirect)
 
-    def _filter_attributes(self, internal_response, attr_filter):
-        # filter attributes
-        filtered_data = {}
-        for attr in attr_filter:
-            if attr in internal_response.attributes:
-                data = internal_response.attributes[attr]
-                if not isinstance(data, list):
-                    data = [data]
-                filtered_data[attr] = data
-        # Update internal response
-        internal_response.attributes = filtered_data
-        return internal_response
+    def _filter_attributes(self, attributes, filter):
+        return {k: v for k, v in attributes.items() if k in filter}
 
     def _get_consent_id(self, requestor, user_id, filtered_attr):
         """
