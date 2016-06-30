@@ -136,10 +136,9 @@ class TestConsent:
 
     @responses.activate
     def test_consent_registration(self, satosa_config):
-        jws = "A_JWS"
-        responses.add(responses.GET, "{}/creq/{}".format(satosa_config["CONSENT"]["api_url"], jws),
+        responses.add(responses.GET, re.compile(r"{}/creq/.*".format(satosa_config["CONSENT"]["api_url"])),
                       status=200, body="ticket")
-        assert self.consent_module._consent_registration(jws) == "ticket"
+        assert self.consent_module._consent_registration({}) == "ticket"
 
     @responses.activate
     def test_consent_handles_connection_error(self, context, internal_response, internal_request,
