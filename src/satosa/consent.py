@@ -18,6 +18,8 @@ from .response import Redirect
 
 logger = logging.getLogger(__name__)
 
+STATE_KEY = "CONSENT"
+
 
 class UnexpectedResponseError(Exception):
     pass
@@ -27,8 +29,6 @@ class ConsentModule(object):
     """
     Module for handling consent. Uses an external consent service
     """
-
-    STATE_KEY = "CONSENT"
 
     def __init__(self, config, callback_func):
         self.callback_func = callback_func
@@ -61,8 +61,8 @@ class ConsentModule(object):
         :return: None
         """
         if self.enabled:
-            state.add(ConsentModule.STATE_KEY, {"filter": internal_request.get_filter(),
-                                                "requester_name": internal_request.requester_name})
+            state.add(STATE_KEY, {"filter": internal_request.get_filter(),
+                                  "requester_name": internal_request.requester_name})
 
     def _handle_consent_response(self, context):
         """
@@ -75,8 +75,8 @@ class ConsentModule(object):
         """
         # Handle answer from consent service
         state = context.state
-        consent_state = state.get(ConsentModule.STATE_KEY)
         saved_resp = consent_state["internal_resp"]
+        consent_state = context.state.get(STATE_KEY)
 
         # rebuild internal_response from state
         internal_response = InternalResponse.from_dict(saved_resp)
@@ -251,10 +251,7 @@ class ConsentModule(object):
         :param internal_response: the response
         :return: response
         """
-        try:
-            context.state.remove(ConsentModule.STATE_KEY)
-        except KeyError:
-            pass
+        context.state.remove(STATE_KEY)
         return self.callback_func(context, internal_response)
 
     def register_endpoints(self):
