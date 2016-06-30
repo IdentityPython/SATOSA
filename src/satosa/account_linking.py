@@ -32,7 +32,6 @@ class AccountLinkingModule(object):
         :param config: The SATOSA proxy config
         :param callback_func: Callback function when the linking is done
         """
-        self.config = config
         self.callback_func = callback_func
         self.enabled = "ACCOUNT_LINKING" in config and \
                        ("enable" not in config["ACCOUNT_LINKING"] or config["ACCOUNT_LINKING"]["enable"])
@@ -76,9 +75,7 @@ class AccountLinkingModule(object):
         if not self.enabled:
             return self.callback_func(context, internal_response)
 
-        issuer = internal_response.auth_info.issuer
-        id = internal_response.user_id
-        status_code, message = self._get_uuid(context, issuer, id)
+        status_code, message = self._get_uuid(context, internal_response.auth_info.issuer, internal_response.user_id)
 
         if status_code == 200:
             satosa_logging(logger, logging.INFO, "issuer/id pair is linked in AL service",
