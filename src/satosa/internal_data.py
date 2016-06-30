@@ -10,8 +10,6 @@ from itertools import chain
 
 from mako.template import Template
 
-from .exception import SATOSAError
-
 
 class CaseInsensitiveMapping:
     def __init__(self):

@@ -6,7 +6,7 @@ import os
 
 import yaml
 
-from satosa.exception import SATOSAConfigurationError
+from .exception import SATOSAConfigurationError
 
 logger = logging.getLogger(__name__)
 
