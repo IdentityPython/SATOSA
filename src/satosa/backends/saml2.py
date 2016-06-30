@@ -322,7 +322,7 @@ class SamlBackend(BackendModule):
                     for url_info in organization_info.get("organization_url", []):
                         organization.add_url(url_info["text"], url_info["lang"])
 
-                    description.set_organization(organization)
+                    description.organization = organization
                 except:
                     pass
 
@@ -363,7 +363,7 @@ class SamlBackend(BackendModule):
                                 ui_info.add_logo(logo["text"], logo["width"], logo["height"],
                                                  logo["lang"])
 
-                        description.set_ui_info(ui_info)
+                        description.ui_info = ui_info
                 except KeyError:
                     pass
 

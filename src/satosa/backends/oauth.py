@@ -280,7 +280,7 @@ def get_metadata_desc_for_oauth_backend(entity_id, config):
             for url_info in organization_info.get("organization_url", []):
                 organization.add_url(url_info[0], url_info[1])
 
-            description.set_organization(organization)
+            description.organization = organization
 
         # Add ui information
         if "ui_info" in entity_info:
@@ -293,7 +293,7 @@ def get_metadata_desc_for_oauth_backend(entity_id, config):
             for logo in ui_info.get("logo", []):
                 ui_description.add_logo(logo["image"], logo["width"], logo["height"], logo["lang"])
 
-            description.set_ui_info(ui_description)
+            description.ui_info = ui_description
 
     metadata_description.append(description)
     return metadata_description

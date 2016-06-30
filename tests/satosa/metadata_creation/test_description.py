@@ -83,9 +83,9 @@ class TestMetadataDescription(object):
             ui_desc.add_logo("logo.jpg", 80, 80, "en")
 
         desc = MetadataDescription("my_entity")
-        desc.set_organization(org_desc)
+        desc.organization = org_desc
         desc.add_contact_person(contact_desc)
-        desc.set_ui_info(ui_desc)
+        desc.ui_info = ui_desc
 
         serialized = desc.to_dict()
         assert serialized["entityid"] == "my_entity"
@@ -96,7 +96,7 @@ class TestMetadataDescription(object):
     def test_set_organization_rejects_bad_input(self):
         desc = MetadataDescription("my_entity")
         with pytest.raises(ValueError):
-            desc.set_organization("bad input")
+            desc.organization = "bad input"
 
     def test_add_contact_person_rejects_bad_input(self):
         desc = MetadataDescription("my_entity")
@@ -106,4 +106,4 @@ class TestMetadataDescription(object):
     def test_set_ui_info_rejects_bad_input(self):
         desc = MetadataDescription("my_entity")
         with pytest.raises(ValueError):
-            desc.set_ui_info("bad input")
+            desc.ui_info = "bad input"

@@ -179,7 +179,7 @@ class MetadataDescription(object):
         self._contact_person = []
         self._ui_info = None
 
-    def set_organization(self, organization):
+    def organization(self, organization):
         """
         Set an organization to the description
         :type organization: satosa.metadata_creation.description.OrganizationDesc
@@ -188,6 +188,8 @@ class MetadataDescription(object):
         if not isinstance(organization, OrganizationDesc):
             raise ValueError("organization must be of type OrganizationDesc")
         self._organization = organization
+
+    organization = property(None, organization)
 
     def add_contact_person(self, person):
         """
@@ -199,7 +201,7 @@ class MetadataDescription(object):
             raise ValueError("person must be of type ContactPersonDesc")
         self._contact_person.append(person)
 
-    def set_ui_info(self, ui_info):
+    def ui_info(self, ui_info):
         """
         Set an ui info to the description
         :type ui_info: satosa.metadata_creation.description.UIInfoDesc
@@ -208,6 +210,7 @@ class MetadataDescription(object):
         if not isinstance(ui_info, UIInfoDesc):
             raise ValueError("ui_info must be of type UIInfoDesc")
         self._ui_info = ui_info
+    ui_info = property(None, ui_info)
 
     def to_dict(self):
         """
