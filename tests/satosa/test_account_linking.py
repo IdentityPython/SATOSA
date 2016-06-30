@@ -8,12 +8,10 @@ from jwkest.jwk import rsa_load, RSAKey
 from jwkest.jws import JWS
 
 from satosa.account_linking import AccountLinkingModule
-from satosa.context import Context
 from satosa.exception import SATOSAAuthenticationError
 from satosa.internal_data import InternalResponse, AuthenticationInformation
 from satosa.response import Redirect
 from satosa.satosa_config import SATOSAConfig
-from satosa.state import State
 
 
 class TestAccountLinking():
@@ -53,6 +51,8 @@ class TestAccountLinking():
     def test_disable_account_linking(self, satosa_config):
         satosa_config["ACCOUNT_LINKING"]['enable'] = False
         account_linking = AccountLinkingModule(satosa_config, self.mock_callback)
+        assert account_linking.enabled == False
+        assert not hasattr(account_linking, 'proxy_base')
         account_linking.manage_al(None, None)
         assert self.mock_callback.called
 
