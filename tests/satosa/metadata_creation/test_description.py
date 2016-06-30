@@ -95,15 +95,15 @@ class TestMetadataDescription(object):
 
     def test_set_organization_rejects_bad_input(self):
         desc = MetadataDescription("my_entity")
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             desc.organization = "bad input"
 
     def test_add_contact_person_rejects_bad_input(self):
         desc = MetadataDescription("my_entity")
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             desc.add_contact_person("bad input")
 
     def test_set_ui_info_rejects_bad_input(self):
         desc = MetadataDescription("my_entity")
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             desc.ui_info = "bad input"

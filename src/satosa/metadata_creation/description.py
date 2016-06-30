@@ -186,7 +186,7 @@ class MetadataDescription(object):
         :param organization: Organization description
         """
         if not isinstance(organization, OrganizationDesc):
-            raise ValueError("organization must be of type OrganizationDesc")
+            raise TypeError("organization must be of type OrganizationDesc")
         self._organization = organization
 
     organization = property(None, organization)
@@ -198,7 +198,7 @@ class MetadataDescription(object):
         :param person: The contact person to be added
         """
         if not isinstance(person, ContactPersonDesc):
-            raise ValueError("person must be of type ContactPersonDesc")
+            raise TypeError("person must be of type ContactPersonDesc")
         self._contact_person.append(person)
 
     def ui_info(self, ui_info):
@@ -208,7 +208,7 @@ class MetadataDescription(object):
         :param ui_info: The ui info to be set
         """
         if not isinstance(ui_info, UIInfoDesc):
-            raise ValueError("ui_info must be of type UIInfoDesc")
+            raise TypeError("ui_info must be of type UIInfoDesc")
         self._ui_info = ui_info
     ui_info = property(None, ui_info)
 
