@@ -1,5 +1,6 @@
 import json
 import re
+from collections import Counter
 from unittest.mock import Mock
 from urllib.parse import urlparse, parse_qs
 
@@ -15,7 +16,6 @@ from satosa.internal_data import InternalResponse, UserIdHashType, InternalReque
     AuthenticationInformation
 from satosa.response import Redirect
 from satosa.satosa_config import SATOSAConfig
-from satosa.state import State
 
 FILTER = ["displayName", "co"]
 CONSENT_SERVICE_URL = "https://consent.example.com"
@@ -98,9 +98,15 @@ class TestConsent:
         assert "id" in consent_args
 
     def test_disabled_consent(self, satosa_config):
+        mock_callback = Mock()
         satosa_config["CONSENT"]["enable"] = False
-        consent_module = ConsentModule(satosa_config, Mock())
-        assert not consent_module.enabled
+
+        consent_module = ConsentModule(satosa_config, mock_callback)
+        assert consent_module.enabled == False
+        assert not hasattr(consent_module, 'proxy_base')
+
+        consent_module.manage_consent(None, None)
+        assert mock_callback.called
 
     @responses.activate
     def test_verify_consent_false_on_http_400(self, satosa_config):

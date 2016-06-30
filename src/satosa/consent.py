@@ -35,7 +35,6 @@ class ConsentModule(object):
         self.enabled = "CONSENT" in config and \
                        ("enable" not in config["CONSENT"] or config["CONSENT"]["enable"])
         if self.enabled:
-            self.endpoint = "handle_consent"
             self.proxy_base = config["BASE"]
             self.api_url = config["CONSENT"]["api_url"]
             self.redirect_url = config["CONSENT"]["redirect_url"]
@@ -44,6 +43,7 @@ class ConsentModule(object):
                 self.locked_attr = config["INTERNAL_ATTRIBUTES"]["user_id_to_attr"]
 
             self.signing_key = RSAKey(key=rsa_load(config["CONSENT"]["sign_key"]), use="sig", alg="RS256")
+            self.endpoint = "/handle_consent"
             logger.info("Consent flow is active")
         else:
             logger.info("Consent flow is not active")
@@ -73,35 +73,29 @@ class ConsentModule(object):
         :param context: response context
         :return: response
         """
-        # Handle answer from consent service
-        state = context.state
-        saved_resp = consent_state["internal_resp"]
         consent_state = context.state.get(STATE_KEY)
-
-        # rebuild internal_response from state
+        saved_resp = consent_state["internal_resp"]
         internal_response = InternalResponse.from_dict(saved_resp)
 
-        requestor = internal_response.to_requestor
-
-        hash_id = self._get_consent_id(requestor, internal_response.user_id,
+        hash_id = self._get_consent_id(internal_response.to_requestor, internal_response.user_id,
                                        internal_response.attributes)
 
         try:
             consent_attributes = self._verify_consent(hash_id)
-        except ConnectionError:
+        except ConnectionError as e:
             satosa_logging(logger, logging.ERROR,
-                           "Consent service is not reachable, no consent given.", state)
+                           "Consent service is not reachable, no consent given.", context.state)
             # Send an internal_response without any attributes
             consent_attributes = None
 
         if consent_attributes is None:
-            satosa_logging(logger, logging.INFO, "Consent was NOT given", state)
+            satosa_logging(logger, logging.INFO, "Consent was NOT given", context.state)
             # If consent was not given, then don't send any attributes
             consent_attributes = []
         else:
-            satosa_logging(logger, logging.INFO, "Consent was given", state)
+            satosa_logging(logger, logging.INFO, "Consent was given", context.state)
 
-        internal_response = self._filter_attributes(internal_response, consent_attributes)
+        internal_response.attributes = self._filter_attributes(internal_response.attributes, consent_attributes)
         return self._end_consent(context, internal_response)
 
     def _approve_new_consent(self, context, internal_response, id_hash):
@@ -142,32 +136,28 @@ class ConsentModule(object):
         :param internal_response: the response
         :return: response
         """
-        state = context.state
         if not self.enabled:
             return self.callback_func(context, internal_response)
 
-        consent_state = state.get(ConsentModule.STATE_KEY)
-        filter = consent_state["filter"]
+        consent_state = context.state.get(STATE_KEY)
 
-        internal_response = self._filter_attributes(internal_response, filter)
+        internal_response.attributes = self._filter_attributes(internal_response.attributes, consent_state["filter"])
         id_hash = self._get_consent_id(internal_response.to_requestor, internal_response.user_id,
                                        internal_response.attributes)
 
         try:
             # Check if consent is already given
             consent_attributes = self._verify_consent(id_hash)
-            if consent_attributes:
-                internal_response = self._filter_attributes(internal_response, consent_attributes)
-                return self._end_consent(context, internal_response)
         except ConnectionError:
             satosa_logging(logger, logging.ERROR,
-                           "Consent service is not reachable, no consent given.", state)
+                           "Consent service is not reachable, no consent given.", context.state)
             # Send an internal_response without any attributes
             internal_response.attributes = {}
             return self._end_consent(context, internal_response)
 
         # Previous consent was given
         if consent_attributes is not None:
+            satosa_logging(logger, logging.DEBUG, "Previous consent was given", context.state)
             internal_response.attributes = self._filter_attributes(internal_response.attributes, consent_attributes)
             return self._end_consent(context, internal_response)
 
@@ -197,8 +187,7 @@ class ConsentModule(object):
             _hash_value = "".join(sorted(filtered_attr[key]))
             hash_str += key + _hash_value
         id_string = "%s%s%s" % (requestor, user_id, hash_str)
-        return urlsafe_b64encode(
-            hashlib.sha512(id_string.encode("utf-8")).hexdigest().encode("utf-8")).decode("utf-8")
+        return urlsafe_b64encode(hashlib.sha512(id_string.encode("utf-8")).hexdigest().encode("utf-8")).decode("utf-8")
 
     def _consent_registration(self, consent_args):
         """
@@ -224,11 +213,11 @@ class ConsentModule(object):
         Connects to the consent service using the REST api and checks if the user has given consent
 
         :type consent_id: str
-        :rtype: bool
+        :rtype: Optional[List[str]]
 
         :param consent_id: An id associated to the authenticated user, the calling requestor and
         attributes to be sent.
-        :return: True if given consent, else False
+        :return: list attributes given which have been approved by user consent
         """
         request = "{}/verify/{}".format(self.api_url, consent_id)
         res = requests.get(request)
@@ -261,4 +250,4 @@ class ConsentModule(object):
 
         :return: A list of endpoints bound to a function
         """
-        return [("^consent/%s$" % self.endpoint, self._handle_consent_response)]
+        return [("^consent%s$" % self.endpoint, self._handle_consent_response)]
