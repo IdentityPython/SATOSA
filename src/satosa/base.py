@@ -19,14 +19,14 @@ from .state import cookie_to_state, SATOSAStateError, State, state_to_cookie
 
 logger = logging.getLogger(__name__)
 
+STATE_KEY = "SATOSA_BASE"
+
 
 class SATOSABase(object):
     """
     Base class for a satosa proxy server.
     Does not contain any server parts.
     """
-
-    STATE_KEY = "SATOSA_REQUESTOR"
 
     def __init__(self, config):
         """
@@ -82,7 +82,7 @@ class SATOSABase(object):
         :return: response
         """
         state = context.state
-        state.add(SATOSABase.STATE_KEY, internal_request.requestor)
+        state.add(STATE_KEY, {"requestor": internal_request.requestor})
         satosa_logging(logger, logging.INFO,
                        "Requesting provider: {}".format(internal_request.requestor), state)
         context.request = None
@@ -108,7 +108,7 @@ class SATOSABase(object):
         """
 
         context.request = None
-        internal_response.to_requestor = context.state.get(SATOSABase.STATE_KEY)
+        internal_response.to_requestor = context.state.get(STATE_KEY)["requestor"]
         if "user_id_from_attr" in self.config["INTERNAL_ATTRIBUTES"]:
             user_id = [internal_response.attributes[attr] for attr in
                        self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attr"]]
@@ -235,7 +235,8 @@ class SATOSABase(object):
         :param context: Session context
         """
 
-        cookie = state_to_cookie(context.state, self.config["COOKIE_STATE_NAME"], "/", self.config["STATE_ENCRYPTION_KEY"])
+        cookie = state_to_cookie(context.state, self.config["COOKIE_STATE_NAME"], "/",
+                                 self.config["STATE_ENCRYPTION_KEY"])
 
         if isinstance(resp, Response):
             resp.add_cookie(cookie)
