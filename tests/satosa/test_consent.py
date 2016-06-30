@@ -167,7 +167,6 @@ class TestConsent:
         assert context
         assert "displayName" in internal_response.attributes
 
-    @responses.activate
     def test_consent_full_flow(self, context, satosa_config, internal_response, internal_request,
                                consent_verify_endpoint_regex, consent_registration_endpoint_regex):
         expected_ticket = "my_ticket"
