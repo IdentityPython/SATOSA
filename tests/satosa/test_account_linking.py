@@ -114,6 +114,26 @@ class TestAccountLinking():
         assert internal_response.user_id == uuid
 
     @responses.activate
+    def test_account_linking_failed(self, satosa_config, internal_response, context):
+        ticket = "ticket"
+        responses.add(
+            responses.GET,
+            "%s/get_id" % satosa_config["ACCOUNT_LINKING"]["api_url"],
+            status=404,
+            body=ticket,
+            content_type="text/html"
+        )
+
+        result = self.account_linking.manage_al(context, internal_response)
+        assert isinstance(result, Redirect)
+        assert result.message.startswith(satosa_config["ACCOUNT_LINKING"]["redirect_url"])
+
+        # account linking endpoint still does not return an id
+        with pytest.raises(SATOSAAuthenticationError):
+            self.account_linking._handle_al_response(context)
+
+
+    @responses.activate
     def test_handle_failed_connection(self, satosa_config, internal_response, context):
         exception = requests.ConnectionError("No connection")
         responses.add(responses.GET, "%s/get_id" % satosa_config["ACCOUNT_LINKING"]["api_url"],

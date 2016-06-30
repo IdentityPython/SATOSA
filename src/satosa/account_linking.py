@@ -57,7 +57,19 @@ class AccountLinkingModule(object):
         """
         saved_state = context.state.get(STATE_KEY)
         internal_response = InternalResponse.from_dict(saved_state)
-        return self.manage_al(context, internal_response)
+        status_code, message = self._get_uuid(context, internal_response.auth_info.issuer, internal_response.user_id)
+
+        if status_code == 200:
+            satosa_logging(logger, logging.INFO, "issuer/id pair is linked in AL service",
+                           context.state)
+            internal_response.user_id = message
+            try:
+                context.state.remove(STATE_KEY)
+            except KeyError:
+                pass
+            return self.callback_func(context, internal_response)
+        else:
+            raise SATOSAAuthenticationError(context.state, "Could not link account for user")
 
     def manage_al(self, context, internal_response):
         """
