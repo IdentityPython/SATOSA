@@ -63,10 +63,7 @@ class AccountLinkingModule(object):
             satosa_logging(logger, logging.INFO, "issuer/id pair is linked in AL service",
                            context.state)
             internal_response.user_id = message
-            try:
-                del context.state[STATE_KEY]
-            except KeyError:
-                pass
+            del context.state[STATE_KEY]
             return self.callback_func(context, internal_response)
         else:
             raise SATOSAAuthenticationError(context.state, "Could not link account for user")
@@ -135,7 +132,7 @@ class AccountLinkingModule(object):
         :param issuer: the issuer used for authentication
         :param id: the given id
         :return: response status code and message
-            (200, uuid) or (400, ticket)
+            (200, uuid) or (404, ticket)
         """
         data = {
             "idp": issuer,

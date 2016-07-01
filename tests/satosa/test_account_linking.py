@@ -1,4 +1,5 @@
 import json
+import re
 from unittest.mock import Mock
 
 import pytest
@@ -132,12 +133,30 @@ class TestAccountLinking():
         with pytest.raises(SATOSAAuthenticationError):
             self.account_linking._handle_al_response(context)
 
-
     @responses.activate
-    def test_handle_failed_connection(self, satosa_config, internal_response, context):
+    def test_manage_al_handle_failed_connection(self, satosa_config, internal_response, context):
         exception = requests.ConnectionError("No connection")
         responses.add(responses.GET, "%s/get_id" % satosa_config["ACCOUNT_LINKING"]["api_url"],
                       body=exception)
 
         with pytest.raises(SATOSAAuthenticationError):
             self.account_linking.manage_al(context, internal_response)
+
+    @pytest.mark.parametrize("http_status", [
+        400, 401, 500
+    ])
+    @responses.activate
+    def test_manage_al_handle_bad_response_status(self, http_status, satosa_config, internal_response, context):
+        responses.add(responses.GET, "%s/get_id" % satosa_config["ACCOUNT_LINKING"]["api_url"],
+                      status=http_status)
+
+        with pytest.raises(SATOSAAuthenticationError):
+            self.account_linking.manage_al(context, internal_response)
+
+    def test_register_endpoints(self):
+        url_map = self.account_linking.register_endpoints()
+        assert len(url_map) == 1
+
+        regex, func = url_map[0]
+        assert re.compile(regex).match("account_linking/handle_account_linking")
+        assert func == self.account_linking._handle_al_response
