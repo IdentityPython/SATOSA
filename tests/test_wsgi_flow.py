@@ -13,9 +13,6 @@ from werkzeug.wrappers import BaseResponse
 from satosa.proxy_server import WsgiApplication
 from satosa.satosa_config import SATOSAConfig
 
-BACKEND_NAME = "TestBackend"
-FRONTEND_NAME = "TestFrontend"
-
 class TestProxy:
     """
     Performs a complete flow test for the proxy.
@@ -45,13 +42,13 @@ class TestProxy:
         test_client = Client(app.run_server, BaseResponse)
 
         # Make request to frontend
-        resp = test_client.get('/{}/{}/request'.format(BACKEND_NAME, FRONTEND_NAME))
+        resp = test_client.get('/{}/{}/request'.format("backend", "frontend"))
         assert resp.status == '200 OK'
         headers = dict(resp.headers)
         assert headers["Set-Cookie"], "Did not save state in cookie!"
 
         # Fake response coming in to backend
-        resp = test_client.get('/{}/response'.format(BACKEND_NAME), headers=[("Cookie", headers["Set-Cookie"])])
+        resp = test_client.get('/{}/response'.format("backend"), headers=[("Cookie", headers["Set-Cookie"])])
         assert resp.status == '200 OK'
         assert json.loads(resp.data.decode('utf-8'))["foo"] == "bar"
 

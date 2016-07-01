@@ -110,7 +110,7 @@ def plugin_directory(tmpdir_factory):
 def backend_plugin_config(plugin_directory):
     data = {
         "module": "util.TestBackend",
-        "name": BACKEND_NAME,
+        "name": "backend",
         "config": {"foo": "bar"}
     }
 
@@ -124,7 +124,7 @@ def backend_plugin_config(plugin_directory):
 def frontend_plugin_config(plugin_directory):
     data = {
         "module": "util.TestFrontend",
-        "name": FRONTEND_NAME,
+        "name": "frontend",
         "config": {"abc": "xyz"}
     }
 
