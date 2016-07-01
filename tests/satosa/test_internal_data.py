@@ -233,6 +233,32 @@ class TestDataConverter:
         filter = converter.to_internal_filter("bar", ["email", "uid"])
         assert Counter(filter) == Counter(["id"])
 
+    def test_to_internal_with_unknown_attribute_profile(self):
+        mapping = {
+            "attributes": {
+                "mail": {
+                    "foo": ["email"],
+                },
+            }
+        }
+
+        converter = DataConverter(mapping)
+        internal_repr = converter.to_internal("bar", {"email": ["test@example.com"]})
+        assert internal_repr == {}
+
+    def test_to_internal_filter_with_unknown_profile(self):
+        mapping = {
+            "attributes": {
+                "mail": {
+                    "foo": ["email"],
+                }
+            }
+        }
+
+        converter = DataConverter(mapping)
+        filter = converter.to_internal_filter("bar", ["email"])
+        assert filter == []
+
     def test_simple_template_mapping(self):
         mapping = {
             "attributes": {
