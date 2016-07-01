@@ -61,16 +61,6 @@ class DataConverter(object):
 
         return list(internal_keys)
 
-    def _get_attr_value_key(self, my_key, my_dict):
-        tmp_attributes = {}
-        for tmp_key in my_dict:
-            new_key = "%s%s%s" % (my_key, self.separator, tmp_key)
-            if isinstance(my_dict[tmp_key], dict):
-                tmp_attributes.update(self._get_attr_value_key(new_key, my_dict[tmp_key]))
-            else:
-                tmp_attributes[new_key] = my_dict[tmp_key]
-        return tmp_attributes
-
     def to_internal(self, external_type, external_dict):
         """
         Converts the external data from "type" to internal
