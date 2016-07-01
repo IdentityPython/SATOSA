@@ -21,7 +21,7 @@ class DataConverter(object):
         """
         :type internal_attributes: dict[str, dict[str, dict[str, str]]]
         :param internal_attributes: A map of how to convert the attributes
-        (dict[internal_name, dict[external_type, external_name]])
+        (dict[internal_name, dict[attribute_profile, external_name]])
         """
         self.separator = "."  # separator for nested attribute values, e.g. address.street_address
         self.multivalue_separator = ";"  # separates multiple values, e.g. when using templates
@@ -29,62 +29,62 @@ class DataConverter(object):
         self.template_attributes = internal_attributes.get("template_attributes", None)
 
         self.from_external_attributes = defaultdict(dict)
-        for internal_key, mappings in self.from_internal_attributes.items():
-            for external_type, external_keys in mappings.items():
-                for external_key in external_keys:
-                    self.from_external_attributes[external_type][external_key] = internal_key
+        for internal_attribute_name, mappings in self.from_internal_attributes.items():
+            for profile, external_attribute_names in mappings.items():
+                for external_attribute_name in external_attribute_names:
+                    self.from_external_attributes[profile][external_attribute_name] = internal_attribute_name
 
-    def to_internal_filter(self, external_type, external_keys):
+    def to_internal_filter(self, attribute_profile, external_attribute_names):
         """
         Converts attribute names from external "type" to internal
 
-        :type external_type: str
-        :type external_keys: list[str]
+        :type attribute_profile: str
+        :type external_attribute_names: list[str]
         :type case_insensitive: bool
         :rtype: list[str]
 
-        :param external_type: From which external type to convert (ex: oidc, saml, ...)
-        :param external_keys: A list of attribute names
+        :param attribute_profile: From which external type to convert (ex: oidc, saml, ...)
+        :param external_attribute_names: A list of attribute names
         :param case_insensitive: Create a case insensitive filter
         :return: A list of attribute names in the internal format
         """
-        internal_keys = set()  # use set to ensure only unique values
+        internal_attribute_names = set()  # use set to ensure only unique values
 
-        for external_key in external_keys:
+        for external_attribute_name in external_attribute_names:
             try:
-                internal_key = self.from_external_attributes[external_type][external_key]
-                internal_keys.add(internal_key)
+                internal_attribute_name = self.from_external_attributes[attribute_profile][external_attribute_name]
+                internal_attribute_names.add(internal_attribute_name)
             except KeyError:
                 pass
 
-        return list(internal_keys)
+        return list(internal_attribute_names)
 
-    def to_internal(self, external_type, external_dict):
+    def to_internal(self, profile, external_dict):
         """
         Converts the external data from "type" to internal
 
-        :type external_type: str
+        :type profile: str
         :type external_dict: dict[str, str]
         :rtype: dict[str, str]
 
-        :param external_type: From which external type to convert (ex: oidc, saml, ...)
+        :param profile: From which external type to convert (ex: oidc, saml, ...)
         :param external_dict: Attributes in the external format
         :return: Attributes in the internal format
         """
         internal_dict = {}
 
-        for internal_key, mapping in self.from_internal_attributes.items():
-            if external_type not in mapping:
+        for internal_attribute_name, mapping in self.from_internal_attributes.items():
+            if profile not in mapping:
                 # skip this internal attribute if we have no mapping in the specified profile
                 continue
 
-            external_key = mapping[external_type]
-            attribute_values = self._collate_attribute_values_by_priority_order(external_key,
+            external_attribute_name = mapping[profile]
+            attribute_values = self._collate_attribute_values_by_priority_order(external_attribute_name,
                                                                                 external_dict)
             if attribute_values:  # Only insert key if it has some values
-                internal_dict[internal_key] = attribute_values
+                internal_dict[internal_attribute_name] = attribute_values
 
-        internal_dict = self._handle_template_attributes(external_type, internal_dict)
+        internal_dict = self._handle_template_attributes(profile, internal_dict)
         return internal_dict
 
     def _collate_attribute_values_by_priority_order(self, attribute_names, data):
@@ -106,23 +106,23 @@ class DataConverter(object):
         except (NameError, TypeError) as e:
             return []
 
-    def _handle_template_attributes(self, external_type, internal_dict):
+    def _handle_template_attributes(self, attribute_profile, internal_dict):
         if not self.template_attributes:
             return internal_dict
 
-        for internal_key, mapping in self.template_attributes.items():
-            if external_type not in mapping:
+        for internal_attribute_name, mapping in self.template_attributes.items():
+            if attribute_profile not in mapping:
                 # skip this internal attribute if we have no mapping in the specified profile
                 continue
 
-            external_key = mapping[external_type]
-            templates = [t for t in external_key if "$" in t]  # these looks like templates...
+            external_attribute_name = mapping[attribute_profile]
+            templates = [t for t in external_attribute_name if "$" in t]  # these looks like templates...
             template_attribute_values = [self._render_attribute_template(template, internal_dict) for template in
                                          templates]
             flattened_attribute_values = list(chain.from_iterable(template_attribute_values))
-            attribute_values = flattened_attribute_values or internal_dict.get(internal_key, None)
+            attribute_values = flattened_attribute_values or internal_dict.get(internal_attribute_name, None)
             if attribute_values:  # only insert key if it has some values
-                internal_dict[internal_key] = attribute_values
+                internal_dict[internal_attribute_name] = attribute_values
 
         return internal_dict
 
@@ -136,48 +136,48 @@ class DataConverter(object):
                 return None
         return d
 
-    def from_internal(self, external_type, internal_dict, attr_list=True, external_keys=None):
+    def from_internal(self, attribute_profile, internal_dict, attr_list=True, external_keys=None):
         # TODO doc about external_keys
         """
         Converts the internal data to "type"
 
-        :type external_type: str
+        :type attribute_profile: str
         :type internal_dict: dict[str, str]
         :type attr_list: bool
         :type external_keys:
         :rtype: dict[str, str]
 
-        :param external_type: To which external type to convert (ex: oidc, saml, ...)
+        :param attribute_profile: To which external type to convert (ex: oidc, saml, ...)
         :param attr_list: Should all attribute values be in a list
         :param external_keys:
         :return: Attributes in the "type" format
         """
         external_dict = {}
-        for internal_key in internal_dict:
-            if internal_key in self.from_internal_attributes:
-                _external_keys = self.from_internal_attributes[internal_key][external_type]
-                if _external_keys:
-                    _external_key = None
+        for internal_attribute_name in internal_dict:
+            if internal_attribute_name in self.from_internal_attributes:
+                _external_attribute_names = self.from_internal_attributes[internal_attribute_name][attribute_profile]
+                if _external_attribute_names:
+                    _external_attribute_name = None
                     if external_keys:
-                        for _external_key in _external_keys:
-                            if _external_key in external_keys:
+                        for _external_attribute_name in _external_attribute_names:
+                            if _external_attribute_name in external_keys:
                                 break
-                    if _external_key is None:
-                        _external_key = _external_keys[0]
+                    if _external_attribute_name is None:
+                        _external_attribute_name = _external_attribute_names[0]
                     _external_dict = external_dict
-                    if self.separator in _external_key:
-                        _tmp_keys = _external_key.split(self.separator)
-                        _external_key = _tmp_keys[-1:][0]
+                    if self.separator in _external_attribute_name:
+                        _tmp_keys = _external_attribute_name.split(self.separator)
+                        _external_attribute_name = _tmp_keys[-1:][0]
                         _tmp_keys = _tmp_keys[:-1]
                         for _tmp_key in _tmp_keys:
                             if _tmp_key not in _external_dict:
                                 _external_dict[_tmp_key] = {}
                             _external_dict = _external_dict[_tmp_key]
                     if attr_list:
-                        _external_dict[_external_key] = internal_dict[internal_key]
+                        _external_dict[_external_attribute_name] = internal_dict[internal_attribute_name]
                     else:
-                        if internal_dict[internal_key]:
-                            _external_dict[_external_key] = internal_dict[internal_key][0]
+                        if internal_dict[internal_attribute_name]:
+                            _external_dict[_external_attribute_name] = internal_dict[internal_attribute_name][0]
         return external_dict
 
 
