@@ -5,6 +5,7 @@ for converting from SAML/OAuth/OpenID connect to the internal representation.
 import datetime
 import hashlib
 import json
+from collections import defaultdict
 from enum import Enum
 from itertools import chain
 
@@ -27,14 +28,11 @@ class DataConverter(object):
         self.from_internal_attributes = internal_attributes["attributes"]
         self.template_attributes = internal_attributes.get("template_attributes", None)
 
-        self.external2internal_attribute_name_mapping = {}
+        self.from_external_attributes = defaultdict(dict)
         for internal_key, mappings in self.from_internal_attributes.items():
-            for type, external_keys in self.from_internal_attributes[internal_key].items():
-                if type not in self.external2internal_attribute_name_mapping:
-                    self.external2internal_attribute_name_mapping[type] = {}
-
+            for external_type, external_keys in mappings.items():
                 for external_key in external_keys:
-                    self.external2internal_attribute_name_mapping[type][external_key] = internal_key
+                    self.from_external_attributes[external_type][external_key] = internal_key
 
     def to_internal_filter(self, external_type, external_keys):
         """
@@ -54,7 +52,7 @@ class DataConverter(object):
 
         for external_key in external_keys:
             try:
-                internal_key = self.external2internal_attribute_name_mapping[external_type][external_key]
+                internal_key = self.from_external_attributes[external_type][external_key]
                 internal_keys.add(internal_key)
             except KeyError:
                 pass
