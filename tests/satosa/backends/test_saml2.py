@@ -73,9 +73,8 @@ class TestSamlBackend:
         """
         internal_data = InternalRequest(None, None)
         resp = self.samlbackend.start_auth(context, internal_data)
-        assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
-        assert resp.message.startswith("https://my.dicso.com/role/idp.ds"), \
-            "Redirect to wrong URL."
+        assert resp.status == "303 See Other"
+        assert resp.message.startswith("https://my.dicso.com/role/idp.ds")
 
     def test_start_auth_name_id_policy(self, context, sp_conf):
         """
@@ -98,7 +97,7 @@ class TestSamlBackend:
             "Not a valid entity id in the call to the discovery server"
 
         request_info_tmp = context.state
-        assert request_info_tmp[test_state_key] == "my_state", "Wrong state!"
+        assert request_info_tmp[test_state_key] == "my_state"
 
     def test_start_auth_disco(self, context, idp_conf):
         """
@@ -136,8 +135,8 @@ class TestSamlBackend:
         self.samlbackend.authn_response(response_context, response_binding)
         context, internal_resp = self.samlbackend.auth_callback_func.call_args[0]
         assert isinstance(context, Context), "Not correct instance!"
-        assert context.state[test_state_key] == "my_state", "Not correct state!"
-        assert internal_resp.auth_info.auth_class_ref == PASSWORD, "Not correct authentication!"
+        assert context.state[test_state_key] == "my_state"
+        assert internal_resp.auth_info.auth_class_ref == PASSWORD
         expected_data = {'surname': ['Testsson 1'], 'mail': ['test@example.com'],
                          'displayname': ['Test Testsson'], 'givenname': ['Test 1'],
                          'edupersontargetedid': ['one!for!all']}
