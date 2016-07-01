@@ -182,26 +182,21 @@ class State(object):
             urlstate_data = urlstate_data.decode("UTF-8")
             self._state_dict = json.loads(urlstate_data)
 
-    def add(self, key, data):
+    def __setitem__(self, key, data):
         """
-        Will add data connected to a specific key.
-
-        Beware to use unqiue keys, so different parts of the proxy do not overwrite state data.
-
-        The method will convert the data object to a json string. If it cannot be converted an
-        exception will be raised.
+        Will set session data (which must be JSON serializable) associated with a unique key.
 
         :type key: str
-        :type data: object
+        :type data: Mapping[str, Any]
 
-        :param key: A unque key for this data section in the state.
-        :param data: Any kind of object, as long as it can be converted to json. So a good principle
-        is to only use dictionaries, lists and strings.
+        :param key: unique key to associate the data with
+        :param data: state data to keep
+        :raise ValueError: if the data is not JSON serializable
         """
-        json.dumps(data)
+        json.dumps(data)  # verify the data is JSON serializable by trying to serialize it
         self._state_dict[key] = data
 
-    def remove(self, key):
+    def __delitem__(self, key):
         """
         Removes state value
         :type key: str
@@ -209,17 +204,16 @@ class State(object):
         """
         del self._state_dict[key]
 
-    def get(self, key):
+    def __getitem__(self, key):
         """
         Will retrieve the state data for a specific key.
 
 
         :type key: str
-        :rtype: Any
+        :rtype: Mapping[str, Any]
 
-        :param key:
-        :return: A python object generated from a json string. So dictionary/list containing
-        strings.
+        :param key: the unique for which the data is associated
+        :return: the state data associated with the key
         """
         return self._state_dict[key]
 
@@ -263,7 +257,7 @@ class State(object):
         return state_copy
 
     def __str__(self):
-        return self._state_dict
+        return str(self._state_dict)
 
     @property
     def state_dict(self):

@@ -61,8 +61,8 @@ class ConsentModule(object):
         :return: None
         """
         if self.enabled:
-            state.add(STATE_KEY, {"filter": internal_request.get_filter(),
-                                  "requester_name": internal_request.requester_name})
+            state[STATE_KEY] = {"filter": internal_request.get_filter(),
+                                "requester_name": internal_request.requester_name}
 
     def _handle_consent_response(self, context):
         """
@@ -73,7 +73,7 @@ class ConsentModule(object):
         :param context: response context
         :return: response
         """
-        consent_state = context.state.get(STATE_KEY)
+        consent_state = context.state[STATE_KEY]
         saved_resp = consent_state["internal_resp"]
         internal_response = InternalResponse.from_dict(saved_resp)
 
@@ -99,9 +99,9 @@ class ConsentModule(object):
         return self._end_consent(context, internal_response)
 
     def _approve_new_consent(self, context, internal_response, id_hash):
-        consent_state = context.state.get(STATE_KEY)
+        consent_state = context.state[STATE_KEY]
         consent_state["internal_resp"] = internal_response.to_dict()
-        context.state.add(STATE_KEY, consent_state)
+        context.state[STATE_KEY] = consent_state
 
         consent_args = {
             "attr": internal_response.attributes,
@@ -139,7 +139,7 @@ class ConsentModule(object):
         if not self.enabled:
             return self.callback_func(context, internal_response)
 
-        consent_state = context.state.get(STATE_KEY)
+        consent_state = context.state[STATE_KEY]
 
         internal_response.attributes = self._filter_attributes(internal_response.attributes, consent_state["filter"])
         id_hash = self._get_consent_id(internal_response.to_requestor, internal_response.user_id,
@@ -239,7 +239,7 @@ class ConsentModule(object):
         :param internal_response: the response
         :return: response
         """
-        context.state.remove(STATE_KEY)
+        del context.state[STATE_KEY]
         return self.callback_func(context, internal_response)
 
     def register_endpoints(self):

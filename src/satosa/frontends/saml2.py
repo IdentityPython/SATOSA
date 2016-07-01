@@ -115,7 +115,7 @@ class SamlFrontend(FrontendModule):
         :param state: The current state
         :return: The dictionary given by the save_state function
         """
-        loaded_state = state.get(self.name)
+        loaded_state = state[self.name]
         if isinstance(loaded_state["resp_args"]["name_id_policy"], str):
             loaded_state["resp_args"]["name_id_policy"] = name_id_policy_from_string(
                 loaded_state["resp_args"]["name_id_policy"])
@@ -254,7 +254,7 @@ class SamlFrontend(FrontendModule):
             request_state = self.save_state(context,
                                             idp.response_args(extracted_request["authn_req"]),
                                             request.get("RelayState"))
-            context.state.add(self.name, request_state)
+            context.state[self.name] = request_state
 
             requester_name = self._get_sp_display_name(idp, extracted_request['resp_args']['sp_entity_id'])
             name_format = None

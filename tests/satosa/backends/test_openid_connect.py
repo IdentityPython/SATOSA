@@ -144,7 +144,7 @@ class TestOpenIDConnectBackend(object):
             STATE_KEY: oidc_state,
             NONCE_KEY: NONCE
         }
-        context.state.add(self.oidc_backend.name, state_data)
+        context.state[self.oidc_backend.name] = state_data
         return context
 
     def test_register_endpoints(self, backend_config):
@@ -192,7 +192,7 @@ class TestOpenIDConnectBackend(object):
 
     def test_set_state_in_start_auth(self, context):
         self.oidc_backend.start_auth(context, None)
-        assert context.state.get(self.oidc_backend.name)
+        assert context.state[self.oidc_backend.name]
 
     @responses.activate
     def test_remove_state_in_response_endpoint(self, backend_config, signing_key, incoming_authn_response):
@@ -202,7 +202,7 @@ class TestOpenIDConnectBackend(object):
 
         self.oidc_backend.response_endpoint(incoming_authn_response)
         with pytest.raises(KeyError):
-            incoming_authn_response.state.get(self.oidc_backend.name)
+            incoming_authn_response.state[self.oidc_backend.name]
 
     @responses.activate
     def test_entire_flow(self, context, backend_config):

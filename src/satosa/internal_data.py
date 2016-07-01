@@ -252,7 +252,7 @@ class UserIdHasher(object):
             UserIdHasher.REQUESTOR: internal_request.requestor,
             UserIdHasher.HASH_TYPE: internal_request.user_id_hash_type.name
         }
-        state.add(UserIdHasher.STATE_KEY, _dict)
+        state[UserIdHasher.STATE_KEY] = _dict
 
     @staticmethod
     def hash_data(salt, value):
@@ -262,7 +262,7 @@ class UserIdHasher(object):
 
     @staticmethod
     def hash_type(state):
-        _dict = state.get(UserIdHasher.STATE_KEY)
+        _dict = state[UserIdHasher.STATE_KEY]
         hash_type = UserIdHashType.from_string(_dict[UserIdHasher.HASH_TYPE])
         return hash_type
 

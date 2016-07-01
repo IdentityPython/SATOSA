@@ -82,7 +82,7 @@ class SATOSABase(object):
         :return: response
         """
         state = context.state
-        state.add(STATE_KEY, {"requestor": internal_request.requestor})
+        state[STATE_KEY] = {"requestor": internal_request.requestor}
         satosa_logging(logger, logging.INFO,
                        "Requesting provider: {}".format(internal_request.requestor), state)
         context.request = None
@@ -108,7 +108,7 @@ class SATOSABase(object):
         """
 
         context.request = None
-        internal_response.to_requestor = context.state.get(STATE_KEY)["requestor"]
+        internal_response.to_requestor = context.state[STATE_KEY]["requestor"]
         if "user_id_from_attr" in self.config["INTERNAL_ATTRIBUTES"]:
             user_id = [internal_response.attributes[attr] for attr in
                        self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attr"]]

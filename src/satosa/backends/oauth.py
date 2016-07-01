@@ -73,7 +73,7 @@ class _OAuthBackend(BackendModule):
         oauth_state = get_state(self.config["base_url"], rndstr().encode())
 
         state_data = dict(state=oauth_state)
-        context.state.add(self.name, state_data)
+        context.state[self.name] = state_data
 
         request_args = {"redirect_uri": self.redirect_url, "state": oauth_state}
         cis = self.consumer.construct_AuthorizationRequest(request_args=request_args)
@@ -120,7 +120,7 @@ class _OAuthBackend(BackendModule):
         :return: A SATOSA response. This method is only responsible to call the callback function
         which generates the Response object.
         """
-        state_data = context.state.get(self.name)
+        state_data = context.state[self.name]
         aresp = self.consumer.parse_response(AuthorizationResponse, info=json.dumps(context.request))
         self._verify_state(aresp, state_data, context.state)
 
@@ -135,7 +135,7 @@ class _OAuthBackend(BackendModule):
         internal_response = InternalResponse(auth_info=self.auth_info(context.request))
         internal_response.attributes = self.converter.to_internal(self.external_type, user_info)
         internal_response.user_id = user_info[self.user_id_attr]
-        context.state.remove(self.name)
+        del context.state[self.name]
         return self.auth_callback_func(context, internal_response)
 
     def auth_info(self, request):

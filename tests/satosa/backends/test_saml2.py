@@ -13,7 +13,6 @@ from saml2.config import IdPConfig
 from satosa.backends.saml2 import SamlBackend
 from satosa.context import Context
 from satosa.internal_data import UserIdHashType, InternalRequest
-from satosa.state import State
 from tests.users import USERS
 from tests.util import FakeIdP, create_metadata_from_config_dict
 
@@ -83,7 +82,7 @@ class TestSamlBackend:
         Performs a complete test for the module satosa.backends.saml2. The flow should be accepted.
         """
         test_state_key = "sauyghj34589fdh"
-        context.state.add(test_state_key, "my_state")
+        context.state[test_state_key] = "my_state"
 
         internal_req = InternalRequest(UserIdHashType.transient, None)
         resp = self.samlbackend.start_auth(context, internal_req)
@@ -99,7 +98,7 @@ class TestSamlBackend:
             "Not a valid entity id in the call to the discovery server"
 
         request_info_tmp = context.state
-        assert request_info_tmp.get(test_state_key) == "my_state", "Wrong state!"
+        assert request_info_tmp[test_state_key] == "my_state", "Wrong state!"
 
     def test_start_auth_disco(self, context, idp_conf):
         """
@@ -110,7 +109,7 @@ class TestSamlBackend:
         fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf, metadata_construction=False))
 
         internal_req = InternalRequest(UserIdHashType.persistent, "example.se/sp.xml")
-        context.state.add(test_state_key, "my_state")
+        context.state[test_state_key] = "my_state"
 
         resp = self.samlbackend.start_auth(context, internal_req)
         assert resp.status == "303 See Other", "Must be a redirect to the discovery server."
@@ -137,7 +136,7 @@ class TestSamlBackend:
         self.samlbackend.authn_response(response_context, response_binding)
         context, internal_resp = self.samlbackend.auth_callback_func.call_args[0]
         assert isinstance(context, Context), "Not correct instance!"
-        assert context.state.get(test_state_key) == "my_state", "Not correct state!"
+        assert context.state[test_state_key] == "my_state", "Not correct state!"
         assert internal_resp.auth_info.auth_class_ref == PASSWORD, "Not correct authentication!"
         expected_data = {'surname': ['Testsson 1'], 'mail': ['test@example.com'],
                          'displayname': ['Test Testsson'], 'givenname': ['Test 1'],
@@ -149,7 +148,7 @@ class TestSamlBackend:
         # instantiate new backend, without any discovery service configured
         samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf}, "base_url", "saml_backend")
 
-        context.state.add("test", "state")
+        context.state["test"] = "state"
         internal_req = InternalRequest(UserIdHashType.transient, None)
 
         resp = samlbackend.start_auth(context, internal_req)

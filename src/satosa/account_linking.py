@@ -55,7 +55,7 @@ class AccountLinkingModule(object):
         :param context: The current context
         :return: response
         """
-        saved_state = context.state.get(STATE_KEY)
+        saved_state = context.state[STATE_KEY]
         internal_response = InternalResponse.from_dict(saved_state)
         status_code, message = self._get_uuid(context, internal_response.auth_info.issuer, internal_response.user_id)
 
@@ -64,7 +64,7 @@ class AccountLinkingModule(object):
                            context.state)
             internal_response.user_id = message
             try:
-                context.state.remove(STATE_KEY)
+                del context.state[STATE_KEY]
             except KeyError:
                 pass
             return self.callback_func(context, internal_response)
@@ -94,7 +94,7 @@ class AccountLinkingModule(object):
                            context.state)
             internal_response.user_id = message
             try:
-                context.state.remove(STATE_KEY)
+                del context.state[STATE_KEY]
             except KeyError:
                 pass
             return self.callback_func(context, internal_response)
@@ -117,7 +117,7 @@ class AccountLinkingModule(object):
         """
         satosa_logging(logger, logging.INFO, "A new ID must be linked by the AL service",
                        context.state)
-        context.state.add(STATE_KEY, internal_response.to_dict())
+        context.state[STATE_KEY] = internal_response.to_dict()
         return Redirect("%s/%s" % (self.redirect_url, ticket))
 
     def _get_uuid(self, context, issuer, id):

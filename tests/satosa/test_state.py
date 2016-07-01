@@ -85,11 +85,11 @@ def test_simple_test():
     assert len(my_dict_router) == 1, "The dictionary is not correct!"
     my_dict_backend = get_dict(10, get_str(10), get_str(10))
     assert len(my_dict_backend) == 10, "The dictionary is not correct!"
-    state.add("my_dict_frontend", my_dict_frontend)
-    state.add("my_dict_consent", my_dict_consent)
-    state.add("my_dict_hash", my_dict_hash)
-    state.add("my_dict_router", my_dict_router)
-    state.add("my_dict_backend", my_dict_backend)
+    state["my_dict_frontend"] = my_dict_frontend
+    state["my_dict_consent"] = my_dict_consent
+    state["my_dict_hash"] = my_dict_hash
+    state["my_dict_router"] = my_dict_router
+    state["my_dict_backend"] = my_dict_backend
     urlstate = state.urlstate(enc_key)
     # Some browsers only support 2000bytes, and since state is not the only parameter it should
     # not be greater then half that size.
@@ -97,11 +97,11 @@ def test_simple_test():
     print("Size of state on the url is:%s" % urlstate_len)
     assert urlstate_len < 1000, "Urlstate is way to long!"
     state = State(urlstate, enc_key)
-    tmp_dict_frontend = state.get("my_dict_frontend")
-    tmp_dict_consent = state.get("my_dict_consent")
-    tmp_dict_hash = state.get("my_dict_hash")
-    tmp_dict_router = state.get("my_dict_router")
-    tmp_dict_backend = state.get("my_dict_backend")
+    tmp_dict_frontend = state["my_dict_frontend"]
+    tmp_dict_consent = state["my_dict_consent"]
+    tmp_dict_hash = state["my_dict_hash"]
+    tmp_dict_router = state["my_dict_router"]
+    tmp_dict_backend = state["my_dict_backend"]
     compare_dict(tmp_dict_frontend, my_dict_frontend)
     compare_dict(tmp_dict_consent, my_dict_consent)
     compare_dict(tmp_dict_hash, my_dict_hash)
@@ -117,7 +117,7 @@ class TestStateAsCookie:
         state_key = "27614gjkrn"
         saved_data = "data"
         state = State()
-        state.add(state_key, saved_data)
+        state[state_key] = saved_data
 
         cookie_name = "state_cookie"
         path = "/"
@@ -127,13 +127,13 @@ class TestStateAsCookie:
         cookie_str = cookie[cookie_name].OutputString()
         loaded_state = cookie_to_state(cookie_str, cookie_name, encrypt_key)
 
-        assert loaded_state.get(state_key) == saved_data
+        assert loaded_state[state_key] == saved_data
 
     def test_state_to_cookie_produces_cookie_without_max_age_for_state_that_should_be_deleted(self):
         state_key = "27614gjkrn"
         saved_data = "data"
         state = State()
-        state.add(state_key, saved_data)
+        state[state_key] = saved_data
         state.delete = True
 
         cookie_name = "state_cookie"

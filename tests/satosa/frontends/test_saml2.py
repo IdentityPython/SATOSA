@@ -242,7 +242,7 @@ class TestSamlFrontend:
 
         }
         request_state = samlfrontend.save_state(context, resp_args, "")
-        context.state.add(samlfrontend.name, request_state)
+        context.state[samlfrontend.name] = request_state
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
@@ -281,7 +281,7 @@ class TestSamlFrontend:
 
         }
         request_state = samlfrontend.save_state(context, resp_args, "")
-        context.state.add(samlfrontend.name, request_state)
+        context.state[samlfrontend.name] = request_state
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
@@ -342,7 +342,7 @@ class TestSamlFrontend:
             "binding": BINDING_HTTP_REDIRECT
         }
         request_state = samlfrontend.save_state(context, resp_args, "")
-        context.state.add(samlfrontend.name, request_state)
+        context.state[samlfrontend.name] = request_state
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)

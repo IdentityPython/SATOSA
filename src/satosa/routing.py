@@ -77,7 +77,7 @@ class ModuleRouter(object):
         satosa_logging(logger, logging.INFO, "Routing to backend: %s " % context.target_backend,
                        state)
         backend = self.backends[context.target_backend]["instance"]
-        state.add(ModuleRouter.STATE_KEY, context.target_frontend)
+        state[ModuleRouter.STATE_KEY] = context.target_frontend
         return backend
 
     def frontend_routing(self, context):
@@ -92,7 +92,7 @@ class ModuleRouter(object):
         """
 
         state = context.state
-        target_frontend = state.get(ModuleRouter.STATE_KEY)
+        target_frontend = state[ModuleRouter.STATE_KEY]
         satosa_logging(logger, logging.INFO, "Routing to frontend: %s " % target_frontend, state)
         context.target_frontend = target_frontend
         frontend = self.frontends[context.target_frontend]["instance"]

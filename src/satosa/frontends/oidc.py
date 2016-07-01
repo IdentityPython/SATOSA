@@ -219,7 +219,7 @@ class OIDCFrontend(FrontendModule):
         :param state: the current state
         :return: the parsed authentication request
         """
-        stored_state = state.get(self.name)
+        stored_state = state[self.name]
         oidc_request = stored_state["oidc_request"]
         return AuthorizationRequest().deserialize(oidc_request)
 
@@ -290,7 +290,7 @@ class OIDCFrontend(FrontendModule):
 
         client_id = info["areq"]["client_id"]
 
-        context.state.add(self.name, {"oidc_request": request})
+        context.state[self.name] = {"oidc_request": request}
         hash_type = oidc_subject_type_to_hash_type(
             self.provider.cdb[client_id].get("subject_type", self.subject_type_default))
         internal_req = InternalRequest(hash_type, client_id,

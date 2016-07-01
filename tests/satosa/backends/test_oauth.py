@@ -71,7 +71,7 @@ class TestFacebookBackend(object):
     def incoming_authn_response(self, context):
         context.path = 'facebook/sso/redirect'
         state_data = dict(state=mock_get_state.return_value)
-        context.state.add(self.fb_backend.name, state_data)
+        context.state[self.fb_backend.name] = state_data
         context.request = {
             "code": FB_RESPONSE_CODE,
             "state": mock_get_state.return_value

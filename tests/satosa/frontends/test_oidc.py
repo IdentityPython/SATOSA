@@ -39,7 +39,7 @@ class TestOIDCFrontend(object):
         self.instance.register_endpoints(["foo_backend"])
 
     def setup_for_authn_response(self, context, auth_req):
-        context.state.add(self.instance.name, {"oidc_request": auth_req.to_urlencoded()})
+        context.state[self.instance.name] = {"oidc_request": auth_req.to_urlencoded()}
 
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
         internal_response = InternalResponse(auth_info=auth_info)
@@ -106,7 +106,7 @@ class TestOIDCFrontend(object):
         areq = AuthorizationRequest(client_id=client_id, scope="openid", response_type="id_token",
                                     redirect_uri=redirect_uri)
 
-        context.state.add(self.instance.name, {"oidc_request": areq.to_urlencoded()})
+        context.state[self.instance.name] = {"oidc_request": areq.to_urlencoded()}
         message = "test error"
         error = SATOSAAuthenticationError(context.state, message)
         resp = self.instance.handle_backend_error(error)

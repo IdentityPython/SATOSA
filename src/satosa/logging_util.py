@@ -26,8 +26,8 @@ def satosa_logging(logger, level, message, state, **kwargs):
         session_id = "UNKNOWN"
     else:
         try:
-            session_id = state.get(LOGGER_STATE_KEY)
+            session_id = state[LOGGER_STATE_KEY]
         except KeyError:
             session_id = uuid4().urn
-            state.add(LOGGER_STATE_KEY, session_id)
+            state[LOGGER_STATE_KEY] = session_id
     logger.log(level, "[{id}] {msg}".format(id=session_id, msg=message), **kwargs)

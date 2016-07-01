@@ -70,7 +70,7 @@ class OpenIDConnectBackend(BackendModule):
             NONCE_KEY: oidc_nonce,
             STATE_KEY: oidc_state
         }
-        context.state.add(self.name, state_data)
+        context.state[self.name] = state_data
 
         args = {
             "scope": self.config["client"]["auth_req_params"]["scope"],
@@ -110,7 +110,7 @@ class OpenIDConnectBackend(BackendModule):
         :type context: satosa.context.Context
         :raise SATOSAAuthenticationError: if the nonce is incorrect
         """
-        backend_state = context.state.get(self.name)
+        backend_state = context.state[self.name]
         if nonce != backend_state[NONCE_KEY]:
             satosa_logging(logger, logging.DEBUG,
                            "Missing or invalid nonce in authn response for state: %s" %
@@ -172,7 +172,7 @@ class OpenIDConnectBackend(BackendModule):
         :param args: None
         :return:
         """
-        backend_state = context.state.get(self.name)
+        backend_state = context.state[self.name]
         authn_resp = self.client.parse_response(AuthorizationResponse, info=context.request, sformat="dict")
         if backend_state[STATE_KEY] != authn_resp["state"]:
             satosa_logging(logger, logging.DEBUG,
@@ -199,7 +199,7 @@ class OpenIDConnectBackend(BackendModule):
 
         all_user_claims = dict(list(userinfo.items()) + list(id_token_claims.items()))
         satosa_logging(logger, logging.DEBUG, "UserInfo: %s" % all_user_claims, context.state)
-        context.state.remove(self.name)
+        del context.state[self.name]
         return self.auth_callback_func(context,
                                        self._translate_response(
                                            all_user_claims,
