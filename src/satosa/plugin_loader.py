@@ -14,7 +14,7 @@ from .backends.base import BackendModule
 from .exception import SATOSAConfigurationError
 from .frontends.base import FrontendModule
 from .microservices.service_base import (MicroService, RequestMicroService,
-                                         ResponseMicroService, build_micro_service_queue)
+                                         ResponseMicroService)
 
 logger = logging.getLogger(__name__)
 
@@ -259,7 +259,7 @@ def load_request_microservices(plugin_path, plugins, internal_attributes):
     """
     request_services = _load_microservices(plugin_path, plugins, _request_micro_service_filter, internal_attributes)
     logger.info("Loaded request micro services: %s" % [type(k).__name__ for k in request_services])
-    return build_micro_service_queue(request_services)
+    return request_services
 
 def load_response_microservices(plugin_path, plugins, internal_attributes):
     """
@@ -276,4 +276,4 @@ def load_response_microservices(plugin_path, plugins, internal_attributes):
     """
     response_services = _load_microservices(plugin_path, plugins, _response_micro_service_filter, internal_attributes)
     logger.info("Loaded response micro services: %s" % [type(k).__name__ for k in response_services])
-    return build_micro_service_queue(response_services)
+    return response_services

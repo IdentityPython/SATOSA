@@ -89,8 +89,7 @@ class SATOSABase(object):
         self.consent_module.save_state(internal_request, state)
         UserIdHasher.save_state(internal_request, state)
         if self.request_micro_services:
-            internal_request = self.request_micro_services.process_service_queue(context,
-                                                                                 internal_request)
+            internal_request = process_microservice_queue(self.request_micro_services, context, internal_request)
         backend = self.module_router.backend_routing(context)
         return backend.start_auth(context, internal_request)
 
@@ -118,8 +117,7 @@ class SATOSABase(object):
         internal_response.user_id = user_id
 
         if self.response_micro_services:
-            internal_response = \
-                self.response_micro_services.process_service_queue(context, internal_response)
+            internal_response = process_microservice_queue(self.response_micro_services, context, internal_response)
         return self.account_linking_module.manage_al(context, internal_response)
 
     def _account_linking_callback_func(self, context, internal_response):
