@@ -11,25 +11,6 @@ from itertools import chain
 from mako.template import Template
 
 
-class CaseInsensitiveMapping(object):
-    def __init__(self):
-        self.mapping = {}
-        self.mapping_lower = {}
-
-    def __setitem__(self, key, value):
-        self.mapping[key] = value
-        self.mapping_lower[key.lower()] = value
-
-    def __getitem__(self, item):
-        return self.get(item)
-
-    def get(self, item, case_insensitive=False, default=None):
-        if case_insensitive and isinstance(item, str):
-            return self.mapping_lower.get(item.lower())
-
-        return self.mapping.get(item)
-
-
 class DataConverter(object):
     """
     Converts between internal and external data format
@@ -50,12 +31,12 @@ class DataConverter(object):
         for internal_key, mappings in self.from_internal_attributes.items():
             for type, external_keys in self.from_internal_attributes[internal_key].items():
                 if type not in self.external2internal_attribute_name_mapping:
-                    self.external2internal_attribute_name_mapping[type] = CaseInsensitiveMapping()
+                    self.external2internal_attribute_name_mapping[type] = {}
 
                 for external_key in external_keys:
                     self.external2internal_attribute_name_mapping[type][external_key] = internal_key
 
-    def to_internal_filter(self, external_type, external_keys, case_insensitive=False):
+    def to_internal_filter(self, external_type, external_keys):
         """
         Converts attribute names from external "type" to internal
 
@@ -72,12 +53,11 @@ class DataConverter(object):
         internal_keys = set()  # use set to ensure only unique values
 
         for external_key in external_keys:
-            internal_key = self.external2internal_attribute_name_mapping[external_type].get(
-                external_key,
-                case_insensitive)
-
-            if internal_key:
+            try:
+                internal_key = self.external2internal_attribute_name_mapping[external_type][external_key]
                 internal_keys.add(internal_key)
+            except KeyError:
+                pass
 
         return list(internal_keys)
 

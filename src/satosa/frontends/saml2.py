@@ -305,8 +305,7 @@ class SamlFrontend(FrontendModule):
             if aconv.name_format == name_format:
                 attribute_filter = list(
                     idp_policy.restrict(aconv._to, sp_entity_id, idp.metadata).keys())
-        attribute_filter = self.converter.to_internal_filter(self.attribute_profile,
-                                                             attribute_filter, True)
+        attribute_filter = self.converter.to_internal_filter(self.attribute_profile, attribute_filter)
         satosa_logging(logger, logging.DEBUG, "Filter: %s" % attribute_filter, state)
         return attribute_filter
 

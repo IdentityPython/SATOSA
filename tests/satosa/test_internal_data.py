@@ -166,23 +166,7 @@ class TestDataConverter:
         }
 
         converter = DataConverter(mapping)
-        filter = converter.to_internal_filter("p1", ["uid", "email"], False)
-        assert Counter(filter) == Counter(["mail", "identifier"])
-
-    def test_to_internal_filter_case_insensitive(self):
-        mapping = {
-            "attributes": {
-                "mail": {
-                    "p1": ["emailaddress"],
-                },
-                "identifier": {
-                    "p1": ["uid"],
-                },
-            },
-        }
-
-        converter = DataConverter(mapping)
-        filter = converter.to_internal_filter("p1", ["Uid", "eMaILAdDreSS"], True)
+        filter = converter.to_internal_filter("p1", ["uid", "email"])
         assert Counter(filter) == Counter(["mail", "identifier"])
 
     def test_to_internal_with_missing_attribute_value(self):
