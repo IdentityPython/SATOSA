@@ -46,26 +46,6 @@ def get_str(length):
     return ''.join(random.choice(string.ascii_lowercase) for x in range(length))
 
 
-def compare_dict(dict1, dict2, stop=False):
-    """
-    Compares that two directories are identical.
-
-    :type dict1: dict[str,str]
-    :type dict2: dict[str,str]
-    :type stop: bool
-
-    :param dict1: A dictionary to be compared.
-    :param dict2: A dictionary to be compared.
-    :param stop: True if the function should stop and not call itself, otherwise False.
-    """
-    assert len(dict1) == len(dict2), "Both dictionaries must be of equal length!"
-    for tmp_key in dict1:
-        assert tmp_key in dict2, "All keys must exist in both dictionaries!"
-        assert dict1[tmp_key] == dict2[tmp_key], "Values must be the same!"
-    if not stop:
-        compare_dict(dict2, dict1, True)
-
-
 def test_simple_test():
     """
     Performs a test that the state class works as intended.
@@ -74,17 +54,11 @@ def test_simple_test():
     """
     enc_key = "Ireallyliketoencryptthisdictionary!"
     state = State()
-    my_dict_frontend = get_dict(10, get_str(10), get_str(10))
-    my_dict_frontend["resp_attr"] = get_str(100)
-    assert len(my_dict_frontend) == 11, "The dictionary is not correct!"
+    my_dict_frontend = get_dict(11, get_str(10), get_str(10))
     my_dict_consent = get_dict(1, get_str(10), get_str(100))
-    assert len(my_dict_consent) == 1, "The dictionary is not correct!"
     my_dict_hash = get_dict(1, get_str(10), get_str(15))
-    assert len(my_dict_hash) == 1, "The dictionary is not correct!"
     my_dict_router = get_dict(1, get_str(10), get_str(10))
-    assert len(my_dict_router) == 1, "The dictionary is not correct!"
     my_dict_backend = get_dict(10, get_str(10), get_str(10))
-    assert len(my_dict_backend) == 10, "The dictionary is not correct!"
     state["my_dict_frontend"] = my_dict_frontend
     state["my_dict_consent"] = my_dict_consent
     state["my_dict_hash"] = my_dict_hash
@@ -97,16 +71,11 @@ def test_simple_test():
     print("Size of state on the url is:%s" % urlstate_len)
     assert urlstate_len < 1000, "Urlstate is way to long!"
     state = State(urlstate, enc_key)
-    tmp_dict_frontend = state["my_dict_frontend"]
-    tmp_dict_consent = state["my_dict_consent"]
-    tmp_dict_hash = state["my_dict_hash"]
-    tmp_dict_router = state["my_dict_router"]
-    tmp_dict_backend = state["my_dict_backend"]
-    compare_dict(tmp_dict_frontend, my_dict_frontend)
-    compare_dict(tmp_dict_consent, my_dict_consent)
-    compare_dict(tmp_dict_hash, my_dict_hash)
-    compare_dict(tmp_dict_router, my_dict_router)
-    compare_dict(tmp_dict_backend, my_dict_backend)
+    assert state["my_dict_frontend"] == my_dict_frontend
+    assert state["my_dict_consent"] == my_dict_consent
+    assert state["my_dict_hash"] == my_dict_hash
+    assert state["my_dict_router"] == my_dict_router
+    assert state["my_dict_backend"] == my_dict_backend
 
 
 class TestStateAsCookie:
