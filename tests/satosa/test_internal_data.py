@@ -231,7 +231,7 @@ class TestDataConverter:
 
         converter = DataConverter(mapping)
         filter = converter.to_internal_filter("bar", ["email", "uid"])
-        assert Counter(filter) == Counter(["id"])
+        assert filter == ["id"]  # mail should not included since its missing in 'bar' profile
 
     def test_to_internal_with_unknown_attribute_profile(self):
         mapping = {
