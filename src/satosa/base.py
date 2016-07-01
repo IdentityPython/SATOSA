@@ -11,9 +11,9 @@ from .context import Context
 from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
 from .internal_data import UserIdHasher
 from .logging_util import satosa_logging
+from .microservices.service_base import process_microservice_queue
 from .plugin_loader import load_backends, load_frontends
 from .plugin_loader import load_request_microservices, load_response_microservices
-from .response import Response
 from .routing import ModuleRouter, SATOSANoBoundEndpointError
 from .state import cookie_to_state, SATOSAStateError, State, state_to_cookie
 
@@ -33,12 +33,8 @@ class SATOSABase(object):
         Creates a satosa proxy base
 
         :type config: satosa.satosa_config.SATOSAConfig
-
         :param config: satosa proxy config
         """
-        if config is None:
-            raise ValueError("Missing configuration")
-
         self.config = config
         logger.info("Loading backend modules...")
         backends = load_backends(self.config, self._auth_resp_callback_func,
@@ -46,10 +42,11 @@ class SATOSABase(object):
         logger.info("Loading frontend modules...")
         frontends = load_frontends(self.config, self._auth_req_callback_func,
                                    self.config["INTERNAL_ATTRIBUTES"])
+        self.module_router = ModuleRouter(frontends, backends)
+
         self.consent_module = ConsentModule(config, self._consent_resp_callback_func)
         self.account_linking_module = AccountLinkingModule(config,
                                                            self._account_linking_callback_func)
-        # TODO register consent_module endpoints to module_router. Just add to backend list?
         if self.consent_module.enabled:
             backends["consent"] = self.consent_module
         if self.account_linking_module.enabled:
@@ -65,7 +62,6 @@ class SATOSABase(object):
             self.response_micro_services = load_response_microservices(self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
                                                                        self.config["MICRO_SERVICES"],
                                                                        self.config["INTERNAL_ATTRIBUTES"])
-        self.module_router = ModuleRouter(frontends, backends)
 
     def _auth_req_callback_func(self, context, internal_request):
         """
