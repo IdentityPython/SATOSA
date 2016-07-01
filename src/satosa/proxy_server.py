@@ -13,7 +13,7 @@ from .util import unpack_either
 logger = logging.getLogger(__name__)
 
 
-class ToBytesMiddleware:
+class ToBytesMiddleware(object):
     def __init__(self, app):
         self.app = app
 

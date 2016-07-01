@@ -11,7 +11,7 @@ from itertools import chain
 from mako.template import Template
 
 
-class CaseInsensitiveMapping:
+class CaseInsensitiveMapping(object):
     def __init__(self):
         self.mapping = {}
         self.mapping_lower = {}
