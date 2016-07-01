@@ -167,6 +167,10 @@ class State(object):
         """
         self._state_dict = {}
         self.delete = False
+
+        if urlstate_data and not encryption_key:
+            raise ValueError("If an 'urlstate_data' is supplied 'encrypt_key' must be specified.")
+
         if urlstate_data is not None:
             urlstate_data = urlstate_data.encode("utf-8")
             urlstate_data = base64.urlsafe_b64decode(urlstate_data)
