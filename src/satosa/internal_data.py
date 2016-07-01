@@ -28,11 +28,11 @@ class DataConverter(object):
         self.from_internal_attributes = internal_attributes["attributes"]
         self.template_attributes = internal_attributes.get("template_attributes", None)
 
-        self.from_external_attributes = defaultdict(dict)
+        self.to_internal_attributes = defaultdict(dict)
         for internal_attribute_name, mappings in self.from_internal_attributes.items():
             for profile, external_attribute_names in mappings.items():
                 for external_attribute_name in external_attribute_names:
-                    self.from_external_attributes[profile][external_attribute_name] = internal_attribute_name
+                    self.to_internal_attributes[profile][external_attribute_name] = internal_attribute_name
 
     def to_internal_filter(self, attribute_profile, external_attribute_names):
         """
@@ -52,7 +52,7 @@ class DataConverter(object):
 
         for external_attribute_name in external_attribute_names:
             try:
-                internal_attribute_name = self.from_external_attributes[attribute_profile][external_attribute_name]
+                internal_attribute_name = self.to_internal_attributes[attribute_profile][external_attribute_name]
                 internal_attribute_names.add(internal_attribute_name)
             except KeyError:
                 pass
