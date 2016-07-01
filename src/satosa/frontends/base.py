@@ -62,16 +62,16 @@ class FrontendModule(object):
         Example of registering an endpoint:
             providers = ["Saml2IDP", "OIDCOP"]
             reg_endp = [
-                ("^Saml2IDP/sso/redirect$", (endpoint_function, arguments)),
-                ("^OIDCOP/sso/redirect$", (endpoint_function, arguments)),
+                ("^Saml2IDP/sso/redirect$", endpoint_function),
+                ("^OIDCOP/sso/redirect$", endpoint_function),
             ]
 
 
         :type providers: list[str]
-        :rtype List[Tuple[str, Tuple[Callable[[satosa.context.Context, Any], satosa.response.Response], Any]]]
+        :rtype List[Tuple[str, Callable[[satosa.context.Context, Any], satosa.response.Response]]]
 
         :param providers: A list of all possible endpoints.
         :return: A list with functions and args bound to a specific endpoint url,
-                 [(regexp, (function, arguments)), ...]
+                 [(regexp, function), ...]
         """
         raise NotImplementedError()

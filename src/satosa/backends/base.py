@@ -52,14 +52,14 @@ class BackendModule(object):
 
         Example of registering an endpoint:
             reg_endp = [
-                ("^Saml2IDP/acs/redirect", (endpoint_function, arguments)),
+                ("^Saml2IDP/acs/redirect", endpoint_function),
             ]
 
 
-        :rtype List[Tuple[str, Tuple[Callable[[satosa.context.Context, Any], satosa.response.Response], Any]]]
+        :rtype List[Tuple[str, Callable[[satosa.context.Context, Any], satosa.response.Response]]]
 
         :return: A list with functions and args bound to a specific endpoint url,
-                 [(regexp, (function, arguments)), ...]
+                 [(regexp, function), ...]
         """
         raise NotImplementedError()
 

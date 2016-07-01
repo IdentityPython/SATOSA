@@ -191,10 +191,7 @@ class SATOSABase(object):
         :return: response
         """
         try:
-            if isinstance(spec, tuple):
-                return spec[0](context, *spec[1:])
-            else:
-                return spec(context)
+            return spec(context)
         except SATOSAAuthenticationError as error:
             error.error_id = uuid4().urn
             msg = "ERROR_ID [{err_id}]\nSTATE:\n{state}".format(err_id=error.error_id,

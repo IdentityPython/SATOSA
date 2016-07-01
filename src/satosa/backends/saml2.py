@@ -2,6 +2,7 @@
 A saml2 backend module for the satosa proxy
 """
 import copy
+import functools
 import json
 import logging
 from base64 import urlsafe_b64encode, urlsafe_b64decode
@@ -272,7 +273,7 @@ class SamlBackend(BackendModule):
         sp_endpoints = self.sp.config.getattr("endpoints", "sp")
         for endp, binding in sp_endpoints["assertion_consumer_service"]:
             parsed_endp = urlparse(endp)
-            url_map.append(("^%s$" % parsed_endp.path[1:], (self.authn_response, binding)))
+            url_map.append(("^%s$" % parsed_endp.path[1:], functools.partial(self.authn_response, binding=binding)))
 
         if "publish_metadata" in self.config:
             metadata_path = urlparse(self.config["publish_metadata"])
