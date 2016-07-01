@@ -3,7 +3,6 @@ Response objects used in satosa
 """
 from urllib.parse import quote
 
-import six
 from saml2.metadata import create_metadata_string
 
 
@@ -33,20 +32,9 @@ class Response(object):
         self.headers = headers if headers is not None else []
         self.message = message
 
-        addcontenttype = True
-        for header in self.headers:
-            if 'content-type' == header[0].lower():
-                addcontenttype = False
-        if addcontenttype:
-            self.headers.append(('Content-type', _content_type))
-
-    def add_cookie(self, cookie):
-        """
-        Adds a cookie to the response header
-        :type cookie: http.cookies.SimpleCookie
-        :param cookie: The cookie to be added
-        """
-        self.headers.append(tuple(cookie.output().split(": ", 1)))
+        should_add_content_type = any(header[0].lower() == 'content-type' for header in self.headers)
+        if should_add_content_type:
+            self.headers.append(('Content-Type', _content_type))
 
     def __call__(self, environ, start_response):
         """
@@ -74,7 +62,7 @@ class Response(object):
         :param message: message for response
         :return: A response message
         """
-        if isinstance(message, six.string_types):
+        if isinstance(message, str):
             return [message]
         else:
             return message

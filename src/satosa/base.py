@@ -235,16 +235,7 @@ class SATOSABase(object):
 
         cookie = state_to_cookie(context.state, self.config["COOKIE_STATE_NAME"], "/",
                                  self.config["STATE_ENCRYPTION_KEY"])
-
-        if isinstance(resp, Response):
-            resp.add_cookie(cookie)
-        else:
-            try:
-                resp.headers.append(tuple(cookie.output().split(": ", 1)))
-            except:
-                satosa_logging(logger, logging.WARN,
-                               "can't add cookie to response '%s'" % resp.__class__, context.state)
-                pass
+        resp.headers.append(tuple(cookie.output().split(": ", 1)))
 
     def run(self, context):
         """
