@@ -22,7 +22,7 @@ try:
         logger = logging.getLogger("")
         logger.addHandler(stdout_handler)
         logger.setLevel(logging.DEBUG)
-    app = ToBytesMiddleware(WsgiApplication(server_config).run_server)
+    app = ToBytesMiddleware(WsgiApplication(server_config))
 except Exception:
     logger = logging.getLogger(__name__)
     logger.exception("Failed to create WSGI app.")

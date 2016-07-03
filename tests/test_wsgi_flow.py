@@ -39,7 +39,7 @@ class TestProxy:
         Performs the test.
         """
         app = WsgiApplication(config=self.proxy_config)
-        test_client = Client(app.run_server, BaseResponse)
+        test_client = Client(app, BaseResponse)
 
         # Make request to frontend
         resp = test_client.get('/{}/{}/request'.format("backend", "frontend"))
@@ -54,7 +54,7 @@ class TestProxy:
 
     def test_unknown_request_path(self):
         app = WsgiApplication(config=self.proxy_config)
-        test_client = Client(app.run_server, BaseResponse)
+        test_client = Client(app, BaseResponse)
 
         resp = test_client.get('/unknown')
         assert resp.status == NotFound._status

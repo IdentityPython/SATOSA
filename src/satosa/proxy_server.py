@@ -40,7 +40,7 @@ class WsgiApplication(SATOSABase):
     def __init__(self, config):
         super().__init__(config)
 
-    def run_server(self, environ, start_response, debug=False):
+    def __call__(self, environ, start_response, debug=False):
         path = environ.get('PATH_INFO', '').lstrip('/')
         if ".." in path:
             resp = Unauthorized()
