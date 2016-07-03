@@ -48,43 +48,48 @@ class DataConverter(object):
         :param case_insensitive: Create a case insensitive filter
         :return: A list of attribute names in the internal format
         """
-        internal_attribute_names = set()  # use set to ensure only unique values
+        try:
+            profile_mapping = self.to_internal_attributes[attribute_profile]
+        except KeyError:
+            # no attributes since the given profile is not configured
+            return []
 
+        internal_attribute_names = set()  # use set to ensure only unique values
         for external_attribute_name in external_attribute_names:
             try:
-                internal_attribute_name = self.to_internal_attributes[attribute_profile][external_attribute_name]
+                internal_attribute_name = profile_mapping[external_attribute_name]
                 internal_attribute_names.add(internal_attribute_name)
             except KeyError:
                 pass
 
         return list(internal_attribute_names)
 
-    def to_internal(self, profile, external_dict):
+    def to_internal(self, attribute_profile, external_dict):
         """
         Converts the external data from "type" to internal
 
-        :type profile: str
+        :type attribute_profile: str
         :type external_dict: dict[str, str]
         :rtype: dict[str, str]
 
-        :param profile: From which external type to convert (ex: oidc, saml, ...)
+        :param attribute_profile: From which external type to convert (ex: oidc, saml, ...)
         :param external_dict: Attributes in the external format
         :return: Attributes in the internal format
         """
         internal_dict = {}
 
         for internal_attribute_name, mapping in self.from_internal_attributes.items():
-            if profile not in mapping:
+            if attribute_profile not in mapping:
                 # skip this internal attribute if we have no mapping in the specified profile
                 continue
 
-            external_attribute_name = mapping[profile]
+            external_attribute_name = mapping[attribute_profile]
             attribute_values = self._collate_attribute_values_by_priority_order(external_attribute_name,
                                                                                 external_dict)
             if attribute_values:  # Only insert key if it has some values
                 internal_dict[internal_attribute_name] = attribute_values
 
-        internal_dict = self._handle_template_attributes(profile, internal_dict)
+        internal_dict = self._handle_template_attributes(attribute_profile, internal_dict)
         return internal_dict
 
     def _collate_attribute_values_by_priority_order(self, attribute_names, data):
