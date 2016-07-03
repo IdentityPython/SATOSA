@@ -280,7 +280,6 @@ class AuthenticationInformation(object):
         :param timestamp: Time when the authentication was done
         :param issuer: Where the authentication was done
         """
-        # TODO Should the auth_class_ref be replaced by a LOA attribute?
         self.auth_class_ref = auth_class_ref
         self.timestamp = timestamp
         self.issuer = issuer
