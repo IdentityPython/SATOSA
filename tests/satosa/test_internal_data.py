@@ -259,6 +259,19 @@ class TestDataConverter:
         filter = converter.to_internal_filter("bar", ["email"])
         assert filter == []
 
+    def test_from_internal_with_unknown_profile(self):
+        mapping = {
+            "attributes": {
+                "mail": {
+                    "foo": ["email"],
+                },
+            },
+        }
+
+        converter = DataConverter(mapping)
+        external_repr = converter.from_internal("bar", {"mail": "bob"})
+        assert external_repr == {}
+
     def test_simple_template_mapping(self):
         mapping = {
             "attributes": {

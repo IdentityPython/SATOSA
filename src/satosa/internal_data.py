@@ -136,48 +136,45 @@ class DataConverter(object):
                 return None
         return d
 
-    def from_internal(self, attribute_profile, internal_dict, attr_list=True, external_keys=None):
-        # TODO doc about external_keys
+    def _create_nested_attribute_value(self, nested_attribute_names, value):
+        if len(nested_attribute_names) == 1:
+            # we've reached the inner-most attribute name, set value here
+            return {nested_attribute_names[0]: value}
+
+        # keep digging further into the nested attribute names
+        child_dict = self._create_nested_attribute_value(nested_attribute_names[1:], value)
+        return {nested_attribute_names[0]: child_dict}
+
+    def from_internal(self, attribute_profile, internal_dict):
         """
         Converts the internal data to "type"
 
         :type attribute_profile: str
         :type internal_dict: dict[str, str]
-        :type attr_list: bool
-        :type external_keys:
         :rtype: dict[str, str]
 
         :param attribute_profile: To which external type to convert (ex: oidc, saml, ...)
-        :param attr_list: Should all attribute values be in a list
-        :param external_keys:
-        :return: Attributes in the "type" format
+        :param internal_dict: attributes to map
+        :return: attribute values and names in the specified "profile"
         """
         external_dict = {}
         for internal_attribute_name in internal_dict:
-            if internal_attribute_name in self.from_internal_attributes:
-                _external_attribute_names = self.from_internal_attributes[internal_attribute_name][attribute_profile]
-                if _external_attribute_names:
-                    _external_attribute_name = None
-                    if external_keys:
-                        for _external_attribute_name in _external_attribute_names:
-                            if _external_attribute_name in external_keys:
-                                break
-                    if _external_attribute_name is None:
-                        _external_attribute_name = _external_attribute_names[0]
-                    _external_dict = external_dict
-                    if self.separator in _external_attribute_name:
-                        _tmp_keys = _external_attribute_name.split(self.separator)
-                        _external_attribute_name = _tmp_keys[-1:][0]
-                        _tmp_keys = _tmp_keys[:-1]
-                        for _tmp_key in _tmp_keys:
-                            if _tmp_key not in _external_dict:
-                                _external_dict[_tmp_key] = {}
-                            _external_dict = _external_dict[_tmp_key]
-                    if attr_list:
-                        _external_dict[_external_attribute_name] = internal_dict[internal_attribute_name]
-                    else:
-                        if internal_dict[internal_attribute_name]:
-                            _external_dict[_external_attribute_name] = internal_dict[internal_attribute_name][0]
+            if attribute_profile not in self.from_internal_attributes[internal_attribute_name]:
+                # skip this internal attribute if we have no mapping in the specified profile
+                continue
+
+            external_attribute_names = self.from_internal_attributes[internal_attribute_name][attribute_profile]
+            # select the first attribute name
+            external_attribute_name = external_attribute_names[0]
+
+            if self.separator in external_attribute_name:
+                nested_attribute_names = external_attribute_name.split(self.separator)
+                nested_dict = self._create_nested_attribute_value(nested_attribute_names[1:],
+                                                                  internal_dict[internal_attribute_name])
+                external_dict[nested_attribute_names[0]] = nested_dict
+            else:
+                external_dict[external_attribute_name] = internal_dict[internal_attribute_name]
+
         return external_dict
 
 
