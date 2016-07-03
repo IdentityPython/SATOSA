@@ -77,7 +77,7 @@ class ConsentModule(object):
         saved_resp = consent_state["internal_resp"]
         internal_response = InternalResponse.from_dict(saved_resp)
 
-        hash_id = self._get_consent_id(internal_response.to_requestor, internal_response.user_id,
+        hash_id = self._get_consent_id(internal_response.requester, internal_response.user_id,
                                        internal_response.attributes)
 
         try:
@@ -107,7 +107,7 @@ class ConsentModule(object):
             "attr": internal_response.attributes,
             "id": id_hash,
             "redirect_endpoint": "%s/consent%s" % (self.proxy_base, self.endpoint),
-            "requester_name": internal_response.to_requestor
+            "requester_name": internal_response.requester
         }
         if self.locked_attr:
             consent_args["locked_attrs"] = [self.locked_attr]
@@ -142,7 +142,7 @@ class ConsentModule(object):
         consent_state = context.state[STATE_KEY]
 
         internal_response.attributes = self._filter_attributes(internal_response.attributes, consent_state["filter"])
-        id_hash = self._get_consent_id(internal_response.to_requestor, internal_response.user_id,
+        id_hash = self._get_consent_id(internal_response.requester, internal_response.user_id,
                                        internal_response.attributes)
 
         try:
@@ -167,15 +167,15 @@ class ConsentModule(object):
     def _filter_attributes(self, attributes, filter):
         return {k: v for k, v in attributes.items() if k in filter}
 
-    def _get_consent_id(self, requestor, user_id, filtered_attr):
+    def _get_consent_id(self, requester, user_id, filtered_attr):
         """
-        Get a hashed id based on requestor, user id and filtered attributes
+        Get a hashed id based on requester, user id and filtered attributes
 
-        :type requestor: str
+        :type requester: str
         :type user_id: str
         :type filtered_attr: dict[str, str]
 
-        :param requestor: The calling requestor
+        :param requester: The calling requester
         :param user_id: The authorized user id
         :param filtered_attr: a list containing all attributes to be sent
         :return: an id
@@ -186,7 +186,7 @@ class ConsentModule(object):
         for key in filtered_attr_key_list:
             _hash_value = "".join(sorted(filtered_attr[key]))
             hash_str += key + _hash_value
-        id_string = "%s%s%s" % (requestor, user_id, hash_str)
+        id_string = "%s%s%s" % (requester, user_id, hash_str)
         return urlsafe_b64encode(hashlib.sha512(id_string.encode("utf-8")).hexdigest().encode("utf-8")).decode("utf-8")
 
     def _consent_registration(self, consent_args):
@@ -215,7 +215,7 @@ class ConsentModule(object):
         :type consent_id: str
         :rtype: Optional[List[str]]
 
-        :param consent_id: An id associated to the authenticated user, the calling requestor and
+        :param consent_id: An id associated to the authenticated user, the calling requester and
         attributes to be sent.
         :return: list attributes given which have been approved by user consent
         """

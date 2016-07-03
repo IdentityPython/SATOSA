@@ -275,7 +275,7 @@ class SamlFrontend(FrontendModule):
             if idp_policy:
                 attribute_filter = self.get_filter_attributes(idp,
                                                               idp_policy,
-                                                              internal_req.requestor,
+                                                              internal_req.requester,
                                                               context.state)
                 internal_req.add_filter(attribute_filter)
 

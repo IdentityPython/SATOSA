@@ -119,7 +119,7 @@ class TestSamlFrontend:
         """
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf)
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
-        assert internal_req.requestor == sp_conf["entityid"]
+        assert internal_req.requester == sp_conf["entityid"]
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
@@ -136,7 +136,7 @@ class TestSamlFrontend:
         """
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, nameid_format="")
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
-        assert internal_req.requestor == sp_conf["entityid"]
+        assert internal_req.requester == sp_conf["entityid"]
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
@@ -153,7 +153,7 @@ class TestSamlFrontend:
         """
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, relay_state=None)
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
-        assert internal_req.requestor == sp_conf["entityid"]
+        assert internal_req.requester == sp_conf["entityid"]
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
@@ -201,7 +201,7 @@ class TestSamlFrontend:
         filtered_attributes = samlfrontend.get_filter_attributes(samlfrontend.idp,
                                                                  samlfrontend.idp.config.getattr(
                                                                      "policy", "idp"),
-                                                                 internal_req.requestor, None)
+                                                                 internal_req.requester, None)
 
         assert set(filtered_attributes) == set(
             ["edupersontargetedid", "edupersonprincipalname", "edupersonaffiliation", "mail",

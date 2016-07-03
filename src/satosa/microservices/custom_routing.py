@@ -22,4 +22,4 @@ class DecideBackendByRequester(RequestMicroService):
         :param context: request context
         :param data: the internal request
         """
-        context.target_backend = self.requester_mapping[data.requestor]
+        context.target_backend = self.requester_mapping[data.requester]

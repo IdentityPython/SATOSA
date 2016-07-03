@@ -233,13 +233,13 @@ class UserIdHasher(object):
         return hash_type
 
     @staticmethod
-    def hash_id(salt, user_id, requestor, state):
+    def hash_id(salt, user_id, requester, state):
         """
         Sets a user id to the internal_response, in the format specified by the internal response
 
         :type salt: str
         :type user_id: str
-        :type requestor: str
+        :type requester: str
         :type state: satosa.state.State
         :rtype: str
 
@@ -252,9 +252,9 @@ class UserIdHasher(object):
         hash_type = UserIdHasher.hash_type(state)
         if hash_type == UserIdHashType.transient:
             timestamp = datetime.datetime.now().time()
-            user_id = "{req}{time}{id}".format(req=requestor, time=timestamp, id=user_id)
+            user_id = "{req}{time}{id}".format(req=requester, time=timestamp, id=user_id)
         elif hash_type == UserIdHashType.persistent or hash_type == UserIdHashType.pairwise:
-            user_id = "{req}{id}".format(req=requestor, id=user_id)
+            user_id = "{req}{id}".format(req=requester, id=user_id)
         elif hash_type == UserIdHashType.public:
             user_id = "{id}".format(id=user_id)
         else:
@@ -319,21 +319,21 @@ class InternalRequest(InternalData):
     Internal request for SATOSA.
     """
 
-    def __init__(self, user_id_hash_type, requestor, requester_name=None):
+    def __init__(self, user_id_hash_type, requester, requester_name=None):
         """
 
         :param user_id_hash_type:
-        :param requestor: identifier of the requestor
+        :param requester: identifier of the requester
 
         :type user_id_hash_type: UserIdHashType
-        :type requestor: str
+        :type requester: str
         """
         self.user_id_hash_type = user_id_hash_type
-        self.requestor = requestor
-        if requester_name:  # TODO do you need to validate this?
+        self.requester = requester
+        if requester_name:
             self.requester_name = requester_name
         else:
-            self.requester_name = [{"text": requestor, "lang": "en"}]
+            self.requester_name = [{"text": requester, "lang": "en"}]
         self._attribute_filter = []
 
     def add_filter(self, filter_attr):
@@ -342,7 +342,7 @@ class InternalRequest(InternalData):
 
         :type filter_attr: list[str]
 
-        :param filter_attr: a list of attributes that can be sent to the requestor
+        :param filter_attr: a list of attributes that can be sent to the requester
         """
         self._attribute_filter = filter_attr
 
@@ -372,7 +372,7 @@ class InternalResponse(InternalData):
         self.attributes = {}
         self.auth_info = auth_info
         self.user_id_hash_type = None
-        self.to_requestor = None
+        self.requester = None
 
     @staticmethod
     def from_dict(int_resp_dict):
@@ -388,7 +388,7 @@ class InternalResponse(InternalData):
             internal_response.user_id_hash_type = UserIdHashType.from_string(int_resp_dict["hash_type"])
         internal_response.attributes = int_resp_dict["attr"]
         internal_response.user_id = int_resp_dict["usr_id"]
-        internal_response.to_requestor = int_resp_dict["to"]
+        internal_response.requester = int_resp_dict["to"]
         return internal_response
 
     def to_dict(self):
@@ -399,7 +399,7 @@ class InternalResponse(InternalData):
         """
         _dict = {"usr_id": self.user_id,
                  "attr": self.attributes,
-                 "to": self.to_requestor,
+                 "to": self.requester,
                  "auth_info": self.auth_info.to_dict()}
         if self.user_id_hash_type:
             _dict["hash_type"] = self.user_id_hash_type.name

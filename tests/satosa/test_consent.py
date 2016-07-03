@@ -54,13 +54,13 @@ class TestConsent:
     def internal_response(self):
         auth_info = AuthenticationInformation("auth_class_ref", "timestamp", "issuer")
         internal_response = InternalResponse(auth_info=auth_info)
-        internal_response.to_requestor = "client"
+        internal_response.requester = "client"
         internal_response.attributes = ATTRIBUTES
         return internal_response
 
     @pytest.fixture
     def internal_request(self):
-        req = InternalRequest(UserIdHashType.persistent, "example_requestor")
+        req = InternalRequest(UserIdHashType.persistent, "example_requester")
         req.add_filter(FILTER + ["sn"])
         return req
 
@@ -93,7 +93,7 @@ class TestConsent:
         consent_args = jws.msg
         assert consent_args["attr"] == internal_response.attributes
         assert consent_args["redirect_endpoint"] == satosa_config["BASE"] + "/consent/handle_consent"
-        assert consent_args["requester_name"] == internal_response.to_requestor
+        assert consent_args["requester_name"] == internal_response.requester
         assert consent_args["locked_attrs"] == [USER_ID_ATTR]
         assert "id" in consent_args
 
@@ -222,8 +222,8 @@ class TestConsent:
     def test_get_consent_id(self):
         attributes = {"foo": ["bar", "123"], "abc": ["xyz", "456"]}
 
-        id = self.consent_module._get_consent_id("test-requestor", "user1", attributes)
-        assert id == "OWNlNzk1YmNkNzAzMGQxOGJjMWE2NWVhNTNjZjk3NDY0OTUyNzJiM2E5ZTMzMDc0YjljNjU1MmNmYjA1ODBmMDYyMWZmZGY3NDE3YWIwZmRjZmY4OTI0Y2VjY2Y3ZjBlODQyMjY2YjlhMDJhNDljMzUzODdiNzk1YTUxNmJhMmI="
+        id = self.consent_module._get_consent_id("test-requester", "user1", attributes)
+        assert id == "ZTRhMTJmNWQ2Yjk2YWE0YzgyMzU4NTlmNjM3YjlhNmQ4ZjZiODMzOTQ0ZjNiMTVmODEwMDhmMDg5N2JlMDg0Y2ZkZGFkOTkzMDZiNDZiNjMxNzBkYzExOTcxN2RkMzJjMmY5NzRhZDA2NjYxMTg0NjkyYzdjN2IxNTRiZDkwNmM="
 
     def test_filter_attributes(self):
         filtered_attributes = self.consent_module._filter_attributes(ATTRIBUTES, FILTER)

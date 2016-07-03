@@ -78,9 +78,9 @@ class SATOSABase(object):
         :return: response
         """
         state = context.state
-        state[STATE_KEY] = {"requestor": internal_request.requestor}
+        state[STATE_KEY] = {"requester": internal_request.requester}
         satosa_logging(logger, logging.INFO,
-                       "Requesting provider: {}".format(internal_request.requestor), state)
+                       "Requesting provider: {}".format(internal_request.requester), state)
         context.request = None
         self.consent_module.save_state(internal_request, state)
         UserIdHasher.save_state(internal_request, state)
@@ -103,7 +103,7 @@ class SATOSABase(object):
         """
 
         context.request = None
-        internal_response.to_requestor = context.state[STATE_KEY]["requestor"]
+        internal_response.requester = context.state[STATE_KEY]["requester"]
         if "user_id_from_attr" in self.config["INTERNAL_ATTRIBUTES"]:
             user_id = [internal_response.attributes[attr] for attr in
                        self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attr"]]
@@ -130,7 +130,7 @@ class SATOSABase(object):
         """
         user_id = UserIdHasher.hash_id(self.config["USER_ID_HASH_SALT"],
                                        internal_response.user_id,
-                                       internal_response.to_requestor,
+                                       internal_response.requester,
                                        context.state)
         internal_response.user_id = user_id
         internal_response.user_id_hash_type = UserIdHasher.hash_type(context.state)
@@ -166,7 +166,7 @@ class SATOSABase(object):
 
     def _handle_satosa_authentication_error(self, error):
         """
-        Sends a response to the requestor about the error
+        Sends a response to the requester about the error
 
         :type error: satosa.exception.SATOSAAuthenticationError
         :rtype: satosa.response.Response
