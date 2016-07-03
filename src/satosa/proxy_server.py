@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class ToBytesMiddleware(object):
+    """Converts a message to bytes to be sent by WSGI server."""
     def __init__(self, app):
         self.app = app
 
@@ -28,7 +29,8 @@ class ToBytesMiddleware(object):
                 else:
                     encoded_data.append(d.encode("utf-8"))
             return encoded_data
-        if not isinstance(data, bytes):
+
+        if isinstance(data, str):
             return data.encode("utf-8")
 
         return data
