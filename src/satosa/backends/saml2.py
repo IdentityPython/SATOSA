@@ -13,6 +13,7 @@ from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client_base import Base
 from saml2.config import SPConfig
 from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
+from saml2.metadata import create_metadata_string
 from saml2.samlp import NameIDPolicy
 
 from .base import BackendModule
@@ -22,7 +23,7 @@ from ..internal_data import (UserIdHashType, InternalRequest, InternalResponse,
 from ..logging_util import satosa_logging
 from ..metadata_creation.description import (MetadataDescription, OrganizationDesc,
                                              ContactPersonDesc, UIInfoDesc)
-from ..response import SeeOther, Response, MetadataResponse
+from ..response import SeeOther, Response
 from ..util import rndstr, get_saml_name_id_format
 
 logger = logging.getLogger(__name__)
@@ -252,17 +253,20 @@ class SamlBackend(BackendModule):
 
         return internal_resp
 
-    def _metadata(self, context):
+    def _metadata_endpoint(self, context):
         """
         Endpoint for retrieving the backend metadata
         :type context: satosa.context.Context
-        :rtype: satosa.backends.saml2.MetadataResponse
+        :rtype: satosa.response.Response
 
         :param context: The current context
         :return: response with metadata
         """
         satosa_logging(logger, logging.DEBUG, "Sending metadata response", context.state)
-        return MetadataResponse(self.sp.config)
+
+        metadata_string = create_metadata_string(None, self.sp.config, 4, None, None, None, None,
+                                                 None).decode("utf-8")
+        return Response(metadata_string, content="text/xml")
 
     def register_endpoints(self):
         """

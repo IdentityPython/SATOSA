@@ -138,22 +138,6 @@ class SeeOther(Response):
         return self.to_list()
 
 
-class MetadataResponse(Response):
-    """
-    A response containing metadata for the saml backend
-    """
-
-    def __init__(self, config):
-        """
-        Creates a response containing the metadata generated from the SP config.
-        :type config: dict[str, Any]
-        :param config: The SP config
-        """
-        metadata_string = create_metadata_string(None, config, 4, None, None, None, None,
-                                                 None).decode("utf-8")
-        resp = {"content": "text/xml"}
-        super().__init__(message=metadata_string, **resp)
-
 
 def geturl(environ, query=True, path=True, use_server_name=False):
     """Rebuilds a request URL (from PEP 333).

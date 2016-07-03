@@ -12,6 +12,7 @@ from saml2.httputil import Redirect
 from saml2.httputil import Response
 from saml2.httputil import ServiceError
 from saml2.httputil import Unauthorized
+from saml2.metadata import create_metadata_string
 from saml2.s_utils import UnknownPrincipal
 from saml2.s_utils import UnknownSystemEntity
 from saml2.s_utils import UnsupportedBinding
@@ -22,7 +23,6 @@ from saml2.server import Server
 from .base import FrontendModule
 from ..internal_data import InternalRequest, UserIdHashType
 from ..logging_util import satosa_logging
-from ..response import MetadataResponse
 from ..util import response, get_saml_name_id_format, saml_name_format_to_hash_type
 
 logger = logging.getLogger(__name__)
@@ -441,17 +441,19 @@ class SamlFrontend(FrontendModule):
             logger.error(msg)
             raise TypeError(msg)
 
-    def _metadata(self, context):
+    def _metadata_endpoint(self, context):
         """
         Endpoint for retrieving the backend metadata
         :type context: satosa.context.Context
-        :rtype: satosa.backends.saml2.MetadataResponse
+        :rtype: satosa.response.Response
 
         :param context: The current context
         :return: response with metadata
         """
         satosa_logging(logger, logging.DEBUG, "Sending metadata response", context.state)
-        return MetadataResponse(self.idp.config)
+        metadata_string = create_metadata_string(None, self.idp.config, 4, None, None, None, None,
+                                                 None).decode("utf-8")
+        return Response(metadata_string, content="text/xml")
 
     def _register_endpoints(self, providers):
         """
