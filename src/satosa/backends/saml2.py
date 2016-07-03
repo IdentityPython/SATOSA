@@ -281,7 +281,7 @@ class SamlBackend(BackendModule):
 
         if "publish_metadata" in self.config:
             metadata_path = urlparse(self.config["publish_metadata"])
-            url_map.append(("^%s$" % metadata_path.path[1:], self._metadata))
+            url_map.append(("^%s$" % metadata_path.path[1:], self._metadata_endpoint))
 
         if self.discosrv:
             for endp, binding in sp_endpoints["discovery_response"]:
