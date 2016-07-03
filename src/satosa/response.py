@@ -1,9 +1,6 @@
 """
 Response objects used in satosa
 """
-from urllib.parse import quote
-
-from saml2.metadata import create_metadata_string
 
 
 class Response(object):
@@ -48,24 +45,8 @@ class Response(object):
         :param start_response: The WSGI start_response
         :return:
         """
-        try:
-            start_response(self.status, self.headers)
-        except TypeError:
-            pass
-        return self.to_list(self.message or geturl(environ))
-
-    def to_list(self, message=""):
-        """
-        Convert message to list
-        :type message: str | list[str]
-        :rtype: list[str]
-        :param message: message for response
-        :return: A response message
-        """
-        if isinstance(message, str):
-            return [message]
-        else:
-            return message
+        start_response(self.status, self.headers)
+        return [self.message]
 
 
 class Redirect(Response):
@@ -86,23 +67,11 @@ class Redirect(Response):
         :param headers: A list of headers
         :param content: Content type
         """
-        super().__init__(message=redirect_url, headers=headers, content=content)
-
-    def __call__(self, environ, start_response):
-        """
-        :type environ: dict[str, str]
-        :type start_response: (str, list[(str, str)]) -> None
-
-        :param environ: The WSGI environ
-        :param start_response: The WSGI start_response
-        """
-        location = self.message
-        self.headers.append(('location', location))
-        start_response(self.status, self.headers)
-        return self.to_list()
+        super().__init__(redirect_url, headers=headers, content=content)
+        self.headers.append(("Location", redirect_url))
 
 
-class SeeOther(Response):
+class SeeOther(Redirect):
     """
     A SeeOther response
     """
@@ -120,69 +89,4 @@ class SeeOther(Response):
         :param headers: A list of headers
         :param content: The content type
         """
-        super().__init__(message=redirect_url, headers=headers, content=content)
-
-    def __call__(self, environ, start_response):
-        """
-        See super class method satosa.response.Redirect#__call__
-        :type environ: dict[str, str]
-        :type start_response: (str, list[(str, str)]) -> None
-
-        :param environ: The WSGI environ
-        :param start_response: The WSGI start_response
-        """
-        if self.message:
-            location = self.message
-            self.headers.append(('location', location))
-        start_response(self.status, self.headers)
-        return self.to_list()
-
-
-
-def geturl(environ, query=True, path=True, use_server_name=False):
-    """Rebuilds a request URL (from PEP 333).
-    You may want to chose to use the environment variables
-    server_name and server_port instead of http_host in some case.
-    The parameter use_server_name allows you to chose.
-
-    :type environ: any
-    :type query: str
-    :type path: str
-    :type use_server_name: bool
-    :rtype: str
-
-    :param environ: whiskey app environment
-    :param query: Is QUERY_STRING included in URI (default: True)
-    :param path: Is path included in URI (default: True)
-    :param use_server_name: If SERVER_NAME/_HOST should be used instead of
-        HTTP_HOST
-    """
-    url = [environ['wsgi.url_scheme'] + '://']
-    if use_server_name:
-        url.append(environ['SERVER_NAME'])
-        if environ['wsgi.url_scheme'] == 'https':
-            if environ['SERVER_PORT'] != '443':
-                url.append(':' + environ['SERVER_PORT'])
-        else:
-            if environ['SERVER_PORT'] != '80':
-                url.append(':' + environ['SERVER_PORT'])
-    else:
-        url.append(environ['HTTP_HOST'])
-    if path:
-        url.append(getpath(environ))
-    if query and environ.get('QUERY_STRING'):
-        url.append('?' + environ['QUERY_STRING'])
-    return ''.join(url)
-
-
-def getpath(environ):
-    """
-    Builds a path
-    :type environ: dict[str, str]
-    :rtype: str
-
-    :param environ: The WSGI application environ
-    :return: the path
-    """
-    return ''.join([quote(environ.get('SCRIPT_NAME', '')),
-                    quote(environ.get('PATH_INFO', ''))])
+        super().__init__(redirect_url, headers=headers, content=content)
