@@ -12,3 +12,4 @@ example/*
 .cache/
 build/
 dist/
+.coverage

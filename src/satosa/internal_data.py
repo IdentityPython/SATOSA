@@ -205,8 +205,6 @@ class UserIdHasher(object):
     Class for creating different user id types
     """
     STATE_KEY = "IDHASHER"
-    REQUESTOR = "requestor"
-    HASH_TYPE = "hash_type"
 
     @staticmethod
     def save_state(internal_request, state):
@@ -218,22 +216,20 @@ class UserIdHasher(object):
         :param internal_request: The request
         :param state: The current state
         """
-        _dict = {
-            UserIdHasher.REQUESTOR: internal_request.requestor,
-            UserIdHasher.HASH_TYPE: internal_request.user_id_hash_type.name
+        state_data = {
+            "hash_type": internal_request.user_id_hash_type.name
         }
-        state[UserIdHasher.STATE_KEY] = _dict
+        state[UserIdHasher.STATE_KEY] = state_data
 
     @staticmethod
     def hash_data(salt, value):
-        if not isinstance(value, str):
-            value = json.dumps(value)
-        return hashlib.sha512((value + salt).encode("utf-8")).hexdigest()
+        v = json.dumps(value)
+        return hashlib.sha512((v + salt).encode("utf-8")).hexdigest()
 
     @staticmethod
     def hash_type(state):
-        _dict = state[UserIdHasher.STATE_KEY]
-        hash_type = UserIdHashType.from_string(_dict[UserIdHasher.HASH_TYPE])
+        state_data = state[UserIdHasher.STATE_KEY]
+        hash_type = UserIdHashType.from_string(state_data["hash_type"])
         return hash_type
 
     @staticmethod
@@ -244,13 +240,11 @@ class UserIdHasher(object):
         :type salt: str
         :type user_id: str
         :type requestor: str
-        :type user_id_hash_type: satosa.internal_data.UserIdHashType
         :type state: satosa.state.State
         :rtype: str
 
         :param salt: A salt string for the ID hashing
         :param user_id: the user id
-        :param requestor: requestor
         :param user_id_hash_type: Hashing type
         :param state: The current state
         :return: the internal_response containing the hashed user ID
@@ -264,7 +258,7 @@ class UserIdHasher(object):
         elif hash_type == UserIdHashType.public:
             user_id = "{id}".format(id=user_id)
         else:
-            raise ValueError("Unknown id hash type: '{}'".format(hash_type))
+            raise ValueError("Unknown hash type: '{}'".format(hash_type))
 
         return UserIdHasher.hash_data(salt, user_id)
 
