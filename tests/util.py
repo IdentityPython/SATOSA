@@ -3,7 +3,6 @@ Contains help methods and classes to perform tests.
 """
 import base64
 import json
-import re
 import tempfile
 from urllib.parse import parse_qsl, urlparse
 
@@ -132,28 +131,6 @@ class FakeIdP(server.Server):
             resp = dict(parse_qsl(urlparse(dict(http_args["headers"])["Location"]).query))
 
         return destination, resp
-
-    def get_post_action_body(self, form):
-        form_str = form
-        if isinstance(form, list):
-            form_str = ""
-            for item in form:
-                form_str += item
-        resp = re.split(r'([^=, ]+)="([^" ]+|[^," ]+)" ?', form_str)
-        count = 0
-        action = None
-        saml_response = None
-        relay_state = None
-        for value in resp:
-            if value == "action":
-                action = resp[count + 1]
-            if value == 'SAMLRequest':
-                saml_response = resp[count + 3]
-            if value == "RelayState":
-                relay_state = resp[count + 3]
-            count += 1
-        body = {"SAMLRequest": saml_response, "RelayState": relay_state}
-        return action, body
 
 
 def create_metadata_from_config_dict(config):
@@ -414,8 +391,6 @@ class TestFrontend(FrontendModule):
 
 
 class TestRequestMicroservice(RequestMicroService):
-
-
     def process(self, context, data):
         return data
 
