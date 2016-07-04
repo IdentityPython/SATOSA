@@ -50,7 +50,7 @@ class SATOSAConfig(object):
                 self._config["INTERNAL_ATTRIBUTES"] = _internal_attributes
                 break
         if not self._config["INTERNAL_ATTRIBUTES"]:
-            raise SATOSAConfigurationError("Coudl not load attribute mapping from 'INTERNAL_ATTRIBUTES.")
+            raise SATOSAConfigurationError("Could not load attribute mapping from 'INTERNAL_ATTRIBUTES.")
 
     def _verify_dict(self, conf):
         """
