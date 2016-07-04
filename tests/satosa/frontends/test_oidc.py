@@ -11,9 +11,10 @@ from oic.oic.message import AuthorizationResponse, AuthorizationRequest, IdToken
 from oic.utils.keyio import create_and_store_rsa_key_pair
 from saml2.authn_context import PASSWORD
 
+from satosa.attribute_mapping import AttributeMapper
 from satosa.exception import SATOSAAuthenticationError
 from satosa.frontends.oidc import OIDCFrontend
-from satosa.internal_data import InternalResponse, AuthenticationInformation, DataConverter
+from satosa.internal_data import InternalResponse, AuthenticationInformation
 from tests.users import USERS
 
 INTERNAL_ATTRIBUTES = {
@@ -43,7 +44,7 @@ class TestOIDCFrontend(object):
 
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
         internal_response = InternalResponse(auth_info=auth_info)
-        internal_response.attributes = DataConverter(INTERNAL_ATTRIBUTES).to_internal("saml", USERS["testuser1"])
+        internal_response.attributes = AttributeMapper(INTERNAL_ATTRIBUTES).to_internal("saml", USERS["testuser1"])
         internal_response.user_id = USERS["testuser1"]["eduPersonTargetedID"][0]
 
         self.instance.provider.cdb = {

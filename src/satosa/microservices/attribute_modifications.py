@@ -3,7 +3,7 @@ import os
 import yaml
 
 from .service_base import ResponseMicroService
-from ..internal_data import DataConverter
+from ..attribute_mapping import AttributeMapper
 
 
 class AddStaticAttributes(ResponseMicroService):
@@ -16,7 +16,7 @@ class AddStaticAttributes(ResponseMicroService):
 
     def __init__(self, internal_attributes, **kwargs):
         super().__init__()
-        self.data_converter = DataConverter(internal_attributes)
+        self.data_converter = AttributeMapper(internal_attributes)
 
         mapping_file = os.environ.get("SATOSA_STATIC_ATTRIBUTES")
         if not mapping_file:

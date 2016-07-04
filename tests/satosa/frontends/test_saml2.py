@@ -20,8 +20,9 @@ from saml2.entity_category.swamid import SFS_1993_1153, RESEARCH_AND_EDUCATION, 
 from saml2.saml import NAMEID_FORMAT_PERSISTENT, NAMEID_FORMAT_TRANSIENT
 from saml2.samlp import NameIDPolicy
 
+from satosa.attribute_mapping import AttributeMapper
 from satosa.frontends.saml2 import SamlFrontend, saml_name_id_format_to_hash_type
-from satosa.internal_data import InternalResponse, AuthenticationInformation, InternalRequest, DataConverter
+from satosa.internal_data import InternalResponse, AuthenticationInformation, InternalRequest
 from tests.users import USERS
 from tests.util import FakeSP, create_metadata_from_config_dict
 
@@ -45,7 +46,7 @@ class TestSamlFrontend:
     def internal_response(self, idp_conf):
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", idp_conf["entityid"])
         internal_response = InternalResponse(auth_info=auth_info)
-        internal_response.attributes = DataConverter(INTERNAL_ATTRIBUTES).to_internal("saml", USERS["testuser1"])
+        internal_response.attributes = AttributeMapper(INTERNAL_ATTRIBUTES).to_internal("saml", USERS["testuser1"])
         return internal_response
 
     def construct_base_url_from_entity_id(self, entity_id):
@@ -318,7 +319,7 @@ class TestSamlFrontend:
         fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
 
         user_attributes = {k: "foo" for k in expected_attributes_in_all_entity_categories}
-        internal_response.attributes = DataConverter(internal_attributes).to_internal("saml", user_attributes)
+        internal_response.attributes = AttributeMapper(internal_attributes).to_internal("saml", user_attributes)
 
         resp_args = {
             "name_id_policy": NameIDPolicy(format=NAMEID_FORMAT_TRANSIENT),

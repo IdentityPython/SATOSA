@@ -2,7 +2,7 @@
 Holds a base class for backend modules used in the SATOSA proxy.
 """
 
-from ..internal_data import DataConverter
+from ..attribute_mapping import AttributeMapper
 
 
 class BackendModule(object):
@@ -28,7 +28,7 @@ class BackendModule(object):
         """
         self.auth_callback_func = auth_callback_func
         self.internal_attributes = internal_attributes
-        self.converter = DataConverter(internal_attributes)
+        self.converter = AttributeMapper(internal_attributes)
         self.base_url = base_url
         self.name = name
 
