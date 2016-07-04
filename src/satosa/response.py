@@ -29,9 +29,9 @@ class Response(object):
         self.headers = headers if headers is not None else []
         self.message = message
 
-        should_add_content_type = any(header[0].lower() == 'content-type' for header in self.headers)
+        should_add_content_type = not any(header[0].lower() == 'content-type' for header in self.headers)
         if should_add_content_type:
-            self.headers.append(('Content-Type', _content_type))
+            self.headers.append(("Content-Type", _content_type))
 
     def __call__(self, environ, start_response):
         """
