@@ -147,7 +147,7 @@ class _OAuthBackend(BackendModule):
         :param request: The request parameters in the authentication response sent by the AS.
         :return: How, who and when the autentication took place.
         """
-        raise NotImplementedError("Method user_information must be implemented!")
+        raise NotImplementedError("Method 'auth_info' must be implemented in the subclass!")
 
     def user_information(self, access_token):
         """
@@ -158,15 +158,14 @@ class _OAuthBackend(BackendModule):
         :param access_token: The access token to be used to retrieve the data.
         :return: Dictionary with attribute name as key and attribute value as value.
         """
-        raise NotImplementedError("Method user_information must be implemented!")
+        raise NotImplementedError("Method 'user_information' must be implemented in the subclass!")
 
     def get_metadata_desc(self):
         """
         See satosa.backends.oauth.get_metadata_desc
         :rtype: satosa.metadata_creation.description.MetadataDescription
         """
-        return get_metadata_desc_for_oauth_backend(self.config,
-                                                   self.config["server_info"]["authorization_endpoint"])
+        return get_metadata_desc_for_oauth_backend(self.config, self.config["server_info"]["authorization_endpoint"])
 
 
 class FacebookBackend(_OAuthBackend):
@@ -189,16 +188,13 @@ class FacebookBackend(_OAuthBackend):
         :type outgoing:
         (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
         :type internal_attributes: dict[string, dict[str, str | list[str]]]
-        :type config: dict[str, dict[str, str] | list[str]]
+        :type config: dict[str, dict[str, str] | list[str] | str]
         :type base_url: str
         :type name: str
         """
         config.setdefault("response_type", "code")
         config["verify_accesstoken_state"] = False
         super().__init__(outgoing, internal_attributes, config, base_url, name, "facebook", "id")
-
-        self.fields = None
-        self.config.setdefault("verify_accesstoken_state", False)
 
     def auth_info(self, request):
         """
