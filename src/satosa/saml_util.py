@@ -1,6 +1,6 @@
 from saml2 import BINDING_HTTP_REDIRECT
 
-from satosa.response import SeeOther, Response
+from .response import SeeOther, Response
 
 
 def make_saml_response(binding, http_args):
