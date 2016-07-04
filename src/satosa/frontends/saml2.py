@@ -16,16 +16,32 @@ from saml2.metadata import create_metadata_string
 from saml2.s_utils import UnknownPrincipal
 from saml2.s_utils import UnknownSystemEntity
 from saml2.s_utils import UnsupportedBinding
-from saml2.saml import NameID
+from saml2.saml import NameID, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
 from saml2.samlp import name_id_policy_from_string
 from saml2.server import Server
 
 from .base import FrontendModule
 from ..internal_data import InternalRequest, UserIdHashType
 from ..logging_util import satosa_logging
-from ..util import response, hash_type_to_saml_name_id_format, saml_name_id_format_to_hash_type
+from ..util import response, hash_type_to_saml_name_id_format
 
 logger = logging.getLogger(__name__)
+
+
+def saml_name_id_format_to_hash_type(name_format):
+    """
+    Translate pySAML2 name format to statosa format
+
+    :type name_format: str
+    :rtype: satosa.internal_data.UserIdHashType
+    :param name_format: SAML2 name format
+    :return: satosa format
+    """
+    if name_format == NAMEID_FORMAT_TRANSIENT:
+        return UserIdHashType.transient
+    elif name_format == NAMEID_FORMAT_PERSISTENT:
+        return UserIdHashType.persistent
+    return None
 
 
 class SamlFrontend(FrontendModule):

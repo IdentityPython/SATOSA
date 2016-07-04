@@ -20,9 +20,8 @@ from saml2.entity_category.swamid import SFS_1993_1153, RESEARCH_AND_EDUCATION, 
 from saml2.saml import NAMEID_FORMAT_PERSISTENT, NAMEID_FORMAT_TRANSIENT
 from saml2.samlp import NameIDPolicy
 
-from satosa.frontends.saml2 import SamlFrontend
+from satosa.frontends.saml2 import SamlFrontend, saml_name_id_format_to_hash_type
 from satosa.internal_data import InternalResponse, AuthenticationInformation, InternalRequest, DataConverter
-from satosa.util import saml_name_id_format_to_hash_type
 from tests.users import USERS
 from tests.util import FakeSP, create_metadata_from_config_dict
 

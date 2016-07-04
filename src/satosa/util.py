@@ -19,22 +19,6 @@ from .internal_data import UserIdHashType
 logger = logging.getLogger(__name__)
 
 
-def saml_name_id_format_to_hash_type(name_format):
-    """
-    Translate pySAML2 name format to statosa format
-
-    :type name_format: str
-    :rtype: satosa.internal_data.UserIdHashType
-    :param name_format: SAML2 name format
-    :return: satosa format
-    """
-    if name_format == NAMEID_FORMAT_TRANSIENT:
-        return UserIdHashType.transient
-    elif name_format == NAMEID_FORMAT_PERSISTENT:
-        return UserIdHashType.persistent
-    return None
-
-
 def hash_type_to_saml_name_id_format(hash_type):
     """
     Translate satosa format to pySAML2 name format
