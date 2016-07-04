@@ -10,12 +10,11 @@ from saml2.httputil import Unauthorized
 from .base import SATOSABase
 from .context import Context
 from .routing import SATOSANoBoundEndpointError
-from .util import unpack_either
 
 logger = logging.getLogger(__name__)
 
 
-def unpack_redirect(environ):
+def unpack_get(environ):
     """
     Unpacks a redirect request query string.
     :param environ: whiskey application environment.
@@ -44,7 +43,7 @@ def unpack_post(environ, content_length):
     return data
 
 
-def unpack_either(environ, content_length):
+def unpack_request(environ, content_length=0):
     """
     Unpacks a get or post request query string.
     :param environ: whiskey application environment.
@@ -52,7 +51,7 @@ def unpack_either(environ, content_length):
     """
     data = None
     if environ["REQUEST_METHOD"] == "GET":
-        data = unpack_redirect(environ)
+        data = unpack_get(environ)
     elif environ["REQUEST_METHOD"] == "POST":
         data = unpack_post(environ, content_length)
 
@@ -105,7 +104,7 @@ class WsgiApplication(SATOSABase):
         content_length = int(environ.get('CONTENT_LENGTH', '0') or '0')
         body = io.BytesIO(environ['wsgi.input'].read(content_length))
         environ['wsgi.input'] = body
-        context.request = unpack_either(environ, content_length)
+        context.request = unpack_request(environ, content_length)
         environ['wsgi.input'].seek(0)
 
         context.wsgi_environ = environ
