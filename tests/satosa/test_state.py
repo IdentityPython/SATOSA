@@ -46,36 +46,44 @@ def get_str(length):
     return ''.join(random.choice(string.ascii_lowercase) for x in range(length))
 
 
-def test_simple_test():
-    """
-    Performs a test that the state class works as intended.
+class TestState:
+    def test_urlstate_length_should_fit_in_browser_cookie(self):
+        """
+        Performs a test that the state class works as intended.
 
-    :return:
-    """
-    enc_key = "Ireallyliketoencryptthisdictionary!"
-    state = State()
-    my_dict_frontend = get_dict(11, get_str(10), get_str(10))
-    my_dict_consent = get_dict(1, get_str(10), get_str(100))
-    my_dict_hash = get_dict(1, get_str(10), get_str(15))
-    my_dict_router = get_dict(1, get_str(10), get_str(10))
-    my_dict_backend = get_dict(10, get_str(10), get_str(10))
-    state["my_dict_frontend"] = my_dict_frontend
-    state["my_dict_consent"] = my_dict_consent
-    state["my_dict_hash"] = my_dict_hash
-    state["my_dict_router"] = my_dict_router
-    state["my_dict_backend"] = my_dict_backend
-    urlstate = state.urlstate(enc_key)
-    # Some browsers only support 2000bytes, and since state is not the only parameter it should
-    # not be greater then half that size.
-    urlstate_len = len(quote_plus(urlstate))
-    print("Size of state on the url is:%s" % urlstate_len)
-    assert urlstate_len < 1000, "Urlstate is way to long!"
-    state = State(urlstate, enc_key)
-    assert state["my_dict_frontend"] == my_dict_frontend
-    assert state["my_dict_consent"] == my_dict_consent
-    assert state["my_dict_hash"] == my_dict_hash
-    assert state["my_dict_router"] == my_dict_router
-    assert state["my_dict_backend"] == my_dict_backend
+        :return:
+        """
+        enc_key = "Ireallyliketoencryptthisdictionary!"
+        state = State()
+        my_dict_frontend = get_dict(11, get_str(10), get_str(10))
+        my_dict_consent = get_dict(1, get_str(10), get_str(100))
+        my_dict_hash = get_dict(1, get_str(10), get_str(15))
+        my_dict_router = get_dict(1, get_str(10), get_str(10))
+        my_dict_backend = get_dict(10, get_str(10), get_str(10))
+        state["my_dict_frontend"] = my_dict_frontend
+        state["my_dict_consent"] = my_dict_consent
+        state["my_dict_hash"] = my_dict_hash
+        state["my_dict_router"] = my_dict_router
+        state["my_dict_backend"] = my_dict_backend
+        urlstate = state.urlstate(enc_key)
+        # Some browsers only support 2000bytes, and since state is not the only parameter it should
+        # not be greater then half that size.
+        urlstate_len = len(quote_plus(urlstate))
+        print("Size of state on the url is:%s" % urlstate_len)
+        assert urlstate_len < 1000, "Urlstate is way to long!"
+        state = State(urlstate, enc_key)
+        assert state["my_dict_frontend"] == my_dict_frontend
+        assert state["my_dict_consent"] == my_dict_consent
+        assert state["my_dict_hash"] == my_dict_hash
+        assert state["my_dict_router"] == my_dict_router
+        assert state["my_dict_backend"] == my_dict_backend
+
+    def test_contains(self):
+        state = State()
+        state["foo"] = "bar"
+        assert "foo" in state
+        del state["foo"]
+        assert "foo" not in state
 
 
 class TestStateAsCookie:

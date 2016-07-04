@@ -219,6 +219,9 @@ class State(object):
         """
         return self._state_dict[key]
 
+    def __contains__(self, key):
+        return key in self._state_dict
+
     def urlstate(self, encryption_key):
         """
         Will return a url safe representation of the state.
