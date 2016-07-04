@@ -8,19 +8,27 @@ from urllib.parse import urlencode
 
 from oic.oic import scope2claims
 from oic.oic.message import (AuthorizationResponse, AuthorizationRequest, AuthorizationErrorResponse,
-    RegistrationResponse, ProviderConfigurationResponse)
+                             RegistrationResponse, ProviderConfigurationResponse)
 from oic.oic.provider import Provider, RegistrationEndpoint, AuthorizationEndpoint
 from oic.utils import shelve_wrapper
 from oic.utils.http_util import SeeOther, Created, Response
 from oic.utils.keyio import KeyBundle, KeyJar
 from oic.utils.userinfo import UserInfo
 
+from satosa.internal_data import UserIdHashType
 from .base import FrontendModule
 from ..internal_data import InternalRequest
 from ..logging_util import satosa_logging
-from ..util import oidc_subject_type_to_hash_type
 
 logger = logging.getLogger(__name__)
+
+
+def oidc_subject_type_to_hash_type(subject_type):
+    if subject_type == "pairwise":
+        return UserIdHashType.pairwise
+    elif subject_type == "public":
+        return UserIdHashType.public
+    return None
 
 
 class OIDCFrontend(FrontendModule):

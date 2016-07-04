@@ -35,14 +35,6 @@ def hash_type_to_saml_name_id_format(hash_type):
     return NAMEID_FORMAT_PERSISTENT
 
 
-def oidc_subject_type_to_hash_type(subject_type):
-    if subject_type == "pairwise":
-        return UserIdHashType.pairwise
-    elif subject_type == "public":
-        return UserIdHashType.public
-    return None
-
-
 def unpack_redirect(environ):
     """
     Unpacks a redirect request query string.
