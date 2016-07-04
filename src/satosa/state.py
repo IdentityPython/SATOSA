@@ -78,9 +78,11 @@ def cookie_to_state(cookie_str, name, encryption_key):
             "No cookie named '{}' in cookie string '{}'".format(name, cookie_str))
 
 
-class AESCipher(object):
+class _AESCipher(object):
     """
     This class will perform AES encryption/decryption with a keylength of 256.
+
+    @see: http://stackoverflow.com/questions/12524994/encrypt-decrypt-using-pycrypto-aes-256
     """
 
     def __init__(self, key):
@@ -176,7 +178,7 @@ class State(object):
             urlstate_data = base64.urlsafe_b64decode(urlstate_data)
             lzma = LZMADecompressor()
             urlstate_data = lzma.decompress(urlstate_data)
-            urlstate_data = AESCipher(encryption_key).decrypt(urlstate_data)
+            urlstate_data = _AESCipher(encryption_key).decrypt(urlstate_data)
             lzma = LZMADecompressor()
             urlstate_data = lzma.decompress(urlstate_data)
             urlstate_data = urlstate_data.decode("UTF-8")
@@ -230,19 +232,12 @@ class State(object):
         urlstate_data = json.dumps(self._state_dict)
         urlstate_data = lzma.compress(urlstate_data.encode("UTF-8"))
         urlstate_data += lzma.flush()
-        urlstate_data = AESCipher(encryption_key).encrypt(urlstate_data)
+        urlstate_data = _AESCipher(encryption_key).encrypt(urlstate_data)
         lzma = LZMACompressor()
         urlstate_data = lzma.compress(urlstate_data)
         urlstate_data += lzma.flush()
         urlstate_data = base64.urlsafe_b64encode(urlstate_data)
         return urlstate_data.decode("utf-8")
-
-    def should_delete(self):
-        """
-        :rtype: bool
-        :return: True if should be deleted, else false
-        """
-        return self.delete
 
     def copy(self):
         """
