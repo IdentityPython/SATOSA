@@ -13,7 +13,7 @@ from saml2.authn_context import PASSWORD
 
 from satosa.attribute_mapping import AttributeMapper
 from satosa.exception import SATOSAAuthenticationError
-from satosa.frontends.oidc import OIDCFrontend
+from satosa.frontends.openid_connect import OpenIDConnectFrontend
 from satosa.internal_data import InternalResponse, AuthenticationInformation
 from tests.users import USERS
 
@@ -29,14 +29,14 @@ def signing_key(tmpdir):
     return os.path.join(str(tmpdir), filename)
 
 
-class TestOIDCFrontend(object):
+class TestOpenIDConnectFrontend(object):
     ISSUER = "https://op.example.com"
 
     @pytest.fixture(autouse=True)
     def setup(self, signing_key):
-        self.instance = OIDCFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
                                      dict(issuer=self.ISSUER, signing_key_path=signing_key), "base_url",
                                      "oidc_frontend")
+        self.instance = OpenIDConnectFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
         self.instance.register_endpoints(["foo_backend"])
 
     def setup_for_authn_response(self, context, auth_req):

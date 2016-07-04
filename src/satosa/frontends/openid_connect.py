@@ -31,7 +31,7 @@ def oidc_subject_type_to_hash_type(subject_type):
     return None
 
 
-class OIDCFrontend(FrontendModule):
+class OpenIDConnectFrontend(FrontendModule):
     """
     A OpenID Connect frontend module
     """

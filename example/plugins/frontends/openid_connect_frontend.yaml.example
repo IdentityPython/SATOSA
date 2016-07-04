@@ -1,4 +1,4 @@
-module: satosa.frontends.oidc.OIDCFrontend
+module: satosa.frontends.openid_connect.OpenIDConnectFrontend
 name: OIDC
 config:
   issuer: <base_url>
