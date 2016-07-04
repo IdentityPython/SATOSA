@@ -36,8 +36,6 @@ class OpenIDConnectFrontend(FrontendModule):
     A OpenID Connect frontend module
     """
 
-    MANDATORY_CONFIG = {"issuer", "signing_key_path"}
-
     def __init__(self, auth_req_callback_func, internal_attributes, conf, base_url, name):
         self._validate_config(conf)
         super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
@@ -201,11 +199,9 @@ class OpenIDConnectFrontend(FrontendModule):
         if config is None:
             raise ValueError("OIDCFrontend conf can't be 'None'.")
 
-        for k in self.MANDATORY_CONFIG:
+        for k in {"signing_key_path"}:
             if k not in config:
-                raise ValueError(
-                    "Missing configuration parameter '{}' for OpenID Connect frontend.".format(
-                        k))
+                raise ValueError("Missing configuration parameter '{}' for OpenID Connect frontend.".format(k))
 
     def _should_fragment_encode(self, authn_req):
         """

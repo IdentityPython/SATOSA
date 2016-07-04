@@ -1,6 +1,5 @@
 module: satosa.frontends.openid_connect.OpenIDConnectFrontend
 name: OIDC
 config:
-  issuer: <base_url>
   signing_key_path: frontend.key
   client_db_path: ./client_db
