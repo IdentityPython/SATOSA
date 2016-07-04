@@ -21,7 +21,7 @@ class FrontendModule(object):
         :param name: name of the plugin
         """
         self.auth_req_callback_func = auth_req_callback_func
-        self.internal_attrbiutes = internal_attributes
+        self.internal_attributes = internal_attributes
         self.converter = AttributeMapper(internal_attributes)
         self.base_url = base_url
         self.name = name
