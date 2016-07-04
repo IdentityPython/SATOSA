@@ -99,7 +99,6 @@ class SamlFrontend(FrontendModule):
         :type providers: list[str]
         :rtype: list[(str, ((satosa.context.Context, Any) -> satosa.response.Response, Any))]
         """
-        self._validate_providers(providers)
         self.idp_config = self._build_idp_config_endpoints(self.idp_config, providers)
         # Create the idp
         idp_config = IdPConfig().load(copy.deepcopy(self.idp_config), metadata_construction=False)
@@ -447,17 +446,6 @@ class SamlFrontend(FrontendModule):
 
         return resp
 
-    def _validate_providers(self, providers):
-        """
-        Validate the provider list
-        :type providers: list[str]
-        :param providers: A list with provider names (name of the backends)
-        """
-        if providers is None or not isinstance(providers, list):
-            msg = "'providers' is not 'list' type"
-            logger.error(msg)
-            raise TypeError(msg)
-
     def _metadata_endpoint(self, context):
         """
         Endpoint for retrieving the backend metadata
@@ -698,8 +686,6 @@ class SamlMirrorFrontend(SamlFrontend):
         :param providers: A list with backend names
         :return: A list of url and endpoint function pairs
         """
-        self._validate_providers(providers)
-
         url_map = []
 
         for endp_category in self.endpoints:
