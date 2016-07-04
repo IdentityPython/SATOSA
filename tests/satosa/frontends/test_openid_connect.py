@@ -1,14 +1,12 @@
 """
 Tests for the SAML frontend module src/frontends/saml2.py.
 """
-import os
 from urllib.parse import urlparse
 
 import pytest
 from oic.oic.message import AuthorizationResponse, AuthorizationRequest, IdToken, ClaimsRequest, \
     Claims, AuthorizationErrorResponse, RegistrationResponse, RegistrationRequest, \
     ClientRegistrationErrorResponse, ProviderConfigurationResponse
-from oic.utils.keyio import create_and_store_rsa_key_pair
 from saml2.authn_context import PASSWORD
 
 from satosa.attribute_mapping import AttributeMapper
@@ -18,25 +16,17 @@ from satosa.internal_data import InternalResponse, AuthenticationInformation
 from tests.users import USERS
 
 INTERNAL_ATTRIBUTES = {
-    'attributes': {'mail': {'saml': ['email'], 'openid': ['email']}}
+    'attributes': {"mail": {"saml": ["email"], "openid": ["email"]}}
 }
-
-
-@pytest.fixture
-def signing_key(tmpdir):
-    filename = "key"
-    create_and_store_rsa_key_pair(filename, str(tmpdir), 1024)
-    return os.path.join(str(tmpdir), filename)
+BASE_URL = "https://op.example.com"
 
 
 class TestOpenIDConnectFrontend(object):
-    ISSUER = "https://op.example.com"
-
     @pytest.fixture(autouse=True)
-    def setup(self, signing_key):
-                                     dict(issuer=self.ISSUER, signing_key_path=signing_key), "base_url",
-                                     "oidc_frontend")
+    def setup(self, signing_key_path):
         self.instance = OpenIDConnectFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
+                                              dict(signing_key_path=signing_key_path), BASE_URL,
+                                              "oidc_frontend")
         self.instance.register_endpoints(["foo_backend"])
 
     def setup_for_authn_response(self, context, auth_req):
@@ -47,7 +37,7 @@ class TestOpenIDConnectFrontend(object):
         internal_response.attributes = AttributeMapper(INTERNAL_ATTRIBUTES).to_internal("saml", USERS["testuser1"])
         internal_response.user_id = USERS["testuser1"]["eduPersonTargetedID"][0]
 
-        self.instance.provider.cdb = {
+        self.instance.cdb = {
             "client1": {"response_types": ["id_token"],
                         "redirect_uris": [(auth_req["redirect_uri"], None)],
                         "client_salt": "salt"}}
@@ -71,8 +61,8 @@ class TestOpenIDConnectFrontend(object):
 
         resp = AuthorizationResponse().deserialize(urlparse(http_resp.message).fragment)
         assert resp["state"] == state
-        id_token = IdToken().from_jwt(resp["id_token"], keyjar=self.instance.provider.keyjar)
-        assert id_token["iss"] == self.ISSUER
+        id_token = IdToken().from_jwt(resp["id_token"], key=[self.instance.signing_key])
+        assert id_token["iss"] == BASE_URL
         assert id_token["nonce"] == nonce
         assert id_token["sub"] == USERS["testuser1"]["eduPersonTargetedID"][0]
         assert id_token["email"] == USERS["testuser1"]["email"][0]
@@ -96,8 +86,8 @@ class TestOpenIDConnectFrontend(object):
 
         resp = AuthorizationResponse().deserialize(urlparse(http_resp.message).query)
         assert resp["state"] == state
-        id_token = IdToken().from_jwt(resp["id_token"], keyjar=self.instance.provider.keyjar)
-        assert id_token["iss"] == self.ISSUER
+        id_token = IdToken().from_jwt(resp["id_token"], key=[self.instance.signing_key])
+        assert id_token["iss"] == BASE_URL
         assert id_token["nonce"] == nonce
         assert id_token["sub"] == USERS["testuser1"]["eduPersonTargetedID"][0]
         assert id_token["email"] == USERS["testuser1"]["email"][0]
@@ -163,4 +153,4 @@ class TestOpenIDConnectFrontend(object):
         provider_config = ProviderConfigurationResponse().deserialize(http_response.message, "json")
         assert all(
             item in provider_config.to_dict().items() for item in expected_capabilities.items())
-        assert provider_config["authorization_endpoint"] == "{}/foo_backend/authorization".format(self.ISSUER)
+        assert provider_config["authorization_endpoint"] == "{}/foo_backend/authorization".format(BASE_URL)

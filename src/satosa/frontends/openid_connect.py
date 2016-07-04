@@ -6,18 +6,18 @@ import json
 import logging
 from urllib.parse import urlencode
 
+from jwkest.jwk import rsa_load, RSAKey
 from oic.oic import scope2claims
 from oic.oic.message import (AuthorizationResponse, AuthorizationRequest, AuthorizationErrorResponse,
-                             RegistrationResponse, ProviderConfigurationResponse)
-from oic.oic.provider import Provider, RegistrationEndpoint, AuthorizationEndpoint
+                             RegistrationResponse, ProviderConfigurationResponse, IdToken)
+from oic.oic.provider import RegistrationEndpoint, AuthorizationEndpoint, Provider
 from oic.utils import shelve_wrapper
 from oic.utils.http_util import SeeOther, Created, Response
-from oic.utils.keyio import KeyBundle, KeyJar
 from oic.utils.userinfo import UserInfo
 
-from satosa.internal_data import UserIdHashType
 from .base import FrontendModule
 from ..internal_data import InternalRequest
+from ..internal_data import UserIdHashType
 from ..logging_util import satosa_logging
 
 logger = logging.getLogger(__name__)
@@ -40,9 +40,28 @@ class OpenIDConnectFrontend(FrontendModule):
         self._validate_config(conf)
         super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
 
-        self.sign_alg = "RS256"
-        self.subject_type_default = "pairwise"
-        self.conf = conf
+        self.config = conf
+        self.signing_key = RSAKey(key=rsa_load(conf["signing_key_path"]), use="sig", alg="RS256")
+        if "client_db_path" in self.config:
+            cdb = shelve_wrapper.open(self.config["client_db_path"])
+        else:
+            cdb = {}  # client db in memory only
+        capabilities = {
+            "response_types_supported": ["id_token"],
+            "id_token_signing_alg_values_supported": [self.signing_key.alg],
+            "response_modes_supported": ["fragment", "query"],
+            "subject_types_supported": ["public", "pairwise"],
+            "grant_types_supported": ["implicit"],
+            "claim_types_supported": ["normal"],
+            "claims_parameter_supported": True,
+            "request_parameter_supported": False,
+            "request_uri_parameter_supported": False,
+            "scopes_supported": ["openid"]
+        }
+        jwks_uri = "{}/jwks".format(self.base_url)
+        self.provider = Provider(self.base_url, None, cdb, None, None, None, None, None, None,
+                                 capabilities=capabilities, jwks_uri=jwks_uri)
+        self.provider.endp = [RegistrationEndpoint, AuthorizationEndpoint]
 
     def handle_authn_response(self, context, internal_resp):
         """
@@ -56,33 +75,32 @@ class OpenIDConnectFrontend(FrontendModule):
         # filter attributes to return in ID Token as claims
         attributes = self.converter.from_internal("openid", internal_resp.attributes)
         satosa_logging(logger, logging.DEBUG,
-                       "Attributes delivered by backend to OIDC frontend: {}".format(
-                           json.dumps(attributes)), context.state)
+                       "Attributes delivered by backend to OIDC frontend: {}".format(json.dumps(attributes)),
+                       context.state)
         flattened_attributes = {k: v[0] for k, v in attributes.items()}
         requested_id_token_claims = auth_req.get("claims", {}).get("id_token")
-        user_claims = self._get_user_info(flattened_attributes,
-                                          requested_id_token_claims,
-                                          auth_req["scope"])
-        satosa_logging(logger, logging.DEBUG,
-                       "Attributes filtered by requested claims/scope: {}".format(
-                           json.dumps(user_claims)), context.state)
+        user_claims = self._get_user_info(flattened_attributes, requested_id_token_claims, auth_req["scope"])
+        satosa_logging(logger, logging.DEBUG, "Attributes filtered by requested claims/scope: {}".format(
+            json.dumps(user_claims)), context.state)
 
         # construct epoch timestamp of reported authentication time
-        auth_time = datetime.datetime.strptime(internal_resp.auth_info.timestamp,
-                                               "%Y-%m-%dT%H:%M:%SZ")
+        auth_time = datetime.datetime.strptime(internal_resp.auth_info.timestamp, "%Y-%m-%dT%H:%M:%SZ")
         epoch_timestamp = (auth_time - datetime.datetime(1970, 1, 1)).total_seconds()
 
-        base_claims = {"client_id": auth_req["client_id"],
-                       "sub": internal_resp.user_id,
-                       "nonce": auth_req["nonce"]}
-        id_token = self.provider.id_token_as_signed_jwt(base_claims, user_info=user_claims,
-                                                        auth_time=epoch_timestamp,
-                                                        loa="",
-                                                        alg=self.sign_alg)
+        # create ID Token
+        base_claims = {
+            "iss": self.base_url,
+            "client_id": auth_req["client_id"],
+            "sub": internal_resp.user_id,
+            "nonce": auth_req["nonce"],
+            "auth_time": epoch_timestamp
+        }
+        base_claims.update(user_claims)
+        id_token = IdToken(**base_claims).to_jwt([self.signing_key], self.signing_key.alg)
 
         oidc_client_state = auth_req.get("state")
         kwargs = {}
-        if oidc_client_state:  # inlcude any optional 'state' sent by the client in the authn req
+        if oidc_client_state:  # include any optional 'state' sent by the client in the authn req
             kwargs["state"] = oidc_client_state
 
         auth_resp = AuthorizationResponse(id_token=id_token, **kwargs)
@@ -101,9 +119,7 @@ class OpenIDConnectFrontend(FrontendModule):
         error_resp = AuthorizationErrorResponse(error="access_denied",
                                                 error_description=exception.message)
         satosa_logging(logger, logging.DEBUG, exception.message, exception.state)
-        return SeeOther(
-            error_resp.request(auth_req["redirect_uri"],
-                               self._should_fragment_encode(auth_req)))
+        return SeeOther(error_resp.request(auth_req["redirect_uri"], self._should_fragment_encode(auth_req)))
 
     def register_endpoints(self, providers):
         """
@@ -113,60 +129,22 @@ class OpenIDConnectFrontend(FrontendModule):
         :raise ValueError: if more than one backend is configured
         """
         if len(providers) != 1:
+            # only supports one backend since there currently is no way to publish multiple authorization endpoints
+            # in configuration information and there is no other standard way of authorization_endpoint discovery
+            # similar to SAML entity discovery
             raise ValueError("OpenID Connect frontend only supports one backend.")
+
         backend = providers[0]
+        endpoint_baseurl = "{}/{}".format(self.base_url, backend)
+        self.provider.baseurl = endpoint_baseurl
 
-        endpoint_baseurl = "{}/{}".format(self.conf["issuer"], backend)
-        jwks_uri = "{}/jwks".format(self.conf["issuer"])
-        self._create_op(self.conf["issuer"], endpoint_baseurl, jwks_uri)
-
-        provider_config = (
-            "^.well-known/openid-configuration$", self._provider_config)
+        provider_config = ("^.well-known/openid-configuration$", self._provider_config)
         jwks_uri = ("^jwks$", self._jwks)
-        dynamic_client_registration = (
-            "^{}/{}".format(backend, RegistrationEndpoint.url), self._register_client)
-        authentication = (
-            "^{}/{}".format(backend, AuthorizationEndpoint.url), self.handle_authn_request)
+        dynamic_client_registration = ("^{}/{}".format(backend, RegistrationEndpoint.url), self._register_client)
+        authentication = ("^{}/{}".format(backend, AuthorizationEndpoint.url), self.handle_authn_request)
 
         url_map = [provider_config, jwks_uri, dynamic_client_registration, authentication]
         return url_map
-
-    def _create_op(self, issuer, endpoint_baseurl, jwks_uri):
-        """
-        Create the necessary Provider instance.
-        :type issuer: str
-        :type endpoint_baseurl: str
-        :type jwks_uri: str
-        :param issuer: issuer URL for the OP
-        :param endpoint_baseurl: baseurl to build endpoint URL from
-        :param jwks_uri: URL to where the JWKS will be published
-        """
-        kj = KeyJar()
-        signing_key = KeyBundle(source="file://{}".format(self.conf["signing_key_path"]),
-                                fileformat="der", keyusage=["sig"])
-        kj.add_kb("", signing_key)
-        capabilities = {
-            "response_types_supported": ["id_token"],
-            "id_token_signing_alg_values_supported": [self.sign_alg],
-            "response_modes_supported": ["fragment", "query"],
-            "subject_types_supported": ["public", "pairwise"],
-            "grant_types_supported": ["implicit"],
-            "claim_types_supported": ["normal"],
-            "claims_parameter_supported": True,
-            "request_parameter_supported": False,
-            "request_uri_parameter_supported": False,
-            "scopes_supported": ["openid"]
-        }
-
-        if "client_db_path" in self.conf:
-            cdb = shelve_wrapper.open(self.conf["client_db_path"])
-        else:
-            cdb = {}  # client db in memory only
-
-        self.provider = Provider(issuer, None, cdb, None, None, None, None, None, keyjar=kj,
-                                 capabilities=capabilities, jwks_uri=jwks_uri)
-        self.provider.baseurl = endpoint_baseurl
-        self.provider.endp = [RegistrationEndpoint, AuthorizationEndpoint]
 
     def _get_user_info(self, user_attributes, requested_claims=None, scopes=None):
         """
@@ -185,8 +163,7 @@ class OpenIDConnectFrontend(FrontendModule):
         requested_claims = requested_claims or {}
         scopes = scopes or []
         claims_requested_by_scope = scope2claims(scopes)
-        claims_requested_by_scope.update(
-            requested_claims)  # let explicit claims request override scope
+        claims_requested_by_scope.update(requested_claims)  # let explicit claims request override scope
 
         return UserInfo().filter(user_attributes, claims_requested_by_scope)
 
@@ -224,9 +201,7 @@ class OpenIDConnectFrontend(FrontendModule):
         :param state: the current state
         :return: the parsed authentication request
         """
-        stored_state = state[self.name]
-        oidc_request = stored_state["oidc_request"]
-        return AuthorizationRequest().deserialize(oidc_request)
+        return AuthorizationRequest().deserialize(state[self.name]["oidc_request"])
 
     def _register_client(self, context):
         """
@@ -248,7 +223,7 @@ class OpenIDConnectFrontend(FrontendModule):
         response = RegistrationResponse().deserialize(http_resp.message, "json")
         del response["client_secret"]
         # specify supported id token signing alg
-        response["id_token_signed_response_alg"] = self.sign_alg
+        response["id_token_signed_response_alg"] = self.signing_key.alg
 
         http_resp.message = response.to_json()
         return http_resp
@@ -296,8 +271,7 @@ class OpenIDConnectFrontend(FrontendModule):
         client_id = info["areq"]["client_id"]
 
         context.state[self.name] = {"oidc_request": request}
-        hash_type = oidc_subject_type_to_hash_type(
-            self.provider.cdb[client_id].get("subject_type", self.subject_type_default))
+        hash_type = oidc_subject_type_to_hash_type(self.provider.cdb[client_id].get("subject_type", "pairwise"))
         internal_req = InternalRequest(hash_type, client_id,
                                        self.provider.cdb[client_id].get("client_name"))
 
