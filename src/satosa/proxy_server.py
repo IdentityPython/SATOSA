@@ -1,5 +1,7 @@
 import io
+import json
 import logging
+from urllib.parse import parse_qsl
 
 from saml2.httputil import NotFound
 from saml2.httputil import ServiceError
@@ -13,8 +15,54 @@ from .util import unpack_either
 logger = logging.getLogger(__name__)
 
 
+def unpack_redirect(environ):
+    """
+    Unpacks a redirect request query string.
+    :param environ: whiskey application environment.
+    :return: A dictionary with parameters.
+    """
+    if "QUERY_STRING" in environ:
+        return dict(parse_qsl(environ["QUERY_STRING"]))
+
+    return None
+
+
+def unpack_post(environ, content_length):
+    """
+    Unpacks a post request query string.
+    :param environ: whiskey application environment.
+    :return: A dictionary with parameters.
+    """
+    post_body = environ['wsgi.input'].read(content_length).decode("utf-8")
+    data = None
+    if environ["CONTENT_TYPE"] == "application/x-www-form-urlencoded":
+        data = dict(parse_qsl(post_body))
+    elif environ["CONTENT_TYPE"] == "application/json":
+        data = json.loads(post_body)
+
+    logger.debug("unpack_post:: %s", data)
+    return data
+
+
+def unpack_either(environ, content_length):
+    """
+    Unpacks a get or post request query string.
+    :param environ: whiskey application environment.
+    :return: A dictionary with parameters.
+    """
+    data = None
+    if environ["REQUEST_METHOD"] == "GET":
+        data = unpack_redirect(environ)
+    elif environ["REQUEST_METHOD"] == "POST":
+        data = unpack_post(environ, content_length)
+
+    logger.debug("read request data: %s", data)
+    return data
+
+
 class ToBytesMiddleware(object):
     """Converts a message to bytes to be sent by WSGI server."""
+
     def __init__(self, app):
         self.app = app
 
@@ -57,7 +105,7 @@ class WsgiApplication(SATOSABase):
         content_length = int(environ.get('CONTENT_LENGTH', '0') or '0')
         body = io.BytesIO(environ['wsgi.input'].read(content_length))
         environ['wsgi.input'] = body
-        context.request = unpack_either(environ)
+        context.request = unpack_either(environ, content_length)
         environ['wsgi.input'].seek(0)
 
         context.wsgi_environ = environ
