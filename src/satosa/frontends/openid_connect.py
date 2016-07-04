@@ -90,6 +90,7 @@ class OpenIDConnectFrontend(FrontendModule):
         auth_resp = AuthorizationResponse(id_token=id_token, **kwargs)
         http_response = auth_resp.request(auth_req["redirect_uri"],
                                           self._should_fragment_encode(auth_req))
+        del context.state[self.name]
         return SeeOther(http_response)
 
     def handle_backend_error(self, exception):

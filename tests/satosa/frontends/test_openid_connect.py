@@ -76,6 +76,7 @@ class TestOpenIDConnectFrontend(object):
         assert id_token["nonce"] == nonce
         assert id_token["sub"] == USERS["testuser1"]["eduPersonTargetedID"][0]
         assert id_token["email"] == USERS["testuser1"]["email"][0]
+        assert self.instance.name not in context.state
 
     def test_get_authn_response_query_encoded(self, context):
         client_id = "client1"
