@@ -52,7 +52,7 @@ class OpenIDConnectBackend(BackendModule):
         super().__init__(auth_callback_func, internal_attributes, base_url, name)
         self.auth_callback_func = auth_callback_func
         self.config = config
-        self.client = create_client(config["provider_metadata"], config["client"]["client_metadata"])
+        self.client = _create_client(config["provider_metadata"], config["client"]["client_metadata"])
         if "scope" not in config["client"]["auth_req_params"]:
             config["auth_req_params"]["scope"] = "openid"
         if "response_type" not in config["client"]["auth_req_params"]:
@@ -200,13 +200,10 @@ class OpenIDConnectBackend(BackendModule):
         all_user_claims = dict(list(userinfo.items()) + list(id_token_claims.items()))
         satosa_logging(logger, logging.DEBUG, "UserInfo: %s" % all_user_claims, context.state)
         del context.state[self.name]
-        return self.auth_callback_func(context,
-                                       self._translate_response(
-                                           all_user_claims,
-                                           self.client.authorization_endpoint,
-                                           self.client.subject_type))
+        internal_resp = self._translate_response(all_user_claims, self.client.authorization_endpoint)
+        return self.auth_callback_func(context, internal_resp)
 
-    def _translate_response(self, response, issuer, subject_type):
+    def _translate_response(self, response, issuer):
         """
         Translates oidc response to SATOSA internal response.
         :type response: dict[str, str]
@@ -233,7 +230,7 @@ class OpenIDConnectBackend(BackendModule):
         return get_metadata_desc_for_oauth_backend(self.config["provider_metadata"]["issuer"], self.config)
 
 
-def create_client(provider_metadata, client_metadata):
+def _create_client(provider_metadata, client_metadata):
     """
     Create a pyoidc client instance.
     :param provider_metadata: provider configuration information

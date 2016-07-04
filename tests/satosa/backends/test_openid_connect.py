@@ -12,11 +12,10 @@ from jwkest.jwk import RSAKey
 from oic.oic.message import RegistrationRequest, IdToken
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
-from satosa.backends.openid_connect import OpenIDConnectBackend, create_client, STATE_KEY, NONCE_KEY
+from satosa.backends.openid_connect import OpenIDConnectBackend, _create_client, STATE_KEY, NONCE_KEY
 from satosa.context import Context
-from satosa.internal_data import InternalResponse, InternalRequest, UserIdHashType
+from satosa.internal_data import InternalResponse
 from satosa.response import Response
-from satosa.state import State
 
 ISSUER = "https://provider.example.com"
 CLIENT_ID = "test_client"
@@ -155,11 +154,7 @@ class TestOpenIDConnectBackend(object):
         assert callback == self.oidc_backend.response_endpoint
 
     def test_translate_response_to_internal_response(self, userinfo):
-        internal_response = self.oidc_backend._translate_response(
-            userinfo,
-            ISSUER,
-            "public"
-        )
+        internal_response = self.oidc_backend._translate_response(userinfo, ISSUER)
         assert internal_response.user_id == userinfo["sub"]
         self.assert_expected_attributes(internal_response.attributes)
 
@@ -256,12 +251,12 @@ class TestCreateClient(object):
         assert all(x in client.registration_response.to_dict().items() for x in client_metadata.items())
 
     def test_init(self, provider_metadata, client_metadata):
-        client = create_client(provider_metadata, client_metadata)
+        client = _create_client(provider_metadata, client_metadata)
         assert isinstance(client, oic.oic.Client)
         assert client.client_authn_method == CLIENT_AUTHN_METHOD
 
     def test_supports_static_provider_discovery(self, provider_metadata, client_metadata):
-        client = create_client(provider_metadata, client_metadata)
+        client = _create_client(provider_metadata, client_metadata)
         self.assert_provider_metadata(provider_metadata, client)
 
     @responses.activate
@@ -273,11 +268,11 @@ class TestCreateClient(object):
             status=200,
             content_type='application/json'
         )
-        client = create_client(dict(issuer=ISSUER), client_metadata)
+        client = _create_client(dict(issuer=ISSUER), client_metadata)
         self.assert_provider_metadata(provider_metadata, client)
 
     def test_supports_static_client_registration(self, provider_metadata, client_metadata):
-        client = create_client(provider_metadata, client_metadata)
+        client = _create_client(provider_metadata, client_metadata)
         self.assert_client_metadata(client_metadata, client)
 
     def test_supports_dynamic_client_registration(self, provider_metadata, client_metadata):
@@ -289,6 +284,6 @@ class TestCreateClient(object):
                 status=200,
                 content_type='application/json'
             )
-            client = create_client(provider_metadata, dict(redirect_uris=client_metadata["redirect_uris"]))
+            client = _create_client(provider_metadata, dict(redirect_uris=client_metadata["redirect_uris"]))
 
         self.assert_client_metadata(client_metadata, client)
