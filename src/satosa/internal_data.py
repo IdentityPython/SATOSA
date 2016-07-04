@@ -12,6 +12,18 @@ from itertools import chain
 from mako.template import Template
 
 
+def scope(s):
+    """
+    Mako filter: used to extract scope from attribute
+    :param s: string to extract scope from (filtered string in mako template)
+    :return: the scope
+    """
+    if '@' not in s:
+        raise ValueError("Unscoped string")
+    (local_part, _, domain_part) = s.partition('@')
+    return domain_part
+
+
 class DataConverter(object):
     """
     Converts between internal and external data format
@@ -105,7 +117,7 @@ class DataConverter(object):
         return result
 
     def _render_attribute_template(self, template, data):
-        t = Template(template, cache_enabled=True, imports=["from satosa.util import scope"])
+        t = Template(template, cache_enabled=True, imports=["from satosa.internal_data import scope"])
         try:
             return t.render(**data).split(self.multivalue_separator)
         except (NameError, TypeError) as e:
