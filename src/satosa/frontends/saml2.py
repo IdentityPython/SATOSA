@@ -7,9 +7,8 @@ import json
 import logging
 from urllib.parse import urlparse
 
-from saml2 import BINDING_HTTP_REDIRECT
 from saml2.config import IdPConfig
-from saml2.httputil import Redirect, SeeOther
+from saml2.httputil import Redirect
 from saml2.httputil import Response
 from saml2.httputil import ServiceError
 from saml2.httputil import Unauthorized
@@ -24,6 +23,7 @@ from saml2.server import Server
 from .base import FrontendModule
 from ..internal_data import InternalRequest, UserIdHashType
 from ..logging_util import satosa_logging
+from ..saml_util import make_saml_response
 from ..util import hash_type_to_saml_name_id_format
 
 logger = logging.getLogger(__name__)
@@ -43,23 +43,6 @@ def saml_name_id_format_to_hash_type(name_format):
     elif name_format == NAMEID_FORMAT_PERSISTENT:
         return UserIdHashType.persistent
     return None
-
-
-def make_saml_response(binding, http_args):
-    """
-    Creates a SAML response.
-    :param binding: SAML response binding
-    :param http_args: http arguments
-    :return: saml2.httputil.Response
-    """
-    if binding == BINDING_HTTP_REDIRECT:
-        headers = dict(http_args["headers"])
-        try:
-            return SeeOther(str(headers["Location"]))
-        except KeyError:
-            return ServiceError("Parameter error")
-
-    return Response(http_args["data"], headers=http_args["headers"])
 
 
 class SamlFrontend(FrontendModule):
