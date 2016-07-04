@@ -83,12 +83,29 @@ def idp_conf(cert):
                 "subject_data": {},
                 "name_id_format": [NAMEID_FORMAT_TRANSIENT,
                                    NAMEID_FORMAT_PERSISTENT],
-                "want_authn_requests_signed": False
+                "want_authn_requests_signed": False,
+                "ui_info": {
+                    "display_name": [{"text": "SATOSA Test IdP", "lang": "en"}],
+                    "description": [{"text": "Test IdP for SATOSA unit tests.", "lang": "en"}],
+                    "logo": [{"text": "https://idp.example.com/static/logo.png", "width": "120", "height": "60",
+                              "lang": "en"}],
+                },
             },
         },
         "cert_file": cert[0],
         "key_file": cert[1],
-        "metadata": {"inline": []}
+        "metadata": {"inline": []},
+        "organization": {
+            "name": [["SaToSa org.", "en"]],
+            "display_name": [["SATOSA", "en"]],
+            "url": [["https://satosa.example.com/about", "en"]]
+        },
+        "contact_person": [
+            {"given_name": "Satosa", "sur_name": "Support", "email_address": ["help@example.com"],
+             "contact_type": "support"
+             },
+            {"given_name": "Satosa", "sur_name": "Tech support",
+             "email_address": ["tech@example.com"], "contact_type": "technical"}]
     }
 
     return idpconfig
