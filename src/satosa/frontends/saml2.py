@@ -23,7 +23,7 @@ from saml2.server import Server
 from .base import FrontendModule
 from ..internal_data import InternalRequest, UserIdHashType
 from ..logging_util import satosa_logging
-from ..util import response, get_saml_name_id_format, saml_name_format_to_hash_type
+from ..util import response, hash_type_to_saml_name_id_format, saml_name_id_format_to_hash_type
 
 logger = logging.getLogger(__name__)
 
@@ -260,7 +260,7 @@ class SamlFrontend(FrontendModule):
             requester_name = self._get_sp_display_name(idp, extracted_request['resp_args']['sp_entity_id'])
             name_format = None
             if 'name_id_policy' in extracted_request['req_args']:
-                name_format = saml_name_format_to_hash_type(
+                name_format = saml_name_id_format_to_hash_type(
                     extracted_request['req_args']['name_id_policy'].format)
             if name_format is None:
                 # default to requesting transient name id
@@ -334,7 +334,7 @@ class SamlFrontend(FrontendModule):
             auth_info["class_ref"] = internal_response.auth_info.auth_class_ref
 
         name_id = NameID(text=internal_response.user_id,
-                         format=get_saml_name_id_format(internal_response.user_id_hash_type),
+                         format=hash_type_to_saml_name_id_format(internal_response.user_id_hash_type),
                          sp_name_qualifier=None,
                          name_qualifier=None)
 

@@ -5,7 +5,7 @@ import json
 import logging
 import random
 import string
-from urllib.parse import parse_qs, parse_qsl
+from urllib.parse import parse_qsl
 
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.httputil import Response
@@ -19,7 +19,7 @@ from .internal_data import UserIdHashType
 logger = logging.getLogger(__name__)
 
 
-def saml_name_format_to_hash_type(name_format):
+def saml_name_id_format_to_hash_type(name_format):
     """
     Translate pySAML2 name format to statosa format
 
@@ -35,7 +35,7 @@ def saml_name_format_to_hash_type(name_format):
     return None
 
 
-def get_saml_name_id_format(hash_type):
+def hash_type_to_saml_name_id_format(hash_type):
     """
     Translate satosa format to pySAML2 name format
 
@@ -59,23 +59,6 @@ def oidc_subject_type_to_hash_type(subject_type):
     return None
 
 
-def unpack(environ, binding):
-    """
-    Unpacks a request query string.
-    :param environ: whiskey application environment.
-    :param binding: Binding
-    :return: A dictionary with parameters.
-    """
-    if binding == "redirect":
-        return unpack_redirect(environ)
-    elif binding == "post":
-        return unpack_post(environ)
-    elif binding == "soap":
-        return unpack_soap(environ)
-    else:
-        return unpack_either(environ)
-
-
 def unpack_redirect(environ):
     """
     Unpacks a redirect request query string.
@@ -83,10 +66,9 @@ def unpack_redirect(environ):
     :return: A dictionary with parameters.
     """
     if "QUERY_STRING" in environ:
-        _qs = environ["QUERY_STRING"]
-        return dict([(k, v[0]) for k, v in parse_qs(_qs).items()])
-    else:
-        return None
+        return dict(parse_qsl(environ["QUERY_STRING"]))
+
+    return None
 
 
 def unpack_post(environ):
@@ -106,33 +88,20 @@ def unpack_post(environ):
     return data
 
 
-def unpack_soap(environ):
-    """
-    Unpacks a SAML soap request query string.
-    :param environ: whiskey application environment.
-    :return: A dictionary with parameters.
-    """
-    try:
-        query = get_post(environ)
-        return {"SAMLResponse": query, "RelayState": ""}
-    except IOError:
-        return None
-
-
 def unpack_either(environ):
     """
     Unpacks a get or post request query string.
     :param environ: whiskey application environment.
     :return: A dictionary with parameters.
     """
+    data = None
     if environ["REQUEST_METHOD"] == "GET":
-        _dict = unpack_redirect(environ)
+        data = unpack_redirect(environ)
     elif environ["REQUEST_METHOD"] == "POST":
-        _dict = unpack_post(environ)
-    else:
-        _dict = None
-    logger.debug("_dict: %s", _dict)
-    return _dict
+        data = unpack_post(environ)
+
+    logger.debug("read request data: %s", data)
+    return data
 
 
 def response(binding, http_args):
@@ -143,16 +112,13 @@ def response(binding, http_args):
     :return: Response
     """
     if binding == BINDING_HTTP_REDIRECT:
-        for param, value in http_args["headers"]:
-            if param == "Location":
-                resp = SeeOther(str(value))
-                break
-        else:
-            resp = ServiceError("Parameter error")
-    else:
-        resp = Response(http_args["data"], headers=http_args["headers"])
+        headers = dict(http_args["headers"])
+        try:
+            return SeeOther(str(headers["Location"]))
+        except KeyError:
+            return ServiceError("Parameter error")
 
-    return resp
+    return Response(http_args["data"], headers=http_args["headers"])
 
 
 def rndstr(size=16, alphabet=""):

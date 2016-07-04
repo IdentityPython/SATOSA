@@ -24,7 +24,7 @@ from ..logging_util import satosa_logging
 from ..metadata_creation.description import (MetadataDescription, OrganizationDesc,
                                              ContactPersonDesc, UIInfoDesc)
 from ..response import SeeOther, Response
-from ..util import rndstr, get_saml_name_id_format
+from ..util import rndstr, hash_type_to_saml_name_id_format
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ class SamlBackend(BackendModule):
         :param usr_id_hash_type: The internal id hash type
         :return: A name id policy
         """
-        nameid_format = get_saml_name_id_format(usr_id_hash_type)
+        nameid_format = hash_type_to_saml_name_id_format(usr_id_hash_type)
         name_id_policy = NameIDPolicy(format=nameid_format)
         return name_id_policy
 

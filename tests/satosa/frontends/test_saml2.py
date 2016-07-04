@@ -22,7 +22,7 @@ from saml2.samlp import NameIDPolicy
 
 from satosa.frontends.saml2 import SamlFrontend
 from satosa.internal_data import InternalResponse, AuthenticationInformation, InternalRequest, DataConverter
-from satosa.util import saml_name_format_to_hash_type
+from satosa.util import saml_name_id_format_to_hash_type
 from tests.users import USERS
 from tests.util import FakeSP, create_metadata_from_config_dict
 
@@ -195,7 +195,7 @@ class TestSamlFrontend:
         samlfrontend = SamlFrontend(None, internal_attributes, conf, base_url, "saml_frontend")
         samlfrontend.register_endpoints(["testprovider"])
 
-        internal_req = InternalRequest(saml_name_format_to_hash_type(NAMEID_FORMAT_PERSISTENT),
+        internal_req = InternalRequest(saml_name_id_format_to_hash_type(NAMEID_FORMAT_PERSISTENT),
                                        "http://sp.example.com",
                                        "Example SP")
         filtered_attributes = samlfrontend.get_filter_attributes(samlfrontend.idp,
