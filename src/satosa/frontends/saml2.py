@@ -7,8 +7,9 @@ import json
 import logging
 from urllib.parse import urlparse
 
+from saml2 import BINDING_HTTP_REDIRECT
 from saml2.config import IdPConfig
-from saml2.httputil import Redirect
+from saml2.httputil import Redirect, SeeOther
 from saml2.httputil import Response
 from saml2.httputil import ServiceError
 from saml2.httputil import Unauthorized
@@ -23,7 +24,7 @@ from saml2.server import Server
 from .base import FrontendModule
 from ..internal_data import InternalRequest, UserIdHashType
 from ..logging_util import satosa_logging
-from ..util import response, hash_type_to_saml_name_id_format
+from ..util import hash_type_to_saml_name_id_format
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,23 @@ def saml_name_id_format_to_hash_type(name_format):
     elif name_format == NAMEID_FORMAT_PERSISTENT:
         return UserIdHashType.persistent
     return None
+
+
+def make_saml_response(binding, http_args):
+    """
+    Creates a SAML response.
+    :param binding: SAML response binding
+    :param http_args: http arguments
+    :return: saml2.httputil.Response
+    """
+    if binding == BINDING_HTTP_REDIRECT:
+        headers = dict(http_args["headers"])
+        try:
+            return SeeOther(str(headers["Location"]))
+        except KeyError:
+            return ServiceError("Parameter error")
+
+    return Response(http_args["data"], headers=http_args["headers"])
 
 
 class SamlFrontend(FrontendModule):
@@ -260,7 +278,7 @@ class SamlFrontend(FrontendModule):
 
             satosa_logging(logger, logging.DEBUG, "HTTPargs: %s" % http_args, context.state,
                            exc_info=True)
-            return response(_binding, http_args)
+            return make_saml_response(_binding, http_args)
         else:
 
             try:
@@ -392,7 +410,7 @@ class SamlFrontend(FrontendModule):
             relay_state, response=True)
 
         satosa_logging(logger, logging.DEBUG, "HTTPargs: %s" % http_args, exception.state)
-        return response(resp_args["binding"], http_args)
+        return make_saml_response(resp_args["binding"], http_args)
 
     def construct_authn_response(self, idp, state, identity, name_id, authn, resp_args, relay_state,
                                  sign_response=True):

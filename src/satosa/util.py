@@ -80,23 +80,6 @@ def unpack_either(environ):
     return data
 
 
-def response(binding, http_args):
-    """
-    Creates a response.
-    :param binding: Bindin
-    :param http_args: http arguments
-    :return: Response
-    """
-    if binding == BINDING_HTTP_REDIRECT:
-        headers = dict(http_args["headers"])
-        try:
-            return SeeOther(str(headers["Location"]))
-        except KeyError:
-            return ServiceError("Parameter error")
-
-    return Response(http_args["data"], headers=http_args["headers"])
-
-
 def rndstr(size=16, alphabet=""):
     """
     Returns a string of random ascii characters or digits
