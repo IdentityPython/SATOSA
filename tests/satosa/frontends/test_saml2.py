@@ -27,13 +27,13 @@ from tests.users import USERS
 from tests.util import FakeSP, create_metadata_from_config_dict
 
 INTERNAL_ATTRIBUTES = {
-    'attributes': {
-        'displayname': {'saml': ['displayName']},
-        'givenname': {'saml': ['givenName']},
-        'mail': {'saml': ['email', 'emailAdress', 'mail']},
-        'edupersontargetedid': {'saml': ['eduPersonTargetedID']},
-        'name': {'saml': ['cn']},
-        'surname': {'saml': ['sn', 'surname']}
+    "attributes": {
+        "displayname": {"saml": ["displayName"]},
+        "givenname": {"saml": ["givenName"]},
+        "mail": {"saml": ["email", "emailAdress", "mail"]},
+        "edupersontargetedid": {"saml": ["eduPersonTargetedID"]},
+        "name": {"saml": ["cn"]},
+        "surname": {"saml": ["sn", "surname"]}
     }
 }
 
@@ -114,9 +114,6 @@ class TestSAMLFrontend:
         assert any(p.match(get_path_from_url(metadata_url)) for p in compiled_regex)
 
     def test_handle_authn_request(self, context, idp_conf, sp_conf, internal_response):
-        """
-        Performs a complete test for the module. The flow should be accepted.
-        """
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf)
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
         assert internal_req.requester == sp_conf["entityid"]
@@ -131,9 +128,6 @@ class TestSAMLFrontend:
             assert USERS["testuser1"][key] == resp.ava[key]
 
     def test_handle_authn_request_without_name_id_policy(self, context, idp_conf, sp_conf, internal_response):
-        """
-        Performs a complete test for the module. The flow should be accepted.
-        """
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, nameid_format="")
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
         assert internal_req.requester == sp_conf["entityid"]
@@ -148,9 +142,6 @@ class TestSAMLFrontend:
             assert USERS["testuser1"][key] == resp.ava[key]
 
     def test_handle_authn_response_without_relay_state(self, context, idp_conf, sp_conf, internal_response):
-        """
-        Performs a complete test for the module. The flow should be accepted.
-        """
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, relay_state=None)
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
         assert internal_req.requester == sp_conf["entityid"]
@@ -198,10 +189,10 @@ class TestSAMLFrontend:
         internal_req = InternalRequest(saml_name_id_format_to_hash_type(NAMEID_FORMAT_PERSISTENT),
                                        "http://sp.example.com",
                                        "Example SP")
-        filtered_attributes = samlfrontend.get_filter_attributes(samlfrontend.idp,
-                                                                 samlfrontend.idp.config.getattr(
-                                                                     "policy", "idp"),
-                                                                 internal_req.requester, None)
+        filtered_attributes = samlfrontend._get_approved_attributes(samlfrontend.idp,
+                                                                    samlfrontend.idp.config.getattr(
+                                                                        "policy", "idp"),
+                                                                    internal_req.requester, None)
 
         assert set(filtered_attributes) == set(
             ["edupersontargetedid", "edupersonprincipalname", "edupersonaffiliation", "mail",
@@ -232,7 +223,7 @@ class TestSAMLFrontend:
             "binding": BINDING_HTTP_REDIRECT
 
         }
-        request_state = samlfrontend.save_state(context, resp_args, "")
+        request_state = samlfrontend._create_state_data(context, resp_args, "")
         context.state[samlfrontend.name] = request_state
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
@@ -268,7 +259,7 @@ class TestSAMLFrontend:
             "binding": BINDING_HTTP_REDIRECT
 
         }
-        request_state = samlfrontend.save_state(context, resp_args, "")
+        request_state = samlfrontend._create_state_data(context, resp_args, "")
         context.state[samlfrontend.name] = request_state
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
@@ -320,7 +311,8 @@ class TestSAMLFrontend:
 
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
-        fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
+        sp_config = SPConfig().load(sp_conf, metadata_construction=False)
+        fakesp = FakeSP(None, config=sp_config)
 
         user_attributes = {k: "foo" for k in expected_attributes_in_all_entity_categories}
         internal_response.attributes = AttributeMapper(internal_attributes).to_internal("saml", user_attributes)
@@ -332,7 +324,7 @@ class TestSAMLFrontend:
             "sp_entity_id": sp_conf["entityid"],
             "binding": BINDING_HTTP_REDIRECT
         }
-        request_state = samlfrontend.save_state(context, resp_args, "")
+        request_state = samlfrontend._create_state_data(context, resp_args, "")
         context.state[samlfrontend.name] = request_state
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
@@ -356,3 +348,13 @@ class TestSAMLFrontend:
     def test_sp_metadata_without_uiinfo(self, context, idp_conf, sp_conf):
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf)
         assert samlfrontend._get_sp_display_name(samlfrontend.idp, sp_conf["entityid"]) is None
+
+    def test_metadata_endpoint(self, context, idp_conf):
+        conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS}
+        samlfrontend = SAMLFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES, conf, "base_url", "saml_frontend")
+        samlfrontend.register_endpoints(["todo"])
+        resp = samlfrontend._metadata_endpoint(context)
+        headers = dict(resp.headers)
+        assert headers["Content-Type"] == "text/xml"
+        assert idp_conf["entityid"] in resp.message
+

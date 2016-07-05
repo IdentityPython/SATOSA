@@ -7,15 +7,10 @@ import json
 import logging
 from urllib.parse import urlparse
 
+from saml2 import SAMLError
 from saml2.config import IdPConfig
-from saml2.httputil import Redirect
-from saml2.httputil import Response
-from saml2.httputil import ServiceError
-from saml2.httputil import Unauthorized
+from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
 from saml2.metadata import create_metadata_string
-from saml2.s_utils import UnknownPrincipal
-from saml2.s_utils import UnknownSystemEntity
-from saml2.s_utils import UnsupportedBinding
 from saml2.saml import NameID, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
 from saml2.samlp import name_id_policy_from_string
 from saml2.server import Server
@@ -23,6 +18,7 @@ from saml2.server import Server
 from .base import FrontendModule
 from ..internal_data import InternalRequest, UserIdHashType
 from ..logging_util import satosa_logging
+from ..response import Response
 from ..saml_util import make_saml_response
 from ..util import hash_type_to_saml_name_id_format
 
@@ -55,11 +51,9 @@ class SAMLFrontend(FrontendModule):
 
         super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
         self.config = conf
-        self.idp_config = conf["idp_config"]
         self.endpoints = conf["endpoints"]
         self.acr_mapping = conf.get("acr_mapping")
         self.attribute_profile = conf.get("attribute_profile", "saml")
-        self.response_bindings = None
         self.idp = None
 
     def handle_authn_response(self, context, internal_response):
@@ -99,13 +93,13 @@ class SAMLFrontend(FrontendModule):
         :type providers: list[str]
         :rtype: list[(str, ((satosa.context.Context, Any) -> satosa.response.Response, Any))]
         """
-        self.idp_config = self._build_idp_config_endpoints(self.idp_config, providers)
+        self.idp_config = self._build_idp_config_endpoints(self.config["idp_config"], providers)
         # Create the idp
         idp_config = IdPConfig().load(copy.deepcopy(self.idp_config), metadata_construction=False)
         self.idp = Server(config=idp_config)
         return self._register_endpoints(providers)
 
-    def save_state(self, context, resp_args, relay_state):
+    def _create_state_data(self, context, resp_args, relay_state):
         """
         Returns a dict containing the state needed in the response flow.
 
@@ -121,8 +115,7 @@ class SAMLFrontend(FrontendModule):
         """
         if "name_id_policy" in resp_args and resp_args["name_id_policy"] is not None:
             resp_args["name_id_policy"] = resp_args["name_id_policy"].to_string().decode("utf-8")
-        return {"resp_args": resp_args,
-                "relay_state": relay_state}
+        return {"resp_args": resp_args, "relay_state": relay_state}
 
     def load_state(self, state):
         """
@@ -147,79 +140,9 @@ class SAMLFrontend(FrontendModule):
         if not config:
             raise ValueError("conf can't be 'None'")
 
-        mandatory_keys = ["idp_config", "endpoints"]
-        for key in mandatory_keys:
+        for key in {"idp_config", "endpoints"}:
             if key not in config:
                 raise ValueError("Missing key '%s' in config" % key)
-
-    def extract_request(self, idp, query, binding, state):
-        """
-        Extracts response arguments, the response, authentication request and request arguments from
-        the saml request.
-
-        :type idp: saml2.server.Server
-        :type query: str
-        :type binding: str
-        :type state: satosa.state.State
-        :rtype: dict[str, Any]
-
-        :param idp: The frontend saml server
-        :param query: The SAML request
-        :param binding: The binding type (http post, http redirect, ...)
-        :param state: The current state
-        :return: A dict containing response arguments, the response, authentication request and
-        request arguments
-        """
-        if not query:
-            satosa_logging(logger, logging.WARN, "Missing QUERY", state)
-            resp = Unauthorized('Unknown user')
-            return {"response": resp}
-
-        req_info = idp.parse_authn_request(query, binding)
-
-        _authn_req = req_info.message
-        satosa_logging(logger, logging.DEBUG, "%s" % _authn_req, state)
-
-        # Check that I know where to send the reply to
-        try:
-            binding_out, destination = idp.pick_binding(
-                "assertion_consumer_service",
-                bindings=self.response_bindings,
-                entity_id=_authn_req.issuer.text, request=_authn_req)
-        except Exception as error:
-            satosa_logging(logger, logging.ERROR, "Couldn't find receiver endpoint", state,
-                           exc_info=True)
-            raise
-
-        satosa_logging(logger, logging.DEBUG, "Binding: %s, destination: %s" %
-                       (binding_out, destination), state)
-
-        resp_args = {}
-        try:
-            resp_args = idp.response_args(_authn_req)
-            _resp = None
-        except UnknownPrincipal as excp:
-            satosa_logging(logger, logging.ERROR, "Unknown principal name: %s" % excp, state)
-            _resp = idp.create_error_response(_authn_req.id,
-                                              destination, excp)
-        except UnsupportedBinding as excp:
-            satosa_logging(logger, logging.ERROR, "Unknown unsupported binding: %s" % excp, state)
-            _resp = idp.create_error_response(_authn_req.id,
-                                              destination, excp)
-
-        req_args = {}
-        for key in ["subject", "name_id_policy", "conditions", "requested_authn_context",
-                    "scoping", "force_authn", "is_passive"]:
-            try:
-                val = getattr(_authn_req, key)
-            except AttributeError:
-                pass
-            else:
-                if val is not None:
-                    req_args[key] = val
-
-        return {"resp_args": resp_args, "response": _resp,
-                "authn_req": _authn_req, "req_args": req_args}
 
     def _handle_authn_request(self, context, binding_in, idp):
         """
@@ -235,69 +158,36 @@ class SAMLFrontend(FrontendModule):
         :param idp: The saml frontend idp server
         :return: response
         """
-        request = context.request
+        req_info = idp.parse_authn_request(context.request["SAMLRequest"], binding_in)
+        authn_req = req_info.message
+        satosa_logging(logger, logging.DEBUG, "%s" % authn_req, context.state)
 
         try:
-            extracted_request = self.extract_request(idp, request["SAMLRequest"], binding_in,
-                                                     context.state)
-        except UnknownPrincipal as excp:
-            satosa_logging(logger, logging.ERROR, "UnknownPrincipal", context.state, exc_info=True)
-            return ServiceError("UnknownPrincipal: %s" % excp)
-        except UnsupportedBinding as excp:
-            satosa_logging(logger, logging.ERROR, "UnsupportedBinding", context.state,
-                           exc_info=True)
-            return ServiceError("UnsupportedBinding: %s" % excp)
-        except UnknownSystemEntity as e:
-            satosa_logging(logger, logging.ERROR, "UnknownSystemEntity", context.state)
-            return ServiceError("UnknownSystemEntity: %s" % e)
+            resp_args = idp.response_args(authn_req)
+        except SAMLError as e:
+            satosa_logging(logger, logging.ERROR, "Could not find necessary info about entity: %s" % e, context.state)
+            return Response("Incorrect request from requester: %s" % e)
 
-        _binding = extracted_request["resp_args"]["binding"]
-        if extracted_request["response"]:  # An error response
-            http_args = idp.apply_binding(
-                _binding, "%s" % extracted_request["response"],
-                extracted_request["resp_args"]["destination"],
-                request.get("RelayState"), response=True)
+        context.state[self.name] = self._create_state_data(context, idp.response_args(authn_req),
+                                                           context.request.get("RelayState"))
 
-            satosa_logging(logger, logging.DEBUG, "HTTPargs: %s" % http_args, context.state,
-                           exc_info=True)
-            return make_saml_response(_binding, http_args)
+        if authn_req.name_id_policy:
+            name_format = saml_name_id_format_to_hash_type(authn_req.name_id_policy.format)
         else:
+            # default to requesting transient name id
+            name_format = UserIdHashType.transient
 
-            try:
-                context.internal_data["saml2.target_entity_id"] = request["entityID"]
-            except KeyError:
-                pass
+        requester_name = self._get_sp_display_name(idp, resp_args["sp_entity_id"])
+        internal_req = InternalRequest(name_format, resp_args["sp_entity_id"], requester_name)
 
-            request_state = self.save_state(context,
-                                            idp.response_args(extracted_request["authn_req"]),
-                                            request.get("RelayState"))
-            context.state[self.name] = request_state
+        idp_policy = idp.config.getattr("policy", "idp")
+        if idp_policy:
+            approved_attributes = self._get_approved_attributes(idp, idp_policy, internal_req.requester, context.state)
+            internal_req.add_filter(approved_attributes)
 
-            requester_name = self._get_sp_display_name(idp, extracted_request['resp_args']['sp_entity_id'])
-            name_format = None
-            if 'name_id_policy' in extracted_request['req_args']:
-                name_format = saml_name_id_format_to_hash_type(
-                    extracted_request['req_args']['name_id_policy'].format)
-            if name_format is None:
-                # default to requesting transient name id
-                name_format = UserIdHashType.transient
+        return self.auth_req_callback_func(context, internal_req)
 
-            internal_req = InternalRequest(name_format,
-                                           extracted_request["resp_args"]["sp_entity_id"],
-                                           requester_name)
-
-            # Get attribute filter
-            idp_policy = idp.config.getattr("policy", "idp")
-            if idp_policy:
-                attribute_filter = self.get_filter_attributes(idp,
-                                                              idp_policy,
-                                                              internal_req.requester,
-                                                              context.state)
-                internal_req.add_filter(attribute_filter)
-
-            return self.auth_req_callback_func(context, internal_req)
-
-    def get_filter_attributes(self, idp, idp_policy, sp_entity_id, state):
+    def _get_approved_attributes(self, idp, idp_policy, sp_entity_id, state):
         """
         Returns a list of approved attributes
 
@@ -319,8 +209,7 @@ class SAMLFrontend(FrontendModule):
         attribute_filter = []
         for aconv in attrconvs:
             if aconv.name_format == name_format:
-                attribute_filter = list(
-                    idp_policy.restrict(aconv._to, sp_entity_id, idp.metadata).keys())
+                attribute_filter = list(idp_policy.restrict(aconv._to, sp_entity_id, idp.metadata).keys())
         attribute_filter = self.converter.to_internal_filter(self.attribute_profile, attribute_filter)
         satosa_logging(logger, logging.DEBUG, "Filter: %s" % attribute_filter, state)
         return attribute_filter
@@ -354,19 +243,11 @@ class SAMLFrontend(FrontendModule):
                          sp_name_qualifier=None,
                          name_qualifier=None)
 
-        logger.debug("returning attributes %s", json.dumps(ava))
-
-        # Will signed the response by default
-        resp = self.construct_authn_response(idp,
-                                             context.state,
-                                             ava,
-                                             name_id=name_id,
-                                             authn=auth_info,
-                                             resp_args=resp_args,
-                                             relay_state=request_state["relay_state"],
-                                             sign_response=True)
-
-        return resp
+        satosa_logging(logger, logging.DEBUG, "returning attributes %s" % json.dumps(ava), context.state)
+        resp = idp.create_authn_response(ava, name_id=name_id, authn=auth_info, sign_response=True, **resp_args)
+        http_args = idp.apply_binding(resp_args["binding"], str(resp), resp_args["destination"],
+                                      request_state["relay_state"], response=True)
+        return make_saml_response(resp_args["binding"], http_args)
 
     def _handle_backend_error(self, exception, idp):
         """
@@ -386,65 +267,11 @@ class SAMLFrontend(FrontendModule):
         error_resp = idp.create_error_response(resp_args["in_response_to"],
                                                resp_args["destination"],
                                                Exception(exception.message))
-        http_args = idp.apply_binding(
-            resp_args["binding"], "%s" % error_resp,
-            resp_args["destination"],
-            relay_state, response=True)
+        http_args = idp.apply_binding(resp_args["binding"], str(error_resp), resp_args["destination"], relay_state,
+                                      response=True)
 
         satosa_logging(logger, logging.DEBUG, "HTTPargs: %s" % http_args, exception.state)
         return make_saml_response(resp_args["binding"], http_args)
-
-    def construct_authn_response(self, idp, state, identity, name_id, authn, resp_args, relay_state,
-                                 sign_response=True):
-        """
-        Constructs an auth response
-
-        :type idp: saml.server.Server
-        :type state: satosa.state.State
-        :type identity: dict[str, str]
-        :type name_id: saml2.saml.NameID
-        :type authn: dict[str, str]
-        :type resp_args: dict[str, str]
-        :type relay_state: str
-        :type sign_response: bool
-
-        :param idp: The saml frontend idp server
-        :param state: The current state
-        :param identity: Information about an user (The ava attributes)
-        :param name_id: The name id
-        :param authn: auth info
-        :param resp_args: response arguments
-        :param relay_state: the relay state
-        :param sign_response: Flag for signing the response or not
-        :return: The constructed response
-        """
-
-        _resp = idp.create_authn_response(identity,
-                                          name_id=name_id,
-                                          authn=authn,
-                                          sign_response=sign_response,
-                                          **resp_args)
-
-        http_args = idp.apply_binding(
-            resp_args["binding"], "%s" % _resp, resp_args["destination"],
-            relay_state, response=True)
-
-        satosa_logging(logger, logging.DEBUG, "HTTPargs: %s" % http_args, state)
-
-        resp = None
-        if http_args["data"]:
-            resp = Response(http_args["data"], headers=http_args["headers"])
-        else:
-            for header in http_args["headers"]:
-                if header[0] == "Location":
-                    resp = Redirect(header[1])
-
-        if not resp:
-            msg = "Don't know how to return response"
-            satosa_logging(logger, logging.ERROR, msg, state)
-            resp = ServiceError(msg)
-
-        return resp
 
     def _metadata_endpoint(self, context):
         """
@@ -500,7 +327,7 @@ class SAMLFrontend(FrontendModule):
         """
         # Add an endpoint to each provider
         idp_endpoints = []
-        for endp_category in self.endpoints.keys():
+        for endp_category in self.endpoints:
             for func, endpoint in self.endpoints[endp_category].items():
                 for provider in providers:
                     _endpoint = "{base}/{provider}/{endpoint}".format(
@@ -511,15 +338,12 @@ class SAMLFrontend(FrontendModule):
         return config
 
     def _get_sp_display_name(self, idp, entity_id):
-        extensions = idp.metadata.extension(
-            entity_id,
-            'spsso_descriptor',
-            'urn:oasis:names:tc:SAML:metadata:ui&UIInfo')
-
+        extensions = idp.metadata.extension(entity_id, "spsso_descriptor", "{}&UIInfo".format(UI_NAMESPACE))
         if not extensions:
             return None
+
         try:
-            return extensions[0]['display_name']
+            return extensions[0]["display_name"]
         except (IndexError, KeyError) as e:
             pass
 
@@ -642,7 +466,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         idp = self._load_idp_dynamic_endpoints(context)
         return self._handle_authn_request(context, binding_in, idp)
 
-    def save_state(self, context, resp_args, relay_state):
+    def _create_state_data(self, context, resp_args, relay_state):
         """
         Adds the frontend idp entity id to state
         See super class satosa.frontends.saml2.SAMLFrontend#save_state
@@ -652,7 +476,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         :type relay_state: str
         :rtype: dict[str, dict[str, str] | str]
         """
-        state = super().save_state(context, resp_args, relay_state)
+        state = super()._create_state_data(context, resp_args, relay_state)
         state["proxy_idp_entityid"] = self._get_target_entity_id(context)
         return state
 
