@@ -125,11 +125,11 @@ class SAMLFrontend(FrontendModule):
         :param state: The current state
         :return: The dictionary given by the save_state function
         """
-        loaded_state = state[self.name]
-        if isinstance(loaded_state["resp_args"]["name_id_policy"], str):
-            loaded_state["resp_args"]["name_id_policy"] = name_id_policy_from_string(
-                loaded_state["resp_args"]["name_id_policy"])
-        return loaded_state
+        state_data = state[self.name]
+        if isinstance(state_data["resp_args"]["name_id_policy"], str):
+            state_data["resp_args"]["name_id_policy"] = name_id_policy_from_string(
+                state_data["resp_args"]["name_id_policy"])
+        return state_data
 
     def _validate_config(self, config):
         """
@@ -355,65 +355,30 @@ class SAMLMirrorFrontend(SAMLFrontend):
     Frontend module that uses dynamic entity id and partially dynamic endpoints.
     """
 
-    @staticmethod
-    def _load_endpoints_to_config(frontend_config, frontend_endpoints, url_base, provider,
-                                  target_entity_id):
+    def _load_endpoints_to_config(self, provider, target_entity_id, config=None):
         """
         Loads approved endpoints to the config.
 
-        :type frontend_config: dict[str, Any]
-        :type frontend_endpoints: dict[str, dict[str, str]]
         :type url_base: str
         :type provider: str
         :type target_entity_id: str
         :rtype: dict[str, Any]
 
-        :param frontend_config: Idp config
-        :param frontend_endpoints: A map between binding type and endpoint url for services
-            ex {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
-                                           BINDING_HTTP_POST: "sso/post"}}
         :param url_base: The proxy base url
         :param provider: target backend name
         :param target_entity_id: frontend target entity id
         :return: IDP config with endpoints
         """
-        idp_conf_file = copy.deepcopy(frontend_config)
-        idp_endpoints = []
-        for endp_category in frontend_endpoints.keys():
-            for func, endpoint in frontend_endpoints[endp_category].items():
-                endpoint = "{base}/{provider}/{target_id}/{endpoint}".format(
-                    base=url_base, provider=provider,
-                    target_id=target_entity_id, endpoint=endpoint)
-                idp_endpoints.append((endpoint, func))
-            idp_conf_file["service"]["idp"]["endpoints"][endp_category] = idp_endpoints
-        return idp_conf_file
-
-    @staticmethod
-    def _load_entity_id_to_config(proxy_entity_id, second_entity_id, config):
-        """
-        Setts an entity id in an idp config. The entity id is based on the proxy id and target id
-
-        :type proxy_entity_id: str
-        :type second_entity_id: str
-        :type config: dict[str, Any]
-
-        :param proxy_entity_id: The proxy entity id given in proxy config
-        :param second_entity_id: Second part of the target entity id
-        :param config: The idp config
-        :return: The idp config file containing the target entity id
-        """
-        config["entityid"] = "{}/{}".format(proxy_entity_id, second_entity_id)
-        return config
-
-    def _get_target_entity_id(self, context):
-        """
-        Retrieves the target entity id from the context path
-        :type context: satosa.context.Context
-        :rtype: str
-        :param context: the current context
-        :return: target entity id
-        """
-        return context.path.lstrip("/").split('/')[1]
+        idp_conf = copy.deepcopy(config or self.idp_config)
+        for service, endpoint in self.endpoints.items():
+            idp_endpoints = []
+            for binding, path in endpoint.items():
+                url = "{base}/{provider}/{target_id}/{path}".format(
+                    base=self.base_url, provider=provider,
+                    target_id=target_entity_id, path=path)
+                idp_endpoints.append((url, binding))
+            idp_conf["service"]["idp"]["endpoints"][service] = idp_endpoints
+        return idp_conf
 
     def _load_idp_dynamic_endpoints(self, context):
         """
@@ -426,31 +391,25 @@ class SAMLMirrorFrontend(SAMLFrontend):
         :param context:
         :return: An idp server
         """
-        target_entity_id = self._get_target_entity_id(context)
+        target_entity_id = context.path.split("/")[1]
         context.internal_data["mirror.target_entity_id"] = target_entity_id
-        idp_conf_file = self._load_endpoints_to_config(self.idp_config, self.endpoints, self.base_url,
-                                                       context.target_backend, target_entity_id)
+        idp_conf_file = self._load_endpoints_to_config(context.target_backend, target_entity_id)
         idp_config = IdPConfig().load(idp_conf_file, metadata_construction=False)
         return Server(config=idp_config)
 
-    def _load_idp_dynamic_entity_id(self, config, state):
+    def _load_idp_dynamic_entity_id(self, state):
         """
         Loads an idp server with the entity id saved in state
 
-        :type config: dict[str, Any]
         :type state: satosa.state.State
         :rtype: saml.server.Server
 
-        :param config: The module config
         :param state: The current state
         :return: An idp server
         """
-        request_state = self.load_state(state)
         # Change the idp entity id dynamically
-        idp_config_file = copy.deepcopy(config)
-        idp_config_file = self._load_entity_id_to_config(config["entityid"],
-                                                         request_state["proxy_idp_entityid"],
-                                                         idp_config_file)
+        idp_config_file = copy.deepcopy(self.idp_config)
+        idp_config_file["entityid"] = "{}/{}".format(self.idp_config["entityid"], state[self.name]["target_entity_id"])
         idp_config = IdPConfig().load(idp_config_file, metadata_construction=False)
         return Server(config=idp_config)
 
@@ -477,7 +436,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         :rtype: dict[str, dict[str, str] | str]
         """
         state = super()._create_state_data(context, resp_args, relay_state)
-        state["proxy_idp_entityid"] = self._get_target_entity_id(context)
+        state["target_entity_id"] = context.path.split("/")[1]
         return state
 
     def handle_backend_error(self, exception):
@@ -487,7 +446,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         :type exception: satosa.exception.SATOSAAuthenticationError
         :rtype: satosa.response.Response
         """
-        idp = self._load_idp_dynamic_entity_id(self.idp_config, exception.state)
+        idp = self._load_idp_dynamic_entity_id(exception.state)
         return self._handle_backend_error(exception, idp)
 
     def handle_authn_response(self, context, internal_response):
@@ -497,10 +456,10 @@ class SAMLMirrorFrontend(SAMLFrontend):
         :param internal_response:
         :return:
         """
-        idp = self._load_idp_dynamic_entity_id(self.idp_config, context.state)
+        idp = self._load_idp_dynamic_entity_id(context.state)
         return self._handle_authn_response(context, internal_response, idp)
 
-    def register_endpoints(self, providers):
+    def _register_endpoints(self, providers):
         """
         See super class satosa.frontends.base.FrontendModule#register_endpoints
 

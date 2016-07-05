@@ -16,7 +16,7 @@ from saml2.extension import mdui
 from saml2.extension import shibmd
 from saml2.extension import ui
 from saml2.metadata import (entity_descriptor, entities_descriptor, sign_entity_descriptor,
-    metadata_tostring_fix)
+                            metadata_tostring_fix)
 from saml2.sigver import security_context
 from saml2.validate import valid_instance
 
@@ -50,7 +50,7 @@ ONTS = {
 }
 
 
-def create_config_file(frontend_config, frontend_endpoints, url_base, metadata_desc, backend_name):
+def create_config_file(frontend, metadata_desc, backend_name):
     """
     Returns a copy of the frontend_config updated with the given metadata_desc
 
@@ -68,7 +68,7 @@ def create_config_file(frontend_config, frontend_endpoints, url_base, metadata_d
     :param backend_name: backend name
     :return: An updated frontend idp config
     """
-    cnf = copy.deepcopy(frontend_config)
+    cnf = copy.deepcopy(frontend.config["idp_config"])
     metadata_desc = metadata_desc.to_dict()
     proxy_id = cnf["entityid"]
     entity_id = metadata_desc["entityid"]
@@ -76,9 +76,8 @@ def create_config_file(frontend_config, frontend_endpoints, url_base, metadata_d
     cnf = _join_dict(cnf, metadata_desc)
 
     # TODO Only supports the SAMLMirrorFrontend
-    cnf = SAMLMirrorFrontend._load_endpoints_to_config(cnf, frontend_endpoints, url_base,
-                                                       backend_name, entity_id)
-    cnf = SAMLMirrorFrontend._load_entity_id_to_config(proxy_id, entity_id, cnf)
+    cnf = frontend._load_endpoints_to_config(backend_name, entity_id, config=cnf)
+    cnf["entityid"] = "{}/{}".format(proxy_id, entity_id)
     return cnf
 
 
@@ -184,9 +183,7 @@ def make_satosa_metadata(option):
                     meta_desc = backend_modules[provider].get_metadata_desc()
                     for desc in meta_desc:
                         xml = _make_metadata(
-                            create_config_file(frontend.config["idp_config"],
-                                               frontend.config["endpoints"], conf_mod.BASE, desc,
-                                               provider),
+                            create_config_file(desc, provider),
                             option
                         )
                         frontend_metadata[frontend.name].append(

@@ -21,8 +21,9 @@ from saml2.saml import NAMEID_FORMAT_PERSISTENT, NAMEID_FORMAT_TRANSIENT
 from saml2.samlp import NameIDPolicy
 
 from satosa.attribute_mapping import AttributeMapper
-from satosa.frontends.saml2 import SAMLFrontend, saml_name_id_format_to_hash_type
+from satosa.frontends.saml2 import SAMLFrontend, saml_name_id_format_to_hash_type, SAMLMirrorFrontend
 from satosa.internal_data import InternalResponse, AuthenticationInformation, InternalRequest
+from satosa.state import State
 from tests.users import USERS
 from tests.util import FakeSP, create_metadata_from_config_dict
 
@@ -39,6 +40,7 @@ INTERNAL_ATTRIBUTES = {
 
 ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
                                         BINDING_HTTP_POST: "sso/post"}}
+BASE_URL = "https://satosa-idp.example.com"
 
 
 class TestSAMLFrontend:
@@ -358,3 +360,39 @@ class TestSAMLFrontend:
         assert headers["Content-Type"] == "text/xml"
         assert idp_conf["entityid"] in resp.message
 
+
+class TestSAMLMirrorFrontend:
+    BACKEND = "test_backend"
+    TARGET_ENTITY_ID = "target-idp.entity_id"
+
+    @pytest.fixture(autouse=True)
+    def create_frontend(self, idp_conf):
+        conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS}
+        self.frontend = SAMLMirrorFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES, conf, BASE_URL,
+                                           "saml_mirror_frontend")
+        self.frontend.register_endpoints([self.BACKEND])
+
+    def assert_dynamic_endpoints(self, sso_endpoints):
+        endpoint_base_url = "{}/{}/{}".format(BASE_URL, self.BACKEND, self.TARGET_ENTITY_ID)
+        expected_endpoints = []
+        for binding, endpoint in ENDPOINTS["single_sign_on_service"].items():
+            endp = "{}/{}".format(endpoint_base_url, endpoint)
+            expected_endpoints.append((endp, binding))
+
+        assert all(sso in sso_endpoints for sso in expected_endpoints)
+
+    def test_load_endpoints_to_config(self):
+        idp_config = self.frontend._load_endpoints_to_config(self.BACKEND, self.TARGET_ENTITY_ID)
+        self.assert_dynamic_endpoints(idp_config["service"]["idp"]["endpoints"]["single_sign_on_service"])
+
+    def test_load_idp_dynamic_endpoints(self, context):
+        context.path = "{}/{}/sso/redirect".format(self.BACKEND, self.TARGET_ENTITY_ID)
+        context.target_backend = self.BACKEND
+        idp = self.frontend._load_idp_dynamic_endpoints(context)
+        self.assert_dynamic_endpoints(idp.config._idp_endpoints["single_sign_on_service"])
+
+    def test_load_idp_dynamic_entity_id(self, idp_conf):
+        state = State()
+        state[self.frontend.name] = {"target_entity_id": self.TARGET_ENTITY_ID}
+        idp = self.frontend._load_idp_dynamic_entity_id(state)
+        assert idp.config.entityid == "{}/{}".format(idp_conf["entityid"], self.TARGET_ENTITY_ID)
