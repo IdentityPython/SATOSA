@@ -1,4 +1,4 @@
-module: satosa.frontends.saml2.SamlFrontend
+module: satosa.frontends.saml2.SAMLFrontend
 name: Saml2IDP
 config:
   idp_config:

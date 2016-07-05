@@ -30,7 +30,7 @@ from ..util import rndstr, hash_type_to_saml_name_id_format
 logger = logging.getLogger(__name__)
 
 
-class SamlBackend(BackendModule):
+class SAMLBackend(BackendModule):
     """
     A saml2 backend module (acting as a SP).
     """

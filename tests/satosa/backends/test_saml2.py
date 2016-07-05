@@ -11,7 +11,7 @@ from saml2 import BINDING_HTTP_REDIRECT
 from saml2.authn_context import PASSWORD
 from saml2.config import IdPConfig, SPConfig
 
-from satosa.backends.saml2 import SamlBackend
+from satosa.backends.saml2 import SAMLBackend
 from satosa.context import Context
 from satosa.internal_data import InternalRequest
 from tests.users import USERS
@@ -32,7 +32,7 @@ METADATA_URL = "http://example.com/SAML2IDP/metadata"
 DISCOSRV_URL = "https://my.dicso.com/role/idp.ds"
 
 
-class TestSamlBackend:
+class TestSAMLBackend:
     def assert_redirect_to_idp(self, redirect_response, idp_conf):
         assert redirect_response.status == "303 See Other"
         parsed = urlparse(redirect_response.message)
@@ -71,7 +71,7 @@ class TestSamlBackend:
     @pytest.fixture(autouse=True)
     def create_backend(self, sp_conf, idp_conf):
         self.setup_test_config(sp_conf, idp_conf)
-        self.samlbackend = SamlBackend(Mock(), INTERNAL_ATTRIBUTES, {"config": sp_conf,
+        self.samlbackend = SAMLBackend(Mock(), INTERNAL_ATTRIBUTES, {"config": sp_conf,
                                                                      "disco_srv": DISCOSRV_URL,
                                                                      "publish_metadata": METADATA_URL},
                                        "base_url",
@@ -148,7 +148,7 @@ class TestSamlBackend:
     def test_redirect_to_idp_if_only_one_idp_in_metadata(self, context, sp_conf, idp_conf):
         sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
         # instantiate new backend, without any discovery service configured
-        samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf}, "base_url", "saml_backend")
+        samlbackend = SAMLBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf}, "base_url", "saml_backend")
 
         resp = samlbackend.start_auth(context, InternalRequest(None, None))
         self.assert_redirect_to_idp(resp, idp_conf)
@@ -186,7 +186,7 @@ class TestSamlBackend:
     def test_get_metadata_desc(self, sp_conf, idp_conf):
         sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
         # instantiate new backend, with a single backing IdP
-        samlbackend = SamlBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf}, "base_url", "saml_backend")
+        samlbackend = SAMLBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf}, "base_url", "saml_backend")
         logo_data = "test data".encode("utf-8")
         with patch("builtins.open", mock_open(read_data=logo_data)):
             entity_descriptions = samlbackend.get_metadata_desc()

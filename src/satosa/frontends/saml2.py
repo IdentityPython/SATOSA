@@ -45,7 +45,7 @@ def saml_name_id_format_to_hash_type(name_format):
     return None
 
 
-class SamlFrontend(FrontendModule):
+class SAMLFrontend(FrontendModule):
     """
     A pysaml2 frontend module
     """
@@ -526,7 +526,7 @@ class SamlFrontend(FrontendModule):
         return None
 
 
-class SamlMirrorFrontend(SamlFrontend):
+class SAMLMirrorFrontend(SAMLFrontend):
     """
     Frontend module that uses dynamic entity id and partially dynamic endpoints.
     """
@@ -633,7 +633,7 @@ class SamlMirrorFrontend(SamlFrontend):
     def handle_authn_request(self, context, binding_in):
         """
         Loads approved endpoints dynamically
-        See super class satosa.frontends.saml2.SamlFrontend#handle_authn_request
+        See super class satosa.frontends.saml2.SAMLFrontend#handle_authn_request
 
         :type context: satosa.context.Context
         :type binding_in: str
@@ -645,7 +645,7 @@ class SamlMirrorFrontend(SamlFrontend):
     def save_state(self, context, resp_args, relay_state):
         """
         Adds the frontend idp entity id to state
-        See super class satosa.frontends.saml2.SamlFrontend#save_state
+        See super class satosa.frontends.saml2.SAMLFrontend#save_state
 
         :type context: satosa.context.Context
         :type resp_args: dict[str, str | saml2.samlp.NameIDPolicy]
@@ -659,7 +659,7 @@ class SamlMirrorFrontend(SamlFrontend):
     def handle_backend_error(self, exception):
         """
         Loads the frontend entity id dynamically.
-        See super class satosa.frontends.saml2.SamlFrontend#handle_backend_error
+        See super class satosa.frontends.saml2.SAMLFrontend#handle_backend_error
         :type exception: satosa.exception.SATOSAAuthenticationError
         :rtype: satosa.response.Response
         """

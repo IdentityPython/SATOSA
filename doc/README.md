@@ -181,11 +181,11 @@ configuration file can be found [here](../example/plugins/frontends/saml2_fronte
 
 The SAML2 frontend comes with two different behaviours:
 
-The **SamlMirrorFrontend** module mirrors the target identity provider information on to the frontend metadata.
+The **SAMLMirrorFrontend** module mirrors the target identity provider information on to the frontend metadata.
 Because of this the frontend uses a dynamic entity id depending on the target IDP/OP and behaves as several IDPs.
 The target is chosen by picking the associated frontend IDP. This gives a "direct connection" to the targeted IDP/OP.
 
-The **SamlFrontend** module acts like a regular IDP and hides the target identity provider.
+The **SAMLFrontend** module acts like a regular IDP and hides the target identity provider.
 The target is chosen by using a sso endpoint in the frontend IDP associated to a specific backend. 
 It is the backend modules job to pick an identity provider.
 

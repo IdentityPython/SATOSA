@@ -59,7 +59,7 @@ be configured with a SAML2 frontend and an SAML2 backend.
      mv plugins/saml2_backend.yaml.example plugins/saml2_backend.yaml
      ```
     
-  1. Open saml2_frontend.yaml; Change the **module** attribute to the **satosa.frontends.saml2.SamlMirrorFrontend** 
+  1. Open saml2_frontend.yaml; Change the **module** attribute to the **satosa.frontends.saml2.SAMLMirrorFrontend** 
   1. Specify the necessary configuration parameters, see the [Plugins](README.md#plugins) section
      of the proxy configuration instructions for more information.
 

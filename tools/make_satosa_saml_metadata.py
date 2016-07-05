@@ -20,9 +20,9 @@ from saml2.metadata import (entity_descriptor, entities_descriptor, sign_entity_
 from saml2.sigver import security_context
 from saml2.validate import valid_instance
 
-from satosa.backends.saml2 import SamlBackend
-from satosa.frontends.saml2 import SamlFrontend
-from satosa.frontends.saml2 import SamlMirrorFrontend
+from satosa.backends.saml2 import SAMLBackend
+from satosa.frontends.saml2 import SAMLFrontend
+from satosa.frontends.saml2 import SAMLMirrorFrontend
 from satosa.plugin_loader import (load_frontends, load_backends)
 from satosa.satosa_config import SATOSAConfig
 
@@ -75,10 +75,10 @@ def create_config_file(frontend_config, frontend_endpoints, url_base, metadata_d
 
     cnf = _join_dict(cnf, metadata_desc)
 
-    # TODO Only supports the SamlMirrorFrontend
-    cnf = SamlMirrorFrontend._load_endpoints_to_config(cnf, frontend_endpoints, url_base,
+    # TODO Only supports the SAMLMirrorFrontend
+    cnf = SAMLMirrorFrontend._load_endpoints_to_config(cnf, frontend_endpoints, url_base,
                                                        backend_name, entity_id)
-    cnf = SamlMirrorFrontend._load_entity_id_to_config(proxy_id, entity_id, cnf)
+    cnf = SAMLMirrorFrontend._load_entity_id_to_config(proxy_id, entity_id, cnf)
     return cnf
 
 
@@ -166,14 +166,14 @@ def make_satosa_metadata(option):
     backend_metadata = {}
     if option.generate_backend:
         for plugin_module in backend_modules:
-            if isinstance(plugin_module, SamlBackend):
+            if isinstance(plugin_module, SAMLBackend):
                 logger.info("Generating saml backend '%s' metadata..." % plugin_module.name)
                 backend_metadata[plugin_module.name] = _make_metadata(plugin_module.config["config"], option)
 
     frontend_metadata = {}
     if option.generate_frontend:
         for frontend in frontend_modules:
-            if isinstance(frontend, SamlMirrorFrontend):
+            if isinstance(frontend, SAMLMirrorFrontend):
                 frontend_metadata[frontend.name] = []
                 for plugin_module in backend_modules:
                     provider = plugin_module.name
@@ -192,7 +192,7 @@ def make_satosa_metadata(option):
                         frontend_metadata[frontend.name].append(
                             {"xml": xml, "plugin_name": frontend.name, "entity_id": desc.entity_id}
                         )
-            elif isinstance(frontend, SamlFrontend):
+            elif isinstance(frontend, SAMLFrontend):
                 frontend.register_endpoints(backend_names)
                 xml = _make_metadata(frontend.idp_config, option)
                 frontend_metadata[frontend.name] = [{"xml": xml, "plugin_name": frontend.name}]

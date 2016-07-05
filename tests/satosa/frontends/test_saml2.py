@@ -21,7 +21,7 @@ from saml2.saml import NAMEID_FORMAT_PERSISTENT, NAMEID_FORMAT_TRANSIENT
 from saml2.samlp import NameIDPolicy
 
 from satosa.attribute_mapping import AttributeMapper
-from satosa.frontends.saml2 import SamlFrontend, saml_name_id_format_to_hash_type
+from satosa.frontends.saml2 import SAMLFrontend, saml_name_id_format_to_hash_type
 from satosa.internal_data import InternalResponse, AuthenticationInformation, InternalRequest
 from tests.users import USERS
 from tests.util import FakeSP, create_metadata_from_config_dict
@@ -41,7 +41,7 @@ ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
                                         BINDING_HTTP_POST: "sso/post"}}
 
 
-class TestSamlFrontend:
+class TestSAMLFrontend:
     @pytest.fixture
     def internal_response(self, idp_conf):
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", idp_conf["entityid"])
@@ -59,7 +59,7 @@ class TestSamlFrontend:
         idp_conf["metadata"]["inline"] = [sp_metadata_str]
 
         base_url = self.construct_base_url_from_entity_id(idp_conf["entityid"])
-        samlfrontend = SamlFrontend(lambda ctx, internal_req: (ctx, internal_req),
+        samlfrontend = SAMLFrontend(lambda ctx, internal_req: (ctx, internal_req),
                                     internal_attributes, config, base_url, "saml_frontend")
         samlfrontend.register_endpoints(["saml"])
 
@@ -86,7 +86,7 @@ class TestSamlFrontend:
     ])
     def test_config_error_handling(self, conf):
         with pytest.raises(ValueError):
-            SamlFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES, conf, "base_url", "saml_frontend")
+            SAMLFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES, conf, "base_url", "saml_frontend")
 
     def test_register_endpoints(self, idp_conf):
         """
@@ -101,7 +101,7 @@ class TestSamlFrontend:
                   "publish_metadata": metadata_url}
 
         base_url = self.construct_base_url_from_entity_id(idp_conf["entityid"])
-        samlfrontend = SamlFrontend(lambda context, internal_req: (context, internal_req),
+        samlfrontend = SAMLFrontend(lambda context, internal_req: (context, internal_req),
                                     INTERNAL_ATTRIBUTES, config, base_url, "saml_frontend")
 
         providers = ["foo", "bar"]
@@ -192,7 +192,7 @@ class TestSamlFrontend:
                                                "edupersonaffiliation", "mail", "displayname", "sn",
                                                "givenname"]}}  # no op mapping for saml attribute names
 
-        samlfrontend = SamlFrontend(None, internal_attributes, conf, base_url, "saml_frontend")
+        samlfrontend = SAMLFrontend(None, internal_attributes, conf, base_url, "saml_frontend")
         samlfrontend.register_endpoints(["testprovider"])
 
         internal_req = InternalRequest(saml_name_id_format_to_hash_type(NAMEID_FORMAT_PERSISTENT),
@@ -215,7 +215,7 @@ class TestSamlFrontend:
         conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS,
                 "acr_mapping": loa}
 
-        samlfrontend = SamlFrontend(None, INTERNAL_ATTRIBUTES, conf, base_url, "saml_frontend")
+        samlfrontend = SAMLFrontend(None, INTERNAL_ATTRIBUTES, conf, base_url, "saml_frontend")
         samlfrontend.register_endpoints(["foo"])
 
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
@@ -253,7 +253,7 @@ class TestSamlFrontend:
         conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS,
                 "acr_mapping": loa}
 
-        samlfrontend = SamlFrontend(None, INTERNAL_ATTRIBUTES, conf, base_url, "saml_frontend")
+        samlfrontend = SAMLFrontend(None, INTERNAL_ATTRIBUTES, conf, base_url, "saml_frontend")
         samlfrontend.register_endpoints(["foo"])
 
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
