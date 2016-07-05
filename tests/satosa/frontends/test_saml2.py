@@ -295,7 +295,11 @@ class TestSamlFrontend:
     def test_respect_sp_entity_categories(self, context, entity_category, entity_category_module, expected_attributes,
                                           idp_conf, sp_conf, internal_response):
         idp_conf["service"]["idp"]["policy"]["default"]["entity_categories"] = [entity_category_module]
-        sp_conf["entity_category"] = entity_category
+        if all(entity_category):  # don't insert empty entity category
+            sp_conf["entity_category"] = entity_category
+        if entity_category == [COCO]:
+            sp_conf["service"]["sp"]["required_attributes"] = expected_attributes
+
         expected_attributes_in_all_entity_categories = list(itertools.chain(swamid.RELEASE[""],
                                                                             edugain.RELEASE[COCO],
                                                                             refeds.RELEASE[RESEARCH_AND_SCHOLARSHIP],
@@ -308,7 +312,7 @@ class TestSamlFrontend:
                                                                             swamid.RELEASE[SFS_1993_1153]))
         attribute_mapping = {}
         for expected_attribute in expected_attributes_in_all_entity_categories:
-            attribute_mapping[expected_attribute] = {"saml": [expected_attribute.lower()]}
+            attribute_mapping[expected_attribute.lower()] = {"saml": [expected_attribute]}
 
         internal_attributes = dict(attributes=attribute_mapping)
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf,
@@ -324,7 +328,7 @@ class TestSamlFrontend:
         resp_args = {
             "name_id_policy": NameIDPolicy(format=NAMEID_FORMAT_TRANSIENT),
             "in_response_to": None,
-            "destination": "",
+            "destination": sp_config.endpoint("assertion_consumer_service", binding=BINDING_HTTP_REDIRECT)[0],
             "sp_entity_id": sp_conf["entityid"],
             "binding": BINDING_HTTP_REDIRECT
         }
