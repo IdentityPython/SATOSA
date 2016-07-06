@@ -4,7 +4,6 @@ for converting from SAML/OAuth/OpenID connect to the internal representation.
 """
 import datetime
 import hashlib
-import json
 from enum import Enum
 
 
@@ -48,8 +47,15 @@ class UserIdHasher(object):
 
     @staticmethod
     def hash_data(salt, value):
-        v = json.dumps(value)
-        return hashlib.sha512((v + salt).encode("utf-8")).hexdigest()
+        """
+        Hashes a value together with a salt.
+        :type salt: str
+        :type value: str
+        :param salt: hash salt
+        :param value: value to hash together with the salt
+        :return: hash value (SHA512)
+        """
+        return hashlib.sha512((value + salt).encode("utf-8")).hexdigest()
 
     @staticmethod
     def hash_type(state):
