@@ -216,10 +216,16 @@ requests to SAML Identity Providers (IdP). The default configuration file can be
 found [here](../example/plugins/backends/saml2_backend.yaml.example).
 
 ##### <a name="name_id" style="color:#000000">Name ID Format</a>
-The SAML backend could indicate which name ID formats are supported to adding **name_id_format** 
-under the SP element in the configuration file. By defining the **hash_type** attribute 
-in the configuration it's possible to enter a name_id_format in the authentication 
-request sent to the identity provider. 
+The SAML backend can indicate which *Name ID* format it wants by specifying the key 
+`name_id_format` in the SP entity configuration in the backend plugin configuration:
+ 
+ ```yaml
+ config:
+   config:
+     service:
+       sp:
+        name_id_format: urn:oasis:names:tc:SAML:2.0:nameid-format:transient
+ ```
 
 ##### Use a discovery service
 To allow the user to choose which provider they want to use to authenticate with, specify the

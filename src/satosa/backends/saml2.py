@@ -14,18 +14,17 @@ from saml2.client_base import Base
 from saml2.config import SPConfig
 from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
 from saml2.metadata import create_metadata_string
-from saml2.samlp import NameIDPolicy
 
 from .base import BackendModule
 from ..exception import SATOSAAuthenticationError
-from ..internal_data import (UserIdHashType, InternalResponse,
+from ..internal_data import (InternalResponse,
                              AuthenticationInformation)
 from ..logging_util import satosa_logging
 from ..metadata_creation.description import (MetadataDescription, OrganizationDesc,
                                              ContactPersonDesc, UIInfoDesc)
 from ..response import SeeOther, Response
 from ..saml_util import make_saml_response
-from ..util import rndstr, hash_type_to_saml_name_id_format
+from ..util import rndstr
 
 logger = logging.getLogger(__name__)
 
@@ -60,20 +59,6 @@ class SAMLBackend(BackendModule):
         self.attribute_profile = config.get("attribute_profile", "saml")
         self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST]
         self.discosrv = config.get("disco_srv")
-
-    def _create_name_id_policy(self, usr_id_hash_type):
-        """
-        Creates a name id policy
-
-        :type usr_id_hash_type: satosa.internal_data.UserIdHashType
-        :rtype: saml2.samlp.NameIDPolicy
-
-        :param usr_id_hash_type: The internal id hash type
-        :return: A name id policy
-        """
-        nameid_format = hash_type_to_saml_name_id_format(usr_id_hash_type)
-        name_id_policy = NameIDPolicy(format=nameid_format)
-        return name_id_policy
 
     def start_auth(self, context, internal_req):
         """
@@ -127,18 +112,13 @@ class SAMLBackend(BackendModule):
         :param entity_id: Target IDP entity id
         :return: response to the user agent
         """
-        hash_type = self.config.get("hash_type", UserIdHashType.persistent.name)
-        req_args = {"name_id_policy": self._create_name_id_policy(hash_type)}
-
         try:
             binding, destination = self.sp.pick_binding("single_sign_on_service", self.bindings, "idpsso",
                                                         entity_id=entity_id)
             satosa_logging(logger, logging.DEBUG, "binding: %s, destination: %s" % (binding, destination),
                            context.state)
             acs_endp, response_binding = self.sp.config.getattr("endpoints", "sp")["assertion_consumer_service"][0]
-            req_id, req = self.sp.create_authn_request(destination,
-                                                       binding=response_binding,
-                                                       **req_args)
+            req_id, req = self.sp.create_authn_request(destination, binding=response_binding)
             relay_state = rndstr()
             ht_args = self.sp.apply_binding(binding, "%s" % req, destination, relay_state=relay_state)
             satosa_logging(logger, logging.DEBUG, "ht_args: %s" % ht_args, context.state)
