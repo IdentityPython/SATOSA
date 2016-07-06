@@ -157,6 +157,8 @@ class TestSAMLFrontend:
         for key in resp.ava:
             assert USERS["testuser1"][key] == resp.ava[key]
 
+        assert samlfrontend.name not in context.state
+
     def test_get_filter_attributes_with_sp_requested_attributes_without_friendlyname(self,
                                                                                      idp_conf):
         sp_metadata_str = """<?xml version="1.0"?>

@@ -247,6 +247,7 @@ class SAMLFrontend(FrontendModule):
         resp = idp.create_authn_response(ava, name_id=name_id, authn=auth_info, sign_response=True, **resp_args)
         http_args = idp.apply_binding(resp_args["binding"], str(resp), resp_args["destination"],
                                       request_state["relay_state"], response=True)
+        del context.state[self.name]
         return make_saml_response(resp_args["binding"], http_args)
 
     def _handle_backend_error(self, exception, idp):
