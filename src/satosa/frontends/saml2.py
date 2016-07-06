@@ -20,7 +20,6 @@ from ..internal_data import InternalRequest, UserIdHashType
 from ..logging_util import satosa_logging
 from ..response import Response
 from ..saml_util import make_saml_response
-from ..util import hash_type_to_saml_name_id_format
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +38,22 @@ def saml_name_id_format_to_hash_type(name_format):
     elif name_format == NAMEID_FORMAT_PERSISTENT:
         return UserIdHashType.persistent
     return None
+
+
+def hash_type_to_saml_name_id_format(hash_type):
+    """
+    Translate satosa format to pySAML2 name format
+
+    :type hash_type: satosa.internal_data.UserIdHashType
+    :rtype: str
+    :param hash_type: satosa format
+    :return: pySAML2 name format
+    """
+    if hash_type == UserIdHashType.transient.name:
+        return NAMEID_FORMAT_TRANSIENT
+    elif hash_type == UserIdHashType.persistent.name:
+        return NAMEID_FORMAT_PERSISTENT
+    return NAMEID_FORMAT_PERSISTENT
 
 
 class SAMLFrontend(FrontendModule):
