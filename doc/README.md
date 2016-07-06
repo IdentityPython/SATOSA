@@ -338,6 +338,18 @@ To choose which backend (essentially choosing target provider) to use based on t
 `DecideBackendByRequester` class which implements that special routing behavior. See the
 [example configuration](example/plugins/microservices/requester_based_routing.yaml.example).
 
+### Custom plugins
+
+It's possible to write custom plugins which can be loaded by SATOSA. They have to be contained in a Python module,
+which must be importable from the one of the paths specified by `CUSTOM_PLUGIN_MODULE_PATHS` in `proxy_conf.yaml`.
+
+Depending on which type of plugin it is, it has to inherit from the correct base class and implement the specified
+methods:
+* Frontends must inherit `satosa.frontends.base.FrontendModule`.
+* Backends must inherit `satosa.backends.base.BackendModule`.
+* Request micro services must inherit `satosa.microservices.service_base.RequestMicroService`.
+* Request micro services must inherit `satosa.microservices.service_base.ResponseMicroService`.
+
 # <a name="saml_metadata" style="color:#000000">Generate proxy metadata</a>
 
 The proxy metadata is generated based on the front-/backend plugins listed in `proxy_conf.yaml`
