@@ -1,4 +1,4 @@
-module: satosa.backends.saml2.SamlBackend
+module: satosa.backends.saml2.SAMLBackend
 name: Saml2
 config:
   config:
@@ -23,7 +23,6 @@ config:
           discovery_response:
           - [<base_url>/<name>/disco, 'urn:oasis:names:tc:SAML:profiles:SSO:idp-discovery-protocol']
         name_id_format: urn:oasis:names:tc:SAML:2.0:nameid-format:transient
-    xmlsec_binary: /usr/bin/xmlsec1
   # disco_srv must be defined if there is more than one IdP in the metadata specified above
   disco_srv: http://disco.example.com
   publish_metadata: <base_url>/<name>/metadata

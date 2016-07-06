@@ -24,10 +24,6 @@ config:
             fail_on_missing_requested: false
             lifetime: {minutes: 15}
             name_form: urn:oasis:names:tc:SAML:2.0:attrname-format:uri
-        subject_data: ./idp.subject
-        want_authn_requests_signed: false
-    xmlsec_binary: /usr/bin/xmlsec1
-
   acr_mapping:
     "": default-LoA
     "https://accounts.google.com": LoA1
