@@ -22,9 +22,6 @@ apt-get install libffi-dev libssl-dev xmlsec1
    
 Alternatively the application can be installed directly from PyPI (`pip install satosa`), or the [Docker image](https://hub.docker.com/r/itsdirg/satosa/) can be used.
 
-<br>
-<br>
-
 # Configuration
 All default configuration files, as well as an example WSGI application for the proxy, can be found
 in the [example directory](../example).
@@ -292,8 +289,6 @@ the "App ID" (`client_id`) and "App Secret" (`client_secret`), issued by Faceboo
 See the [registration instructions](https://developers.facebook.com/docs/apps/register)
 for information on how to obtain them.
 
-<br>
-<br>
 
 ## Microservices
 
@@ -341,8 +336,7 @@ Detailed usage instructions can be viewed by running `make_satosa_saml_metadata.
       -b          generate backend metadata
       -o OUTPUT   output path
     ```
-<br>
-<br>
+
 # <a name="run" style="color:#000000">Start proxy application</a>
 Start the proxy server with the following command:
 ```bash
