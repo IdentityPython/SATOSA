@@ -319,18 +319,21 @@ for information on how to obtain them.
 A list of all user attributes released by Facebook can be found [here](https://developers.facebook.com/docs/graph-api/reference/v2.5/user),
 which should be used when configuring the attribute mapping (see above).
 
-## Microservices
+### Micro services
 
-Additional behaviour can be configured in the proxy through so called *micro services*.
+Additional behaviour can be configured in the proxy through so called *micro services*. There are two different types
+of micro services: *request micro services* which are applied to the incoming request, and *response micro services*
+which are applied to the incoming response from the target provider.
+
 The following micro services are bundled with SATOSA.
 
-### Adding static attributes to all responses
+#### Adding static attributes to all responses
 
 To add a set of static attributes, use the `AddStaticAttributes` class which will add
 pre-configured (static) attributes, see the
 [example configuration](example/plugins/microservices/static_attributes.yaml.example).
 
-### Route to a specific backend based on 
+#### Route to a specific backend based on 
 To choose which backend (essentially choosing target provider) to use based on the requester, use the 
 `DecideBackendByRequester` class which implements that special routing behavior. See the
 [example configuration](example/plugins/microservices/requester_based_routing.yaml.example).
