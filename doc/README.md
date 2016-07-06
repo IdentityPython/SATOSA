@@ -310,7 +310,7 @@ which should be used when configuring the attribute mapping (see above).
 
 #### Facebook
 The default configuration file can be
-found [here](../example/plugins/backends/fb_backend.yaml.example).
+found [here](../example/plugins/backends/facebook_backend.yaml.example).
 
 The only parameters necessary to configure is the credentials,
 the "App ID" (`client_id`) and "App Secret" (`client_secret`), issued by Facebook.
