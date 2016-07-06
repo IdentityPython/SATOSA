@@ -1,7 +1,6 @@
 import os
 
 import pytest
-import yaml
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.extension.idpdisc import BINDING_DISCO
 from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
@@ -119,61 +118,40 @@ def context():
     return context
 
 
-@pytest.fixture(scope="session")
-def plugin_directory(tmpdir_factory):
-    return str(tmpdir_factory.mktemp("plugins"))
-
-
-@pytest.fixture(scope="session")
-def backend_plugin_config(plugin_directory):
+@pytest.fixture
+def backend_plugin_config():
     data = {
         "module": "util.TestBackend",
         "name": "backend",
         "config": {"foo": "bar"}
     }
-
-    backend_file = os.path.join(plugin_directory, "backend_conf.yaml")
-    with open(backend_file, "w") as f:
-        yaml.dump(data, f)
-    return backend_file
+    return data
 
 
-@pytest.fixture(scope="session")
-def frontend_plugin_config(plugin_directory):
+@pytest.fixture
+def frontend_plugin_config():
     data = {
         "module": "util.TestFrontend",
         "name": "frontend",
         "config": {"abc": "xyz"}
     }
-
-    frontend_filename = os.path.join(plugin_directory, "frontend_conf.yaml")
-    with open(frontend_filename, "w") as f:
-        yaml.dump(data, f)
-    return frontend_filename
+    return data
 
 
-@pytest.fixture(scope="session")
-def request_microservice_config(plugin_directory):
+@pytest.fixture
+def request_microservice_config():
     data = {
         "module": "util.TestRequestMicroservice",
         "name": "request-microservice",
     }
-
-    request_file = os.path.join(plugin_directory, "request_conf.yaml")
-    with open(request_file, "w") as f:
-        yaml.dump(data, f)
-    return request_file
+    return data
 
 
-@pytest.fixture(scope="session")
-def response_microservice_config(plugin_directory):
+@pytest.fixture
+def response_microservice_config():
     data = {
         "module": "util.TestResponseMicroservice",
         "name": "response-microservice",
         "conf": {"qwe": "rty"}
     }
-
-    response_file = os.path.join(plugin_directory, "response_conf.yaml")
-    with open(response_file, "w") as f:
-        yaml.dump(data, f)
-    return response_file
+    return data

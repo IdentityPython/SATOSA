@@ -1,5 +1,7 @@
+import json
+from unittest.mock import mock_open, patch
+
 import pytest
-import yaml
 
 from satosa.satosa_config import SATOSAConfig
 
@@ -57,10 +59,11 @@ class TestSATOSAConfig:
         "FRONTEND_MODULES",
         "MICRO_SERVICES"
     ])
-    def test_can_read_endpoint_configs_from_file(self, backend_plugin_config, sensitive_config_dict, modules_key):
-        sensitive_config_dict[modules_key] = [backend_plugin_config]
-        with open(backend_plugin_config) as f:
-            expected_config = yaml.load(f)
+    def test_can_read_endpoint_configs_from_file(self, sensitive_config_dict, modules_key):
+        sensitive_config_dict[modules_key] = ["/fake_file_path"]
+        expected_config = {"foo": "bar"}
 
-        config = SATOSAConfig(sensitive_config_dict)
+        with patch("builtins.open", mock_open(read_data=json.dumps(expected_config))):
+            config = SATOSAConfig(sensitive_config_dict)
+
         assert config[modules_key] == [expected_config]
