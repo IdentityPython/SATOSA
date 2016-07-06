@@ -300,9 +300,10 @@ the `client_id` and `client_secret`, issued by Google. See [OAuth 2.0 credential
 for information on how to obtain them.
 
 The `redirect_uri` of the SATOSA proxy must be registered with Google. The
-redirect URI to register with Google is "<base_url>/google", where `<base_url>`
-is the base url of the proxy as specified in the `BASE` configuration parameter
+redirect URI to register with Google is "<base_url>/<name>", where:
+1. `<base_url>` is the base url of the proxy as specified in the `BASE` configuration parameter
 in `proxy_conf.yaml`, e.g. "https://proxy.example.com/google".
+1. `<name>` is the plugin name specified in the `name` configuration parameter defined in the plugin configuration file. 
 
 A list of all claims possibly released by Google can be found [here](https://developers.google.com/identity/protocols/OpenIDConnect#obtainuserinfo),
 which should be used when configuring the attribute mapping (see above).
