@@ -15,7 +15,7 @@ OpenID Connect and OAuth2.
         - [Additional services](doc/README.md#additional_service)
     - [Attribute mapping configuration: internal_attributes.yaml](doc/README.md#attr_map)
         - [attributes](doc/README.md#attributes)
-        - [user_id_from_attr](doc/README.md#user_id_from_attr)
+        - [user_id_from_attrs](doc/README.md#user_id_from_attrs)
         - [user_id_to_attr](doc/README.md#user_id_to_attr)
         - [hash](doc/README.md#hash)
 - [Plugins](doc/README.md#plugins)

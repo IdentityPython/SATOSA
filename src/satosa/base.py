@@ -104,10 +104,10 @@ class SATOSABase(object):
 
         context.request = None
         internal_response.requester = context.state[STATE_KEY]["requester"]
-        if "user_id_from_attr" in self.config["INTERNAL_ATTRIBUTES"]:
+        if "user_id_from_attrs" in self.config["INTERNAL_ATTRIBUTES"]:
             user_id = [internal_response.attributes[attr] for attr in
-                       self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attr"]]
-            internal_response.user_id = user_id
+                       self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"]]
+            internal_response.user_id = "".join(user_id)
         # Hash the user id
         user_id = UserIdHasher.hash_data(self.config["USER_ID_HASH_SALT"], internal_response.user_id)
         internal_response.user_id = user_id
