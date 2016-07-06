@@ -45,7 +45,7 @@ class TestProxy:
         resp = test_client.get('/{}/{}/request'.format("backend", "frontend"))
         assert resp.status == '200 OK'
         headers = dict(resp.headers)
-        assert headers["Set-Cookie"], "Did not save state in cookie!"
+        assert headers["Set-Cookie"]
 
         # Fake response coming in to backend
         resp = test_client.get('/{}/response'.format("backend"), headers=[("Cookie", headers["Set-Cookie"])])
