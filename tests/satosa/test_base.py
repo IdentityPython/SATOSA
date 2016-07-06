@@ -1,3 +1,4 @@
+import copy
 import os
 from unittest.mock import Mock
 
@@ -5,7 +6,8 @@ import pytest
 
 import satosa
 from satosa.base import SATOSABase
-from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHasher
+from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHasher, InternalRequest, \
+    UserIdHashType
 from satosa.satosa_config import SATOSAConfig
 
 
@@ -62,11 +64,27 @@ class TestSATOSABase:
 
     def test_auth_resp_callback_func_user_id_from_attrs_is_used_to_override_user_id(self, context, satosa_config):
         satosa_config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"] = ["user_id", "domain"]
-        internal_resp = InternalResponse(AuthenticationInformation("", "", ""))
-        internal_resp.attributes = {"user_id": ["user"], "domain": ["@example.com"]}
         base = SATOSABase(satosa_config)
 
+        internal_resp = InternalResponse(AuthenticationInformation("", "", ""))
+        internal_resp.attributes = {"user_id": ["user"], "domain": ["@example.com"]}
         context.state[satosa.base.STATE_KEY] = {"requester": "test_requester"}
         base.account_linking_module = Mock()
+
         base._auth_resp_callback_func(context, internal_resp)
         assert internal_resp.user_id == UserIdHasher.hash_data(satosa_config["USER_ID_HASH_SALT"], "user@example.com")
+
+    def test_account_linking_callback_func_hashes_all_specified_attributes(self, context, satosa_config):
+        satosa_config["INTERNAL_ATTRIBUTES"]["hash"] = ["user_id", "mail"]
+        base = SATOSABase(satosa_config)
+
+        attributes = {"user_id": ["user"], "mail": ["user@example.com", "user@otherdomain.com"]}
+        internal_resp = InternalResponse(AuthenticationInformation("", "", ""))
+        internal_resp.attributes = copy.copy(attributes)
+        UserIdHasher.save_state(InternalRequest(UserIdHashType.transient, ""), context.state)
+
+        base.consent_module = Mock()
+        base._account_linking_callback_func(context, internal_resp)
+        for attr in satosa_config["INTERNAL_ATTRIBUTES"]["hash"]:
+            assert internal_resp.attributes[attr] == [UserIdHasher.hash_data(satosa_config["USER_ID_HASH_SALT"], v)
+                                                      for v in attributes[attr]]

@@ -142,8 +142,10 @@ class SATOSABase(object):
         hash_attributes = self.config["INTERNAL_ATTRIBUTES"].get("hash", [])
         internal_attributes = internal_response.attributes
         for attribute in hash_attributes:
-            internal_attributes[attribute] = UserIdHasher.hash_data(self.config["USER_ID_HASH_SALT"],
-                                                                    internal_attributes[attribute])
+            # hash all attribute values individually
+            hashed_values = [UserIdHasher.hash_data(self.config["USER_ID_HASH_SALT"], v)
+                             for v in internal_attributes[attribute]]
+            internal_attributes[attribute] = hashed_values
 
         return self.consent_module.manage_consent(context, internal_response)
 
