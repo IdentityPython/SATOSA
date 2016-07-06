@@ -323,7 +323,8 @@ which should be used when configuring the attribute mapping (see above).
 
 ## Microservices
 
-Additional behaviour can be configured in the proxy through "microservices".
+Additional behaviour can be configured in the proxy through so called *micro services*.
+The following micro services are bundled with SATOSA.
 
 ### Adding static attributes to all responses
 
@@ -331,6 +332,10 @@ To add a set of static attributes, use the `AddStaticAttributes` class which wil
 pre-configured (static) attributes, see the
 [example configuration](example/plugins/microservices/static_attributes.yaml.example).
 
+### Route to a specific backend based on 
+To choose which backend (essentially choosing target provider) to use based on the requester, use the 
+`DecideBackendByRequester` class which implements that special routing behavior. See the
+[example configuration](example/plugins/microservices/requester_based_routing.yaml.example).
 
 # <a name="saml_metadata" style="color:#000000">Generate proxy metadata</a>
 
