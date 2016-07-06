@@ -136,8 +136,8 @@ returned to the client.
 
 
 ## Plugins 
-The protocol specific communication is handled by different plugins, divided
-into frontends (receiving requests from clients) and backends (sending requests
+The authentication protocol specific communication is handled by different plugins,
+divided into frontends (receiving requests from clients) and backends (sending requests
 to backing identity providers).
 
 ### <a name="saml_plugin" style="color:#000000">SAML2 plugins</a>
@@ -171,40 +171,56 @@ Metadata from remote URL:
               cert:null
     }
 
-For more detailed information on how you could customize the SAML entities configuration please visit: 
-https://dirg.org.umu.se/static/pysaml2/howto/config.html
+For more detailed information on how you could customize the SAML entities,
+see the
+[documentation of the underlying library pysaml2](https://github.com/rohe/pysaml2/blob/master/doc/howto/config.rst).
     
 
 #### Frontend
-The SAML2 frontend acts as an SAML Identity Provider (IdP), accepting
+The SAML2 frontend act as a SAML Identity Provider (IdP), accepting
 authentication requests from SAML Service Providers (SP). The default
 configuration file can be found [here](../example/plugins/frontends/saml2_frontend.yaml.example).
 
-The SAML2 frontend comes with two different behaviours:
+The SAML2 frontend comes in two different flavors:
 
-The **SAMLMirrorFrontend** module mirrors the target identity provider information on to the frontend metadata.
-Because of this the frontend uses a dynamic entity id depending on the target IDP/OP and behaves as several IDPs.
-The target is chosen by picking the associated frontend IDP. This gives a "direct connection" to the targeted IDP/OP.
+The **SAMLMirrorFrontend** module mirrors each target provider as a separate entity in the SAML metadata.
+In this proxy this is handled with dynamic entity id's, encoding the target provider.
+This allows external discovery services to present the mirrored providers transparently, as separate entities
+in its UI. The following flow diagram shows the communcation:
 
-The **SAMLFrontend** module acts like a regular IDP and hides the target identity provider.
-The target is chosen by using a sso endpoint in the frontend IDP associated to a specific backend. 
-It is the backend modules job to pick an identity provider.
+`SP -> optional discovery service -> selected proxy SAML entity -> target IdP`
+
+
+The **SAMLFrontend** module acts like a single IdP, and hides all target providers. This enables the proxy to support
+SP's which only support communication with a single IdP, while the proxy will seamlessly communicate with multiple
+target providers. The metadata for the published IdP will contain one *Single Sign On Location* for each target
+provider. 
+
+The following flow diagram shows the communication:
+
+`SP -> proxy SAML SSO location -> target IdP`
+
+For the simple case where an SP does not support discovery it's also possible to delegate the discovery to the
+`SAMLBackend` (see below), which would enable the following communication flow:
+
+`SP -> SAMLFrontend -> SAMLBackend -> discovery to select target IdP -> target IdP`
+
 
 ##### Providing `AuthnContextClassRef`
-The SAML2 frontends can provide an authenication class reference in the `AuthnStatement` of the
-assertion in the authentication response. This can be used to describe the Level of Assurance,
+The SAML2 frontends can provide a custom (configurable) *Authentication Context Class Reference* in in the
+`AuthnStatement` of in the authentication response. This can be used to describe for example the Level of Assurance,
 as described for example by [eIDAS](https://joinup.ec.europa.eu/sites/default/files/eidas_message_format_v1.0.pdf).
 
 The `AuthnContextClassRef`(ACR) can be specified per backing provider in a mapping under the 
-configuration parameter `acr_mapping`. The mapping must contain a default ACR under the key `""`
-(empty string), other ACR value specific per provider is specified with key-value pairs, where the
-key is the providers id (entity id for SAML IdP behind SAML2 backend, authorization endpoint URL for
-OAuth AS behind OAuth backend, and issuer for OpenID Connect OP behind OpenID Connect backend). 
+configuration parameter `acr_mapping`. The mapping must contain a default ACR value under the key `""`
+(empty string), each other ACR value specific per target provider is specified with key-value pairs, where the
+key is the target providers identifier (entity id for SAML IdP behind SAML2 backend, authorization endpoint
+URL for OAuth AS behind OAuth backend, and issuer URL for OpenID Connect OP behind OpenID Connect backend). 
 
-If no `acr_mapping` is provided in the configuration, the ACR from the backend plugin will
+If no `acr_mapping` is provided in the configuration, the ACR received from the backend plugin will
 be used instead. This means that when using a SAML2 backend, the ACR provided by the backing
-provider will preserved and passed on in the authentication response, and when using a OAuth or
-OpenID Connect backend, the ACR will be `urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified`.
+provider will be preserved, and when using a OAuth or OpenID Connect backend, the ACR will be
+`urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified`.
 
 **Example**
 
@@ -215,7 +231,7 @@ OpenID Connect backend, the ACR will be `urn:oasis:names:tc:SAML:2.0:ac:classes:
             "https://accounts.google.com": LoA1
 
 #### Backend
-The SAML2 backend acts as an SAML Service Provider (SP), making authentication
+The SAML2 backend act as a SAML Service Provider (SP), making authentication
 requests to SAML Identity Providers (IdP). The default configuration file can be
 found [here](../example/plugins/backends/saml2_backend.yaml.example).
 
@@ -232,12 +248,14 @@ The SAML backend can indicate which *Name ID* format it wants by specifying the 
  ```
 
 ##### Use a discovery service
-To allow the user to choose which provider they want to use to authenticate with, specify the
-configuration parameter `disco_srv`, e.g.
+To allow the user to choose which target provider they want to authenticate with, the configuration
+parameter `disco_srv`, must be specified if the metadata given to the backend module contains more than one IdP:
 
-    config:
-        config: [...]
-        disco_srv: http://disco.example.com
+```yaml
+config:
+  config: [...]
+    disco_srv: http://disco.example.com
+```
 
 ### <a name="openid_plugin" style="color:#000000">OpenID Connect plugins</a>
 
