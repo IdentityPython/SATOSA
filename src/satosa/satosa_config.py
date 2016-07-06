@@ -44,6 +44,17 @@ class SATOSAConfig(object):
 
         self._verify_dict(self._config)
 
+        # Read plugin configs from dict or file path
+        for key in ["BACKEND_MODULES", "FRONTEND_MODULES", "MICRO_SERVICES"]:
+            plugin_configs = []
+            for config in self._config.get(key, []):
+                for parser in parsers:
+                    plugin_config = parser(config)
+                    if plugin_config:
+                        plugin_configs.append(plugin_config)
+                        break
+            self._config[key] = plugin_configs
+
         for parser in parsers:
             _internal_attributes = parser(self._config["INTERNAL_ATTRIBUTES"])
             if _internal_attributes is not None:
@@ -129,7 +140,12 @@ class SATOSAConfig(object):
         try:
             with open(config_file) as f:
                 return yaml.safe_load(f.read())
-        except yaml.YAMLError as error:
-            logger.debug("Could not parse config as YAML: {}", str(error))
+        except yaml.YAMLError as exc:
+            logger.error("Could not parse config as YAML: {}", str(exc))
+            if hasattr(exc, 'problem_mark'):
+                mark = exc.problem_mark
+                logger.error("Error position: (%s:%s)" % (mark.line + 1, mark.column + 1))
+        except IOError as e:
+            logger.debug("Could not open config file: {}", str(e))
 
         return None

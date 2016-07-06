@@ -169,22 +169,18 @@ def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attri
     """
     loaded_plugin_modules = []
     with prepend_to_import_path(plugin_paths):
-        for module_file_name in plugins:
-            with open(module_file_name) as f:
-                plugin_config = _load_plugin_config(f.read())
+        for plugin_config in plugins:
             try:
                 module_class = _load_endpoint_module(plugin_config, plugin_filter)
             except SATOSAConfigurationError as e:
-                raise SATOSAConfigurationError("Configuration error in {}".format(module_file_name)) from e
+                raise SATOSAConfigurationError("Configuration error in {}".format(json.dumps(plugin_config))) from e
 
             if module_class:
                 module_config = _replace_variables_in_plugin_module_config(plugin_config["config"], base_url,
                                                                            plugin_config["name"])
                 instance = module_class(callback, internal_attributes, module_config, base_url,
                                         plugin_config["name"])
-
                 loaded_plugin_modules.append(instance)
-                logger.debug("Loaded plugin from %s", module_file_name)
     return loaded_plugin_modules
 
 
@@ -217,14 +213,11 @@ def _load_microservice(plugin_config, plugin_filter):
 def _load_microservices(plugin_paths, plugins, plugin_filter, internal_attributes):
     loaded_plugin_modules = []
     with prepend_to_import_path(plugin_paths):
-        for module_file_name in plugins:
-            with open(module_file_name) as f:
-                plugin_config = _load_plugin_config(f.read())
-
+        for plugin_config in plugins:
             try:
                 module_class = _load_microservice(plugin_config, plugin_filter)
             except SATOSAConfigurationError as e:
-                raise SATOSAConfigurationError("Configuration error in {}".format(module_file_name)) from e
+                raise SATOSAConfigurationError("Configuration error in {}".format(json.dumps(plugin_config))) from e
 
             if module_class:
                 instance = module_class(internal_attributes=internal_attributes, config=plugin_config.get("config"))
