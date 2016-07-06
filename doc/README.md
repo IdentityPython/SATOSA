@@ -317,6 +317,8 @@ the "App ID" (`client_id`) and "App Secret" (`client_secret`), issued by Faceboo
 See the [registration instructions](https://developers.facebook.com/docs/apps/register)
 for information on how to obtain them.
 
+A list of all user attributes released by Facebook can be found [here](https://developers.facebook.com/docs/graph-api/reference/v2.5/user),
+which should be used when configuring the attribute mapping (see above).
 
 ## Microservices
 
