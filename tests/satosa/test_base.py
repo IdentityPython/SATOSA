@@ -88,3 +88,15 @@ class TestSATOSABase:
         for attr in satosa_config["INTERNAL_ATTRIBUTES"]["hash"]:
             assert internal_resp.attributes[attr] == [UserIdHasher.hash_data(satosa_config["USER_ID_HASH_SALT"], v)
                                                       for v in attributes[attr]]
+
+    def test_account_linking_callback_func_respects_user_id_to_attr(self, context, satosa_config):
+        satosa_config["INTERNAL_ATTRIBUTES"]["user_id_to_attr"] = "user_id"
+        base = SATOSABase(satosa_config)
+
+        internal_resp = InternalResponse(AuthenticationInformation("", "", ""))
+        internal_resp.user_id = "user1234"
+        UserIdHasher.save_state(InternalRequest(UserIdHashType.transient, ""), context.state)
+
+        base.consent_module = Mock()
+        base._account_linking_callback_func(context, internal_resp)
+        assert internal_resp.attributes["user_id"] == internal_resp.user_id
