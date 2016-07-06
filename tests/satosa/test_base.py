@@ -63,9 +63,7 @@ class TestSATOSABase:
     def test_auth_resp_callback_func_user_id_from_attrs_is_used_to_override_user_id(self, context, satosa_config):
         satosa_config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"] = ["user_id", "domain"]
         internal_resp = InternalResponse(AuthenticationInformation("", "", ""))
-        user_id = "user"
-        domain = "@example.com"
-        internal_resp.attributes = {"user_id": user_id, "domain": domain}
+        internal_resp.attributes = {"user_id": ["user"], "domain": ["@example.com"]}
         base = SATOSABase(satosa_config)
 
         context.state[satosa.base.STATE_KEY] = {"requester": "test_requester"}
