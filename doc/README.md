@@ -272,10 +272,6 @@ When using an OP that only supports statically registered clients, see the
 [default configuration for using Google as the OP](../example/plugins/backends/google_backend.yaml.example).
 
 
-### <a name="social_plugins" style="color:#000000">Social login plugins</a>
-The social login plugins can be used as backends for the proxy, allowing the
-proxy to act as a client to the social login services.
-
 #### Frontend
 The OpenID Connect frontend acts as and OpenID Connect Provider (OP), accepting requests from OpenID
 Connect Relying Parties (RPs). The default configuration file can be found
@@ -290,6 +286,10 @@ As opposed to the other plugins, this plugin is NOT stateless (due to the client
 makes it impossible to run multiple instances of the SATOSA proxy on different machines (for the
 purpose of load balancing) unless the client database file is also distributed among those machines
 by some external process.
+
+### <a name="social_plugins" style="color:#000000">Social login plugins</a>
+The social login plugins can be used as backends for the proxy, allowing the
+proxy to act as a client to the social login services.
 
 #### Google
 The default configuration file can be
