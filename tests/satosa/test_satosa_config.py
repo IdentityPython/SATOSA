@@ -19,12 +19,6 @@ class TestSATOSAConfig:
         }
         return config
 
-    @pytest.fixture
-    def sensitive_config_dict(self, non_sensitive_config_dict):
-        non_sensitive_config_dict["STATE_ENCRYPTION_KEY"] = "state_encryption_key"
-        non_sensitive_config_dict["USER_ID_HASH_SALT"] = "user_id_hash_salt"
-        return non_sensitive_config_dict
-
     def test_read_senstive_config_data_from_env_var(self, monkeypatch, non_sensitive_config_dict):
         monkeypatch.setenv("SATOSA_USER_ID_HASH_SALT", "user_id_hash_salt")
         monkeypatch.setenv("SATOSA_STATE_ENCRYPTION_KEY", "state_encryption_key")
@@ -47,11 +41,11 @@ class TestSATOSAConfig:
         "FRONTEND_MODULES",
         "MICRO_SERVICES"
     ])
-    def test_can_read_endpoint_configs_from_dict(self, sensitive_config_dict, modules_key):
+    def test_can_read_endpoint_configs_from_dict(self, satosa_config_dict, modules_key):
         expected_config = [{"foo": "bar"}, {"abc": "xyz"}]
-        sensitive_config_dict[modules_key] = expected_config
+        satosa_config_dict[modules_key] = expected_config
 
-        config = SATOSAConfig(sensitive_config_dict)
+        config = SATOSAConfig(satosa_config_dict)
         assert config[modules_key] == expected_config
 
     @pytest.mark.parametrize("modules_key", [
@@ -59,11 +53,11 @@ class TestSATOSAConfig:
         "FRONTEND_MODULES",
         "MICRO_SERVICES"
     ])
-    def test_can_read_endpoint_configs_from_file(self, sensitive_config_dict, modules_key):
-        sensitive_config_dict[modules_key] = ["/fake_file_path"]
+    def test_can_read_endpoint_configs_from_file(self, satosa_config_dict, modules_key):
+        satosa_config_dict[modules_key] = ["/fake_file_path"]
         expected_config = {"foo": "bar"}
 
         with patch("builtins.open", mock_open(read_data=json.dumps(expected_config))):
-            config = SATOSAConfig(sensitive_config_dict)
+            config = SATOSAConfig(satosa_config_dict)
 
         assert config[modules_key] == [expected_config]

@@ -1,5 +1,4 @@
 import copy
-import os
 from unittest.mock import Mock
 
 import pytest
@@ -33,21 +32,8 @@ class TestSATOSABase:
         return account_linking_config
 
     @pytest.fixture
-    def satosa_config(self, backend_plugin_config, frontend_plugin_config, request_microservice_config,
-                      response_microservice_config):
-        satosa_config = {
-            "BASE": "https://proxy.example.com",
-            "USER_ID_HASH_SALT": "qwerty",
-            "COOKIE_STATE_NAME": "SATOSA_SATE",
-            "STATE_ENCRYPTION_KEY": "ASDasd123",
-            "CUSTOM_PLUGIN_MODULE_PATHS": [os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))],
-            "BACKEND_MODULES": [backend_plugin_config],
-            "FRONTEND_MODULES": [frontend_plugin_config],
-            "MICRO_SERVICES": [request_microservice_config, response_microservice_config],
-            "INTERNAL_ATTRIBUTES": {"attributes": {}},
-        }
-
-        return SATOSAConfig(satosa_config)
+    def satosa_config(self, satosa_config_dict):
+        return SATOSAConfig(satosa_config_dict)
 
     def test_full_initialisation(self, satosa_config, consent_module_config, accoung_linking_module_config):
         satosa_config["CONSENT"] = consent_module_config

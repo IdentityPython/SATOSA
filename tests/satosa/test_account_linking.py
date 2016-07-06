@@ -24,25 +24,16 @@ class TestAccountLinking():
         return internal_response
 
     @pytest.fixture
-    def satosa_config(self, signing_key_path):
+    def satosa_config(self, satosa_config_dict, signing_key_path):
         account_linking_config = {
             "enable": True,
             "api_url": "https://localhost:8167",
             "redirect_url": "https://localhost:8167/approve",
             "sign_key": signing_key_path,
         }
-        satosa_config = {
-            "BASE": "https://proxy.example.com",
-            "USER_ID_HASH_SALT": "qwerty",
-            "COOKIE_STATE_NAME": "SATOSA_SATE",
-            "STATE_ENCRYPTION_KEY": "ASDasd123",
-            "BACKEND_MODULES": "",
-            "FRONTEND_MODULES": "",
-            "INTERNAL_ATTRIBUTES": {"attributes": {}},
-            "ACCOUNT_LINKING": account_linking_config
-        }
 
-        return SATOSAConfig(satosa_config)
+        satosa_config_dict["ACCOUNT_LINKING"] = account_linking_config
+        return SATOSAConfig(satosa_config_dict)
 
     @pytest.fixture(autouse=True)
     def create_account_linking(self, satosa_config):

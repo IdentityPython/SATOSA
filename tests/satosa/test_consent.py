@@ -25,25 +25,16 @@ USER_ID_ATTR = "user_id"
 
 class TestConsent:
     @pytest.fixture
-    def satosa_config(self, signing_key_path):
+    def satosa_config(self, satosa_config_dict, signing_key_path):
         consent_config = {
             "api_url": CONSENT_SERVICE_URL,
             "redirect_url": "{}/consent".format(CONSENT_SERVICE_URL),
             "sign_key": signing_key_path,
             "state_enc_key": "fsghajf90984jkflds",
         }
-        satosa_config = {
-            "BASE": "https://proxy.example.com",
-            "USER_ID_HASH_SALT": "qwerty",
-            "COOKIE_STATE_NAME": "SATOSA_SATE",
-            "STATE_ENCRYPTION_KEY": "ASDasd123",
-            "BACKEND_MODULES": "",
-            "FRONTEND_MODULES": "",
-            "INTERNAL_ATTRIBUTES": {"attributes": {}, "user_id_to_attr": USER_ID_ATTR},
-            "CONSENT": consent_config
-        }
-
-        return SATOSAConfig(satosa_config)
+        satosa_config_dict["CONSENT"] = consent_config
+        satosa_config_dict["INTERNAL_ATTRIBUTES"] = {"attributes": {}, "user_id_to_attr": USER_ID_ATTR}
+        return SATOSAConfig(satosa_config_dict)
 
     @pytest.fixture(autouse=True)
     def create_module(self, satosa_config):

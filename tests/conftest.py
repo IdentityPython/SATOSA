@@ -119,6 +119,25 @@ def context():
 
 
 @pytest.fixture
+def satosa_config_dict(backend_plugin_config, frontend_plugin_config, request_microservice_config,
+                       response_microservice_config):
+    config = {
+        "BASE": "https://example.com",
+        "COOKIE_STATE_NAME": "TEST_STATE",
+        "BACKEND_MODULES": ["foo"],
+        "FRONTEND_MODULES": ["bar"],
+        "INTERNAL_ATTRIBUTES": {"attributes": {}},
+        "STATE_ENCRYPTION_KEY": "state_encryption_key",
+        "USER_ID_HASH_SALT": "user_id_hash_salt",
+        "CUSTOM_PLUGIN_MODULE_PATHS": [os.path.dirname(__file__)],
+        "BACKEND_MODULES": [backend_plugin_config],
+        "FRONTEND_MODULES": [frontend_plugin_config],
+        "MICRO_SERVICES": [request_microservice_config, response_microservice_config],
+    }
+    return config
+
+
+@pytest.fixture
 def backend_plugin_config():
     data = {
         "module": "util.TestBackend",
