@@ -193,8 +193,9 @@ class TestCreateEntityDescriptors:
         self.assert_single_sign_on_endpoints_for_saml_frontend(entity_descriptor, saml_frontend_config,
                                                                [saml_backend_config["name"]])
         assert len(backend_metadata) == 1
-        self.assert_assertion_consumer_service_endpoints_for_saml_backend(backend_metadata[saml_backend_config["name"]],
-                                                                          saml_backend_config)
+        self.assert_assertion_consumer_service_endpoints_for_saml_backend(
+            backend_metadata[saml_backend_config["name"]][0],
+            saml_backend_config)
 
     def test_saml_frontend_with_oidc_backend(self, satosa_config_dict, saml_frontend_config, oidc_backend_config):
         satosa_config_dict["FRONTEND_MODULES"] = [saml_frontend_config]
@@ -225,8 +226,9 @@ class TestCreateEntityDescriptors:
                                                                 oidc_backend_config["name"]])
         # only the SAML backend produces SAML metadata
         assert len(backend_metadata) == 1
-        self.assert_assertion_consumer_service_endpoints_for_saml_backend(backend_metadata[saml_backend_config["name"]],
-                                                                          saml_backend_config)
+        self.assert_assertion_consumer_service_endpoints_for_saml_backend(
+            backend_metadata[saml_backend_config["name"]][0],
+            saml_backend_config)
 
     def test_saml_mirror_frontend_with_saml_backend_with_multiple_target_providers(self, satosa_config_dict, idp_conf,
                                                                                    saml_mirror_frontend_config,
@@ -243,7 +245,6 @@ class TestCreateEntityDescriptors:
         assert len(frontend_metadata) == 1
         assert len(frontend_metadata[saml_mirror_frontend_config["name"]]) == 2
 
-        # TODO connect order of frontend_metadata[saml_mirror_frontend_config["name"]] with expected idp entity id's
         entity_descriptors = frontend_metadata[saml_mirror_frontend_config["name"]]
         for target_entity_id in [idp_conf["entityid"], idp_conf2["entityid"]]:
             encoded_target_entity_id = urlsafe_b64encode(target_entity_id.encode("utf-8")).decode("utf-8")
@@ -251,8 +252,9 @@ class TestCreateEntityDescriptors:
                                                                           saml_mirror_frontend_config,
                                                                           [saml_backend_config["name"]])
         assert len(backend_metadata) == 1
-        self.assert_assertion_consumer_service_endpoints_for_saml_backend(backend_metadata[saml_backend_config["name"]],
-                                                                          saml_backend_config)
+        self.assert_assertion_consumer_service_endpoints_for_saml_backend(
+            backend_metadata[saml_backend_config["name"]][0],
+            saml_backend_config)
 
     def test_saml_mirror_frontend_with_oidc_backend(self, satosa_config_dict, saml_mirror_frontend_config,
                                                     oidc_backend_config):
@@ -295,8 +297,9 @@ class TestCreateEntityDescriptors:
 
         # only the SAML backend produces SAML metadata
         assert len(backend_metadata)
-        self.assert_assertion_consumer_service_endpoints_for_saml_backend(backend_metadata[saml_backend_config["name"]],
-                                                                          saml_backend_config)
+        self.assert_assertion_consumer_service_endpoints_for_saml_backend(
+            backend_metadata[saml_backend_config["name"]][0],
+            saml_backend_config)
 
     def test_two_saml_frontends(self, satosa_config_dict, saml_frontend_config, saml_mirror_frontend_config,
                                 oidc_backend_config):
@@ -353,9 +356,10 @@ class TestCreateSignedEntitiesDescriptor:
         assert md.parse_and_check_signature(signed_metadata) is True
         assert not md.entities_descr.valid_until
 
-    def test_valid_for(self, entity_desc):
+    def test_valid_for(self, entity_desc, signature_security_context):
         valid_for = 4  # metadata valid for 4 hours
-        signed_metadata = create_signed_entities_descriptor([entity_desc], valid_for=valid_for)
+        signed_metadata = create_signed_entities_descriptor([entity_desc], signature_security_context,
+                                                            valid_for=valid_for)
 
         md = InMemoryMetaData(None)
         md.parse(signed_metadata)
