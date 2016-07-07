@@ -24,7 +24,7 @@ def _create_backend_metadata(backend_modules):
     for plugin_module in backend_modules:
         if isinstance(plugin_module, SAMLBackend):
             logger.info("Generating SAML backend '%s' metadata", plugin_module.name)
-            backend_metadata[plugin_module.name] = _create_entity_descriptor(plugin_module.config["config"])
+            backend_metadata[plugin_module.name] = [_create_entity_descriptor(plugin_module.config["config"])]
 
     return backend_metadata
 
@@ -69,7 +69,7 @@ def _create_frontend_metadata(frontend_modules, backend_modules):
     return frontend_metadata
 
 
-def create_saml_metadata(satosa_config):
+def create_entity_descriptors(satosa_config):
     """
     Creates SAML metadata strings for the configured front- and backends.
     :param satosa_config: configuration of the proxy
@@ -90,7 +90,7 @@ def create_saml_metadata(satosa_config):
     return frontend_metadata, backend_metadata
 
 
-def sign_entity_descriptors(entity_descriptors, security_context, valid_for=None):
+def create_signed_entities_descriptor(entity_descriptors, security_context, valid_for=None):
     """
 
     :param entity_descriptors: the entity descriptors to put in in an EntitiesDescriptor tag and sign

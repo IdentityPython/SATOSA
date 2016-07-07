@@ -11,14 +11,14 @@ from saml2.saml import NAMEID_FORMAT_TRANSIENT, NAME_FORMAT_URI
 from saml2.sigver import security_context
 from saml2.time_util import in_a_while
 
-from satosa.metadata_creation.saml_metadata import create_saml_metadata, sign_entity_descriptors
+from satosa.metadata_creation.saml_metadata import create_entity_descriptors, create_signed_entities_descriptor
 from satosa.satosa_config import SATOSAConfig
 from tests.util import create_metadata_from_config_dict
 
 BASE_URL = "https://example.com"
 
 
-class TestCreateSAMLMetadata:
+class TestCreateEntityDescriptors:
     @pytest.fixture
     def saml_backend_config(self):
         data = {
@@ -185,7 +185,7 @@ class TestCreateSAMLMetadata:
         satosa_config_dict["FRONTEND_MODULES"] = [saml_frontend_config]
         satosa_config_dict["BACKEND_MODULES"] = [saml_backend_config]
         satosa_config = SATOSAConfig(satosa_config_dict)
-        frontend_metadata, backend_metadata = create_saml_metadata(satosa_config)
+        frontend_metadata, backend_metadata = create_entity_descriptors(satosa_config)
 
         assert len(frontend_metadata) == 1
         assert len(frontend_metadata[saml_frontend_config["name"]]) == 1
@@ -200,7 +200,7 @@ class TestCreateSAMLMetadata:
         satosa_config_dict["FRONTEND_MODULES"] = [saml_frontend_config]
         satosa_config_dict["BACKEND_MODULES"] = [oidc_backend_config]
         satosa_config = SATOSAConfig(satosa_config_dict)
-        frontend_metadata, backend_metadata = create_saml_metadata(satosa_config)
+        frontend_metadata, backend_metadata = create_entity_descriptors(satosa_config)
 
         assert len(frontend_metadata) == 1
         assert len(frontend_metadata[saml_frontend_config["name"]]) == 1
@@ -215,7 +215,7 @@ class TestCreateSAMLMetadata:
         satosa_config_dict["FRONTEND_MODULES"] = [saml_frontend_config]
         satosa_config_dict["BACKEND_MODULES"] = [saml_backend_config, oidc_backend_config]
         satosa_config = SATOSAConfig(satosa_config_dict)
-        frontend_metadata, backend_metadata = create_saml_metadata(satosa_config)
+        frontend_metadata, backend_metadata = create_entity_descriptors(satosa_config)
 
         assert len(frontend_metadata) == 1
         assert len(frontend_metadata[saml_frontend_config["name"]]) == 1
@@ -238,7 +238,7 @@ class TestCreateSAMLMetadata:
                                                                           create_metadata_from_config_dict(idp_conf2)]}
         satosa_config_dict["BACKEND_MODULES"] = [saml_backend_config]
         satosa_config = SATOSAConfig(satosa_config_dict)
-        frontend_metadata, backend_metadata = create_saml_metadata(satosa_config)
+        frontend_metadata, backend_metadata = create_entity_descriptors(satosa_config)
 
         assert len(frontend_metadata) == 1
         assert len(frontend_metadata[saml_mirror_frontend_config["name"]]) == 2
@@ -259,7 +259,7 @@ class TestCreateSAMLMetadata:
         satosa_config_dict["FRONTEND_MODULES"] = [saml_mirror_frontend_config]
         satosa_config_dict["BACKEND_MODULES"] = [oidc_backend_config]
         satosa_config = SATOSAConfig(satosa_config_dict)
-        frontend_metadata, backend_metadata = create_saml_metadata(satosa_config)
+        frontend_metadata, backend_metadata = create_entity_descriptors(satosa_config)
 
         assert len(frontend_metadata) == 1
         assert len(frontend_metadata[saml_mirror_frontend_config["name"]]) == 1
@@ -280,7 +280,7 @@ class TestCreateSAMLMetadata:
         saml_backend_config["config"]["config"]["metadata"] = {"inline": [create_metadata_from_config_dict(idp_conf)]}
         satosa_config_dict["BACKEND_MODULES"] = [saml_backend_config, oidc_backend_config]
         satosa_config = SATOSAConfig(satosa_config_dict)
-        frontend_metadata, backend_metadata = create_saml_metadata(satosa_config)
+        frontend_metadata, backend_metadata = create_entity_descriptors(satosa_config)
 
         assert len(frontend_metadata) == 1
         assert len(frontend_metadata[saml_mirror_frontend_config["name"]]) == 2
@@ -304,7 +304,7 @@ class TestCreateSAMLMetadata:
         satosa_config_dict["FRONTEND_MODULES"] = [saml_frontend_config, saml_mirror_frontend_config]
         satosa_config_dict["BACKEND_MODULES"] = [oidc_backend_config]
         satosa_config = SATOSAConfig(satosa_config_dict)
-        frontend_metadata, backend_metadata = create_saml_metadata(satosa_config)
+        frontend_metadata, backend_metadata = create_entity_descriptors(satosa_config)
 
         assert len(frontend_metadata) == 2
 
@@ -326,31 +326,37 @@ class TestCreateSAMLMetadata:
         assert not backend_metadata
 
 
-class TestSignSAMLMetadata:
+class TestCreateSignedEntitiesDescriptor:
     @pytest.fixture
-    def saml_security_context(self, cert_and_key):
+    def entity_desc(self, sp_conf):
+        return entity_descriptor(SPConfig().load(sp_conf, metadata_construction=True))
+
+    @pytest.fixture
+    def verification_security_context(self, cert_and_key):
+        conf = Config()
+        conf.cert_file = cert_and_key[0]
+        return security_context(conf)
+
+    @pytest.fixture
+    def signature_security_context(self, cert_and_key):
         conf = Config()
         conf.cert_file = cert_and_key[0]
         conf.key_file = cert_and_key[1]
         return security_context(conf)
 
-    def test_sign_metadata(self, sp_conf, saml_security_context):
-        ed = entity_descriptor(SPConfig().load(sp_conf, metadata_construction=True))
-        signed_metadata = sign_entity_descriptors([ed], saml_security_context)
+    def test_signed_metadata(self, entity_desc, signature_security_context, verification_security_context):
+        signed_metadata = create_signed_entities_descriptor([entity_desc, entity_desc], signature_security_context)
 
-        md = InMemoryMetaData(None, security=saml_security_context)
+        md = InMemoryMetaData(None, security=verification_security_context)
         md.parse(signed_metadata)
         assert md.signed() is True
         assert md.parse_and_check_signature(signed_metadata) is True
         assert not md.entities_descr.valid_until
 
-    def test_valid_for(self, sp_conf, saml_security_context):
-        ed = entity_descriptor(SPConfig().load(sp_conf, metadata_construction=True))
+    def test_valid_for(self, entity_desc):
         valid_for = 4  # metadata valid for 4 hours
-        signed_metadata = sign_entity_descriptors([ed], saml_security_context, valid_for=valid_for)
+        signed_metadata = create_signed_entities_descriptor([entity_desc], valid_for=valid_for)
 
-        md = InMemoryMetaData(None, security=saml_security_context)
+        md = InMemoryMetaData(None)
         md.parse(signed_metadata)
-        assert md.signed() is True
-        assert md.parse_and_check_signature(signed_metadata) is True
         assert md.entities_descr.valid_until == in_a_while(hours=valid_for)
