@@ -17,12 +17,12 @@ setup(
     scripts=["tools/make_satosa_saml_metadata.py"],
     install_requires=[
         "oic==0.8.4.0",
-        "pyjwkest",
+        "pyjwkest==1.1.5",
         "pysaml2==4.0.3",
-        "requests",
-        "PyYAML",
-        "gunicorn",
-        "Werkzeug"
+        "requests==2.9.1",
+        "PyYAML==3.11",
+        "gunicorn==19.4.1",
+        "Werkzeug==0.11.2",
     ],
     zip_safe=False,
     classifiers=[
