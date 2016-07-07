@@ -14,7 +14,6 @@ setup(
     url='https://github.com/its-dirg/SATOSA',
     packages=find_packages('src/'),
     package_dir={'': 'src'},
-    scripts=["tools/make_satosa_saml_metadata.py"],
     install_requires=[
         "oic==0.8.4.0",
         "pyjwkest==1.1.5",
@@ -23,10 +22,14 @@ setup(
         "PyYAML==3.11",
         "gunicorn==19.4.1",
         "Werkzeug==0.11.2",
+        "click==6.6"
     ],
     zip_safe=False,
     classifiers=[
         "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.4",
-    ]
+    ],
+    entry_points={
+        "console_scripts": ["satosa-saml-metadata=satosa.scripts.satosa_saml_metadata:construct_saml_metadata"]
+    }
 )
