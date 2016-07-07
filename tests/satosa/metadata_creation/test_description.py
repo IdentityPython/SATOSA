@@ -23,20 +23,16 @@ class TestContactPersonDesc(object):
 
 class TestUIInfoDesc(object):
     def test_to_dict(self):
-        logo_data = "test data".encode("utf-8")
-
         desc = UIInfoDesc()
         desc.add_description("test", "en")
         desc.add_display_name("my company", "en")
-        with patch("builtins.open", mock_open(read_data=logo_data)) as mock_file:
-            desc.add_logo("logo.jpg", 80, 80, "en")
+        desc.add_logo("logo.jpg", 80, 80, "en")
 
         serialized = desc.to_dict()
         ui_info = serialized["service"]["idp"]["ui_info"]
         assert ui_info["description"] == [{"text": "test", "lang": "en"}]
         assert ui_info["display_name"] == [{"text": "my company", "lang": "en"}]
-        expected_logo_data = "data:image/jpeg;base64,{}".format(base64.b64encode(logo_data).decode("utf-8"))
-        assert ui_info["logo"] == [{"text": expected_logo_data, "width": 80, "height": 80, "lang": "en"}]
+        assert ui_info["logo"] == [{"text": "logo.jpg", "width": 80, "height": 80, "lang": "en"}]
 
     def test_to_dict_with_empty(self):
         desc = UIInfoDesc()

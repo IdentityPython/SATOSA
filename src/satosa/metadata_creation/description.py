@@ -1,7 +1,6 @@
 """
 Helper classes for creating frontend metadata
 """
-from ..metadata_creation.image_converter import image_to_base64
 
 
 class ContactPersonDesc(object):
@@ -91,7 +90,6 @@ class UIInfoDesc(object):
         :param height: height of logo
         :param lang: language
         """
-        text = image_to_base64(text)
         self._logos.append({"text": text, "width": width, "height": height, "lang": lang})
 
     def to_dict(self):
@@ -210,6 +208,7 @@ class MetadataDescription(object):
         if not isinstance(ui_info, UIInfoDesc):
             raise TypeError("ui_info must be of type UIInfoDesc")
         self._ui_info = ui_info
+
     ui_info = property(None, ui_info)
 
     def to_dict(self):

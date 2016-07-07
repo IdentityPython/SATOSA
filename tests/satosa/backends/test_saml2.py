@@ -187,9 +187,7 @@ class TestSAMLBackend:
         sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
         # instantiate new backend, with a single backing IdP
         samlbackend = SAMLBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf}, "base_url", "saml_backend")
-        logo_data = "test data".encode("utf-8")
-        with patch("builtins.open", mock_open(read_data=logo_data)):
-            entity_descriptions = samlbackend.get_metadata_desc()
+        entity_descriptions = samlbackend.get_metadata_desc()
 
         assert len(entity_descriptions) == 1
 
@@ -206,7 +204,4 @@ class TestSAMLBackend:
         ui_info = idp_desc["service"]["idp"]["ui_info"]
         assert ui_info["display_name"] == expected_ui_info["display_name"]
         assert ui_info["description"] == expected_ui_info["description"]
-        assert ui_info["logo"][0]["width"] == expected_ui_info["logo"][0]["width"]
-        assert ui_info["logo"][0]["height"] == expected_ui_info["logo"][0]["height"]
-        assert ui_info["logo"][0]["lang"] == expected_ui_info["logo"][0]["lang"]
-        assert ui_info["logo"][0]["text"] == "data:image/png;base64,{}".format(b64encode(logo_data).decode("utf-8"))
+        assert ui_info["logo"] == expected_ui_info["logo"]
