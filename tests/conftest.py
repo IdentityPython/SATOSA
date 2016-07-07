@@ -23,7 +23,7 @@ def signing_key_path(tmpdir_factory):
 
 
 @pytest.fixture
-def cert(tmpdir):
+def cert_and_key(tmpdir):
     dir_path = str(tmpdir)
     cert_path = os.path.join(dir_path, "cert.pem")
     key_path = os.path.join(dir_path, "key.pem")
@@ -33,7 +33,7 @@ def cert(tmpdir):
 
 
 @pytest.fixture
-def sp_conf(cert):
+def sp_conf(cert_and_key):
     sp_base = "http://example.com"
     spconfig = {
         "entityid": "{}/unittest_sp.xml".format(sp_base),
@@ -49,8 +49,8 @@ def sp_conf(cert):
                 "name_id_format": [NAMEID_FORMAT_TRANSIENT]
             },
         },
-        "cert_file": cert[0],
-        "key_file": cert[1],
+        "cert_file": cert_and_key[0],
+        "key_file": cert_and_key[1],
         "metadata": {"inline": []},
     }
 
@@ -58,7 +58,7 @@ def sp_conf(cert):
 
 
 @pytest.fixture
-def idp_conf(cert):
+def idp_conf(cert_and_key):
     idp_base = "http://idp.example.com"
 
     idpconfig = {
@@ -92,8 +92,8 @@ def idp_conf(cert):
                 },
             },
         },
-        "cert_file": cert[0],
-        "key_file": cert[1],
+        "cert_file": cert_and_key[0],
+        "key_file": cert_and_key[1],
         "metadata": {"inline": []},
         "organization": {
             "name": [["SaToSa org.", "en"]],
