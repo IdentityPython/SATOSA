@@ -167,8 +167,8 @@ Metadata from remote URL:
 
     "metadata": {
         "remote": 
-            -url:https://kalmar2.org/simplesaml/module.php/aggregator/?id=kalmarcentral2&set=saml2,
-            -cert:null
+            - url:https://kalmar2.org/simplesaml/module.php/aggregator/?id=kalmarcentral2&set=saml2
+              cert:null
     }
 
 For more detailed information on how you could customize the SAML entities configuration please visit: 
