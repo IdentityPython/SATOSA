@@ -3,11 +3,11 @@ Complete test for a SAML to SAML proxy.
 """
 import json
 
-from saml2.httputil import NotFound
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse
 
 from satosa.proxy_server import WsgiApplication
+from satosa.response import NotFound
 from satosa.satosa_config import SATOSAConfig
 
 

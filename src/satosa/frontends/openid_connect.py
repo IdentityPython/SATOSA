@@ -6,19 +6,20 @@ import json
 import logging
 from urllib.parse import urlencode
 
+import oic
 from jwkest.jwk import rsa_load, RSAKey
 from oic.oic import scope2claims
 from oic.oic.message import (AuthorizationResponse, AuthorizationRequest, AuthorizationErrorResponse,
                              RegistrationResponse, ProviderConfigurationResponse, IdToken)
 from oic.oic.provider import RegistrationEndpoint, AuthorizationEndpoint, Provider
 from oic.utils import shelve_wrapper
-from oic.utils.http_util import SeeOther, Created, Response
 from oic.utils.userinfo import UserInfo
 
 from .base import FrontendModule
 from ..internal_data import InternalRequest
 from ..internal_data import UserIdHashType
 from ..logging_util import satosa_logging
+from ..response import SeeOther, Response
 
 logger = logging.getLogger(__name__)
 
@@ -213,7 +214,7 @@ class OpenIDConnectFrontend(FrontendModule):
         :return: HTTP response to the client
         """
         http_resp = self.provider.registration_endpoint(json.dumps(context.request))
-        if not isinstance(http_resp, Created):
+        if http_resp.status != "201 Created":
             return http_resp
 
         return self._fixup_registration_response(http_resp)
@@ -238,7 +239,7 @@ class OpenIDConnectFrontend(FrontendModule):
         :return: HTTP response to the client
         """
         http_resp = self.provider.providerinfo_endpoint()
-        if not isinstance(http_resp, Response):
+        if not isinstance(http_resp, oic.utils.http_util.Response):
             return http_resp
         provider_config = ProviderConfigurationResponse().deserialize(http_resp.message, "json")
         del provider_config["token_endpoint_auth_methods_supported"]
@@ -263,7 +264,7 @@ class OpenIDConnectFrontend(FrontendModule):
                        context.state)
 
         info = self.provider.auth_init(request, request_class=AuthorizationRequest)
-        if isinstance(info, Response):
+        if isinstance(info, oic.utils.http_util.Response):
             satosa_logging(logger, logging.ERROR, "Error in authn req: {}".format(info.message),
                            context.state)
             return info

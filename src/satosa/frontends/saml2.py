@@ -19,6 +19,7 @@ from .base import FrontendModule
 from ..internal_data import InternalRequest, UserIdHashType
 from ..logging_util import satosa_logging
 from ..response import Response
+from ..response import ServiceError
 from ..saml_util import make_saml_response
 
 logger = logging.getLogger(__name__)
@@ -181,7 +182,7 @@ class SAMLFrontend(FrontendModule):
             resp_args = idp.response_args(authn_req)
         except SAMLError as e:
             satosa_logging(logger, logging.ERROR, "Could not find necessary info about entity: %s" % e, context.state)
-            return Response("Incorrect request from requester: %s" % e)
+            return ServiceError("Incorrect request from requester: %s" % e)
 
         context.state[self.name] = self._create_state_data(context, idp.response_args(authn_req),
                                                            context.request.get("RelayState"))

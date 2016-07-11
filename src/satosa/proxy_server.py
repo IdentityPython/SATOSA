@@ -3,12 +3,9 @@ import json
 import logging
 from urllib.parse import parse_qsl
 
-from saml2.httputil import NotFound
-from saml2.httputil import ServiceError
-from saml2.httputil import Unauthorized
-
 from .base import SATOSABase
 from .context import Context
+from .response import ServiceError, NotFound
 from .routing import SATOSANoBoundEndpointError
 
 logger = logging.getLogger(__name__)
@@ -89,10 +86,7 @@ class WsgiApplication(SATOSABase):
 
     def __call__(self, environ, start_response, debug=False):
         path = environ.get('PATH_INFO', '').lstrip('/')
-        if ".." in path:
-            resp = Unauthorized()
-            return resp(environ, start_response)
-        elif path == "":
+        if ".." in path or path == "":
             resp = NotFound("Couldn't find the side you asked for!")
             return resp(environ, start_response)
 
