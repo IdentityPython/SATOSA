@@ -103,14 +103,14 @@ Each internal attribute has a mapping for two different *profiles*, `openid`and 
 attributes (in the proxy backend) <-> internal <-> returned attributes (from the proxy frontend) is defined as:
 
 * Any plugin using the `openid` profile will use the attribute value from
-  `email` delivered from the backing provider as the value for `mail`.
+  `email` delivered from the target provider as the value for `mail`.
 * Any plugin using the `saml` profile will use the attribute value from `mail`,
   `emailAdress` and `email` depending on which attributes are delivered by the
-  backing provider as the value for `mail`.
+  target provider as the value for `mail`.
 * Any plugin using the `openid` profile will use the attribute value under the
-  key `formatted` in the `address` attribute delivered by the backing provider.
+  key `formatted` in the `address` attribute delivered by the target provider.
 * Any plugin using the `saml` profile will use the attribute value from `postaladdress`
-  delivered from the backing provider as the value for `address`.
+  delivered from the target provider as the value for `address`.
 
 
 ### user_id_from_attrs
@@ -138,7 +138,7 @@ returned to the client.
 ## Plugins 
 The authentication protocol specific communication is handled by different plugins,
 divided into frontends (receiving requests from clients) and backends (sending requests
-to backing identity providers).
+to target providers).
 
 ### <a name="saml_plugin" style="color:#000000">SAML2 plugins</a>
 
@@ -211,14 +211,14 @@ The SAML2 frontends can provide a custom (configurable) *Authentication Context 
 `AuthnStatement` of in the authentication response. This can be used to describe for example the Level of Assurance,
 as described for example by [eIDAS](https://joinup.ec.europa.eu/sites/default/files/eidas_message_format_v1.0.pdf).
 
-The `AuthnContextClassRef`(ACR) can be specified per backing provider in a mapping under the 
+The `AuthnContextClassRef`(ACR) can be specified per target provider in a mapping under the 
 configuration parameter `acr_mapping`. The mapping must contain a default ACR value under the key `""`
 (empty string), each other ACR value specific per target provider is specified with key-value pairs, where the
 key is the target providers identifier (entity id for SAML IdP behind SAML2 backend, authorization endpoint
 URL for OAuth AS behind OAuth backend, and issuer URL for OpenID Connect OP behind OpenID Connect backend). 
 
 If no `acr_mapping` is provided in the configuration, the ACR received from the backend plugin will
-be used instead. This means that when using a SAML2 backend, the ACR provided by the backing
+be used instead. This means that when using a SAML2 backend, the ACR provided by the target
 provider will be preserved, and when using a OAuth or OpenID Connect backend, the ACR will be
 `urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified`.
 
