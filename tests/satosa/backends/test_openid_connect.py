@@ -159,12 +159,14 @@ class TestOpenIDConnectBackend(object):
         self.assert_expected_attributes(internal_response.attributes)
 
     @responses.activate
-    def test_response_endpoint_calls_callback(self, backend_config, signing_key, incoming_authn_response):
+    def test_response_endpoint(self, backend_config, signing_key, incoming_authn_response):
         self.setup_jwks_uri(backend_config["provider_metadata"]["jwks_uri"], signing_key)
         self.setup_token_endpoint(backend_config["provider_metadata"]["token_endpoint"], signing_key)
         self.setup_userinfo_endpoint(backend_config["provider_metadata"]["userinfo_endpoint"])
 
         self.oidc_backend.response_endpoint(incoming_authn_response)
+        assert self.oidc_backend.name not in incoming_authn_response.state
+
         args = self.oidc_backend.auth_callback_func.call_args[0]
         assert isinstance(args[0], Context)
         assert isinstance(args[1], InternalResponse)
@@ -185,20 +187,6 @@ class TestOpenIDConnectBackend(object):
         assert "state" in auth_params
         assert "nonce" in auth_params
 
-    def test_set_state_in_start_auth(self, context):
-        self.oidc_backend.start_auth(context, None)
-        assert context.state[self.oidc_backend.name]
-
-    @responses.activate
-    def test_remove_state_in_response_endpoint(self, backend_config, signing_key, incoming_authn_response):
-        self.setup_jwks_uri(backend_config["provider_metadata"]["jwks_uri"], signing_key)
-        self.setup_token_endpoint(backend_config["provider_metadata"]["token_endpoint"], signing_key)
-        self.setup_userinfo_endpoint(backend_config["provider_metadata"]["userinfo_endpoint"])
-
-        self.oidc_backend.response_endpoint(incoming_authn_response)
-        with pytest.raises(KeyError):
-            incoming_authn_response.state[self.oidc_backend.name]
-
     @responses.activate
     def test_entire_flow(self, context, backend_config):
         self.setup_userinfo_endpoint(backend_config["provider_metadata"]["userinfo_endpoint"])
@@ -208,6 +196,7 @@ class TestOpenIDConnectBackend(object):
         access_token = 12345
         context.request = {"state": auth_params["state"], "access_token": access_token}
         self.oidc_backend.response_endpoint(context)
+        assert self.oidc_backend.name not in context.state
         args = self.oidc_backend.auth_callback_func.call_args[0]
         self.assert_expected_attributes(args[1].attributes)
 

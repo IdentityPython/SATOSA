@@ -135,6 +135,7 @@ class TestSAMLBackend:
         # pass auth response to backend and verify behavior
         self.samlbackend.authn_response(response_context, response_binding)
         context, internal_resp = self.samlbackend.auth_callback_func.call_args[0]
+        assert self.samlbackend.name not in context.state
         assert context.state[test_state_key] == "my_state"
         self.assert_authn_response(internal_resp)
 

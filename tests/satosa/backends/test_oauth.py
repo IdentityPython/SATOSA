@@ -6,9 +6,7 @@ import pytest
 import responses
 
 from satosa.backends.oauth import FacebookBackend
-from satosa.context import Context
 from satosa.internal_data import UserIdHashType, InternalRequest
-from satosa.state import State
 
 FB_RESPONSE = {
     "id": "fb_id",
@@ -132,7 +130,9 @@ class TestFacebookBackend(object):
 
         mock_do_access_token_request = Mock(return_value={"access_token": "fb access token"})
         self.fb_backend.consumer.do_access_token_request = mock_do_access_token_request
+
         self.fb_backend._authn_response(incoming_authn_response)
+        assert self.fb_backend.name not in incoming_authn_response.state
 
         self.assert_expected_attributes()
         self.assert_token_request(**mock_do_access_token_request.call_args[1])
@@ -158,4 +158,5 @@ class TestFacebookBackend(object):
             "state": mock_get_state.return_value
         }
         self.fb_backend._authn_response(context)
+        assert self.fb_backend.name not in context.state
         self.assert_expected_attributes()
