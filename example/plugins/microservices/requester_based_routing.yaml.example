@@ -1,5 +1,4 @@
-module: satosa.microservices.custom_routing.DecideBackendByRequester
-plugin: RequestMicroService
+module: satosa.micro_services.custom_routing.DecideBackendByRequester
 config:
   requester_mapping:
     requester1: Saml2

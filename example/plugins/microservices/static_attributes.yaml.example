@@ -1,2 +1,1 @@
-module: satosa.microservices.attribute_modifications.AddStaticAttributes
-plugin: ResponseMicroService
+module: satosa.micro_services.attribute_modifications.AddStaticAttributes
