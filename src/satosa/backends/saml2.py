@@ -52,7 +52,7 @@ class SAMLBackend(BackendModule):
         """
         super().__init__(outgoing, internal_attributes, base_url, name)
 
-        sp_config = SPConfig().load(copy.deepcopy(config["config"]), False)
+        sp_config = SPConfig().load(copy.deepcopy(config["sp_config"]), False)
         self.sp = Base(sp_config)
 
         self.config = config

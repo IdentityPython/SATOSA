@@ -1,7 +1,7 @@
 module: satosa.backends.saml2.SAMLBackend
 name: Saml2
 config:
-  config:
+  sp_config:
     key_file: backend.key
     cert_file: backend.crt
     organization: {display_name: Example Identities, name: Example Identities Org., url: 'http://www.example.com'}

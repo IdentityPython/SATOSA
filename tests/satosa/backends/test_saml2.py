@@ -71,7 +71,7 @@ class TestSAMLBackend:
     @pytest.fixture(autouse=True)
     def create_backend(self, sp_conf, idp_conf):
         self.setup_test_config(sp_conf, idp_conf)
-        self.samlbackend = SAMLBackend(Mock(), INTERNAL_ATTRIBUTES, {"config": sp_conf,
+        self.samlbackend = SAMLBackend(Mock(), INTERNAL_ATTRIBUTES, {"sp_config": sp_conf,
                                                                      "disco_srv": DISCOSRV_URL,
                                                                      "publish_metadata": METADATA_URL},
                                        "base_url",
@@ -148,7 +148,7 @@ class TestSAMLBackend:
     def test_redirect_to_idp_if_only_one_idp_in_metadata(self, context, sp_conf, idp_conf):
         sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
         # instantiate new backend, without any discovery service configured
-        samlbackend = SAMLBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf}, "base_url", "saml_backend")
+        samlbackend = SAMLBackend(None, INTERNAL_ATTRIBUTES, {"sp_config": sp_conf}, "base_url", "saml_backend")
 
         resp = samlbackend.start_auth(context, InternalRequest(None, None))
         self.assert_redirect_to_idp(resp, idp_conf)
@@ -186,7 +186,7 @@ class TestSAMLBackend:
     def test_get_metadata_desc(self, sp_conf, idp_conf):
         sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
         # instantiate new backend, with a single backing IdP
-        samlbackend = SAMLBackend(None, INTERNAL_ATTRIBUTES, {"config": sp_conf}, "base_url", "saml_backend")
+        samlbackend = SAMLBackend(None, INTERNAL_ATTRIBUTES, {"sp_config": sp_conf}, "base_url", "saml_backend")
         entity_descriptions = samlbackend.get_metadata_desc()
 
         assert len(entity_descriptions) == 1

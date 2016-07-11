@@ -25,7 +25,7 @@ class TestCreateEntityDescriptors:
             "module": "satosa.backends.saml2.SAMLBackend",
             "name": "SAML2Backend",
             "config": {
-                "config": {
+                "sp_config": {
                     "entityid": "backend-entity_id",
                     "organization": {"display_name": "Example Identities", "name": "Test Identities Org.",
                                      "url": "http://www.example.com"},
@@ -175,9 +175,9 @@ class TestCreateEntityDescriptors:
     def assert_assertion_consumer_service_endpoints_for_saml_backend(self, entity_descriptor, saml_backend_config):
         metadata = InMemoryMetaData(None, str(entity_descriptor))
         metadata.load()
-        acs = metadata.service(saml_backend_config["config"]["config"]["entityid"], "spsso_descriptor",
+        acs = metadata.service(saml_backend_config["config"]["sp_config"]["entityid"], "spsso_descriptor",
                                "assertion_consumer_service")
-        for url, binding in saml_backend_config["config"]["config"]["service"]["sp"]["endpoints"][
+        for url, binding in saml_backend_config["config"]["sp_config"]["service"]["sp"]["endpoints"][
             "assertion_consumer_service"]:
             assert acs[binding][0]["location"] == url
 
@@ -236,7 +236,7 @@ class TestCreateEntityDescriptors:
         idp_conf2 = copy.deepcopy(idp_conf)
         idp_conf2["entityid"] = "https://idp2.example.com"
         satosa_config_dict["FRONTEND_MODULES"] = [saml_mirror_frontend_config]
-        saml_backend_config["config"]["config"]["metadata"] = {"inline": [create_metadata_from_config_dict(idp_conf),
+        saml_backend_config["config"]["sp_config"]["metadata"] = {"inline": [create_metadata_from_config_dict(idp_conf),
                                                                           create_metadata_from_config_dict(idp_conf2)]}
         satosa_config_dict["BACKEND_MODULES"] = [saml_backend_config]
         satosa_config = SATOSAConfig(satosa_config_dict)
@@ -279,7 +279,7 @@ class TestCreateEntityDescriptors:
                                                          saml_mirror_frontend_config,
                                                          saml_backend_config, oidc_backend_config):
         satosa_config_dict["FRONTEND_MODULES"] = [saml_mirror_frontend_config]
-        saml_backend_config["config"]["config"]["metadata"] = {"inline": [create_metadata_from_config_dict(idp_conf)]}
+        saml_backend_config["config"]["sp_config"]["metadata"] = {"inline": [create_metadata_from_config_dict(idp_conf)]}
         satosa_config_dict["BACKEND_MODULES"] = [saml_backend_config, oidc_backend_config]
         satosa_config = SATOSAConfig(satosa_config_dict)
         frontend_metadata, backend_metadata = create_entity_descriptors(satosa_config)

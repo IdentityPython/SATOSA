@@ -24,7 +24,7 @@ def _create_backend_metadata(backend_modules):
     for plugin_module in backend_modules:
         if isinstance(plugin_module, SAMLBackend):
             logger.info("Generating SAML backend '%s' metadata", plugin_module.name)
-            backend_metadata[plugin_module.name] = [_create_entity_descriptor(plugin_module.config["config"])]
+            backend_metadata[plugin_module.name] = [_create_entity_descriptor(plugin_module.config["sp_config"])]
 
     return backend_metadata
 
