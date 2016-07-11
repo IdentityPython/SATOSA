@@ -11,7 +11,7 @@ from .context import Context
 from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
 from .internal_data import UserIdHasher
 from .logging_util import satosa_logging
-from .microservices.service_base import process_microservice_queue
+from .micro_services.service_base import process_microservice_queue
 from .plugin_loader import load_backends, load_frontends
 from .plugin_loader import load_request_microservices, load_response_microservices
 from .routing import ModuleRouter, SATOSANoBoundEndpointError

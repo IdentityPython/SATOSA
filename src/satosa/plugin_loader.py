@@ -13,7 +13,7 @@ from yaml.error import YAMLError
 from .backends.base import BackendModule
 from .exception import SATOSAConfigurationError
 from .frontends.base import FrontendModule
-from .microservices.service_base import (MicroService, RequestMicroService,
+from .micro_services.service_base import (MicroService, RequestMicroService,
                                          ResponseMicroService)
 
 logger = logging.getLogger(__name__)

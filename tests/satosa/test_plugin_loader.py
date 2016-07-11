@@ -6,7 +6,7 @@ import yaml
 from satosa.backends.base import BackendModule
 from satosa.exception import SATOSAConfigurationError
 from satosa.frontends.base import FrontendModule
-from satosa.microservices.service_base import RequestMicroService, ResponseMicroService, MicroService
+from satosa.micro_services.service_base import RequestMicroService, ResponseMicroService, MicroService
 from satosa.plugin_loader import backend_filter, frontend_filter, _micro_service_filter, \
     _request_micro_service_filter, _response_micro_service_filter, _load_plugin_config
 
