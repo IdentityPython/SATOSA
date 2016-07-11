@@ -165,25 +165,7 @@ class InternalRequest(InternalData):
             self.requester_name = requester_name
         else:
             self.requester_name = [{"text": requester, "lang": "en"}]
-        self._attribute_filter = []
-
-    def add_filter(self, filter_attr):
-        """
-        Set a list of attributes that will pass through the attribute filter
-
-        :type filter_attr: list[str]
-
-        :param filter_attr: a list of attributes that can be sent to the requester
-        """
-        self._attribute_filter = filter_attr
-
-    def get_filter(self):
-        """
-        A list with all approved attributes.
-        :rtype: list[str]
-        :return: Attribute filter
-        """
-        return self._attribute_filter
+        self.approved_attributes = None
 
 
 class InternalResponse(InternalData):

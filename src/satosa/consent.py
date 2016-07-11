@@ -61,7 +61,7 @@ class ConsentModule(object):
         :return: None
         """
         if self.enabled:
-            state[STATE_KEY] = {"filter": internal_request.get_filter(),
+            state[STATE_KEY] = {"filter": internal_request.approved_attributes or [],
                                 "requester_name": internal_request.requester_name}
 
     def _handle_consent_response(self, context):

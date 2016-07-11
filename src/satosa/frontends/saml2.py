@@ -198,7 +198,7 @@ class SAMLFrontend(FrontendModule):
         idp_policy = idp.config.getattr("policy", "idp")
         if idp_policy:
             approved_attributes = self._get_approved_attributes(idp, idp_policy, internal_req.requester, context.state)
-            internal_req.add_filter(approved_attributes)
+            internal_req.approved_attributes = approved_attributes
 
         return self.auth_req_callback_func(context, internal_req)
 
