@@ -71,6 +71,15 @@ class FrontendModule(object):
         :rtype List[Tuple[str, Callable[[satosa.context.Context, Any], satosa.response.Response]]]
 
         :param backend_names: Names of all all configured backends.
+            All regexes produced for the frontends authentication endpoint must contain each backend name, e.g.:
+
+                urls = []
+                for name in backend_names:
+                    urls.append("{}/authentication".format(name))
+
+                urls.append("global_endpoint")
+                return urls
+
         :return: A list with functions and args bound to a specific endpoint url,
                  [(regexp, function), ...]
         """
