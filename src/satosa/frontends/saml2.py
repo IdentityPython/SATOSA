@@ -103,17 +103,17 @@ class SAMLFrontend(FrontendModule):
         """
         return self._handle_backend_error(exception, self.idp)
 
-    def register_endpoints(self, providers):
+    def register_endpoints(self, backend_names):
         """
         See super class satosa.frontends.base.FrontendModule
-        :type providers: list[str]
+        :type backend_names: list[str]
         :rtype: list[(str, ((satosa.context.Context, Any) -> satosa.response.Response, Any))]
         """
-        self.idp_config = self._build_idp_config_endpoints(self.config["idp_config"], providers)
+        self.idp_config = self._build_idp_config_endpoints(self.config["idp_config"], backend_names)
         # Create the idp
         idp_config = IdPConfig().load(copy.deepcopy(self.idp_config), metadata_construction=False)
         self.idp = Server(config=idp_config)
-        return self._register_endpoints(providers)
+        return self._register_endpoints(backend_names)
 
     def _create_state_data(self, context, resp_args, relay_state):
         """

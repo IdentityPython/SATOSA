@@ -122,20 +122,20 @@ class OpenIDConnectFrontend(FrontendModule):
         satosa_logging(logger, logging.DEBUG, exception.message, exception.state)
         return SeeOther(error_resp.request(auth_req["redirect_uri"], self._should_fragment_encode(auth_req)))
 
-    def register_endpoints(self, providers):
+    def register_endpoints(self, backend_names):
         """
         See super class satosa.frontends.base.FrontendModule
-        :type providers: list[str]
+        :type backend_names: list[str]
         :rtype: list[(str, ((satosa.context.Context, Any) -> satosa.response.Response, Any))]
         :raise ValueError: if more than one backend is configured
         """
-        if len(providers) != 1:
+        if len(backend_names) != 1:
             # only supports one backend since there currently is no way to publish multiple authorization endpoints
             # in configuration information and there is no other standard way of authorization_endpoint discovery
             # similar to SAML entity discovery
             raise ValueError("OpenID Connect frontend only supports one backend.")
 
-        backend = providers[0]
+        backend = backend_names[0]
         endpoint_baseurl = "{}/{}".format(self.base_url, backend)
         self.provider.baseurl = endpoint_baseurl
 

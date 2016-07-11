@@ -354,17 +354,9 @@ class FakeFrontend(FrontendModule):
             return self.handle_authn_response_func(context, internal_response, state)
         return None
 
-    def register_endpoints(self, providers):
-        """
-        TODO comment
-
-        :type providers: TODO comment
-
-        :param providers: TODO comment
-        :return: TODO comment
-        """
+    def register_endpoints(self, backend_names):
         if self.register_endpoints_func:
-            return self.register_endpoints_func(providers)
+            return self.register_endpoints_func(backend_names)
 
 
 class TestBackend(BackendModule):
@@ -382,8 +374,8 @@ class TestFrontend(FrontendModule):
     def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name):
         super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
 
-    def register_endpoints(self, providers):
-        url_map = [("^{}/{}/request$".format(p, self.name), self.handle_request) for p in providers]
+    def register_endpoints(self, backend_names):
+        url_map = [("^{}/{}/request$".format(p, self.name), self.handle_request) for p in backend_names]
         return url_map
 
     def handle_request(self, context):

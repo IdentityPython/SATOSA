@@ -55,7 +55,7 @@ class FrontendModule(object):
         """
         raise NotImplementedError()
 
-    def register_endpoints(self, providers):
+    def register_endpoints(self, backend_names):
         """
         Register frontend functions to endpoint urls.
 
@@ -67,10 +67,10 @@ class FrontendModule(object):
             ]
 
 
-        :type providers: list[str]
+        :type backend_names: list[str]
         :rtype List[Tuple[str, Callable[[satosa.context.Context, Any], satosa.response.Response]]]
 
-        :param providers: A list of all possible endpoints.
+        :param backend_names: Names of all all configured backends.
         :return: A list with functions and args bound to a specific endpoint url,
                  [(regexp, function), ...]
         """
