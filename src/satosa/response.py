@@ -8,8 +8,8 @@ class Response(object):
     A response object
     """
     # _template = None
-    _status = '200 OK'
-    _content_type = 'text/html'
+    _status = "200 OK"
+    _content_type = "text/html"
 
     def __init__(self, message=None, status=None, headers=None, content=None):
         """
@@ -29,7 +29,7 @@ class Response(object):
         self.headers = headers if headers is not None else []
         self.message = message
 
-        should_add_content_type = not any(header[0].lower() == 'content-type' for header in self.headers)
+        should_add_content_type = not any(header[0].lower() == "content-type" for header in self.headers)
         if should_add_content_type:
             self.headers.append(("Content-Type", _content_type))
 
@@ -53,7 +53,7 @@ class Redirect(Response):
     """
     A Redirect response
     """
-    _status = '302 Found'
+    _status = "302 Found"
 
     def __init__(self, redirect_url, headers=None, content=None):
         """
@@ -75,7 +75,7 @@ class SeeOther(Redirect):
     """
     A SeeOther response
     """
-    _status = '303 See Other'
+    _status = "303 See Other"
 
     def __init__(self, redirect_url, headers=None, content=None):
         """
@@ -90,3 +90,11 @@ class SeeOther(Redirect):
         :param content: The content type
         """
         super().__init__(redirect_url, headers=headers, content=content)
+
+
+class NotFound(Response):
+    _status = "404 Not Found"
+
+
+class ServiceError(Response):
+    _status = "500 Internal Service Error"
