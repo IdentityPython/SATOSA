@@ -1,4 +1,4 @@
-from .service_base import RequestMicroService
+from .base import RequestMicroService
 
 
 class DecideBackendByRequester(RequestMicroService):

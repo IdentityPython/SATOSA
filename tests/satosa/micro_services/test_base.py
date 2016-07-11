@@ -4,7 +4,7 @@ from unittest.mock import Mock
 import pytest
 
 from satosa.exception import SATOSAAuthenticationError
-from satosa.microservices.service_base import process_microservice_queue, ResponseMicroService
+from satosa.micro_services.base import process_microservice_queue, ResponseMicroService
 
 
 class TestProcessMicroserviceQueue:

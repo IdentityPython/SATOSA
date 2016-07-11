@@ -2,7 +2,7 @@ import os
 
 import yaml
 
-from .service_base import ResponseMicroService
+from .base import ResponseMicroService
 from ..attribute_mapping import AttributeMapper
 
 
