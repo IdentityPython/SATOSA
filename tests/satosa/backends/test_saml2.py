@@ -162,7 +162,7 @@ class TestSAMLBackend:
 
     def test_authn_response(self, context, idp_conf, sp_conf):
         response_binding = BINDING_HTTP_REDIRECT
-        fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
         fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf, metadata_construction=False))
         auth_req = fakesp.make_auth_req(idp_conf["entityid"])
         request_params = dict(parse_qsl(urlparse(auth_req).query))

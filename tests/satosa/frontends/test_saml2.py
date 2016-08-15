@@ -68,7 +68,7 @@ class TestSAMLFrontend:
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
 
-        fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
         context.request = parse.parse_qs(
             urlparse(fakesp.make_auth_req(samlfrontend.idp_config["entityid"], nameid_format, relay_state)).query)
         tmp_dict = {}
@@ -123,7 +123,7 @@ class TestSAMLFrontend:
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
 
-        fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
         resp = fakesp.parse_authn_request_response(resp_dict['SAMLResponse'][0],
                                                    BINDING_HTTP_REDIRECT)
         for key in resp.ava:
@@ -137,7 +137,7 @@ class TestSAMLFrontend:
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
 
-        fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
         resp = fakesp.parse_authn_request_response(resp_dict['SAMLResponse'][0],
                                                    BINDING_HTTP_REDIRECT)
         for key in resp.ava:
@@ -151,7 +151,7 @@ class TestSAMLFrontend:
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
 
-        fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
         resp = fakesp.parse_authn_request_response(resp_dict['SAMLResponse'][0],
                                                    BINDING_HTTP_REDIRECT)
         for key in resp.ava:
@@ -215,7 +215,7 @@ class TestSAMLFrontend:
 
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
-        fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
 
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
 
@@ -253,7 +253,7 @@ class TestSAMLFrontend:
 
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
-        fakesp = FakeSP(None, config=SPConfig().load(sp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
 
         resp_args = {
             "name_id_policy": NameIDPolicy(format=NAMEID_FORMAT_TRANSIENT),
@@ -316,7 +316,7 @@ class TestSAMLFrontend:
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
         sp_config = SPConfig().load(sp_conf, metadata_construction=False)
-        fakesp = FakeSP(None, config=sp_config)
+        fakesp = FakeSP(sp_config)
 
         user_attributes = {k: "foo" for k in expected_attributes_in_all_entity_categories}
         internal_response.attributes = AttributeMapper(internal_attributes).to_internal("saml", user_attributes)

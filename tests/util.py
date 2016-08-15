@@ -27,16 +27,11 @@ class FakeSP(Saml2Client):
     A SAML service provider that can be used to perform tests.
     """
 
-    def __init__(self, config_module, config=None):
+    def __init__(self, config):
         """
-        :type config_module: str
         :type config: {dict}
-
-        :param config_module: Path to a file containing the SP SAML configuration.
         :param config: SP SAML configuration.
         """
-        if config is None:
-            config = config_factory('sp', config_module)
         Saml2Client.__init__(self, config)
 
     def make_auth_req(self, entity_id, nameid_format=None, relay_state="relay_state"):
