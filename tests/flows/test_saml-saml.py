@@ -26,7 +26,7 @@ class TestSAMLToSAML:
         app = WsgiApplication(config=SATOSAConfig(satosa_config_dict))
         test_client = Client(app, BaseResponse)
 
-        # test SP config
+        # config test SP
         frontend_metadata_str = str(frontend_metadata[frontend_config["name"]][0])
         sp_conf["metadata"]["inline"].append(frontend_metadata_str)
         fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
@@ -39,7 +39,7 @@ class TestSAMLToSAML:
         proxied_auth_req = test_client.get(auth_req)
         assert proxied_auth_req.status == "303 See Other"
 
-        # test IdP config
+        # config test IdP
         backend_metadata_str = str(backend_metadata[saml_backend_config["name"]][0])
         idp_conf["metadata"]["inline"].append(backend_metadata_str)
         fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf, metadata_construction=False))
