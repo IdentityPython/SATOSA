@@ -34,7 +34,7 @@ class FakeSP(Saml2Client):
         """
         Saml2Client.__init__(self, config)
 
-    def make_auth_req(self, entity_id, nameid_format=None, relay_state="relay_state"):
+    def make_auth_req(self, entity_id, nameid_format=None, relay_state="relay_state", binding=BINDING_HTTP_REDIRECT):
         """
         :type entity_id: str
         :rtype: str
@@ -45,7 +45,7 @@ class FakeSP(Saml2Client):
         # Picks a binding to use for sending the Request to the IDP
         _binding, destination = self.pick_binding(
             'single_sign_on_service',
-            [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST], 'idpsso',
+            [binding], 'idpsso',
             entity_id=entity_id)
         # Binding here is the response binding that is which binding the
         # IDP shou  ld use to return the response.
@@ -104,6 +104,7 @@ class FakeIdP(server.Server):
         auth_req = self.parse_authn_request(saml_request, binding)
         binding_out, destination = self.pick_binding(
             'assertion_consumer_service',
+            bindings=[response_binding],
             entity_id=auth_req.message.issuer.text, request=auth_req.message)
 
         resp_args = self.response_args(auth_req.message)
