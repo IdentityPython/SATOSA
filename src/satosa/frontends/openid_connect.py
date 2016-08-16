@@ -55,6 +55,9 @@ class OpenIDConnectFrontend(FrontendModule):
             "grant_types_supported": ["implicit"],
             "claim_types_supported": ["normal"],
             "claims_parameter_supported": True,
+            "claims_supported": [attribute_map["openid"][0]
+                                 for attribute_map in self.internal_attributes["attributes"].values()
+                                 if "openid" in attribute_map],
             "request_parameter_supported": False,
             "request_uri_parameter_supported": False,
             "scopes_supported": ["openid"]
