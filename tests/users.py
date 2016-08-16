@@ -17,7 +17,6 @@ USERS = {
         "schacHomeOrganization": ["example.com"],
         "email": ["test@example.com"],
         "displayName": ["Test Testsson"],
-        "labeledURL": ["http://www.example.com/haho My homepage"],
-        "norEduPersonNIN": ["SE199012315555"],
+        "norEduPersonNIN": ["SE199012315555"]
     }
 }
