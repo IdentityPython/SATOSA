@@ -1,13 +1,11 @@
 import glob
-import json
 import os
 
-from click.testing import CliRunner
 from saml2.config import Config
 from saml2.mdstore import MetaDataFile
 from saml2.sigver import security_context
 
-from satosa.scripts.satosa_saml_metadata import construct_saml_metadata
+from satosa.scripts.satosa_saml_metadata import create_and_write_saml_metadata
 
 
 class TestConstructSAMLMetadata:
@@ -16,12 +14,7 @@ class TestConstructSAMLMetadata:
         satosa_config_dict["FRONTEND_MODULES"] = [saml_frontend_config]
         satosa_config_dict["BACKEND_MODULES"] = [saml_backend_config]
 
-        config_path = os.path.join(str(tmpdir), "config.yaml")
-        with open(config_path, "w") as f:
-            f.write(json.dumps(satosa_config_dict))
-
-        runner = CliRunner()
-        runner.invoke(construct_saml_metadata, [config_path, cert_and_key[1], cert_and_key[0], '--dir', str(tmpdir)])
+        create_and_write_saml_metadata(satosa_config_dict, cert_and_key[1], cert_and_key[0], str(tmpdir), None)
 
         conf = Config()
         conf.cert_file = cert_and_key[0]
