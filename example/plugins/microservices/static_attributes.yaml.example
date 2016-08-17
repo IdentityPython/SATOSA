@@ -1,1 +1,2 @@
 module: satosa.micro_services.attribute_modifications.AddStaticAttributes
+name: AddAttributes

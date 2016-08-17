@@ -1,4 +1,5 @@
 module: satosa.micro_services.custom_routing.DecideBackendByRequester
+name: RequesterRouter
 config:
   requester_mapping:
     requester1: Saml2 # map SAML entity with entity id 'requester1' to backend with name 'SAML2'
