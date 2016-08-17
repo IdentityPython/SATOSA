@@ -331,12 +331,12 @@ The following micro services are bundled with SATOSA.
 
 To add a set of static attributes, use the `AddStaticAttributes` class which will add
 pre-configured (static) attributes, see the
-[example configuration](example/plugins/microservices/static_attributes.yaml.example).
+[example configuration](../example/plugins/microservices/static_attributes.yaml.example).
 
 #### Route to a specific backend based on 
 To choose which backend (essentially choosing target provider) to use based on the requester, use the 
 `DecideBackendByRequester` class which implements that special routing behavior. See the
-[example configuration](example/plugins/microservices/requester_based_routing.yaml.example).
+[example configuration](../example/plugins/microservices/requester_based_routing.yaml.example).
 
 ### Custom plugins
 
