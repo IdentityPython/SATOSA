@@ -15,56 +15,6 @@ from tests.util import create_metadata_from_config_dict
 
 
 class TestCreateEntityDescriptors:
-    @pytest.fixture
-    def oidc_backend_config(self):
-        data = {
-            "module": "satosa.backends.openid_connect.OpenIDConnectBackend",
-            "name": "OIDCBackend",
-            "config": {
-                "provider_metadata": {
-                    "issuer": "https://op.example.com",
-                    "authorization_endpoint": "https://example.com/authorization"
-                },
-                "client": {
-                    "auth_req_params": {
-                        "response_type": "code",
-                        "scope": "openid, profile, email, address, phone"
-                    },
-                    "client_metadata": {
-                        "client_id": "backend_client",
-                        "application_name": "SATOSA",
-                        "application_type": "web",
-                        "contacts": ["suppert@example.com"],
-                        "redirect_uris": ["{}/OIDCBackend"],
-                        "subject_type": "public",
-                    }
-                },
-                "entity_info": {
-                    "contact_person": [{
-                        "contact_type": "technical",
-                        "email_address": ["technical_test@example.com", "support_test@example.com"],
-                        "given_name": "Test",
-                        "sur_name": "OP"
-                    }, {
-                        "contact_type": "support",
-                        "email_address": ["support_test@example.com"],
-                        "given_name": "Support_test"
-                    }],
-                    "organization": {
-                        "display_name": ["OP Identities", "en"],
-                        "name": [["En test-OP", "se"], ["A test OP", "en"]],
-                        "url": [["http://www.example.com", "en"], ["http://www.example.se", "se"]],
-                        "ui_info": {
-                            "description": [["This is a test OP", "en"]],
-                            "display_name": [["OP - TEST", "en"]]
-                        }
-                    }
-                }
-            }
-        }
-
-        return data
-
     def assert_single_sign_on_endpoints_for_saml_frontend(self, entity_descriptor, saml_frontend_config, backend_names):
         metadata = InMemoryMetaData(None, str(entity_descriptor))
         metadata.load()
@@ -157,7 +107,8 @@ class TestCreateEntityDescriptors:
         idp_conf2["entityid"] = "https://idp2.example.com"
         satosa_config_dict["FRONTEND_MODULES"] = [saml_mirror_frontend_config]
         saml_backend_config["config"]["sp_config"]["metadata"] = {"inline": [create_metadata_from_config_dict(idp_conf),
-                                                                          create_metadata_from_config_dict(idp_conf2)]}
+                                                                             create_metadata_from_config_dict(
+                                                                                 idp_conf2)]}
         satosa_config_dict["BACKEND_MODULES"] = [saml_backend_config]
         satosa_config = SATOSAConfig(satosa_config_dict)
         frontend_metadata, backend_metadata = create_entity_descriptors(satosa_config)
@@ -199,7 +150,8 @@ class TestCreateEntityDescriptors:
                                                          saml_mirror_frontend_config,
                                                          saml_backend_config, oidc_backend_config):
         satosa_config_dict["FRONTEND_MODULES"] = [saml_mirror_frontend_config]
-        saml_backend_config["config"]["sp_config"]["metadata"] = {"inline": [create_metadata_from_config_dict(idp_conf)]}
+        saml_backend_config["config"]["sp_config"]["metadata"] = {
+            "inline": [create_metadata_from_config_dict(idp_conf)]}
         satosa_config_dict["BACKEND_MODULES"] = [saml_backend_config, oidc_backend_config]
         satosa_config = SATOSAConfig(satosa_config_dict)
         frontend_metadata, backend_metadata = create_entity_descriptors(satosa_config)
