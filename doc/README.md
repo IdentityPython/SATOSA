@@ -347,8 +347,8 @@ Depending on which type of plugin it is, it has to inherit from the correct base
 methods:
 * Frontends must inherit `satosa.frontends.base.FrontendModule`.
 * Backends must inherit `satosa.backends.base.BackendModule`.
-* Request micro services must inherit `satosa.microservices.service_base.RequestMicroService`.
-* Request micro services must inherit `satosa.microservices.service_base.ResponseMicroService`.
+* Request micro services must inherit `satosa.micro_services.base.RequestMicroService`.
+* Request micro services must inherit `satosa.micro_services.base.ResponseMicroService`.
 
 # <a name="saml_metadata" style="color:#000000">Generate proxy metadata</a>
 
