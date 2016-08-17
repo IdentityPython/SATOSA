@@ -1,7 +1,10 @@
+import logging
 from collections import defaultdict
 from itertools import chain
 
 from mako.template import Template
+
+logger = logging.getLogger(__name__)
 
 
 def scope(s):
@@ -55,6 +58,7 @@ class AttributeMapper(object):
         try:
             profile_mapping = self.to_internal_attributes[attribute_profile]
         except KeyError:
+            logger.warn("no attribute mapping found for the given attribute profile '%s'", attribute_profile)
             # no attributes since the given profile is not configured
             return []
 
@@ -84,6 +88,7 @@ class AttributeMapper(object):
 
         for internal_attribute_name, mapping in self.from_internal_attributes.items():
             if attribute_profile not in mapping:
+                logger.debug("no attribute mapping found for the internal attribute '%s'", internal_attribute_name)
                 # skip this internal attribute if we have no mapping in the specified profile
                 continue
 
@@ -168,8 +173,15 @@ class AttributeMapper(object):
         """
         external_dict = {}
         for internal_attribute_name in internal_dict:
-            if attribute_profile not in self.from_internal_attributes[internal_attribute_name]:
+            try:
+                attribute_mapping = self.from_internal_attributes[internal_attribute_name]
+            except KeyError:
+                logger.debug("no attribute mapping found for the internal attribute '%s'", internal_attribute_name)
+                continue
+
+            if attribute_profile not in attribute_mapping:
                 # skip this internal attribute if we have no mapping in the specified profile
+                logger.debug("no attribute mapping found for the given attribute profile '%s'", attribute_profile)
                 continue
 
             external_attribute_names = self.from_internal_attributes[internal_attribute_name][attribute_profile]
