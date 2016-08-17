@@ -333,6 +333,15 @@ To add a set of static attributes, use the `AddStaticAttributes` class which wil
 pre-configured (static) attributes, see the
 [example configuration](../example/plugins/microservices/static_attributes.yaml.example).
 
+The static attributes are described as key-value pairs in a YAML file, e.g:
+
+```
+organisation: Example Org.
+country: Sweden
+```
+
+where the keys are the internal attribute names defined in `internal_attributes.yaml`.
+
 #### Route to a specific backend based on 
 To choose which backend (essentially choosing target provider) to use based on the requester, use the 
 `DecideBackendByRequester` class which implements that special routing behavior. See the
