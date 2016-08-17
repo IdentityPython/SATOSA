@@ -30,7 +30,6 @@ OpenID Connect and OAuth2.
         - [Google](doc/README.md#google)
         - [Facebook](doc/README.md#facebook)
 - [SAML metadata](doc/README.md#saml_metadata)
-    - [Generate backend metadata](doc/README.md#backend_metadata)
 - [Running the proxy application](doc/README.md#run)
 
 

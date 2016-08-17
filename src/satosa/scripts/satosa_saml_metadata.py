@@ -33,10 +33,12 @@ def construct_saml_metadata(proxy_conf, key, cert, dir, valid):
     secc = _get_security_context(key, cert)
     frontend_entities, backend_entities = create_entity_descriptors(satosa_config)
 
-    for metadata in [create_signed_entities_descriptor(backend_entities, secc, valid),
-                     create_signed_entities_descriptor(frontend_entities, secc, valid)]:
-        for plugin_name, data in metadata.items():
-            path = os.path.join(dir, plugin_name)
-            print("Writing plugin '%s' metadata to '%s'" % (plugin_name, path))
-            with open(path, "w") as f:
-                f.write(data)
+    backend_entity_descriptors = [e for sublist in backend_entities.values() for e in sublist]
+    frontend_entity_descriptors = [e for sublist in frontend_entities.values() for e in sublist]
+    for metadata, filename in zip([create_signed_entities_descriptor(backend_entity_descriptors, secc, valid),
+                                   create_signed_entities_descriptor(frontend_entity_descriptors, secc, valid)],
+                                  ["backend.xml", "frontend.xml"]):
+        path = os.path.join(dir, filename)
+        print("Writing metadata to '{}'".format(path))
+        with open(path, "w") as f:
+            f.write(metadata)

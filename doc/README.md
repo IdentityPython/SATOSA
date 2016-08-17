@@ -362,38 +362,15 @@ methods:
 # <a name="saml_metadata" style="color:#000000">Generate proxy metadata</a>
 
 The proxy metadata is generated based on the front-/backend plugins listed in `proxy_conf.yaml`
-using the `make_satosa_saml_metadata.py` (installed globally by SATOSA installation).
+using the `satosa-saml-metadata` (installed globally by SATOSA installation).
 
-## <a name="backend_metadata" style="color:#000000">Generate backend metadata</a>
-The command
+To produce signed SAML metadata for all SAML front- and backend modules, run the following command:
+
 ```bash
-make_satosa_saml_metadata.py proxy_conf.yaml
+satosa-saml-metadata <path to proxy_conf.yaml> <path to key for signing> <path to cert for signing>
 ```
-will generate separate metadata files for all SAML2 backend modules and frontend modules 
-specified in `proxy_conf.yaml`.
 
-Detailed usage instructions can be viewed by running `make_satosa_saml_metadata.py -h`.
-
-    ```bash
-    usage: make_satosa_saml_metadata.py [-h] [-v VALID] [-c CERT] [-k KEYFILE] [-s]
-                                 [-x XMLSEC] [-f] [-b] [-o OUTPUT]
-                                 proxy_conf
-    
-    positional arguments:
-      proxy_conf  path to proxy_conf.yaml
-    
-    optional arguments:
-      -h, --help  show this help message and exit
-      -v VALID    How long, in days, the metadata is valid from the time of
-                  creation
-      -c CERT     certificate
-      -k KEYFILE  A file with a key to sign the metadata with
-      -s          sign the metadata
-      -x XMLSEC   xmlsec binaries to be used for the signing
-      -f          generate frontend metadata
-      -b          generate backend metadata
-      -o OUTPUT   output path
-    ```
+Detailed usage instructions can be viewed by running `satosa-saml-metadata -h`.
 
 # <a name="run" style="color:#000000">Start proxy application</a>
 Start the proxy server with the following command:
