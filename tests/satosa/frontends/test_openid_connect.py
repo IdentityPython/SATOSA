@@ -11,8 +11,8 @@ from saml2.authn_context import PASSWORD
 
 from satosa.attribute_mapping import AttributeMapper
 from satosa.exception import SATOSAAuthenticationError
-from satosa.frontends.openid_connect import OpenIDConnectFrontend
-from satosa.internal_data import InternalResponse, AuthenticationInformation
+from satosa.frontends.openid_connect import OpenIDConnectFrontend, oidc_subject_type_to_hash_type
+from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
 from tests.users import USERS
 
 INTERNAL_ATTRIBUTES = {
@@ -154,3 +154,14 @@ class TestOpenIDConnectFrontend(object):
         assert all(
             item in provider_config.to_dict().items() for item in expected_capabilities.items())
         assert provider_config["authorization_endpoint"] == "{}/foo_backend/authorization".format(BASE_URL)
+
+
+class TestOidcSubjectTypeToHashType:
+    def test_should_default_to_pairwise(self):
+        assert oidc_subject_type_to_hash_type("foobar") == UserIdHashType.pairwise
+
+    def test_should_map_pairwise(self):
+        assert oidc_subject_type_to_hash_type("pairwise") == UserIdHashType.pairwise
+
+    def test_should_map_pairwise(self):
+        assert oidc_subject_type_to_hash_type("public") == UserIdHashType.public

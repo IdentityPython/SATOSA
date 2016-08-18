@@ -23,6 +23,7 @@ from saml2.samlp import NameIDPolicy
 from satosa.attribute_mapping import AttributeMapper
 from satosa.frontends.saml2 import SAMLFrontend, saml_name_id_format_to_hash_type, SAMLMirrorFrontend
 from satosa.internal_data import InternalResponse, AuthenticationInformation, InternalRequest
+from satosa.internal_data import UserIdHashType
 from satosa.state import State
 from tests.users import USERS
 from tests.util import FakeSP, create_metadata_from_config_dict
@@ -398,3 +399,14 @@ class TestSAMLMirrorFrontend:
         state[self.frontend.name] = {"target_entity_id": self.TARGET_ENTITY_ID}
         idp = self.frontend._load_idp_dynamic_entity_id(state)
         assert idp.config.entityid == "{}/{}".format(idp_conf["entityid"], self.TARGET_ENTITY_ID)
+
+
+class TestSamlNameIdFormatToHashType:
+    def test_should_default_to_transient(self):
+        assert saml_name_id_format_to_hash_type("foobar") == UserIdHashType.transient
+
+    def test_should_map_transient(self):
+        assert saml_name_id_format_to_hash_type(NAMEID_FORMAT_TRANSIENT) == UserIdHashType.transient
+
+    def test_should_map_persistent(self):
+        assert saml_name_id_format_to_hash_type(NAMEID_FORMAT_PERSISTENT) == UserIdHashType.persistent

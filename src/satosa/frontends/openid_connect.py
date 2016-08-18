@@ -25,11 +25,10 @@ logger = logging.getLogger(__name__)
 
 
 def oidc_subject_type_to_hash_type(subject_type):
-    if subject_type == "pairwise":
-        return UserIdHashType.pairwise
-    elif subject_type == "public":
+    if subject_type == "public":
         return UserIdHashType.public
-    return None
+
+    return UserIdHashType.pairwise
 
 
 class OpenIDConnectFrontend(FrontendModule):
