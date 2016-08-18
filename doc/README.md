@@ -4,13 +4,19 @@ This document describes how to install and configure the SATOSA proxy.
 
 # Installation
 
-## <a name="dependencies" style="color:#000000">Dependencies</a>
+## <a name="docker" style="color:#000000">Docker</a>
+A pre-built Docker image is accessible at the [Docker Hub](https://hub.docker.com/r/itsdirg/satosa/), and is the
+recommended ways of running the proxy.
+
+## <a name="manual_installation" style="color:#000000">Manual installation</a>
+
+### <a name="dependencies" style="color:#000000">Dependencies</a>
 SATOSA requires Python 3.4 (or above), and the following packages on Ubuntu:
 ```
 apt-get install libffi-dev libssl-dev xmlsec1
 ````
 
-## <a name="install_instructions" style="color:#000000">Instructions</a>
+### <a name="install_instructions" style="color:#000000">Instructions</a>
 1. Download the SATOSA proxy project as a [compressed archive](https://github.com/its-dirg/SATOSA/releases)
    and unpack it to `<satosa_path>`.
 

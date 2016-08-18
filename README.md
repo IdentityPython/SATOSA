@@ -8,8 +8,10 @@ OpenID Connect and OAuth2.
 # Table of Contents
 
 - [Installation](doc/README.md#installation)
-    - [Dependencies](doc/README.md#dependencies)
-    - [Instructions](doc/README.md#install_instructions)
+    - [Docker](doc/README.md#docker)
+    - [Manual installation](doc/README.md#manual_installation)
+        - [Dependencies](doc/README.md#dependencies)
+        - [Instructions](doc/README.md#install_instructions)
 - [Configuration](doc/README.md#configuration)
     - [SATOSA proxy configuration: proxy_conf.yaml.example](doc/README.md#proxy_conf)
         - [Additional services](doc/README.md#additional_service)
