@@ -200,6 +200,36 @@ class TestCreateEntityDescriptors:
         # OIDC backend does not produce any SAML metadata
         assert not backend_metadata
 
+    def test_create_mirrored_metadata_does_not_contain_target_contact_info(self, satosa_config_dict, idp_conf,
+                                                                           saml_mirror_frontend_config,
+                                                                           saml_backend_config):
+
+        satosa_config_dict["FRONTEND_MODULES"] = [saml_mirror_frontend_config]
+        saml_backend_config["config"]["sp_config"]["metadata"] = {
+            "inline": [create_metadata_from_config_dict(idp_conf)]}
+        satosa_config_dict["BACKEND_MODULES"] = [saml_backend_config]
+        satosa_config = SATOSAConfig(satosa_config_dict)
+        frontend_metadata, backend_metadata = create_entity_descriptors(satosa_config)
+
+        assert len(frontend_metadata) == 1
+        entity_descriptors = frontend_metadata[saml_mirror_frontend_config["name"]]
+        metadata = InMemoryMetaData(None, str(entity_descriptors[0]))
+        metadata.load()
+
+        entity_info = list(metadata.values())[0]
+        expected_entity_info = saml_mirror_frontend_config["config"]["idp_config"]
+        assert len(entity_info["contact_person"]) == len(expected_entity_info["contact_person"])
+        for i, contact in enumerate(expected_entity_info["contact_person"]):
+            assert entity_info["contact_person"][i]["contact_type"] == contact["contact_type"]
+            assert entity_info["contact_person"][i]["email_address"][0]["text"] == contact["email_address"][0]
+            assert entity_info["contact_person"][i]["given_name"]["text"] == contact["given_name"]
+            assert entity_info["contact_person"][i]["sur_name"]["text"] == contact["sur_name"]
+
+        expected_org_info = expected_entity_info["organization"]
+        assert entity_info["organization"]["organization_display_name"][0]["text"] == expected_org_info["display_name"][0][0]
+        assert entity_info["organization"]["organization_name"][0]["text"] == expected_org_info["name"][0][0]
+        assert entity_info["organization"]["organization_url"][0]["text"] == expected_org_info["url"][0][0]
+
 
 class TestCreateSignedEntitiesDescriptor:
     @pytest.fixture

@@ -100,16 +100,17 @@ def idp_conf(cert_and_key):
         "key_file": cert_and_key[1],
         "metadata": {"inline": []},
         "organization": {
-            "name": [["SaToSa org.", "en"]],
-            "display_name": [["SATOSA", "en"]],
-            "url": [["https://satosa.example.com/about", "en"]]
+            "name": [["Test IdP Org.", "en"]],
+            "display_name": [["Test IdP", "en"]],
+            "url": [["https://idp.example.com/about", "en"]]
         },
         "contact_person": [
-            {"given_name": "Satosa", "sur_name": "Support", "email_address": ["help@example.com"],
+            {"given_name": "Test IdP", "sur_name": "Support", "email_address": ["help@idp.example.com"],
              "contact_type": "support"
              },
-            {"given_name": "Satosa", "sur_name": "Tech support",
-             "email_address": ["tech@example.com"], "contact_type": "technical"}]
+            {"given_name": "Test IdP", "sur_name": "Tech support",
+             "email_address": ["tech@idp.example.com"], "contact_type": "technical"}
+        ]
     }
 
     return idpconfig
@@ -213,7 +214,20 @@ def saml_frontend_config(cert_and_key, sp_conf):
                 },
                 "cert_file": cert_and_key[0],
                 "key_file": cert_and_key[1],
-                "metadata": {"inline": [create_metadata_from_config_dict(sp_conf)]}
+                "metadata": {"inline": [create_metadata_from_config_dict(sp_conf)]},
+                "organization": {
+                    "name": [["SATOSA Org.", "en"]],
+                    "display_name": [["SATOSA", "en"]],
+                    "url": [["https://satosa.example.com/about", "en"]]
+                },
+                "contact_person": [
+                    {"given_name": "SATOSA", "sur_name": "Support", "email_address": ["help@satosa.example.com"],
+                     "contact_type": "support"
+                     },
+                    {"given_name": "SATOSA", "sur_name": "Tech Support", "email_address": ["tech@satosa.example.com"],
+                     "contact_type": "technical"
+                     }
+                ]
             },
 
             "endpoints": {

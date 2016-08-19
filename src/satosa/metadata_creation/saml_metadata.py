@@ -32,6 +32,9 @@ def _create_backend_metadata(backend_modules):
 def _create_mirrored_entity_config(frontend_instance, target_metadata_info, backend_name):
     def _merge_dicts(a, b):
         for key, value in b.items():
+            if key in ["organization", "contact_person"]:
+                # avoid copying contact info from the target provider
+                continue
             if key in a and isinstance(value, dict):
                 a[key] = _merge_dicts(a[key], b[key])
             else:
