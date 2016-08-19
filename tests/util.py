@@ -7,11 +7,12 @@ import tempfile
 from urllib.parse import parse_qsl, urlparse
 
 from Crypto.PublicKey import RSA
+from bs4 import BeautifulSoup
 from saml2 import server, BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.authn_context import AuthnBroker, authn_context_class_ref, PASSWORD
 from saml2.cert import OpenSSLWrapper
 from saml2.client import Saml2Client
-from saml2.config import config_factory, Config
+from saml2.config import Config
 from saml2.metadata import entity_descriptor
 from saml2.saml import name_id_from_string, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
 from saml2.samlp import NameIDPolicy
@@ -34,7 +35,8 @@ class FakeSP(Saml2Client):
         """
         Saml2Client.__init__(self, config)
 
-    def make_auth_req(self, entity_id, nameid_format=None, relay_state="relay_state", binding=BINDING_HTTP_REDIRECT):
+    def make_auth_req(self, entity_id, nameid_format=None, relay_state="relay_state",
+                      request_binding=BINDING_HTTP_REDIRECT, response_binding=BINDING_HTTP_REDIRECT):
         """
         :type entity_id: str
         :rtype: str
@@ -45,26 +47,23 @@ class FakeSP(Saml2Client):
         # Picks a binding to use for sending the Request to the IDP
         _binding, destination = self.pick_binding(
             'single_sign_on_service',
-            [binding], 'idpsso',
+            [request_binding], 'idpsso',
             entity_id=entity_id)
-        # Binding here is the response binding that is which binding the
-        # IDP shou  ld use to return the response.
-        acs = self.config.getattr('endpoints', 'sp')[
-            'assertion_consumer_service']
-        # just pick one
-        return_binding = None
-        for i in range(len(acs)):
-            endp, return_binding = acs[i]
-            if return_binding == _binding:
-                break
 
         req_id, req = self.create_authn_request(destination,
-                                                binding=return_binding, nameid_format=nameid_format)
+                                                binding=response_binding, nameid_format=nameid_format)
         ht_args = self.apply_binding(_binding, '%s' % req, destination,
                                      relay_state=relay_state)
 
-        url = ht_args['headers'][0][1]
-        return url
+        if _binding == BINDING_HTTP_POST:
+            form_post_html = "\n".join(ht_args["data"])
+            doctree = BeautifulSoup(form_post_html, "html.parser")
+            saml_request = doctree.find("input", {"name": "SAMLRequest"})["value"]
+            resp = {"SAMLRequest": saml_request, "RelayState": relay_state}
+        elif _binding == BINDING_HTTP_REDIRECT:
+            resp = dict(parse_qsl(urlparse(dict(ht_args["headers"])["Location"]).query))
+
+        return destination, resp
 
 
 class FakeIdP(server.Server):
@@ -120,7 +119,7 @@ class FakeIdP(server.Server):
 
         if response_binding == BINDING_HTTP_POST:
             saml_response = base64.b64encode(str(_resp).encode("utf-8"))
-            resp = {'SAMLResponse': saml_response, 'RelayState': relay_state}
+            resp = {"SAMLResponse": saml_response, "RelayState": relay_state}
         elif response_binding == BINDING_HTTP_REDIRECT:
             http_args = self.apply_binding(response_binding, '%s' % _resp,
                                            destination, relay_state, response=True)

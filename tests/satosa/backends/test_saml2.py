@@ -164,8 +164,7 @@ class TestSAMLBackend:
         response_binding = BINDING_HTTP_REDIRECT
         fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
         fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf, metadata_construction=False))
-        auth_req = fakesp.make_auth_req(idp_conf["entityid"])
-        request_params = dict(parse_qsl(urlparse(auth_req).query))
+        destination, request_params = fakesp.make_auth_req(idp_conf["entityid"])
         url, auth_resp = fakeidp.handle_auth_req(request_params["SAMLRequest"], request_params["RelayState"],
                                                  BINDING_HTTP_REDIRECT,
                                                  "testuser1", response_binding=response_binding)

@@ -31,8 +31,8 @@ class TestSAMLToSAML:
         fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
 
         # create auth req
-        req = urlparse(fakesp.make_auth_req(frontend_metadata[frontend_config["name"]][0].entity_id))
-        auth_req = req.path + "?" + req.query
+        destination, req_args = fakesp.make_auth_req(frontend_metadata[frontend_config["name"]][0].entity_id)
+        auth_req = urlparse(destination).path + "?" + urlencode(req_args)
 
         # make auth req to proxy
         proxied_auth_req = test_client.get(auth_req)

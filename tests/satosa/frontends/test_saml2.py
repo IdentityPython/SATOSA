@@ -70,8 +70,8 @@ class TestSAMLFrontend:
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
 
         fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
-        context.request = parse.parse_qs(
-            urlparse(fakesp.make_auth_req(samlfrontend.idp_config["entityid"], nameid_format, relay_state)).query)
+        destination, auth_req = fakesp.make_auth_req(samlfrontend.idp_config["entityid"], nameid_format, relay_state)
+        context.request = auth_req
         tmp_dict = {}
         for val in context.request:
             if isinstance(context.request[val], list):
