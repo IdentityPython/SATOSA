@@ -13,7 +13,7 @@ from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse
 
 from satosa.metadata_creation.saml_metadata import create_entity_descriptors
-from satosa.proxy_server import WsgiApplication
+from satosa.proxy_server import make_app
 from satosa.satosa_config import SATOSAConfig
 from tests.users import USERS
 from tests.util import FakeIdP
@@ -56,8 +56,7 @@ class TestOIDCToSAML:
         _, backend_metadata = create_entity_descriptors(SATOSAConfig(satosa_config_dict))
 
         # application
-        app = WsgiApplication(config=SATOSAConfig(satosa_config_dict))
-        test_client = Client(app, BaseResponse)
+        test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), BaseResponse)
 
         # get frontend OP config info
         provider_config = json.loads(test_client.get("/.well-known/openid-configuration").data.decode("utf-8"))
@@ -95,6 +94,6 @@ class TestOIDCToSAML:
         # verify auth resp from proxy
         resp_dict = dict(parse_qsl(urlparse(authn_resp.data.decode("utf-8")).fragment))
         signing_key = RSAKey(key=rsa_load(oidc_frontend_config["config"]["signing_key_path"]),
-                                                use="sig", alg="RS256")
+                             use="sig", alg="RS256")
         id_token_claims = JWS().verify_compact(resp_dict["id_token"], keys=[signing_key])
         assert all((k, v[0]) in id_token_claims.items() for k, v in USERS[user_id].items())

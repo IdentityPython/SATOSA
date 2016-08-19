@@ -8,7 +8,7 @@ from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse
 
 from satosa.metadata_creation.saml_metadata import create_entity_descriptors
-from satosa.proxy_server import WsgiApplication
+from satosa.proxy_server import make_app
 from satosa.satosa_config import SATOSAConfig
 from tests.users import USERS
 from tests.util import FakeSP
@@ -26,8 +26,7 @@ class TestSAMLToOIDC:
         frontend_metadata, backend_metadata = create_entity_descriptors(SATOSAConfig(satosa_config_dict))
 
         # application
-        app = WsgiApplication(config=SATOSAConfig(satosa_config_dict))
-        test_client = Client(app, BaseResponse)
+        test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), BaseResponse)
 
         # config test SP
         frontend_metadata_str = str(frontend_metadata[frontend_config["name"]][0])

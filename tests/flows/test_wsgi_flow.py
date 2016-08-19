@@ -6,7 +6,7 @@ import json
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse
 
-from satosa.proxy_server import WsgiApplication
+from satosa.proxy_server import make_app
 from satosa.response import NotFound
 from satosa.satosa_config import SATOSAConfig
 
@@ -21,8 +21,7 @@ class TestProxy:
         """
         Performs the test.
         """
-        app = WsgiApplication(config=SATOSAConfig(satosa_config_dict))
-        test_client = Client(app, BaseResponse)
+        test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), BaseResponse)
 
         # Make request to frontend
         resp = test_client.get('/{}/{}/request'.format("backend", "frontend"))
@@ -36,8 +35,7 @@ class TestProxy:
         assert json.loads(resp.data.decode('utf-8'))["foo"] == "bar"
 
     def test_unknown_request_path(self, satosa_config_dict):
-        app = WsgiApplication(config=SATOSAConfig(satosa_config_dict))
-        test_client = Client(app, BaseResponse)
+        test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), BaseResponse)
 
         resp = test_client.get('/unknown')
         assert resp.status == NotFound._status

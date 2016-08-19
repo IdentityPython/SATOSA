@@ -1,6 +1,7 @@
 import io
 import json
 import logging
+import sys
 from urllib.parse import parse_qsl
 
 from .base import SATOSABase
@@ -119,3 +120,21 @@ class WsgiApplication(SATOSABase):
 
             resp = ServiceError("%s" % err)
             return resp(environ, start_response)
+
+
+def make_app(satosa_config):
+    try:
+        if "LOGGING" in satosa_config:
+            logging.config.dictConfig(satosa_config["LOGGING"])
+        else:
+            stderr_handler = logging.StreamHandler(sys.stderr)
+            stderr_handler.setLevel(logging.DEBUG)
+
+            logger = logging.getLogger("")
+            logger.addHandler(stderr_handler)
+            logger.setLevel(logging.DEBUG)
+        return ToBytesMiddleware(WsgiApplication(satosa_config))
+    except Exception:
+        logger = logging.getLogger(__name__)
+        logger.exception("Failed to create WSGI app.")
+        raise
