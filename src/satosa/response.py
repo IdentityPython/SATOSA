@@ -46,7 +46,7 @@ class Response(object):
         :return:
         """
         start_response(self.status, self.headers)
-        return [self.message]
+        return [self.message] if not isinstance(self.message, list) else self.message
 
 
 class Redirect(Response):
