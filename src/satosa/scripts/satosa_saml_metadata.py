@@ -26,9 +26,14 @@ def create_and_write_saml_metadata(proxy_conf, key, cert, dir, valid):
 
     backend_entity_descriptors = [e for sublist in backend_entities.values() for e in sublist]
     frontend_entity_descriptors = [e for sublist in frontend_entities.values() for e in sublist]
-    for metadata, filename in zip([create_signed_entities_descriptor(backend_entity_descriptors, secc, valid),
-                                   create_signed_entities_descriptor(frontend_entity_descriptors, secc, valid)],
-                                  ["backend.xml", "frontend.xml"]):
+
+    output = []
+    if frontend_entity_descriptors:
+        output.append((create_signed_entities_descriptor(frontend_entity_descriptors, secc, valid), "frontend.xml"))
+    if backend_entity_descriptors:
+        output.append((create_signed_entities_descriptor(backend_entity_descriptors, secc, valid), "backend.xml"))
+
+    for metadata, filename in output:
         path = os.path.join(dir, filename)
         print("Writing metadata to '{}'".format(path))
         with open(path, "w") as f:
