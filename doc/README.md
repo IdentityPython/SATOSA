@@ -273,7 +273,9 @@ configuration file can be found [here](../example/plugins/backends/openid_backen
 The example configuration assumes the OP supports [discovery](http://openid.net/specs/openid-connect-discovery-1_0.html)
 and [dynamic client registration](https://openid.net/specs/openid-connect-registration-1_0.html).
 When using an OP that only supports statically registered clients, see the
-[default configuration for using Google as the OP](../example/plugins/backends/google_backend.yaml.example).
+[default configuration for using Google as the OP](../example/plugins/backends/google_backend.yaml.example)
+and make sure to provide the redirect URI, constructed as described in the
+section about Google configuration below, in the static registration.
 
 
 #### Frontend
@@ -300,14 +302,30 @@ The default configuration file can be
 found [here](../example/plugins/backends/google_backend.yaml.example).
 
 The only parameters necessary to configure is the credentials,
-the `client_id` and `client_secret`, issued by Google. See [OAuth 2.0 credentials](https://developers.google.com/identity/protocols/OpenIDConnect#getcredentials)
+(`client_id` and `client_secret`) issued by Google. See [OAuth 2.0 credentials](https://developers.google.com/identity/protocols/OpenIDConnect#getcredentials)
 for information on how to obtain them.
 
-The `redirect_uri` of the SATOSA proxy must be registered with Google. The
-redirect URI to register with Google is "<base_url>/<name>", where:
+The redirect URI of the SATOSA proxy must be registered with Google. The
+redirect URI to register with Google is the same as specified as the first
+redirect URI in `config["client"]["client_metadata"]["redirect_uris"]`.
+It should use the available variables, `<base_url>` and `<name>`, where:
+
 1. `<base_url>` is the base url of the proxy as specified in the `BASE` configuration parameter
-in `proxy_conf.yaml`, e.g. "https://proxy.example.com/google".
-1. `<name>` is the plugin name specified in the `name` configuration parameter defined in the plugin configuration file. 
+in `proxy_conf.yaml`, e.g. "https://proxy.example.com".
+1. `<name>` is the plugin name specified in the `name` configuration parameter defined in the plugin configuration file.
+
+The example config in `google_backend.yaml.example`:
+
+```yaml
+name: google
+config:
+  client:
+    client_metadata:
+      redirect_uris: [<base_url>/<name>]
+[...]
+```
+together with `BASE: "https://proxy.example.com"` in `proxy_conf.yaml` would
+yield the redirect URI `https://proxy.example.com/google` to register with Google.
 
 A list of all claims possibly released by Google can be found [here](https://developers.google.com/identity/protocols/OpenIDConnect#obtainuserinfo),
 which should be used when configuring the attribute mapping (see above).
