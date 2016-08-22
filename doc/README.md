@@ -25,7 +25,7 @@ apt-get install libffi-dev libssl-dev xmlsec1
    ```bash  
    pip install <satosa_path>
    ```
-   
+
 Alternatively the application can be installed directly from PyPI (`pip install satosa`), or the [Docker image](https://hub.docker.com/r/itsdirg/satosa/) can be used.
 
 # Configuration
@@ -103,7 +103,7 @@ attributes:
 ```
 
 This example defines two attributes, `mail` and `address`, internal to the proxy. These attributes will be accessible to
-any plugin (i.e. front- and backends) in the proxy. 
+any plugin (i.e. front- and backends) in the proxy.
 
 Each internal attribute has a mapping for two different *profiles*, `openid`and `saml`. The mapping between received
 attributes (in the proxy backend) <-> internal <-> returned attributes (from the proxy frontend) is defined as:
@@ -141,7 +141,7 @@ for which the corresponding attribute values should be hashed before being
 returned to the client.
 
 
-## Plugins 
+## Plugins
 The authentication protocol specific communication is handled by different plugins,
 divided into frontends (receiving requests from clients) and backends (sending requests
 to target providers).
@@ -159,20 +159,20 @@ Common configuration parameters:
 | `metadata["local"]` | string[] | `[metadata/entity.xml]` | list of paths to metadata for all service providers (frontend)/identity providers (backend) communicating with the proxy |
 | `attribute_profile` | string | `saml` | attribute profile to use for mapping attributes from/to response
 
-The metadata could be loaded in multiple ways in the table above it's loaded from a static 
+The metadata could be loaded in multiple ways in the table above it's loaded from a static
 file by using the key "local". It's also possible to load read the metadata from a remote URL.
 
 **Examples:**
 
 Metadata from local file:
 
-    "metadata": 
+    "metadata":
         local: [idp.xml]
 
 Metadata from remote URL:
 
     "metadata": {
-        "remote": 
+        "remote":
             - url:https://kalmar2.org/simplesaml/module.php/aggregator/?id=kalmarcentral2&set=saml2
               cert:null
     }
@@ -180,7 +180,7 @@ Metadata from remote URL:
 For more detailed information on how you could customize the SAML entities,
 see the
 [documentation of the underlying library pysaml2](https://github.com/rohe/pysaml2/blob/master/doc/howto/config.rst).
-    
+
 
 #### Frontend
 The SAML2 frontend act as a SAML Identity Provider (IdP), accepting
@@ -200,7 +200,7 @@ in its UI. The following flow diagram shows the communcation:
 The **SAMLFrontend** module acts like a single IdP, and hides all target providers. This enables the proxy to support
 SP's which only support communication with a single IdP, while the proxy will seamlessly communicate with multiple
 target providers. The metadata for the published IdP will contain one *Single Sign On Location* for each target
-provider. 
+provider.
 
 The following flow diagram shows the communication:
 
@@ -217,11 +217,11 @@ The SAML2 frontends can provide a custom (configurable) *Authentication Context 
 `AuthnStatement` of in the authentication response. This can be used to describe for example the Level of Assurance,
 as described for example by [eIDAS](https://joinup.ec.europa.eu/sites/default/files/eidas_message_format_v1.0.pdf).
 
-The `AuthnContextClassRef`(ACR) can be specified per target provider in a mapping under the 
+The `AuthnContextClassRef`(ACR) can be specified per target provider in a mapping under the
 configuration parameter `acr_mapping`. The mapping must contain a default ACR value under the key `""`
 (empty string), each other ACR value specific per target provider is specified with key-value pairs, where the
 key is the target providers identifier (entity id for SAML IdP behind SAML2 backend, authorization endpoint
-URL for OAuth AS behind OAuth backend, and issuer URL for OpenID Connect OP behind OpenID Connect backend). 
+URL for OAuth AS behind OAuth backend, and issuer URL for OpenID Connect OP behind OpenID Connect backend).
 
 If no `acr_mapping` is provided in the configuration, the ACR received from the backend plugin will
 be used instead. This means that when using a SAML2 backend, the ACR provided by the target
@@ -242,9 +242,9 @@ requests to SAML Identity Providers (IdP). The default configuration file can be
 found [here](../example/plugins/backends/saml2_backend.yaml.example).
 
 ##### <a name="name_id" style="color:#000000">Name ID Format</a>
-The SAML backend can indicate which *Name ID* format it wants by specifying the key 
+The SAML backend can indicate which *Name ID* format it wants by specifying the key
 `name_id_format` in the SP entity configuration in the backend plugin configuration:
- 
+
  ```yaml
  config:
    config:
@@ -280,13 +280,13 @@ When using an OP that only supports statically registered clients, see the
 The OpenID Connect frontend acts as and OpenID Connect Provider (OP), accepting requests from OpenID
 Connect Relying Parties (RPs). The default configuration file can be found
 [here](../example/plugins/frontends/oidc_frontend.yaml.example).
- 
-The configuration parameters available:
-* `signing_key_path`: path to a RSA Private Key file (PKCS#1). MUST be configured. 
-* `client_db_path`: path to where the client (RP) database will be stored.
-The other parameters should be left with their default values. 
 
-As opposed to the other plugins, this plugin is NOT stateless (due to the client database). This 
+The configuration parameters available:
+* `signing_key_path`: path to a RSA Private Key file (PKCS#1). MUST be configured.
+* `client_db_path`: path to where the client (RP) database will be stored.
+The other parameters should be left with their default values.
+
+As opposed to the other plugins, this plugin is NOT stateless (due to the client database). This
 makes it impossible to run multiple instances of the SATOSA proxy on different machines (for the
 purpose of load balancing) unless the client database file is also distributed among those machines
 by some external process.
@@ -348,8 +348,8 @@ country: Sweden
 
 where the keys are the internal attribute names defined in `internal_attributes.yaml`.
 
-#### Route to a specific backend based on 
-To choose which backend (essentially choosing target provider) to use based on the requester, use the 
+#### Route to a specific backend based on
+To choose which backend (essentially choosing target provider) to use based on the requester, use the
 `DecideBackendByRequester` class which implements that special routing behavior. See the
 [example configuration](../example/plugins/microservices/requester_based_routing.yaml.example).
 
