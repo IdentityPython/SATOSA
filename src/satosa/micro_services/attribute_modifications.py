@@ -1,10 +1,6 @@
-import os
 import re
 
-import yaml
-
 from .base import ResponseMicroService
-from ..attribute_mapping import AttributeMapper
 
 
 class AddStaticAttributes(ResponseMicroService):
@@ -15,15 +11,9 @@ class AddStaticAttributes(ResponseMicroService):
     with the environment variable 'SATOSA_STATIC_ATTRIBUTES'.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, config, **kwargs):
         super().__init__()
-
-        mapping_file = os.environ.get("SATOSA_STATIC_ATTRIBUTES")
-        if not mapping_file:
-            raise ValueError("Environment variable 'SATOSA_STATIC_ATTRIBUTES' not set to path of mapping file")
-
-        with open(mapping_file) as f:
-            self.static_attributes = yaml.safe_load(f)
+        self.static_attributes = config["static_attributes"]
 
     def process(self, context, data):
         data.attributes.update(self.static_attributes)
@@ -38,13 +28,9 @@ class FilterAttributeValues(ResponseMicroService):
     with the environment variable 'SATOSA_ATTRIBUTE_VALUES_FILTER'.
     """
 
-    def __init__(self, *args, **kwargs):
-        filter_file = os.environ.get("SATOSA_ATTRIBUTE_FILTER")
-        if not filter_file:
-            raise ValueError("Environment variable 'SATOSA_ATTRIBUTE_FILTER' not set to path of filter file.")
-
-        with open(filter_file) as f:
-            self.attribute_filters = yaml.safe_load(f)
+    def __init__(self, config, **kwargs):
+        super().__init__()
+        self.attribute_filters = config["attribute_filters"]
 
     def process(self, context, data):
         # apply default filters

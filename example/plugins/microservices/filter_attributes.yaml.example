@@ -1,0 +1,7 @@
+module: satosa.micro_services.attribute_modifications.FilterAttributeValues
+name: AttributeFilter
+config:
+    attribute_filters:
+        target_provider1:
+            requester1:
+                attr1: "^foo:bar$"
