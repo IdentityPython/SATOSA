@@ -15,13 +15,12 @@ class AddStaticAttributes(ResponseMicroService):
     with the environment variable 'SATOSA_STATIC_ATTRIBUTES'.
     """
 
-    def __init__(self, internal_attributes, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__()
-        self.data_converter = AttributeMapper(internal_attributes)
 
         mapping_file = os.environ.get("SATOSA_STATIC_ATTRIBUTES")
         if not mapping_file:
-            raise ValueError("Could not find file containing mapping of static attributes.")
+            raise ValueError("Environment variable 'SATOSA_STATIC_ATTRIBUTES' not set to path of mapping file")
 
         with open(mapping_file) as f:
             self.static_attributes = yaml.safe_load(f)

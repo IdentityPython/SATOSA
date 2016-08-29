@@ -365,6 +365,7 @@ country: Sweden
 ```
 
 where the keys are the internal attribute names defined in `internal_attributes.yaml`.
+The path to that file must be set in the environment variable `SATOSA_STATIC_ATTRIBUTES`.
 
 #### Filtering attribute values
 
