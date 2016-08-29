@@ -1,6 +1,3 @@
-import json
-from unittest.mock import mock_open, patch
-
 from satosa.internal_data import InternalResponse, AuthenticationInformation
 from satosa.micro_services.attribute_modifications import FilterAttributeValues
 

@@ -6,9 +6,8 @@ import yaml
 from satosa.backends.base import BackendModule
 from satosa.exception import SATOSAConfigurationError
 from satosa.frontends.base import FrontendModule
-from satosa.micro_services.base import RequestMicroService, ResponseMicroService, MicroService
-from satosa.plugin_loader import backend_filter, frontend_filter, _micro_service_filter, \
-    _request_micro_service_filter, _response_micro_service_filter, _load_plugin_config
+from satosa.micro_services.base import RequestMicroService, ResponseMicroService
+from satosa.plugin_loader import backend_filter, frontend_filter, _request_micro_service_filter, _response_micro_service_filter, _load_plugin_config
 
 
 class TestFilters(object):

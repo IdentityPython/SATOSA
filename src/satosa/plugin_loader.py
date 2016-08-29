@@ -14,6 +14,7 @@ from .backends.base import BackendModule
 from .exception import SATOSAConfigurationError
 from .frontends.base import FrontendModule
 from .micro_services.base import (MicroService, RequestMicroService, ResponseMicroService)
+
 logger = logging.getLogger(__name__)
 
 

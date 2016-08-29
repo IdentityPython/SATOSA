@@ -1,4 +1,3 @@
-import glob
 import os
 
 from saml2.config import Config

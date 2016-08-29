@@ -2,8 +2,8 @@
 Tests for the SAML frontend module src/backends/saml2.py.
 """
 import re
-from base64 import urlsafe_b64encode, b64encode
-from unittest.mock import Mock, mock_open, patch
+from base64 import urlsafe_b64encode
+from unittest.mock import Mock
 from urllib.parse import urlparse, parse_qs, parse_qsl
 
 import pytest
