@@ -242,14 +242,16 @@ restrict the attribute release with the `custom_attribute_release` configuration
 
 To exclude any attribute, just include its friendly name in the exclude list per SP.
 
-In the following example the given name is never released to the SP with entity id `"sp-entity-id1"`:
+In the following example the given name is never released from the IdP with entity id `"idp-entity-id1"` to the SP
+with entity id `"sp-entity-id1"`:
 
 ```yaml
 config:
     config: [...]
     custom_attribute_release:
-        sp-entity-id1:
-            exclude: ["givenName"]
+        idp-entity-id1
+            sp-entity-id1:
+                exclude: ["givenName"]
             
 
 #### Backend

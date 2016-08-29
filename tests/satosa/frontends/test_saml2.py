@@ -314,7 +314,7 @@ class TestSAMLFrontend:
         user_attributes = {k: "foo" for k in expected_attributes}
         internal_response.attributes = AttributeMapper(internal_attributes).to_internal("saml", user_attributes)
 
-        custom_attributes = {sp_conf["entityid"]: {"exclude": ["norEduPersonNIN"]}}
+        custom_attributes = {idp_conf["entityid"]: {sp_conf["entityid"]: {"exclude": ["norEduPersonNIN"]}}}
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, internal_attributes=internal_attributes,
                                                 extra_config=dict(custom_attribute_release=custom_attributes))
 
