@@ -366,6 +366,48 @@ country: Sweden
 
 where the keys are the internal attribute names defined in `internal_attributes.yaml`.
 
+#### Filtering attribute values
+
+Attribute values delivered from the target provider can be filtered based on a per target provider per requester basis
+using the `FilterAttributeValues` class. See the [example configuration](../example/plugins/microservices/filter_attributes.yaml.example).
+ 
+The filters are described as regular expressions in a YAML file. The path to that file must be set in the environment
+variable `SATOSA_ATTRIBUTE_FILTER`. The filters are described by the following structure:
+
+```yaml
+<target_provider>:
+    <requester>:
+        <attribute_name>: <regex_filter>
+```
+
+where the empty string (`""`) can be used as a key on any level to describe a default filter.
+The filters are applied such that all attribute values matched by the regular expression are preserved, while any 
+non-matching attribute values will be discarded.
+
+##### Examples
+Filter attributes from the target provider `https://provider.example.com`, to only preserve values starting with the
+string `"foo:bar"`:
+```yaml
+"https://provider.example.com":
+    "":
+        "": "^foo:bar"
+```
+
+Filter the attribute `attr1` to only preserve values ending with the string `"foo:bar"`:
+```yaml
+"":
+    "":
+        "attr1": "foo:bar$"
+```
+
+Filter the attribute `attr1` to the requester `https://provider.example.com`, to only preserver values containing
+the string `"foo:bar"`:
+```yaml
+"":
+    "https://client.example.com":
+        "attr1": "foo:bar"
+```
+
 #### Route to a specific backend based on
 To choose which backend (essentially choosing target provider) to use based on the requester, use the
 `DecideBackendByRequester` class which implements that special routing behavior. See the
