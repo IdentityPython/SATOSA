@@ -68,6 +68,7 @@ class SAMLFrontend(FrontendModule):
         self.config = conf
         self.endpoints = conf["endpoints"]
         self.acr_mapping = conf.get("acr_mapping")
+        self.custom_attributes = conf.get("custom_attribute_release")
         self.attribute_profile = conf.get("attribute_profile", "saml")
         self.idp = None
 
@@ -252,6 +253,12 @@ class SAMLFrontend(FrontendModule):
             auth_info["class_ref"] = self.acr_mapping.get(internal_response.auth_info.issuer, self.acr_mapping[""])
         else:
             auth_info["class_ref"] = internal_response.auth_info.auth_class_ref
+
+        if self.custom_attributes:
+            custom_attributes = self.custom_attributes.get(resp_args["sp_entity_id"], {})
+            attributes_to_remove = custom_attributes.get("exclude", [])
+            for k in attributes_to_remove:
+                ava.pop(k, None)
 
         name_id = NameID(text=internal_response.user_id,
                          format=hash_type_to_saml_name_id_format(internal_response.user_id_hash_type),
