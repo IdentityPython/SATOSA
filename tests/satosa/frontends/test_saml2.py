@@ -4,6 +4,7 @@ Tests for the SAML frontend module src/frontends/saml2.py.
 import itertools
 import re
 from collections import Counter
+from copy import deepcopy
 from urllib.parse import urlparse, parse_qs
 
 import pytest
@@ -258,8 +259,6 @@ class TestSAMLFrontend:
         authn_context_class_ref = resp.assertion.authn_statement[0].authn_context.authn_context_class_ref
         assert authn_context_class_ref.text == expected_loa
 
-    @pytest.mark.skipif(parse_version(saml2.__version__) <= parse_version("4.0.5"),
-                        reason="requires pysaml2 which does not modify input data")
     @pytest.mark.parametrize("entity_category, entity_category_module, expected_attributes", [
         ([""], "swamid", swamid.RELEASE[""]),
         ([COCO], "edugain", edugain.RELEASE[""] + edugain.RELEASE[COCO]),
@@ -271,6 +270,7 @@ class TestSAMLFrontend:
     ])
     def test_respect_sp_entity_categories(self, context, entity_category, entity_category_module, expected_attributes,
                                           idp_conf, sp_conf, internal_response):
+        idp_metadata_str = create_metadata_from_config_dict(idp_conf)
         idp_conf["service"]["idp"]["policy"]["default"]["entity_categories"] = [entity_category_module]
         if all(entity_category):  # don't insert empty entity category
             sp_conf["entity_category"] = entity_category
@@ -289,7 +289,6 @@ class TestSAMLFrontend:
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf,
                                                 internal_attributes=internal_attributes)
 
-        idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
         sp_config = SPConfig().load(sp_conf, metadata_construction=False)
         fakesp = FakeSP(sp_config)
