@@ -2,8 +2,10 @@ _build
 .idea
 *.pyc
 *.log*
+
 example/*
-!example/*.example
+!example/plugins
+
 *.xml
 *.db
 *static/
