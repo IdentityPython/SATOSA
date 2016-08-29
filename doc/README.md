@@ -357,7 +357,7 @@ To add a set of static attributes, use the `AddStaticAttributes` class which wil
 pre-configured (static) attributes, see the
 [example configuration](../example/plugins/microservices/static_attributes.yaml.example).
 
-The static attributes are described as key-value pairs in a YAML file, e.g:
+The static attributes are described as key-value pairs in the YAML file, e.g:
 
 ```
 organisation: Example Org.
@@ -365,15 +365,13 @@ country: Sweden
 ```
 
 where the keys are the internal attribute names defined in `internal_attributes.yaml`.
-The path to that file must be set in the environment variable `SATOSA_STATIC_ATTRIBUTES`.
 
 #### Filtering attribute values
 
 Attribute values delivered from the target provider can be filtered based on a per target provider per requester basis
 using the `FilterAttributeValues` class. See the [example configuration](../example/plugins/microservices/filter_attributes.yaml.example).
  
-The filters are described as regular expressions in a YAML file. The path to that file must be set in the environment
-variable `SATOSA_ATTRIBUTE_FILTER`. The filters are described by the following structure:
+The filters are described as regular expressions in a YAML file with the following structure:
 
 ```yaml
 <target_provider>:
