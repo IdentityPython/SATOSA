@@ -235,6 +235,22 @@ provider will be preserved, and when using a OAuth or OpenID Connect backend, th
         acr_mapping:
             "": default-LoA
             "https://accounts.google.com": LoA1
+            
+##### Custom attribute release
+In addition to respecting for example entity categories from the SAML metadata, the SAML frontend can also further
+restrict the attribute release with the `custom_attribute_release` configuration parameter based on the SP entity id.
+
+To exclude any attribute, just include its friendly name in the exclude list per SP.
+
+In the following example the given name is never released to the SP with entity id `"sp-entity-id1"`:
+
+```yaml
+config:
+    config: [...]
+    custom_attribute_release:
+        sp-entity-id1:
+            exclude: ["givenName"]
+            
 
 #### Backend
 The SAML2 backend act as a SAML Service Provider (SP), making authentication

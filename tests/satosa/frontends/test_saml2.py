@@ -4,12 +4,9 @@ Tests for the SAML frontend module src/frontends/saml2.py.
 import itertools
 import re
 from collections import Counter
-from copy import deepcopy
 from urllib.parse import urlparse, parse_qs
 
 import pytest
-import saml2
-from pkg_resources import parse_version
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.authn_context import PASSWORD
 from saml2.config import SPConfig
@@ -82,6 +79,25 @@ class TestSAMLFrontend:
         context.request = tmp_dict
 
         return samlfrontend
+
+    def get_auth_response(self, samlfrontend, context, internal_response, sp_conf, idp_metadata_str):
+        sp_config = SPConfig().load(sp_conf, metadata_construction=False)
+        resp_args = {
+            "name_id_policy": NameIDPolicy(format=NAMEID_FORMAT_TRANSIENT),
+            "in_response_to": None,
+            "destination": sp_config.endpoint("assertion_consumer_service", binding=BINDING_HTTP_REDIRECT)[0],
+            "sp_entity_id": sp_conf["entityid"],
+            "binding": BINDING_HTTP_REDIRECT
+        }
+        request_state = samlfrontend._create_state_data(context, resp_args, "")
+        context.state[samlfrontend.name] = request_state
+
+        resp = samlfrontend.handle_authn_response(context, internal_response)
+
+        sp_conf["metadata"]["inline"].append(idp_metadata_str)
+        fakesp = FakeSP(sp_config)
+        resp_dict = parse_qs(urlparse(resp.message).query)
+        return fakesp.parse_authn_request_response(resp_dict["SAMLResponse"][0], BINDING_HTTP_REDIRECT)
 
     @pytest.mark.parametrize("conf", [
         None,
@@ -336,6 +352,28 @@ class TestSAMLFrontend:
         headers = dict(resp.headers)
         assert headers["Content-Type"] == "text/xml"
         assert idp_conf["entityid"] in resp.message
+
+    def test_custom_attribute_release_with_less_attributes_than_entity_category(self, context, idp_conf, sp_conf,
+                                                                         internal_response):
+        idp_metadata_str = create_metadata_from_config_dict(idp_conf)
+        idp_conf["service"]["idp"]["policy"]["default"]["entity_categories"] = ["swamid"]
+        sp_conf["entity_category"] = [SFS_1993_1153]
+        expected_attributes = swamid.RELEASE[SFS_1993_1153]
+
+        attribute_mapping = {}
+        for expected_attribute in expected_attributes:
+            attribute_mapping[expected_attribute.lower()] = {"saml": [expected_attribute]}
+        internal_attributes = dict(attributes=attribute_mapping)
+
+        user_attributes = {k: "foo" for k in expected_attributes}
+        internal_response.attributes = AttributeMapper(internal_attributes).to_internal("saml", user_attributes)
+
+        custom_attributes = {sp_conf["entityid"]: {"exclude": ["norEduPersonNIN"]}}
+        samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, internal_attributes=internal_attributes,
+                                                extra_config=dict(custom_attribute_release=custom_attributes))
+
+        resp = self.get_auth_response(samlfrontend, context, internal_response, sp_conf, idp_metadata_str)
+        assert len(resp.ava.keys()) == 0
 
 
 class TestSAMLMirrorFrontend:
