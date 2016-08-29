@@ -407,10 +407,46 @@ the string `"foo:bar"`:
         "attr1": "foo:bar"
 ```
 
-#### Route to a specific backend based on
+#### Route to a specific backend based on the requester
 To choose which backend (essentially choosing target provider) to use based on the requester, use the
 `DecideBackendByRequester` class which implements that special routing behavior. See the
 [example configuration](../example/plugins/microservices/requester_based_routing.yaml.example).
+
+#### Filter authentication requests to target SAML entities
+If using the `SAMLMirrorFrontend` module and some of the target providers should support some additional SP's, the 
+`DecideIfRequesterIsAllowed` micro service can be used. It provides a rules mechanism to describe which SP's are
+allowed to send requests to which IdP's. See the [example configuration](../example/plugins/microservices/allowed_requesters.yaml.example).
+
+Metadata containing all SP's (any SP that might be allowed by a target IdP) must be in the metadata configured in the
+`SAMLMirrorFrontend` plugin config.
+
+The rules are described using `allow` and `deny` directives under the `rules` configuration parameter.
+ 
+In the following example, the target IdP `target_entity_id1` only allows requests from `requester1` and `requester2`.
+```yaml
+rules:
+    target_entity_id1:
+        allow: ["requester1", "requester2"]
+```
+
+SP's are by default denied if the IdP has any rules associated with it (i.e, the IdP's entity id is a key in the `rules` mapping).
+However, if the IdP does not have any rules associated with its entity id, all SP's are by default allowed.
+
+Deny all but one SP:
+```yaml
+rules:
+    target_entity_id1:
+        allow: ["requester1"]
+        deny: ["*"]
+```
+
+Allow all but one SP:
+```yaml
+rules:
+    target_entity_id1:
+        allow: ["*"]
+        deny: ["requester1"]
+```
 
 ### Custom plugins
 
