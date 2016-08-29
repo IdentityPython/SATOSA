@@ -1,0 +1,152 @@
+from base64 import urlsafe_b64encode
+
+import pytest
+
+from satosa.exception import SATOSAError, SATOSAConfigurationError
+from satosa.internal_data import InternalRequest
+from satosa.micro_services.custom_routing import DecideIfRequesterIsAllowed
+
+TARGET_ENTITY = "entity1"
+
+
+@pytest.fixture
+def target_context(context):
+    context.internal_data["mirror.target_entity_id"] = urlsafe_b64encode(TARGET_ENTITY.encode("utf-8")).decode("utf-8")
+    return context
+
+
+class TestDecideIfRequesterIsAllowed:
+    def create_decide_service(self, rules):
+        return DecideIfRequesterIsAllowed(config=dict(rules=rules))
+
+    def test_allow_one_requester(self, target_context):
+        rules = {
+            TARGET_ENTITY: {
+                "allow": ["test_requester"],
+            }
+        }
+        decide_service = self.create_decide_service(rules)
+
+        req = InternalRequest(None, "test_requester", None)
+        assert decide_service.process(target_context, req)
+
+        req.requester = "somebody else"
+        with pytest.raises(SATOSAError):
+            decide_service.process(target_context, req)
+
+    @pytest.mark.parametrize("requester", [
+        "test_requester",
+        "somebody else"
+    ])
+    def test_allow_all_requesters(self, target_context, requester):
+        rules = {
+            TARGET_ENTITY: {
+                "allow": ["*"],
+            }
+        }
+        decide_service = self.create_decide_service(rules)
+
+        req = InternalRequest(None, requester, None)
+        assert decide_service.process(target_context, req)
+
+    def test_deny_one_requester(self, target_context):
+        rules = {
+            TARGET_ENTITY: {
+                "deny": ["test_requester"],
+            }
+        }
+        decide_service = self.create_decide_service(rules)
+
+        req = InternalRequest(None, "test_requester", None)
+        with pytest.raises(SATOSAError):
+            assert decide_service.process(target_context, req)
+
+    @pytest.mark.parametrize("requester", [
+        "test_requester",
+        "somebody else"
+    ])
+    def test_deny_all_requesters(self, target_context, requester):
+        rules = {
+            TARGET_ENTITY: {
+                "deny": ["*"],
+            }
+        }
+        decide_service = self.create_decide_service(rules)
+
+        req = InternalRequest(None, requester, None)
+        with pytest.raises(SATOSAError):
+            decide_service.process(target_context, req)
+
+    def test_allow_takes_precedence_over_deny_all(self, target_context):
+        requester = "test_requester"
+        rules = {
+            TARGET_ENTITY: {
+                "allow": requester,
+                "deny": ["*"],
+            }
+        }
+        decide_service = self.create_decide_service(rules)
+
+        req = InternalRequest(None, requester, None)
+
+        assert decide_service.process(target_context, req)
+
+        req.requester = "somebody else"
+        with pytest.raises(SATOSAError):
+            decide_service.process(target_context, req)
+
+    def test_deny_takes_precedence_over_allow_all(self, target_context):
+        requester = "test_requester"
+        rules = {
+            TARGET_ENTITY: {
+                "allow": ["*"],
+                "deny": [requester],
+            }
+        }
+        decide_service = self.create_decide_service(rules)
+
+        req = InternalRequest(None, requester, None)
+
+        with pytest.raises(SATOSAError):
+            decide_service.process(target_context, req)
+
+        req = InternalRequest(None, "somebody else", None)
+        decide_service.process(target_context, req)
+
+    @pytest.mark.parametrize("requester", [
+        "*",
+        "test_requester"
+    ])
+    def test_deny_all_and_allow_all_should_raise_exception(self, requester):
+        rules = {
+            TARGET_ENTITY: {
+                "allow": [requester],
+                "deny": [requester],
+            }
+        }
+        with pytest.raises(SATOSAConfigurationError):
+            self.create_decide_service(rules)
+
+    def test_defaults_to_allow_all_requesters_for_target_entity_without_specific_rules(self, target_context):
+        rules = {
+            "some other entity": {
+                "allow": ["foobar"]
+            }
+        }
+        decide_service = self.create_decide_service(rules)
+
+        req = InternalRequest(None, "test_requester", None)
+        assert decide_service.process(target_context, req)
+
+    def test_missing_target_entity_id_from_context(self, context):
+        target_entity = "entity1"
+        rules = {
+            target_entity: {
+                "deny": ["*"],
+            }
+        }
+        decide_service = self.create_decide_service(rules)
+
+        req = InternalRequest(None, "test_requester", None)
+        with pytest.raises(SATOSAError):
+            decide_service.process(context, req)
