@@ -93,7 +93,7 @@ class OpenIDConnectFrontend(FrontendModule):
         # create ID Token
         base_claims = {
             "iss": self.base_url,
-            "client_id": auth_req["client_id"],
+            "aud": auth_req["client_id"],
             "sub": internal_resp.user_id,
             "nonce": auth_req["nonce"],
             "auth_time": epoch_timestamp
