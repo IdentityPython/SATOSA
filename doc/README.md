@@ -301,15 +301,23 @@ The OpenID Connect frontend acts as and OpenID Connect Provider (OP), accepting 
 Connect Relying Parties (RPs). The default configuration file can be found
 [here](../example/plugins/frontends/oidc_frontend.yaml.example).
 
+As opposed to the other plugins, this plugin is NOT stateless (due to the nature of OpenID Connect using any other
+flow than "Implicit Flow"). However, the frontend supports using a MongoDB instance as its backend storage, so as long
+that's reachable from all machines it should not be a problem.
+
 The configuration parameters available:
 * `signing_key_path`: path to a RSA Private Key file (PKCS#1). MUST be configured.
-* `client_db_path`: path to where the client (RP) database will be stored.
-The other parameters should be left with their default values.
+* `db_uri`: connection URI to MongoDB instance where the data will be persisted, if it's not specified all data will only
+   be stored in-memory (not suitable for production use).
+* `provider`: provider configuration information. MUST be configured, the following configuration are supported:
+    * `response_types_supported` (default: `[id_token]`): list of all supported response types, see [Section 3 of OIDC Core](http://openid.net/specs/openid-connect-core-1_0.html#Authentication).
+    * `subject_types_supported` (default: `[pairwise]`): list of all supported subject identifier types, see [Section 8 of OIDC Core](http://openid.net/specs/openid-connect-core-1_0.html#SubjectIDTypes)
+    * `scopes_supported` (default: `[openid]`): list of all supported scopes, see [Section 5.4 of OIDC Core](http://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims)
+    * `client_registration_supported` (default: `No`): boolean whether [dynamic client registration is supported](https://openid.net/specs/openid-connect-registration-1_0.html).
+        If dynamic client registration is not supported all clients must exist in the MongoDB instance configured by the `db_uri` in the `"clients"` collection of the `"satosa"` database.
+        The registration info must be stored using the client id as a key, and use the parameter names of a [OIDC Registration Response](https://openid.net/specs/openid-connect-registration-1_0.html#RegistrationResponse).
 
-As opposed to the other plugins, this plugin is NOT stateless (due to the client database). This
-makes it impossible to run multiple instances of the SATOSA proxy on different machines (for the
-purpose of load balancing) unless the client database file is also distributed among those machines
-by some external process.
+The other parameters should be left with their default values.
 
 ### <a name="social_plugins" style="color:#000000">Social login plugins</a>
 The social login plugins can be used as backends for the proxy, allowing the

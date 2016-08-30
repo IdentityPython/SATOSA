@@ -98,3 +98,18 @@ class NotFound(Response):
 
 class ServiceError(Response):
     _status = "500 Internal Service Error"
+
+
+class BadRequest(Response):
+    _status = "400 Bad Request"
+
+
+class Created(Response):
+    _status = "201 Created"
+
+
+class Unauthorized(Response):
+    _status = "401 Unauthorized"
+
+    def __init__(self, message, headers=None, content=None):
+        super().__init__(message, headers=headers, content=content)
