@@ -275,8 +275,7 @@ class OpenIDConnectFrontend(FrontendModule):
 
         context.state[self.name] = {"oidc_request": request}
         hash_type = oidc_subject_type_to_hash_type(self.provider.cdb[client_id].get("subject_type", "pairwise"))
-        internal_req = InternalRequest(hash_type, client_id,
-                                       self.provider.cdb[client_id].get("client_name"))
+        internal_req = InternalRequest(hash_type, client_id, self.provider.cdb[client_id].get("client_name"))
 
         return self.auth_req_callback_func(context, internal_req)
 

@@ -1,6 +1,8 @@
 """
 Tests for the SAML frontend module src/frontends/saml2.py.
 """
+import json
+from unittest.mock import Mock
 from urllib.parse import urlparse
 
 import pytest
@@ -19,6 +21,7 @@ INTERNAL_ATTRIBUTES = {
     'attributes': {"mail": {"saml": ["email"], "openid": ["email"]}}
 }
 BASE_URL = "https://op.example.com"
+CLIENT_ID = "client1"
 
 
 class TestOpenIDConnectFrontend(object):
@@ -31,15 +34,20 @@ class TestOpenIDConnectFrontend(object):
 
     @pytest.fixture
     def authn_req(self):
-        client_id = "client1"
         state = "my_state"
         nonce = "nonce"
         redirect_uri = "https://client.example.com"
         claims_req = ClaimsRequest(id_token=Claims(email=None))
-        req = AuthorizationRequest(client_id=client_id, state=state, scope="openid",
+        req = AuthorizationRequest(client_id=CLIENT_ID, state=state, scope="openid",
                                    response_type="id_token", redirect_uri=redirect_uri,
                                    nonce=nonce, claims=claims_req)
         return req
+
+    def insert_client_in_client_db(self, redirect_uri):
+        self.instance.provider.cdb = {
+            CLIENT_ID: {"response_types": ["id_token"],
+                        "redirect_uris": [(redirect_uri, None)],
+                        "client_salt": "salt"}}
 
     def setup_for_authn_response(self, context, auth_req):
         context.state[self.instance.name] = {"oidc_request": auth_req.to_urlencoded()}
@@ -48,11 +56,6 @@ class TestOpenIDConnectFrontend(object):
         internal_response = InternalResponse(auth_info=auth_info)
         internal_response.attributes = AttributeMapper(INTERNAL_ATTRIBUTES).to_internal("saml", USERS["testuser1"])
         internal_response.user_id = USERS["testuser1"]["eduPersonTargetedID"][0]
-
-        self.instance.cdb = {
-            "client1": {"response_types": ["id_token"],
-                        "redirect_uris": [(auth_req["redirect_uri"], None)],
-                        "client_salt": "salt"}}
 
         return internal_response
 
@@ -72,12 +75,11 @@ class TestOpenIDConnectFrontend(object):
         assert self.instance.name not in context.state
 
     def test_get_authn_response_query_encoded(self, context):
-        client_id = "client1"
         state = "my_state"
         nonce = "nonce"
         redirect_uri = "https://client.example.com"
         claims_req = ClaimsRequest(id_token=Claims(email=None))
-        req = AuthorizationRequest(client_id=client_id, state=state, scope="openid",
+        req = AuthorizationRequest(client_id=CLIENT_ID, state=state, scope="openid",
                                    response_type="id_token",
                                    redirect_uri=redirect_uri,
                                    nonce=nonce,
@@ -95,10 +97,23 @@ class TestOpenIDConnectFrontend(object):
         assert id_token["sub"] == USERS["testuser1"]["eduPersonTargetedID"][0]
         assert id_token["email"] == USERS["testuser1"]["email"][0]
 
+    def test_handle_authn_request(self, context, authn_req):
+        mock_callback = Mock()
+        self.instance.auth_req_callback_func = mock_callback
+        self.insert_client_in_client_db(authn_req["redirect_uri"])
+
+        context.request = authn_req.to_dict()
+        context.request["claims"] = json.dumps(context.request["claims"])
+        self.instance.handle_authn_request(context)
+
+        assert mock_callback.call_count == 1
+        context, internal_req = mock_callback.call_args[0]
+        assert internal_req.requester == authn_req["client_id"]
+        assert internal_req.user_id_hash_type == UserIdHashType.pairwise
+
     def test_handle_backend_error(self, context):
-        client_id = "client1"
         redirect_uri = "https://client.example.com"
-        areq = AuthorizationRequest(client_id=client_id, scope="openid", response_type="id_token",
+        areq = AuthorizationRequest(client_id=CLIENT_ID, scope="openid", response_type="id_token",
                                     redirect_uri=redirect_uri)
         context.state[self.instance.name] = {"oidc_request": areq.to_urlencoded()}
 
@@ -122,7 +137,7 @@ class TestOpenIDConnectFrontend(object):
 
         reg_resp = RegistrationResponse().deserialize(registration_response.message, "json")
         assert "client_id" in reg_resp
-        assert reg_resp["client_id"] in self.instance.provider.cdb
+
         # no need to issue client secret since to token endpoint is published
         assert "client_secret" not in reg_resp
         assert reg_resp["redirect_uris"] == [redirect_uri]
