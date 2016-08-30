@@ -29,6 +29,18 @@ class TestOpenIDConnectFrontend(object):
                                               "oidc_frontend")
         self.instance.register_endpoints(["foo_backend"])
 
+    @pytest.fixture
+    def authn_req(self):
+        client_id = "client1"
+        state = "my_state"
+        nonce = "nonce"
+        redirect_uri = "https://client.example.com"
+        claims_req = ClaimsRequest(id_token=Claims(email=None))
+        req = AuthorizationRequest(client_id=client_id, state=state, scope="openid",
+                                   response_type="id_token", redirect_uri=redirect_uri,
+                                   nonce=nonce, claims=claims_req)
+        return req
+
     def setup_for_authn_response(self, context, auth_req):
         context.state[self.instance.name] = {"oidc_request": auth_req.to_urlencoded()}
 
@@ -44,26 +56,17 @@ class TestOpenIDConnectFrontend(object):
 
         return internal_response
 
-    def test_handle_authn_response(self, context):
-        client_id = "client1"
-        state = "my_state"
-        nonce = "nonce"
-        redirect_uri = "https://client.example.com"
-        claims_req = ClaimsRequest(id_token=Claims(email=None))
-        req = AuthorizationRequest(client_id=client_id, state=state, scope="openid",
-                                   response_type="id_token",
-                                   redirect_uri=redirect_uri,
-                                   nonce=nonce,
-                                   claims=claims_req)
-        internal_response = self.setup_for_authn_response(context, req)
+    def test_handle_authn_response(self, context, authn_req):
+        internal_response = self.setup_for_authn_response(context, authn_req)
         http_resp = self.instance.handle_authn_response(context, internal_response)
-        assert http_resp.message.startswith(redirect_uri)
+        assert http_resp.message.startswith(authn_req["redirect_uri"])
 
         resp = AuthorizationResponse().deserialize(urlparse(http_resp.message).fragment)
-        assert resp["state"] == state
+        assert resp["state"] == authn_req["state"]
         id_token = IdToken().from_jwt(resp["id_token"], key=[self.instance.signing_key])
         assert id_token["iss"] == BASE_URL
-        assert id_token["nonce"] == nonce
+        assert id_token["nonce"] == authn_req["nonce"]
+        assert id_token["aud"] == [authn_req["client_id"]]
         assert id_token["sub"] == USERS["testuser1"]["eduPersonTargetedID"][0]
         assert id_token["email"] == USERS["testuser1"]["email"][0]
         assert self.instance.name not in context.state
@@ -97,11 +100,13 @@ class TestOpenIDConnectFrontend(object):
         redirect_uri = "https://client.example.com"
         areq = AuthorizationRequest(client_id=client_id, scope="openid", response_type="id_token",
                                     redirect_uri=redirect_uri)
-
         context.state[self.instance.name] = {"oidc_request": areq.to_urlencoded()}
+
+        # fake an error
         message = "test error"
         error = SATOSAAuthenticationError(context.state, message)
         resp = self.instance.handle_backend_error(error)
+
         assert resp.message.startswith(redirect_uri)
         error_response = AuthorizationErrorResponse().deserialize(urlparse(resp.message).fragment)
         error_response["error"] = "access_denied"
