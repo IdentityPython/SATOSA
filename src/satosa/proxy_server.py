@@ -102,8 +102,8 @@ class WsgiApplication(SATOSABase):
         context.request = unpack_request(environ, content_length)
         environ['wsgi.input'].seek(0)
 
-        context.wsgi_environ = environ
         context.cookie = environ.get("HTTP_COOKIE", "")
+        context.request_authorization = environ.get("HTTP_AUTHORIZATION", "")
 
         try:
             resp = self.run(context)
