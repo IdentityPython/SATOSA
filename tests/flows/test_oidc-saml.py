@@ -1,12 +1,11 @@
 import json
-import os
 from urllib.parse import urlparse, urlencode, parse_qsl
 
 import pytest
 from jwkest.jwk import rsa_load, RSAKey
 from jwkest.jws import JWS
 from oic.oic.message import ClaimsRequest, Claims
-from oic.utils import shelve_wrapper
+from pyop.storage import MongoWrapper
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.config import IdPConfig
 from werkzeug.test import Client
@@ -23,23 +22,25 @@ REDIRECT_URI = "https://client.example.com/cb"
 
 
 @pytest.fixture
-def oidc_frontend_config(signing_key_path, tmpdir):
-    client_db_path = os.path.join(str(tmpdir), "client_db")
-    cdb = shelve_wrapper.open(client_db_path)
-    cdb[CLIENT_ID] = {
-        "redirect_uris": [(REDIRECT_URI, None)],
-        "response_types": ["id_token"]
-    }
-
+def oidc_frontend_config(signing_key_path, mongodb_instance):
     data = {
         "module": "satosa.frontends.openid_connect.OpenIDConnectFrontend",
         "name": "OIDCFrontend",
         "config": {
             "issuer": "https://proxy-op.example.com",
             "signing_key_path": signing_key_path,
-            "client_db_path": client_db_path
+            "provider": {"response_types_supported": ["id_token"]},
+            "db_uri": mongodb_instance.get_uri()  # use mongodb for integration testing
         }
     }
+
+    # insert client in mongodb
+    cdb = MongoWrapper(mongodb_instance.get_uri(), "satosa", "clients")
+    cdb[CLIENT_ID] = {
+        "redirect_uris": [REDIRECT_URI],
+        "response_types": ["id_token"]
+    }
+
     return data
 
 
