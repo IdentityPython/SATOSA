@@ -15,15 +15,15 @@ setup(
     packages=find_packages('src/'),
     package_dir={'': 'src'},
     install_requires=[
-        "oic==0.8.4.0",
+        "oic>=0.8.4.0",
         "pyop==1.0.0",
         "pyjwkest==1.1.5",
         "pysaml2==4.0.3",
-        "requests==2.9.1",
-        "PyYAML==3.11",
-        "gunicorn==19.4.1",
-        "Werkzeug==0.11.2",
-        "click==6.6"
+        "requests",
+        "PyYAML",
+        "gunicorn",
+        "Werkzeug",
+        "click"
     ],
     zip_safe=False,
     classifiers=[
