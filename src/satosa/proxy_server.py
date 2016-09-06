@@ -4,6 +4,8 @@ import logging
 import sys
 from urllib.parse import parse_qsl
 
+import pkg_resources
+
 from .base import SATOSABase
 from .context import Context
 from .response import ServiceError, NotFound
@@ -130,11 +132,12 @@ def make_app(satosa_config):
             stderr_handler = logging.StreamHandler(sys.stderr)
             stderr_handler.setLevel(logging.DEBUG)
 
-            logger = logging.getLogger("")
-            logger.addHandler(stderr_handler)
-            logger.setLevel(logging.DEBUG)
+            root_logger = logging.getLogger("")
+            root_logger.addHandler(stderr_handler)
+            root_logger.setLevel(logging.DEBUG)
+
+        logger.info("Running SATOSA version %s", pkg_resources.get_distribution("SATOSA").version)
         return ToBytesMiddleware(WsgiApplication(satosa_config))
     except Exception:
-        logger = logging.getLogger(__name__)
         logger.exception("Failed to create WSGI app.")
         raise
