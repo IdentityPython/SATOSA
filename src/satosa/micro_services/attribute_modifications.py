@@ -6,9 +6,6 @@ from .base import ResponseMicroService
 class AddStaticAttributes(ResponseMicroService):
     """
     Add static attributes to the responses.
-
-    The path to the file describing the mapping (as YAML) of static attributes must be specified
-    with the environment variable 'SATOSA_STATIC_ATTRIBUTES'.
     """
 
     def __init__(self, config, **kwargs):
@@ -23,9 +20,6 @@ class AddStaticAttributes(ResponseMicroService):
 class FilterAttributeValues(ResponseMicroService):
     """
     Filter attribute values, only preserving those matching the given regex.
-
-    The path to the file describing the filters (as YAML) must be specified
-    with the environment variable 'SATOSA_ATTRIBUTE_VALUES_FILTER'.
     """
 
     def __init__(self, config, **kwargs):
