@@ -8,7 +8,8 @@ from saml2.metadata import entity_descriptor
 from saml2.sigver import security_context
 from saml2.time_util import in_a_while
 
-from satosa.metadata_creation.saml_metadata import create_entity_descriptors, create_signed_entities_descriptor
+from satosa.metadata_creation.saml_metadata import create_entity_descriptors, create_signed_entities_descriptor, \
+    create_signed_entity_descriptor
 from satosa.satosa_config import SATOSAConfig
 from tests.conftest import BASE_URL
 from tests.util import create_metadata_from_config_dict
@@ -226,7 +227,8 @@ class TestCreateEntityDescriptors:
             assert entity_info["contact_person"][i]["sur_name"]["text"] == contact["sur_name"]
 
         expected_org_info = expected_entity_info["organization"]
-        assert entity_info["organization"]["organization_display_name"][0]["text"] == expected_org_info["display_name"][0][0]
+        assert entity_info["organization"]["organization_display_name"][0]["text"] == \
+               expected_org_info["display_name"][0][0]
         assert entity_info["organization"]["organization_name"][0]["text"] == expected_org_info["name"][0][0]
         assert entity_info["organization"]["organization_url"][0]["text"] == expected_org_info["url"][0][0]
 
@@ -266,3 +268,40 @@ class TestCreateSignedEntitiesDescriptor:
         md = InMemoryMetaData(None)
         md.parse(signed_metadata)
         assert md.entities_descr.valid_until == in_a_while(hours=valid_for)
+
+
+class TestCreateSignedEntityDescriptor:
+    @pytest.fixture
+    def entity_desc(self, sp_conf):
+        return entity_descriptor(SPConfig().load(sp_conf, metadata_construction=True))
+
+    @pytest.fixture
+    def verification_security_context(self, cert_and_key):
+        conf = Config()
+        conf.cert_file = cert_and_key[0]
+        return security_context(conf)
+
+    @pytest.fixture
+    def signature_security_context(self, cert_and_key):
+        conf = Config()
+        conf.cert_file = cert_and_key[0]
+        conf.key_file = cert_and_key[1]
+        return security_context(conf)
+
+    def test_signed_metadata(self, entity_desc, signature_security_context, verification_security_context):
+        signed_metadata = create_signed_entity_descriptor(entity_desc, signature_security_context)
+
+        md = InMemoryMetaData(None, security=verification_security_context)
+        md.parse(signed_metadata)
+        assert md.signed() is True
+        assert md.parse_and_check_signature(signed_metadata) is True
+        assert not md.entity_descr.valid_until
+
+    def test_valid_for(self, entity_desc, signature_security_context):
+        valid_for = 4  # metadata valid for 4 hours
+        signed_metadata = create_signed_entity_descriptor(entity_desc, signature_security_context,
+                                                          valid_for=valid_for)
+
+        md = InMemoryMetaData(None)
+        md.parse(signed_metadata)
+        assert md.entity_descr.valid_until == in_a_while(hours=valid_for)
