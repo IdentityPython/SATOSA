@@ -74,14 +74,15 @@ class OpenIDConnectFrontend(FrontendModule):
         if self.config["provider"].get("client_registration_supported", False):
             capabilities["registration_endpoint"] = "{}/{}".format(endpoint_baseurl, RegistrationEndpoint.url)
 
+        authz_state = self._init_authorization_state()
         db_uri = self.config.get("db_uri")
-        authz_state = self._init_authorization_state(db_uri, self.config.get("sub_hash_salt"))
         cdb = MongoWrapper(db_uri, "satosa", "clients") if db_uri else {}
         self.user_db = MongoWrapper(db_uri, "satosa", "authz_codes") if db_uri else {}
         self.provider = Provider(self.signing_key, capabilities, authz_state, cdb, Userinfo(self.user_db))
 
-    def _init_authorization_state(self, db_uri=None, sub_hash_salt=None):
-        sub_hash_salt = sub_hash_salt or rndstr(16)
+    def _init_authorization_state(self):
+        sub_hash_salt = self.config.get("sub_hash_salt", rndstr(16))
+        db_uri = self.config.get("db_uri")
         if db_uri:
             authz_code_db = MongoWrapper(db_uri, "satosa", "authz_codes")
             access_token_db = MongoWrapper(db_uri, "satosa", "access_tokens")
@@ -93,8 +94,13 @@ class OpenIDConnectFrontend(FrontendModule):
             refresh_token_db = None
             sub_db = None
 
+        token_lifetimes = {k: self.config["provider"][k] for k in ["authorization_code_lifetime",
+                                                                   "access_token_lifetime",
+                                                                   "refresh_token_lifetime",
+                                                                   "refresh_token_threshold"]
+                           if k in self.config["provider"]}
         return AuthorizationState(HashBasedSubjectIdentifierFactory(sub_hash_salt), authz_code_db, access_token_db,
-                                  refresh_token_db, sub_db)
+                                  refresh_token_db, sub_db, **token_lifetimes)
 
     def handle_authn_response(self, context, internal_resp):
         """
@@ -159,7 +165,6 @@ class OpenIDConnectFrontend(FrontendModule):
         if "registration_endpoint" in self.provider.configuration_information:
             client_registration = ("^{}/{}".format(backend, RegistrationEndpoint.url), self.client_registration)
             url_map.append(client_registration)
-
 
         return url_map
 
@@ -292,4 +297,3 @@ class OpenIDConnectFrontend(FrontendModule):
             response = Unauthorized(error_resp.to_json(), headers=[("WWW-Authenticate", AccessToken.BEARER_TOKEN_TYPE)],
                                     content="application/json")
             return response
-

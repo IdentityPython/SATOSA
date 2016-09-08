@@ -30,7 +30,7 @@ CLIENT_SECRET = "client_secret"
 
 class TestOpenIDConnectFrontend(object):
     @pytest.fixture
-    def frontend(self, signing_key_path):
+    def frontend_config(self, signing_key_path):
         config = {
             "signing_key_path": signing_key_path,
             "provider": {
@@ -38,9 +38,14 @@ class TestOpenIDConnectFrontend(object):
                 "scopes_supported": ["openid", "email"]
             }
         }
+
+        return config
+
+    @pytest.fixture
+    def frontend(self, frontend_config):
         # will use in-memory storage
         instance = OpenIDConnectFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
-                                         config, BASE_URL, "oidc_frontend")
+                                         frontend_config, BASE_URL, "oidc_frontend")
         instance.register_endpoints(["foo_backend"])
         return instance
 
@@ -187,16 +192,10 @@ class TestOpenIDConnectFrontend(object):
         assert ("^{}/{}".format("test", TokenEndpoint.url), frontend.token_endpoint) in urls
         assert ("^{}/{}".format("test", UserinfoEndpoint.url), frontend.userinfo_endpoint) in urls
 
-    def test_register_endpoints_token_and_userinfo_endpoint_is_not_published_if_only_implicit_flow(self,
-                                                                                                   signing_key_path,
-                                                                                                   context):
-        config = {
-            "signing_key_path": signing_key_path,
-            "provider": {"response_types_supported": ["id_token", "id_token token"]}
-        }
-        frontend = OpenIDConnectFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
-                                         config, BASE_URL,
-                                         "oidc_frontend")
+    def test_register_endpoints_token_and_userinfo_endpoint_is_not_published_if_only_implicit_flow(
+            self, frontend_config, context):
+        frontend_config["provider"]["response_types_supported"] = ["id_token", "id_token token"]
+        frontend = self.frontend(frontend_config)
 
         urls = frontend.register_endpoints(["test"])
         assert ("^{}/{}".format("test", TokenEndpoint.url), frontend.token_endpoint) not in urls
@@ -210,12 +209,10 @@ class TestOpenIDConnectFrontend(object):
         True,
         False
     ])
-    def test_register_endpoints_dynamic_client_registration_is_configurable(self, signing_key_path,
-                                                                            client_registration_enabled):
-        config = {"signing_key_path": signing_key_path,
-                  "provider": {"client_registration_supported": client_registration_enabled}}
-        frontend = OpenIDConnectFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
-                                         config, BASE_URL, "oidc_frontend")
+    def test_register_endpoints_dynamic_client_registration_is_configurable(
+            self, frontend_config, client_registration_enabled):
+        frontend_config["provider"]["client_registration_supported"] = client_registration_enabled
+        frontend = self.frontend(frontend_config)
 
         urls = frontend.register_endpoints(["test"])
         assert (("^{}/{}".format("test", RegistrationEndpoint.url),
@@ -223,7 +220,11 @@ class TestOpenIDConnectFrontend(object):
         provider_info = ProviderConfigurationResponse().deserialize(frontend.provider_config(None).message, "json")
         assert ("registration_endpoint" in provider_info) == client_registration_enabled
 
-    def test_token_endpoint(self, context, frontend, authn_req):
+    def test_token_endpoint(self, context, frontend_config, authn_req):
+        token_lifetime = 60 * 60 * 24
+        frontend_config["provider"]["access_token_lifetime"] = token_lifetime
+        frontend = self.frontend(frontend_config)
+
         user_id = "test_user"
         self.insert_client_in_client_db(frontend, authn_req["redirect_uri"])
         self.insert_user_in_user_db(frontend, user_id)
@@ -237,8 +238,30 @@ class TestOpenIDConnectFrontend(object):
 
         response = frontend.token_endpoint(context)
         parsed = AccessTokenResponse().deserialize(response.message, "json")
-        assert "access_token" in parsed
-        assert "id_token" in parsed
+        assert parsed["access_token"]
+        assert parsed["expires_in"] == token_lifetime
+        assert parsed["id_token"]
+
+    def test_token_endpoint_issues_refresh_tokens_if_configured(self, context, frontend_config, authn_req):
+        frontend_config["provider"]["refresh_token_lifetime"] = 60 * 60 * 24 * 365
+        frontend = OpenIDConnectFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
+                                         frontend_config, BASE_URL, "oidc_frontend")
+        frontend.register_endpoints(["test_backend"])
+
+        user_id = "test_user"
+        self.insert_client_in_client_db(frontend, authn_req["redirect_uri"])
+        self.insert_user_in_user_db(frontend, user_id)
+        authn_req["response_type"] = "code"
+        authn_resp = frontend.provider.authorize(authn_req, user_id)
+
+        context.request = AccessTokenRequest(redirect_uri=authn_req["redirect_uri"], code=authn_resp["code"]).to_dict()
+        credentials = "{}:{}".format(CLIENT_ID, CLIENT_SECRET)
+        basic_auth = urlsafe_b64encode(credentials.encode("utf-8")).decode("utf-8")
+        context.request_authorization = "Basic {}".format(basic_auth)
+
+        response = frontend.token_endpoint(context)
+        parsed = AccessTokenResponse().deserialize(response.message, "json")
+        assert parsed["refresh_token"]
 
     def test_token_endpoint_with_invalid_client_authentication(self, context, frontend, authn_req):
         context.request = AccessTokenRequest(redirect_uri=authn_req["redirect_uri"], code="code").to_dict()
