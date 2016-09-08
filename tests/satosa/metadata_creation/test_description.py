@@ -33,6 +33,14 @@ class TestUIInfoDesc(object):
         assert ui_info["display_name"] == [{"text": "my company", "lang": "en"}]
         assert ui_info["logo"] == [{"text": "logo.jpg", "width": 80, "height": 80, "lang": "en"}]
 
+    def test_to_dict_for_logo_without_lang(self):
+        desc = UIInfoDesc()
+        desc.add_logo("logo.jpg", 80, 80, None)
+
+        serialized = desc.to_dict()
+        ui_info = serialized["service"]["idp"]["ui_info"]
+        assert ui_info["logo"] == [{"text": "logo.jpg", "width": 80, "height": 80}]
+
     def test_to_dict_with_empty(self):
         desc = UIInfoDesc()
         assert desc.to_dict() == {}
@@ -69,13 +77,10 @@ class TestMetadataDescription(object):
         contact_desc.sur_name = "Tester"
         contact_desc.add_email_address("first_tester@example.com")
 
-        logo_data = "test data".encode("utf-8")
-
         ui_desc = UIInfoDesc()
         ui_desc.add_description("test", "en")
         ui_desc.add_display_name("my company", "en")
-        with patch("builtins.open", mock_open(read_data=logo_data)):
-            ui_desc.add_logo("logo.jpg", 80, 80, "en")
+        ui_desc.add_logo("http://example.com/logo.jpg", 80, 80, "en")
 
         desc = MetadataDescription("my_entity")
         desc.organization = org_desc
