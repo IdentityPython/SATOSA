@@ -2,7 +2,8 @@ import copy
 import logging
 
 from saml2.config import Config
-from saml2.metadata import entity_descriptor, entities_descriptor
+from saml2.metadata import entity_descriptor, entities_descriptor, sign_entity_descriptor
+from saml2.time_util import in_a_while
 from saml2.validate import valid_instance
 
 from ..backends.saml2 import SAMLBackend
@@ -85,7 +86,7 @@ def create_entity_descriptors(satosa_config):
     frontend_modules = load_frontends(satosa_config, None, satosa_config["INTERNAL_ATTRIBUTES"])
     backend_modules = load_backends(satosa_config, None, satosa_config["INTERNAL_ATTRIBUTES"])
     logger.info("Loaded frontend plugins: {}".format(list(frontend_modules.keys())))
-    logger.info("Loaded backend plugins: {}".format(backend_modules.keys()))
+    logger.info("Loaded backend plugins: {}".format(list(backend_modules.keys())))
 
     backend_metadata = _create_backend_metadata(backend_modules.values())
     frontend_metadata = _create_frontend_metadata(frontend_modules.values(), backend_modules.values())
@@ -95,7 +96,6 @@ def create_entity_descriptors(satosa_config):
 
 def create_signed_entities_descriptor(entity_descriptors, security_context, valid_for=None):
     """
-
     :param entity_descriptors: the entity descriptors to put in in an EntitiesDescriptor tag and sign
     :param security_context: security context for the signature
     :param valid_for: number of hours the metadata should be valid
@@ -109,5 +109,27 @@ def create_signed_entities_descriptor(entity_descriptors, security_context, vali
                                                 sign=True, secc=security_context)
     if not valid_instance(entities_desc):
         raise ValueError("Could not construct valid EntitiesDescriptor tag")
+
+    return xmldoc
+
+
+def create_signed_entity_descriptor(entity_descriptor, security_context, valid_for=None):
+    """
+    :param entity_descriptor: the entity descriptor to sign
+    :param security_context: security context for the signature
+    :param valid_for: number of hours the metadata should be valid
+    :return: the signed XML document
+
+    :type entity_descriptor: saml2.md.EntityDescriptor]
+    :type security_context: saml2.sigver.SecurityContext
+    :type valid_for: Optional[int]
+    """
+    if valid_for:
+        entity_descriptor.valid_until = in_a_while(hours=valid_for)
+
+    entity_desc, xmldoc = sign_entity_descriptor(entity_descriptor, None, security_context)
+
+    if not valid_instance(entity_desc):
+        raise ValueError("Could not construct valid EntityDescriptor tag")
 
     return xmldoc
