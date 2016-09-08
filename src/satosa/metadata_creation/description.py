@@ -77,20 +77,24 @@ class UIInfoDesc(object):
         """
         self._display_name.append({"text": text, "lang": lang})
 
-    def add_logo(self, text, width, height, lang):
+    def add_logo(self, text, width, height, lang=None):
         """
         Binds a logo to the given language
         :type text: str
         :type width: str
         :type height: str
-        :type lang: str
+        :type lang: Optional[str]
 
         :param text: Path to logo
         :param width: width of logo
         :param height: height of logo
         :param lang: language
         """
-        self._logos.append({"text": text, "width": width, "height": height, "lang": lang})
+
+        logo_entry ={"text": text, "width": width, "height": height}
+        if lang:
+            logo_entry["lang"] = lang
+        self._logos.append(logo_entry)
 
     def to_dict(self):
         """

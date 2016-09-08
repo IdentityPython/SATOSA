@@ -205,3 +205,31 @@ class TestSAMLBackend:
         assert ui_info["display_name"] == expected_ui_info["display_name"]
         assert ui_info["description"] == expected_ui_info["description"]
         assert ui_info["logo"] == expected_ui_info["logo"]
+
+    def test_get_metadata_desc_with_logo_without_lang(self, sp_conf, idp_conf):
+        # add logo without 'lang'
+        idp_conf["service"]["idp"]["ui_info"]["logo"] = [{"text": "https://idp.example.com/static/logo.png",
+                                                          "width": "120", "height": "60"}]
+
+        sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
+        # instantiate new backend, with a single backing IdP
+        samlbackend = SAMLBackend(None, INTERNAL_ATTRIBUTES, {"sp_config": sp_conf}, "base_url", "saml_backend")
+        entity_descriptions = samlbackend.get_metadata_desc()
+
+        assert len(entity_descriptions) == 1
+
+        idp_desc = entity_descriptions[0].to_dict()
+
+        assert idp_desc["entityid"] == urlsafe_b64encode(idp_conf["entityid"].encode("utf-8")).decode("utf-8")
+        assert idp_desc["contact_person"] == idp_conf["contact_person"]
+
+        assert idp_desc["organization"]["name"][0] == tuple(idp_conf["organization"]["name"][0])
+        assert idp_desc["organization"]["display_name"][0] == tuple(idp_conf["organization"]["display_name"][0])
+        assert idp_desc["organization"]["url"][0] == tuple(idp_conf["organization"]["url"][0])
+
+        expected_ui_info = idp_conf["service"]["idp"]["ui_info"]
+        ui_info = idp_desc["service"]["idp"]["ui_info"]
+        assert ui_info["display_name"] == expected_ui_info["display_name"]
+        assert ui_info["description"] == expected_ui_info["description"]
+        assert ui_info["logo"] == expected_ui_info["logo"]
+

@@ -297,7 +297,7 @@ class SAMLBackend(BackendModule):
                 for name in ui_info.get("display_name", []):
                     ui_info_desc.add_display_name(name["text"], name["lang"])
                 for logo in ui_info.get("logo", []):
-                    ui_info_desc.add_logo(logo["text"], logo["width"], logo["height"], logo["lang"])
+                    ui_info_desc.add_logo(logo["text"], logo["width"], logo["height"], logo.get("lang"))
                 description.ui_info = ui_info_desc
 
             entity_descriptions.append(description)
