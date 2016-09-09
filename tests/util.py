@@ -2,8 +2,8 @@
 Contains help methods and classes to perform tests.
 """
 import base64
-import json
 import tempfile
+from datetime import datetime
 from urllib.parse import parse_qsl, urlparse
 
 from Crypto.PublicKey import RSA
@@ -19,6 +19,7 @@ from saml2.samlp import NameIDPolicy
 
 from satosa.backends.base import BackendModule
 from satosa.frontends.base import FrontendModule
+from satosa.internal_data import InternalRequest, UserIdHashType, InternalResponse, AuthenticationInformation
 from satosa.micro_services.base import RequestMicroService, ResponseMicroService
 from satosa.response import Response
 
@@ -361,8 +362,15 @@ class TestBackend(BackendModule):
     def register_endpoints(self):
         return [("^{}/response$".format(self.name), self.handle_response)]
 
+    def start_auth(self, context, internal_request):
+        return Response("Auth request received, passed to test backend")
+
     def handle_response(self, context):
-        return Response(json.dumps({"foo": "bar"}))
+        auth_info = AuthenticationInformation("test", str(datetime.now()), "test_issuer")
+        internal_resp = InternalResponse(auth_info=auth_info)
+        internal_resp.attributes = context.request
+        internal_resp.user_id = "test_user"
+        return self.auth_callback_func(context, internal_resp)
 
 
 class TestFrontend(FrontendModule):
@@ -374,7 +382,11 @@ class TestFrontend(FrontendModule):
         return url_map
 
     def handle_request(self, context):
-        return Response('Request received OK')
+        internal_req = InternalRequest(UserIdHashType.transient, "test_client", None)
+        return self.auth_req_callback_func(context, internal_req)
+
+    def handle_authn_response(self, context, internal_resp):
+        return Response("Auth response received, passed to test frontend")
 
 
 class TestRequestMicroservice(RequestMicroService):

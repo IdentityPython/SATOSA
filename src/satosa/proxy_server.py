@@ -1,6 +1,7 @@
 import io
 import json
 import logging
+import logging.config
 import sys
 from urllib.parse import parse_qsl
 
