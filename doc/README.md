@@ -55,7 +55,6 @@ in the [example directory](../example).
 | `enable` | bool | `Yes` | whether the service should be used |
 | `api_url` | string | `https://localhost` | url to the REST endpoint of the service |
 | `redirect_url` | string | `https://localhost/redirect` | url to the endpoint where the user should be redirected for necessary interaction |
-| `endpoint` | string | `handle_consent` | name of the endpoint in SATOSA where the response from the service is received |
 | `sign_key`| string | `pki/consent.key` | path to key used for signing the requests to the service |
 
 If using the [CMService](https://github.com/its-dirg/CMservice) for consent management and the [ALService](https://github.com/its-dirg/ALservice) for account linking, the `redirect` parameter should be `https://<host>/consent` and `https://<host>/approve` in the respective configuration entry.
