@@ -44,7 +44,7 @@ class TestSATOSABase:
         assert base.consent_module
         assert base.account_linking_module
         assert len(base.module_router.frontends) == 1
-        assert len(base.module_router.backends) == 1
+        assert len(base.module_router.backends) == 3
         assert len(base.request_micro_services) == 1
         assert len(base.response_micro_services) == 1
 

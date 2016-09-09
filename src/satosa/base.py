@@ -42,7 +42,6 @@ class SATOSABase(object):
         logger.info("Loading frontend modules...")
         frontends = load_frontends(self.config, self._auth_req_callback_func,
                                    self.config["INTERNAL_ATTRIBUTES"])
-        self.module_router = ModuleRouter(frontends, backends)
 
         self.consent_module = ConsentModule(config, self._consent_resp_callback_func)
         self.account_linking_module = AccountLinkingModule(config,
@@ -51,6 +50,8 @@ class SATOSABase(object):
             backends["consent"] = self.consent_module
         if self.account_linking_module.enabled:
             backends["account_linking"] = self.account_linking_module
+
+        self.module_router = ModuleRouter(frontends, backends)
 
         logger.info("Loading micro services...")
         self.request_micro_services = None

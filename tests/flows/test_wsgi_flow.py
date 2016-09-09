@@ -32,7 +32,7 @@ class TestProxy:
         # Fake response coming in to backend
         resp = test_client.get('/{}/response'.format("backend"), headers=[("Cookie", headers["Set-Cookie"])])
         assert resp.status == '200 OK'
-        assert json.loads(resp.data.decode('utf-8'))["foo"] == "bar"
+        assert resp.data.decode('utf-8') == "Auth response received, passed to test frontend"
 
     def test_unknown_request_path(self, satosa_config_dict):
         test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), BaseResponse)
