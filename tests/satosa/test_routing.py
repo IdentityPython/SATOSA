@@ -21,8 +21,8 @@ class TestModuleRouter:
 
         request_micro_service_name = "RequestService"
         response_micro_service_name = "ResponseService"
-        microservices = [TestRequestMicroservice(request_micro_service_name),
-                         TestResponseMicroservice(response_micro_service_name)]
+        microservices = [TestRequestMicroservice(request_micro_service_name, base_url="https://satosa.example.com"),
+                         TestResponseMicroservice(response_micro_service_name, base_url="https://satosa.example.com")]
 
         self.router = ModuleRouter(frontends, backends, microservices)
 

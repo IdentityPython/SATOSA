@@ -11,8 +11,9 @@ class MicroService(object):
     Abstract class for micro services
     """
 
-    def __init__(self, name, **kwargs):
+    def __init__(self, name, base_url, **kwargs):
         self.name = name
+        self.base_url = base_url
         self.next = None
 
     def process(self, context, data):

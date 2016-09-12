@@ -5,12 +5,13 @@ import json
 import logging
 from uuid import uuid4
 
-from .account_linking import AccountLinkingModule
 from .consent import ConsentModule
 from .context import Context
+from .exception import SATOSAConfigurationError
 from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
 from .internal_data import UserIdHasher
 from .logging_util import satosa_logging
+from .micro_services.account_linking import AccountLinking
 from .plugin_loader import load_backends, load_frontends
 from .plugin_loader import load_request_microservices, load_response_microservices
 from .routing import ModuleRouter, SATOSANoBoundEndpointError
@@ -43,24 +44,26 @@ class SATOSABase(object):
                                    self.config["INTERNAL_ATTRIBUTES"])
 
         self.consent_module = ConsentModule(config, self._consent_resp_callback_func)
-        self.account_linking_module = AccountLinkingModule(config, self._account_linking_callback_func)
+
+        self.response_micro_services = []
+        self.request_micro_services = []
         if self.consent_module.enabled:
             backends["consent"] = self.consent_module
-        if self.account_linking_module.enabled:
-            backends["account_linking"] = self.account_linking_module
 
         logger.info("Loading micro services...")
-        self.request_micro_services = []
-        self.response_micro_services = []
         if "MICRO_SERVICES" in self.config:
-            self.request_micro_services = load_request_microservices(self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
-                                                                     self.config["MICRO_SERVICES"],
-                                                                     self.config["INTERNAL_ATTRIBUTES"])
+            self.request_micro_services.extend(load_request_microservices(self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
+                                                                          self.config["MICRO_SERVICES"],
+                                                                          self.config["INTERNAL_ATTRIBUTES"],
+                                                                          self.config["BASE"]))
             self._link_micro_services(self.request_micro_services, self._auth_req_finish)
 
-            self.response_micro_services = load_response_microservices(self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
-                                                                       self.config["MICRO_SERVICES"],
-                                                                       self.config["INTERNAL_ATTRIBUTES"])
+            self.response_micro_services.extend(
+                load_response_microservices(self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
+                                            self.config["MICRO_SERVICES"],
+                                            self.config["INTERNAL_ATTRIBUTES"],
+                                            self.config["BASE"]))
+            self._verify_response_micro_services(self.response_micro_services)
             self._link_micro_services(self.response_micro_services, self._auth_resp_finish)
 
         self.module_router = ModuleRouter(frontends, backends,
@@ -74,6 +77,12 @@ class SATOSABase(object):
             micro_services[i].next = micro_services[i + 1].process
 
         micro_services[-1].next = finisher
+
+    def _verify_response_micro_services(self, response_micro_services):
+        account_linking_index = next((i for i in range(len(response_micro_services))
+                                      if isinstance(response_micro_services[i], AccountLinking)), -1)
+        if account_linking_index > 0:
+            raise SATOSAConfigurationError("Account linking must be configured first in the list of micro services")
 
     def _auth_req_callback_func(self, context, internal_request):
         """
@@ -105,8 +114,28 @@ class SATOSABase(object):
         backend = self.module_router.backend_routing(context)
         return backend.start_auth(context, internal_request)
 
-    def _auth_resp_finish(self, context, internal_request):
-        return self.account_linking_module.manage_al(context, internal_request)
+    def _auth_resp_finish(self, context, internal_response):
+        # re-hash user id since e.g. account linking micro service might have changed it
+        user_id = UserIdHasher.hash_id(self.config["USER_ID_HASH_SALT"],
+                                       internal_response.user_id,
+                                       internal_response.requester,
+                                       context.state)
+        internal_response.user_id = user_id
+        internal_response.user_id_hash_type = UserIdHasher.hash_type(context.state)
+        user_id_to_attr = self.config["INTERNAL_ATTRIBUTES"].get("user_id_to_attr", None)
+        if user_id_to_attr:
+            internal_response.attributes[user_id_to_attr] = internal_response.user_id
+
+        # Hash all attributes specified in INTERNAL_ATTRIBUTES["hash]
+        hash_attributes = self.config["INTERNAL_ATTRIBUTES"].get("hash", [])
+        internal_attributes = internal_response.attributes
+        for attribute in hash_attributes:
+            # hash all attribute values individually
+            hashed_values = [UserIdHasher.hash_data(self.config["USER_ID_HASH_SALT"], v)
+                             for v in internal_attributes[attribute]]
+            internal_attributes[attribute] = hashed_values
+
+        return self.consent_module.manage_consent(context, internal_response)
 
     def _auth_resp_callback_func(self, context, internal_response):
         """
@@ -135,39 +164,6 @@ class SATOSABase(object):
             return self.response_micro_services[0].process(context, internal_response)
 
         return self._auth_resp_finish(context, internal_response)
-
-    def _account_linking_callback_func(self, context, internal_response):
-        """
-        This function is called by the account linking module when the linking step is done
-
-        :type context: satosa.context.Context
-        :type internal_response: satosa.internal_data.InternalResponse
-        :rtype: satosa.response.Response
-
-        :param context: The response context
-        :param internal_response: The authentication response
-        :return: response
-        """
-        user_id = UserIdHasher.hash_id(self.config["USER_ID_HASH_SALT"],
-                                       internal_response.user_id,
-                                       internal_response.requester,
-                                       context.state)
-        internal_response.user_id = user_id
-        internal_response.user_id_hash_type = UserIdHasher.hash_type(context.state)
-        user_id_to_attr = self.config["INTERNAL_ATTRIBUTES"].get("user_id_to_attr", None)
-        if user_id_to_attr:
-            internal_response.attributes[user_id_to_attr] = internal_response.user_id
-
-        # Hash all attributes specified in INTERNAL_ATTRIBUTES["hash]
-        hash_attributes = self.config["INTERNAL_ATTRIBUTES"].get("hash", [])
-        internal_attributes = internal_response.attributes
-        for attribute in hash_attributes:
-            # hash all attribute values individually
-            hashed_values = [UserIdHasher.hash_data(self.config["USER_ID_HASH_SALT"], v)
-                             for v in internal_attributes[attribute]]
-            internal_attributes[attribute] = hashed_values
-
-        return self.consent_module.manage_consent(context, internal_response)
 
     def _consent_resp_callback_func(self, context, internal_response):
         """

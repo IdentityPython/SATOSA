@@ -8,39 +8,33 @@ import requests
 from jwkest.jwk import rsa_load, RSAKey
 from jwkest.jws import JWS
 
-from .exception import SATOSAAuthenticationError
-from .internal_data import InternalResponse
-from .logging_util import satosa_logging
-from .response import Redirect
+from ..exception import SATOSAAuthenticationError
+from ..internal_data import InternalResponse
+from ..logging_util import satosa_logging
+from ..micro_services.base import ResponseMicroService
+from ..response import Redirect
 
 logger = logging.getLogger(__name__)
 
 STATE_KEY = "ACCOUNT_LINKING"
 
 
-class AccountLinkingModule(object):
+class AccountLinking(ResponseMicroService):
     """
     Module for handling account linking and recovery. Uses an external account linking service
     """
 
-    def __init__(self, config, callback_func):
+    def __init__(self, config, *args, **kwargs):
         """
         :type config: satosa.satosa_config.SATOSAConfig
-        :type callback_func:
-        (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
-
         :param config: The SATOSA proxy config
-        :param callback_func: Callback function when the linking is done
         """
-        self.name = "account_linking"
-        self.callback_func = callback_func
-        self.enabled = "ACCOUNT_LINKING" in config and \
-                       ("enable" not in config["ACCOUNT_LINKING"] or config["ACCOUNT_LINKING"]["enable"])
+        super().__init__(*args, **kwargs)
+        self.enabled = "enable" not in config or config["enable"]
         if self.enabled:
-            self.proxy_base = config["BASE"]
-            self.api_url = config["ACCOUNT_LINKING"]["api_url"]
-            self.redirect_url = config["ACCOUNT_LINKING"]["redirect_url"]
-            self.signing_key = RSAKey(key=rsa_load(config["ACCOUNT_LINKING"]["sign_key"]), use="sig", alg="RS256")
+            self.api_url = config["api_url"]
+            self.redirect_url = config["redirect_url"]
+            self.signing_key = RSAKey(key=rsa_load(config["sign_key"]), use="sig", alg="RS256")
             self.endpoint = "/handle_account_linking"
             logger.info("Account linking is active")
         else:
@@ -65,11 +59,11 @@ class AccountLinkingModule(object):
                            context.state)
             internal_response.user_id = message
             del context.state[STATE_KEY]
-            return self.callback_func(context, internal_response)
+            return super().process(context, internal_response)
         else:
             raise SATOSAAuthenticationError(context.state, "Could not link account for user")
 
-    def manage_al(self, context, internal_response):
+    def process(self, context, internal_response):
         """
         Manage account linking and recovery
 
@@ -83,7 +77,7 @@ class AccountLinkingModule(object):
         """
 
         if not self.enabled:
-            return self.callback_func(context, internal_response)
+            return context, internal_response
 
         status_code, message = self._get_uuid(context, internal_response.auth_info.issuer, internal_response.user_id)
 
@@ -95,7 +89,7 @@ class AccountLinkingModule(object):
                 del context.state[STATE_KEY]
             except KeyError:
                 pass
-            return self.callback_func(context, internal_response)
+            return context, internal_response
 
         return self._approve_new_id(context, internal_response, message)
 
@@ -138,7 +132,7 @@ class AccountLinkingModule(object):
         data = {
             "idp": issuer,
             "id": id,
-            "redirect_endpoint": "%s/account_linking%s" % (self.proxy_base, self.endpoint)
+            "redirect_endpoint": "%s/account_linking%s" % (self.base_url, self.endpoint)
         }
         jws = JWS(json.dumps(data), alg=self.signing_key.alg).sign_compact([self.signing_key])
 

@@ -209,7 +209,7 @@ def _load_microservice(plugin_config, plugin_filter):
     return _load_plugin_module(plugin_config, plugin_filter)
 
 
-def _load_microservices(plugin_paths, plugins, plugin_filter, internal_attributes):
+def _load_microservices(plugin_paths, plugins, plugin_filter, internal_attributes, base_url):
     loaded_plugin_modules = []
     with prepend_to_import_path(plugin_paths):
         for plugin_config in plugins:
@@ -220,7 +220,7 @@ def _load_microservices(plugin_paths, plugins, plugin_filter, internal_attribute
 
             if module_class:
                 instance = module_class(internal_attributes=internal_attributes, config=plugin_config.get("config"),
-                                        name=plugin_config["name"])
+                                        name=plugin_config["name"], base_url=base_url)
                 loaded_plugin_modules.append(instance)
 
     return loaded_plugin_modules
@@ -237,37 +237,43 @@ def _replace_variables_in_plugin_module_config(module_config, base_url, name):
     return json.loads(config)
 
 
-def load_request_microservices(plugin_path, plugins, internal_attributes):
+def load_request_microservices(plugin_path, plugins, internal_attributes, base_url):
     """
     Loads request micro services (handling incoming requests).
 
     :type plugin_path: list[str]
     :type plugins: list[str]
     :type internal_attributes: dict[string, dict[str, str | list[str]]]
+    :type base_url: str
     :rtype satosa.micro_service.service_base.RequestMicroService
 
     :param plugin_path: Path to the plugin directory
     :param plugins: A list with the name of the plugin files
+    :param: base_url: base url of the SATOSA server
     :return: Request micro service
     """
-    request_services = _load_microservices(plugin_path, plugins, _request_micro_service_filter, internal_attributes)
+    request_services = _load_microservices(plugin_path, plugins, _request_micro_service_filter, internal_attributes,
+                                           base_url)
     logger.info("Loaded request micro services: %s" % [type(k).__name__ for k in request_services])
     return request_services
 
 
-def load_response_microservices(plugin_path, plugins, internal_attributes):
+def load_response_microservices(plugin_path, plugins, internal_attributes, base_url):
     """
     Loads response micro services (handling outgoing responses).
 
     :type plugin_path: list[str]
     :type plugins: list[str]
     :type internal_attributes: dict[string, dict[str, str | list[str]]]
+    :type base_url: str
     :rtype satosa.micro_service.service_base.ResponseMicroService
 
     :param plugin_path: Path to the plugin directory
     :param plugins: A list with the name of the plugin files
+    :param: base_url: base url of the SATOSA server
     :return: Response micro service
     """
-    response_services = _load_microservices(plugin_path, plugins, _response_micro_service_filter, internal_attributes)
+    response_services = _load_microservices(plugin_path, plugins, _response_micro_service_filter, internal_attributes,
+                                            base_url)
     logger.info("Loaded response micro services: %s" % [type(k).__name__ for k in response_services])
     return response_services

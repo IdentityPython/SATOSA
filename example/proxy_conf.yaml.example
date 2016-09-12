@@ -19,11 +19,6 @@ CONSENT:
   api_url: "https://127.0.0.1:8166"
   redirect_url: "https://localhost:8166/consent"
   sign_key: "pki/mykey.pem"
-ACCOUNT_LINKING:
-  enable: Yes
-  api_url: "https://localhost:8167"
-  redirect_url: "https://localhost:8167/approve"
-  sign_key: "pki/account_linking.key"
 LOGGING:
   version: 1
   formatters:

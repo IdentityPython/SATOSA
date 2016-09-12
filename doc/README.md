@@ -45,7 +45,6 @@ in the [example directory](../example).
 | `MICRO_SERVICES` | string[] | `[statistics_service.yaml]` | list of plugin configuration file paths, describing enabled microservices |
 | `USER_ID_HASH_SALT` | string | `61a89d2db0b9e1e2` | salt used when creating the persistent user identifier, will be overriden by the environment variable `SATOSA_USER_ID_HASH_SALT` if it is set |
 | `CONSENT` | dict | see configuration of [Additional Services](#additional-services) | optional configuration of consent service |
-| `ACCOUNT_LINKING` | dict | see configuration of [Additional Services](#additional-services) | optional configuration of account linking service |
 | `LOGGING` | dict | see [Python logging.conf](https://docs.python.org/3/library/logging.config.html) | optional configuration of application logging |
 
 
@@ -57,8 +56,8 @@ in the [example directory](../example).
 | `redirect_url` | string | `https://localhost/redirect` | url to the endpoint where the user should be redirected for necessary interaction |
 | `sign_key`| string | `pki/consent.key` | path to key used for signing the requests to the service |
 
-If using the [CMService](https://github.com/its-dirg/CMservice) for consent management and the [ALService](https://github.com/its-dirg/ALservice) for account linking, the `redirect` parameter should be `https://<host>/consent` and `https://<host>/approve` in the respective configuration entry.
-
+If using the [CMService](https://github.com/its-dirg/CMservice) for consent management,
+the `redirect_url` parameter should be `https://<host>/consent`.
 
 ## <a name="attr_map" style="color:#000000">Attribute mapping configuration:</a> `internal_attributes.yaml`
 
@@ -476,6 +475,16 @@ rules:
         allow: ["*"]
         deny: ["requester1"]
 ```
+
+#### Account linking
+
+To allow account linking (multiple accounts at possibly different target providers are linked together as belonging to
+the same user), an external service can be used. See the [example config](../example/plugins/microservices/account_linking.yaml.example)
+which is intended to work with the [ALService](https://github.com/its-dirg/ALservice) (or any other service providing
+the same REST API).
+
+This micro service must be the first in the list of configured micro services in the `proxy_conf.yaml` to ensure
+correct functionality.
 
 ### Custom plugins
 

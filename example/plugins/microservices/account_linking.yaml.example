@@ -1,0 +1,7 @@
+module: satosa.micro_services.account_linking.AccountLinking
+name: AccountLinking
+config:
+  enable: Yes
+  api_url: "https://localhost:8167"
+  redirect_url: "https://localhost:8167/approve"
+  sign_key: "pki/account_linking.key"
