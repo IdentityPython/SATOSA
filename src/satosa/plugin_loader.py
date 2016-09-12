@@ -219,7 +219,8 @@ def _load_microservices(plugin_paths, plugins, plugin_filter, internal_attribute
                 raise SATOSAConfigurationError("Configuration error in {}".format(json.dumps(plugin_config))) from e
 
             if module_class:
-                instance = module_class(internal_attributes=internal_attributes, config=plugin_config.get("config"))
+                instance = module_class(internal_attributes=internal_attributes, config=plugin_config.get("config"),
+                                        name=plugin_config["name"])
                 loaded_plugin_modules.append(instance)
 
     return loaded_plugin_modules

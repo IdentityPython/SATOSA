@@ -10,6 +10,9 @@ logger = logging.getLogger(__name__)
 
 
 class MicroService(object):
+    def __init__(self, name, **kwargs):
+        self.name = name
+
     """
     Abstract class for micro services
     """
@@ -28,13 +31,30 @@ class MicroService(object):
         """
         raise NotImplementedError
 
+    def register_endpoints(self):
+        """
+        URL mapping of additional endpoints this micro service needs to register for callbacks.
+
+        Example of a mapping from the url path '/callback' to the callback() method of a micro service:
+            reg_endp = [
+                ("^/callback1$", self.callback),
+            ]
+
+
+        :rtype List[Tuple[str, Callable[[satosa.context.Context, Any], satosa.response.Response]]]
+
+        :return: A list with functions and args bound to a specific endpoint url,
+                 [(regexp, Callable[[satosa.context.Context], satosa.response.Response]), ...]
+        """
+        return []
+
 
 class ResponseMicroService(MicroService):
     """
     Base class for response micro services
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         """
         Constructor.
 
@@ -43,7 +63,7 @@ class ResponseMicroService(MicroService):
             internal_attributes: attribute mapping between internal and external attribute names
             config: the microservice plugin configuration, defined under the 'config' key in the config file
         """
-        super().__init__()
+        super().__init__(*args, **kwargs)
 
     def process(self, context, data):
         """
@@ -60,7 +80,7 @@ class RequestMicroService(MicroService):
     Base class for request micro services
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         """
         Constructor.
 
@@ -69,7 +89,7 @@ class RequestMicroService(MicroService):
             internal_attributes: attribute mapping between internal and external attribute names
             config: the microservice plugin configuration, defined under the 'config' key in the config file
         """
-        super().__init__()
+        super().__init__(*args, **kwargs)
 
     def process(self, context, data):
         """

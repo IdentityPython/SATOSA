@@ -390,10 +390,28 @@ class TestFrontend(FrontendModule):
 
 
 class TestRequestMicroservice(RequestMicroService):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def process(self, context, data):
         return data
+
+    def register_endpoints(self):
+        return [("^request_microservice/callback$", self.callback)]
+
+    def callback(self):
+        pass
 
 
 class TestResponseMicroservice(ResponseMicroService):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def process(self, context, data):
         return data
+
+    def register_endpoints(self):
+        return [("^response_microservice/callback$", self.callback)]
+
+    def callback(self):
+        pass

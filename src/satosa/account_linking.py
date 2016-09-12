@@ -32,6 +32,7 @@ class AccountLinkingModule(object):
         :param config: The SATOSA proxy config
         :param callback_func: Callback function when the linking is done
         """
+        self.name = "account_linking"
         self.callback_func = callback_func
         self.enabled = "ACCOUNT_LINKING" in config and \
                        ("enable" not in config["ACCOUNT_LINKING"] or config["ACCOUNT_LINKING"]["enable"])

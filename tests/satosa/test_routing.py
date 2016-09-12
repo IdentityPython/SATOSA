@@ -1,8 +1,8 @@
 import pytest
 
 from satosa.context import Context
-from satosa.routing import ModuleRouter
-from tests.util import TestBackend, TestFrontend
+from satosa.routing import ModuleRouter, SATOSANoBoundEndpointError
+from tests.util import TestBackend, TestFrontend, TestRequestMicroservice, TestResponseMicroservice
 
 FRONTEND_NAMES = ["Saml2IDP", "VOPaaSSaml2IDP"]
 BACKEND_NAMES = ["Saml2SP", "VOPaaSSaml2SP"]
@@ -19,7 +19,12 @@ class TestModuleRouter:
         for receiver in FRONTEND_NAMES:
             frontends[receiver] = TestFrontend(None, {"attributes": {}}, None, None, receiver)
 
-        self.router = ModuleRouter(frontends, backends)
+        request_micro_service_name = "RequestService"
+        response_micro_service_name = "ResponseService"
+        microservices = [TestRequestMicroservice(request_micro_service_name),
+                         TestResponseMicroservice(response_micro_service_name)]
+
+        self.router = ModuleRouter(frontends, backends, microservices)
 
     @pytest.mark.parametrize('url_path, expected_frontend, expected_backend', [
         ("%s/%s/request" % (provider, receiver), receiver, provider)
@@ -43,6 +48,19 @@ class TestModuleRouter:
         assert context.target_backend == expected_backend
         assert context.target_frontend is None
 
+    @pytest.mark.parametrize('url_path, expected_micro_service', [
+        ("request_microservice/callback", "RequestService"),
+        ("response_microservice/callback", "ResponseService")
+    ])
+    def test_endpoint_routing_to_microservice(self, url_path, expected_micro_service):
+        context = Context()
+        context.path = url_path
+        microservice_callable = self.router.endpoint_routing(context)
+        assert context.target_micro_service == expected_micro_service
+        assert microservice_callable == self.router.micro_services[expected_micro_service]["instance"].callback
+        assert context.target_backend is None
+        assert context.target_frontend is None
+
     @pytest.mark.parametrize('url_path, expected_frontend, expected_backend', [
         ("%s/%s/request" % (provider, receiver), receiver, provider)
         for receiver in FRONTEND_NAMES
@@ -60,10 +78,15 @@ class TestModuleRouter:
         frontend = self.router.frontend_routing(context)
         assert frontend == self.router.frontends[expected_frontend]["instance"]
 
-    @pytest.mark.parametrize(("frontends", "backends"), [
-        (None, None),
-        ({}, {})
+    def test_endpoint_routing_with_unknown_endpoint(self, context):
+        context.path = "unknown"
+        with pytest.raises(SATOSANoBoundEndpointError):
+            self.router.endpoint_routing(context)
+
+    @pytest.mark.parametrize(("frontends", "backends", "micro_services"), [
+        (None, None, {}),
+        ({}, {}, {}),
     ])
-    def test_bad_init(self, frontends, backends):
+    def test_bad_init(self, frontends, backends, micro_services):
         with pytest.raises(ValueError):
-            ModuleRouter(frontends, backends)
+            ModuleRouter(frontends, backends, micro_services)

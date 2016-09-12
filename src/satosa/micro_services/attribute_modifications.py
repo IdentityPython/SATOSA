@@ -8,8 +8,8 @@ class AddStaticAttributes(ResponseMicroService):
     Add static attributes to the responses.
     """
 
-    def __init__(self, config, **kwargs):
-        super().__init__()
+    def __init__(self, config, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.static_attributes = config["static_attributes"]
 
     def process(self, context, data):
@@ -22,8 +22,8 @@ class FilterAttributeValues(ResponseMicroService):
     Filter attribute values, only preserving those matching the given regex.
     """
 
-    def __init__(self, config, **kwargs):
-        super().__init__()
+    def __init__(self, config, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.attribute_filters = config["attribute_filters"]
 
     def process(self, context, data):

@@ -21,6 +21,7 @@ class Context(object):
         self.request = None
         self.target_backend = None
         self.target_frontend = None
+        self.target_micro_service = None
         # This dict is a data carrier between frontend and backend modules.
         self.internal_data = {}
         self.cookie = None

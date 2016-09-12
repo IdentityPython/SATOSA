@@ -50,11 +50,9 @@ class SATOSABase(object):
         if self.account_linking_module.enabled:
             backends["account_linking"] = self.account_linking_module
 
-        self.module_router = ModuleRouter(frontends, backends)
-
         logger.info("Loading micro services...")
-        self.request_micro_services = None
-        self.response_micro_services = None
+        self.request_micro_services = []
+        self.response_micro_services = []
         if "MICRO_SERVICES" in self.config:
             self.request_micro_services = load_request_microservices(self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
                                                                      self.config["MICRO_SERVICES"],
@@ -62,6 +60,9 @@ class SATOSABase(object):
             self.response_micro_services = load_response_microservices(self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
                                                                        self.config["MICRO_SERVICES"],
                                                                        self.config["INTERNAL_ATTRIBUTES"])
+
+        self.module_router = ModuleRouter(frontends, backends,
+                                          self.request_micro_services + self.response_micro_services)
 
     def _auth_req_callback_func(self, context, internal_request):
         """

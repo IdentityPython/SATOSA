@@ -13,14 +13,14 @@ class DecideBackendByRequester(RequestMicroService):
     Select which backend should be used based on who the requester is.
     """
 
-    def __init__(self, config, **kwargs):
+    def __init__(self, config, *args, **kwargs):
         """
         Constructor.
         :param config: mapping from requester identifier to
         backend module name under the key 'requester_mapping'
         :type config: Dict[str, Dict[str, str]]
         """
-        super().__init__()
+        super().__init__(*args, **kwargs)
         self.requester_mapping = config['requester_mapping']
 
     def process(self, context, data):
@@ -38,8 +38,8 @@ class DecideIfRequesterIsAllowed(RequestMicroService):
 
     This micro service currently only works with `SAMLMirrorFrontend`.
     """
-    def __init__(self, config, **kwargs):
-        super().__init__()
+    def __init__(self, config, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         for target_entity, rules in config["rules"].items():
             conflicting_rules = set(rules.get("deny", [])).intersection(rules.get("allow", []))
