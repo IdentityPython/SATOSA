@@ -26,7 +26,7 @@ class TestModuleRouter:
         for receiver in FRONTEND_NAMES
         for provider in BACKEND_NAMES
         ])
-    def test_url_routing_frontend(self, url_path, expected_frontend, expected_backend):
+    def test_endpoint_routing_to_frontend(self, url_path, expected_frontend, expected_backend):
         context = Context()
         context.path = url_path
         self.router.endpoint_routing(context)
@@ -36,7 +36,7 @@ class TestModuleRouter:
     @pytest.mark.parametrize('url_path, expected_backend', [
         ("%s/response" % (provider,), provider) for provider in BACKEND_NAMES
         ])
-    def test_url_routing_backend(self, url_path, expected_backend):
+    def test_endpoint_routing_to_backend(self, url_path, expected_backend):
         context = Context()
         context.path = url_path
         self.router.endpoint_routing(context)
