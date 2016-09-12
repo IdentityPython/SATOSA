@@ -148,7 +148,7 @@ class ConsentModule(object):
         try:
             # Check if consent is already given
             consent_attributes = self._verify_consent(id_hash)
-        except ConnectionError:
+        except requests.exceptions.ConnectionError as e:
             satosa_logging(logger, logging.ERROR,
                            "Consent service is not reachable, no consent given.", context.state)
             # Send an internal_response without any attributes
