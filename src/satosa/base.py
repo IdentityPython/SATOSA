@@ -44,8 +44,7 @@ class SATOSABase(object):
                                    self.config["INTERNAL_ATTRIBUTES"])
 
         self.consent_module = ConsentModule(config, self._consent_resp_callback_func)
-        self.account_linking_module = AccountLinkingModule(config,
-                                                           self._account_linking_callback_func)
+        self.account_linking_module = AccountLinkingModule(config, self._account_linking_callback_func)
         if self.consent_module.enabled:
             backends["consent"] = self.consent_module
         if self.account_linking_module.enabled:
