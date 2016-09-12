@@ -262,12 +262,13 @@ class TestCreateSignedEntitiesDescriptor:
 
     def test_valid_for(self, entity_desc, signature_security_context):
         valid_for = 4  # metadata valid for 4 hours
+        expected_validity = in_a_while(hours=valid_for)
         signed_metadata = create_signed_entities_descriptor([entity_desc], signature_security_context,
                                                             valid_for=valid_for)
 
         md = InMemoryMetaData(None)
         md.parse(signed_metadata)
-        assert md.entities_descr.valid_until == in_a_while(hours=valid_for)
+        assert md.entities_descr.valid_until == expected_validity
 
 
 class TestCreateSignedEntityDescriptor:
@@ -299,9 +300,10 @@ class TestCreateSignedEntityDescriptor:
 
     def test_valid_for(self, entity_desc, signature_security_context):
         valid_for = 4  # metadata valid for 4 hours
+        expected_validity = in_a_while(hours=valid_for)
         signed_metadata = create_signed_entity_descriptor(entity_desc, signature_security_context,
                                                           valid_for=valid_for)
 
         md = InMemoryMetaData(None)
         md.parse(signed_metadata)
-        assert md.entity_descr.valid_until == in_a_while(hours=valid_for)
+        assert md.entity_descr.valid_until == expected_validity
