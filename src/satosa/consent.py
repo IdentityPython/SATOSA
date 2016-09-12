@@ -31,6 +31,7 @@ class ConsentModule(object):
     """
 
     def __init__(self, config, callback_func):
+        self.name = "consent"
         self.callback_func = callback_func
         self.enabled = "CONSENT" in config and \
                        ("enable" not in config["CONSENT"] or config["CONSENT"]["enable"])
