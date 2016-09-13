@@ -11,7 +11,6 @@ from .context import Context
 from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
 from .internal_data import UserIdHasher
 from .logging_util import satosa_logging
-from .micro_services.base import process_microservice_queue
 from .plugin_loader import load_backends, load_frontends
 from .plugin_loader import load_request_microservices, load_response_microservices
 from .routing import ModuleRouter, SATOSANoBoundEndpointError
@@ -57,12 +56,24 @@ class SATOSABase(object):
             self.request_micro_services = load_request_microservices(self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
                                                                      self.config["MICRO_SERVICES"],
                                                                      self.config["INTERNAL_ATTRIBUTES"])
+            self._link_micro_services(self.request_micro_services, self._auth_req_finish)
+
             self.response_micro_services = load_response_microservices(self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
                                                                        self.config["MICRO_SERVICES"],
                                                                        self.config["INTERNAL_ATTRIBUTES"])
+            self._link_micro_services(self.response_micro_services, self._auth_resp_finish)
 
         self.module_router = ModuleRouter(frontends, backends,
                                           self.request_micro_services + self.response_micro_services)
+
+    def _link_micro_services(self, micro_services, finisher):
+        if not micro_services:
+            return
+
+        for i in range(len(micro_services) - 1):
+            micro_services[i].next = micro_services[i + 1].process
+
+        micro_services[-1].next = finisher
 
     def _auth_req_callback_func(self, context, internal_request):
         """
@@ -86,9 +97,16 @@ class SATOSABase(object):
         self.consent_module.save_state(internal_request, state)
         UserIdHasher.save_state(internal_request, state)
         if self.request_micro_services:
-            internal_request = process_microservice_queue(self.request_micro_services, context, internal_request)
+            return self.request_micro_services[0].process(context, internal_request)
+
+        return self._auth_req_finish(context, internal_request)
+
+    def _auth_req_finish(self, context, internal_request):
         backend = self.module_router.backend_routing(context)
         return backend.start_auth(context, internal_request)
+
+    def _auth_resp_finish(self, context, internal_request):
+        return self.account_linking_module.manage_al(context, internal_request)
 
     def _auth_resp_callback_func(self, context, internal_response):
         """
@@ -114,8 +132,9 @@ class SATOSABase(object):
         internal_response.user_id = user_id
 
         if self.response_micro_services:
-            internal_response = process_microservice_queue(self.response_micro_services, context, internal_response)
-        return self.account_linking_module.manage_al(context, internal_response)
+            return self.response_micro_services[0].process(context, internal_response)
+
+        return self._auth_resp_finish(context, internal_response)
 
     def _account_linking_callback_func(self, context, internal_response):
         """
