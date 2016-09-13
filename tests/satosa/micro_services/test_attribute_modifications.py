@@ -4,7 +4,8 @@ from satosa.micro_services.attribute_modifications import FilterAttributeValues
 
 class TestFilterAttributeValues:
     def create_filter_service(self, attribute_filters):
-        filter_service = FilterAttributeValues(config=dict(attribute_filters=attribute_filters), name="test_filter")
+        filter_service = FilterAttributeValues(config=dict(attribute_filters=attribute_filters), name="test_filter",
+                                               base_url="https://satosa.example.com")
         filter_service.next = lambda ctx, data: data
         return filter_service
 

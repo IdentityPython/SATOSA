@@ -333,6 +333,20 @@ def oidc_backend_config():
 
     return data
 
+@pytest.fixture
+def account_linking_module_config(signing_key_path):
+    account_linking_config = {
+        "module": "satosa.micro_services.account_linking.AccountLinking",
+        "name": "AccountLinking",
+        "config": {
+            "api_url": "http://account.example.com/api",
+            "redirect_url": "http://account.example.com/redirect",
+            "sign_key": signing_key_path,
+        }
+    }
+    return account_linking_config
+
+
 
 import atexit
 import random

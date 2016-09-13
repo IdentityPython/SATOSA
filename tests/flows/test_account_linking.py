@@ -7,15 +7,12 @@ from satosa.satosa_config import SATOSAConfig
 
 
 class TestAccountLinking:
-    def test_full_flow(self, satosa_config_dict, signing_key_path):
+    def test_full_flow(self, satosa_config_dict, account_linking_module_config):
         api_url = "https://alservice.example.com/api"
         redirect_url = "https://alservice.examle.com/redirect"
-        satosa_config_dict["ACCOUNT_LINKING"] = {
-            "enable": True,
-            "api_url": api_url,
-            "redirect_url": redirect_url,
-            "sign_key": signing_key_path
-        }
+        account_linking_module_config["config"]["api_url"] = api_url
+        account_linking_module_config["config"]["redirect_url"] = redirect_url
+        satosa_config_dict["MICRO_SERVICES"].insert(0, account_linking_module_config)
 
         # application
         test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), BaseResponse)

@@ -5,6 +5,7 @@ import pytest
 
 import satosa
 from satosa.base import SATOSABase
+from satosa.exception import SATOSAConfigurationError
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHasher, InternalRequest, \
     UserIdHashType
 from satosa.satosa_config import SATOSAConfig
@@ -22,31 +23,25 @@ class TestSATOSABase:
         return consent_config
 
     @pytest.fixture
-    def accoung_linking_module_config(self, signing_key_path):
-        account_linking_config = {
-            "api_url": "http://account.example.com/api",
-            "redirect_url": "http://account.example.com/redirect",
-            "sign_key": signing_key_path,
-            "state_enc_key": "abc123",
-        }
-        return account_linking_config
-
-    @pytest.fixture
     def satosa_config(self, satosa_config_dict):
         return SATOSAConfig(satosa_config_dict)
 
-    def test_full_initialisation(self, satosa_config, consent_module_config, accoung_linking_module_config):
+    def test_full_initialisation(self, satosa_config, consent_module_config):
         satosa_config["CONSENT"] = consent_module_config
-        satosa_config["ACCOUNT_LINKING"] = accoung_linking_module_config
 
         base = SATOSABase(satosa_config)
         assert base.config == satosa_config
         assert base.consent_module
-        assert base.account_linking_module
         assert len(base.module_router.frontends) == 1
-        assert len(base.module_router.backends) == 3
+        assert len(base.module_router.backends) == 2
         assert len(base.request_micro_services) == 1
         assert len(base.response_micro_services) == 1
+
+    def test_constuctor_should_raise_exception_if_account_linking_is_not_first_in_micro_service_list(
+            self, satosa_config, account_linking_module_config):
+        satosa_config["MICRO_SERVICES"].append(account_linking_module_config)
+        with pytest.raises(SATOSAConfigurationError):
+            SATOSABase(satosa_config)
 
     def test_auth_resp_callback_func_user_id_from_attrs_is_used_to_override_user_id(self, context, satosa_config):
         satosa_config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"] = ["user_id", "domain"]
@@ -54,11 +49,19 @@ class TestSATOSABase:
 
         internal_resp = InternalResponse(AuthenticationInformation("", "", ""))
         internal_resp.attributes = {"user_id": ["user"], "domain": ["@example.com"]}
+        internal_resp.requester = "test_requester"
         context.state[satosa.base.STATE_KEY] = {"requester": "test_requester"}
-        base.account_linking_module = Mock()
+        context.state[satosa.routing.STATE_KEY] = satosa_config["FRONTEND_MODULES"][0]["name"]
+        UserIdHasher.save_state(InternalRequest(UserIdHashType.persistent, ""), context.state)
 
         base._auth_resp_callback_func(context, internal_resp)
-        assert internal_resp.user_id == UserIdHasher.hash_data(satosa_config["USER_ID_HASH_SALT"], "user@example.com")
+
+        expected_user_id = UserIdHasher.hash_data(satosa_config["USER_ID_HASH_SALT"], "user@example.com")
+        expected_user_id = UserIdHasher.hash_id(satosa_config["USER_ID_HASH_SALT"],
+                                                expected_user_id,
+                                                internal_resp.requester,
+                                                context.state)
+        assert internal_resp.user_id == expected_user_id
 
     def test_account_linking_callback_func_hashes_all_specified_attributes(self, context, satosa_config):
         satosa_config["INTERNAL_ATTRIBUTES"]["hash"] = ["user_id", "mail"]
@@ -67,10 +70,12 @@ class TestSATOSABase:
         attributes = {"user_id": ["user"], "mail": ["user@example.com", "user@otherdomain.com"]}
         internal_resp = InternalResponse(AuthenticationInformation("", "", ""))
         internal_resp.attributes = copy.copy(attributes)
+        internal_resp.user_id = "test_user"
         UserIdHasher.save_state(InternalRequest(UserIdHashType.transient, ""), context.state)
+        context.state[satosa.base.STATE_KEY] = {"requester": "test_requester"}
+        context.state[satosa.routing.STATE_KEY] = satosa_config["FRONTEND_MODULES"][0]["name"]
 
-        base.consent_module = Mock()
-        base._account_linking_callback_func(context, internal_resp)
+        base._auth_resp_callback_func(context, internal_resp)
         for attr in satosa_config["INTERNAL_ATTRIBUTES"]["hash"]:
             assert internal_resp.attributes[attr] == [UserIdHasher.hash_data(satosa_config["USER_ID_HASH_SALT"], v)
                                                       for v in attributes[attr]]
@@ -81,10 +86,11 @@ class TestSATOSABase:
 
         internal_resp = InternalResponse(AuthenticationInformation("", "", ""))
         internal_resp.user_id = "user1234"
+        context.state[satosa.base.STATE_KEY] = {"requester": "test_requester"}
+        context.state[satosa.routing.STATE_KEY] = satosa_config["FRONTEND_MODULES"][0]["name"]
         UserIdHasher.save_state(InternalRequest(UserIdHashType.transient, ""), context.state)
 
-        base.consent_module = Mock()
-        base._account_linking_callback_func(context, internal_resp)
+        base._auth_resp_callback_func(context, internal_resp)
         assert internal_resp.attributes["user_id"] == internal_resp.user_id
 
     @pytest.mark.parametrize("micro_services", [
