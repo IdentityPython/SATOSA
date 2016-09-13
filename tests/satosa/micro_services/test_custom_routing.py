@@ -17,7 +17,9 @@ def target_context(context):
 
 class TestDecideIfRequesterIsAllowed:
     def create_decide_service(self, rules):
-        return DecideIfRequesterIsAllowed(config=dict(rules=rules), name="test_decide_service")
+        decide_service = DecideIfRequesterIsAllowed(config=dict(rules=rules), name="test_decide_service")
+        decide_service.next = lambda ctx, data: data
+        return decide_service
 
     def test_allow_one_requester(self, target_context):
         rules = {

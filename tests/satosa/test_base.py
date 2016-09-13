@@ -86,3 +86,27 @@ class TestSATOSABase:
         base.consent_module = Mock()
         base._account_linking_callback_func(context, internal_resp)
         assert internal_resp.attributes["user_id"] == internal_resp.user_id
+
+    @pytest.mark.parametrize("micro_services", [
+        [Mock()],
+        [Mock(), Mock()],
+        [Mock(), Mock(), Mock()],
+    ])
+    def test_link_micro_services(self, satosa_config, micro_services):
+        base = SATOSABase(satosa_config)
+        finish_callable = Mock()
+        base._link_micro_services(micro_services, finish_callable)
+
+        for i in range(len(micro_services) - 1):
+            assert micro_services[i].next == micro_services[i + 1].process
+        assert micro_services[-1].next == finish_callable
+
+    @pytest.mark.parametrize("micro_services", [
+        [],
+        None
+    ])
+    def test_link_micro_services_with_invalid_input(self, satosa_config, micro_services):
+        base = SATOSABase(satosa_config)
+        finish_callable = Mock()
+        # should not raise exception
+        base._link_micro_services(micro_services, finish_callable)

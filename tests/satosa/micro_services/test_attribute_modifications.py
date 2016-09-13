@@ -5,6 +5,7 @@ from satosa.micro_services.attribute_modifications import FilterAttributeValues
 class TestFilterAttributeValues:
     def create_filter_service(self, attribute_filters):
         filter_service = FilterAttributeValues(config=dict(attribute_filters=attribute_filters), name="test_filter")
+        filter_service.next = lambda ctx, data: data
         return filter_service
 
     def test_filter_all_attributes_from_all_target_providers_for_all_requesters(self):
