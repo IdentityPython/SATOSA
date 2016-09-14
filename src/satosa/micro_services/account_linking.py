@@ -77,7 +77,7 @@ class AccountLinking(ResponseMicroService):
         """
 
         if not self.enabled:
-            return context, internal_response
+            return super().process(context, internal_response)
 
         status_code, message = self._get_uuid(context, internal_response.auth_info.issuer, internal_response.user_id)
 
@@ -89,7 +89,7 @@ class AccountLinking(ResponseMicroService):
                 del context.state[STATE_KEY]
             except KeyError:
                 pass
-            return context, internal_response
+            return super().process(context, internal_response)
 
         return self._approve_new_id(context, internal_response, message)
 

@@ -1,5 +1,6 @@
 import json
 import re
+from unittest.mock import Mock
 
 import pytest
 import requests
@@ -39,9 +40,11 @@ class TestAccountLinking():
         account_linking_config["enable"] = False
         account_linking = AccountLinking(account_linking_config, name="AccountLinking",
                                          base_url="https://satosa.example.com")
+        mock_next_callback = Mock()
+        account_linking.next = mock_next_callback
         assert account_linking.enabled is False
-        assert not hasattr(account_linking, "proxy_base")
-        assert account_linking.process(None, None)
+        account_linking.process(None, None)
+        assert mock_next_callback.called
 
     @responses.activate
     def test_existing_account_linking_with_known_known_uuid(self, account_linking_config, internal_response, context):
