@@ -177,7 +177,7 @@ def response_microservice_config():
     data = {
         "module": "util.TestResponseMicroservice",
         "name": "response-microservice",
-        "conf": {"qwe": "rty"}
+        "config": {"qwe": "rty"}
     }
     return data
 
@@ -333,6 +333,7 @@ def oidc_backend_config():
 
     return data
 
+
 @pytest.fixture
 def account_linking_module_config(signing_key_path):
     account_linking_config = {
@@ -346,6 +347,19 @@ def account_linking_module_config(signing_key_path):
     }
     return account_linking_config
 
+
+@pytest.fixture
+def consent_module_config(signing_key_path):
+    consent_config = {
+        "module": "satosa.micro_services.consent.Consent",
+        "name": "Consent",
+        "config": {
+            "api_url": "http://consent.example.com/api",
+            "redirect_url": "http://consent.example.com/redirect",
+            "sign_key": signing_key_path,
+        }
+    }
+    return consent_config
 
 
 import atexit

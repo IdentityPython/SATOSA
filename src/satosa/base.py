@@ -5,13 +5,14 @@ import json
 import logging
 from uuid import uuid4
 
-from .consent import ConsentModule
+from satosa.micro_services import consent
 from .context import Context
 from .exception import SATOSAConfigurationError
 from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
 from .internal_data import UserIdHasher
 from .logging_util import satosa_logging
 from .micro_services.account_linking import AccountLinking
+from .micro_services.consent import Consent
 from .plugin_loader import load_backends, load_frontends
 from .plugin_loader import load_request_microservices, load_response_microservices
 from .routing import ModuleRouter, SATOSANoBoundEndpointError
@@ -43,13 +44,8 @@ class SATOSABase(object):
         frontends = load_frontends(self.config, self._auth_req_callback_func,
                                    self.config["INTERNAL_ATTRIBUTES"])
 
-        self.consent_module = ConsentModule(config, self._consent_resp_callback_func)
-
         self.response_micro_services = []
         self.request_micro_services = []
-        if self.consent_module.enabled:
-            backends["consent"] = self.consent_module
-
         logger.info("Loading micro services...")
         if "MICRO_SERVICES" in self.config:
             self.request_micro_services.extend(load_request_microservices(self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
@@ -84,6 +80,11 @@ class SATOSABase(object):
         if account_linking_index > 0:
             raise SATOSAConfigurationError("Account linking must be configured first in the list of micro services")
 
+        consent_index = next((i for i in range(len(response_micro_services))
+                              if isinstance(response_micro_services[i], Consent)), -1)
+        if consent_index != -1 and consent_index < len(response_micro_services) - 1:
+            raise SATOSAConfigurationError("Consent must be configured last in the list of micro services")
+
     def _auth_req_callback_func(self, context, internal_request):
         """
         This function is called by a frontend module when an authorization request has been
@@ -100,10 +101,12 @@ class SATOSABase(object):
         """
         state = context.state
         state[STATE_KEY] = {"requester": internal_request.requester}
+        # TODO consent module should manage any state it needs by itself
+        context.state[consent.STATE_KEY] = {"filter": internal_request.approved_attributes or []}
         satosa_logging(logger, logging.INFO,
                        "Requesting provider: {}".format(internal_request.requester), state)
         context.request = None
-        self.consent_module.save_state(internal_request, state)
+
         UserIdHasher.save_state(internal_request, state)
         if self.request_micro_services:
             return self.request_micro_services[0].process(context, internal_request)
@@ -135,7 +138,11 @@ class SATOSABase(object):
                              for v in internal_attributes[attribute]]
             internal_attributes[attribute] = hashed_values
 
-        return self.consent_module.manage_consent(context, internal_response)
+        # remove all session state
+        context.request = None
+        context.state.delete = True
+        frontend = self.module_router.frontend_routing(context)
+        return frontend.handle_authn_response(context, internal_response)
 
     def _auth_resp_callback_func(self, context, internal_response):
         """
@@ -164,23 +171,6 @@ class SATOSABase(object):
             return self.response_micro_services[0].process(context, internal_response)
 
         return self._auth_resp_finish(context, internal_response)
-
-    def _consent_resp_callback_func(self, context, internal_response):
-        """
-        This function is called by the consent module when the consent step is done
-
-        :type context: satosa.context.Context
-        :type internal_response: satosa.internal_data.InternalResponse
-        :rtype: satosa.response.Response
-
-        :param context: The response context
-        :param internal_response: The authentication response
-        :return: response
-        """
-        context.request = None
-        context.state.delete = True
-        frontend = self.module_router.frontend_routing(context)
-        return frontend.handle_authn_response(context, internal_response)
 
     def _handle_satosa_authentication_error(self, error):
         """

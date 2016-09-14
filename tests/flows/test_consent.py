@@ -10,15 +10,12 @@ from satosa.satosa_config import SATOSAConfig
 
 
 class TestConsent:
-    def test_full_flow(self, satosa_config_dict, signing_key_path):
+    def test_full_flow(self, satosa_config_dict, consent_module_config):
         api_url = "https://consent.example.com/api"
         redirect_url = "https://consent.example.com/redirect"
-        satosa_config_dict["CONSENT"] = {
-            "enable": True,
-            "api_url": api_url,
-            "redirect_url": redirect_url,
-            "sign_key": signing_key_path
-        }
+        consent_module_config["config"]["api_url"] = api_url
+        consent_module_config["config"]["redirect_url"] = redirect_url
+        satosa_config_dict["MICRO_SERVICES"].append(consent_module_config)
 
         # application
         test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), BaseResponse)
