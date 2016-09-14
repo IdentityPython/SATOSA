@@ -44,23 +44,10 @@ in the [example directory](../example).
 | `FRONTEND_MODULES` | string[] | `[saml2_frontend.yaml, openid_connect_frontend.yaml]` | list of plugin configuration file paths, describing enabled frontends |
 | `MICRO_SERVICES` | string[] | `[statistics_service.yaml]` | list of plugin configuration file paths, describing enabled microservices |
 | `USER_ID_HASH_SALT` | string | `61a89d2db0b9e1e2` | salt used when creating the persistent user identifier, will be overriden by the environment variable `SATOSA_USER_ID_HASH_SALT` if it is set |
-| `CONSENT` | dict | see configuration of [Additional Services](#additional-services) | optional configuration of consent service |
 | `LOGGING` | dict | see [Python logging.conf](https://docs.python.org/3/library/logging.config.html) | optional configuration of application logging |
 
 
-### <a name="additional_service" style="color:#000000">Additional services</a>
-| Parameter name | Data type | Example value | Description |
-| -------------- | --------- | ------------- | ----------- |
-| `enable` | bool | `Yes` | whether the service should be used |
-| `api_url` | string | `https://localhost` | url to the REST endpoint of the service |
-| `redirect_url` | string | `https://localhost/redirect` | url to the endpoint where the user should be redirected for necessary interaction |
-| `sign_key`| string | `pki/consent.key` | path to key used for signing the requests to the service |
-
-If using the [CMService](https://github.com/its-dirg/CMservice) for consent management,
-the `redirect_url` parameter should be `https://<host>/consent`.
-
 ## <a name="attr_map" style="color:#000000">Attribute mapping configuration:</a> `internal_attributes.yaml`
-
 
 ### attributes
 The values directly under the `attributes` key are the internal attribute names.
@@ -484,6 +471,15 @@ which is intended to work with the [ALService](https://github.com/its-dirg/ALser
 the same REST API).
 
 This micro service must be the first in the list of configured micro services in the `proxy_conf.yaml` to ensure
+correct functionality.
+
+#### User consent management
+
+To handle user consent of released information, an external service can be used. See the [example config](../example/plugins/microservices/consent.yaml.example)
+which is intended to work with the [CMService](https://github.com/its-dirg/CMservice) (or any other service providing
+the same REST API).
+
+This micro service must be the last in the list of configured micro services in the `proxy_conf.yaml` to ensure
 correct functionality.
 
 ### Custom plugins

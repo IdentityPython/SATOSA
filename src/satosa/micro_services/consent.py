@@ -12,9 +12,10 @@ from jwkest.jwk import rsa_load
 from jwkest.jws import JWS
 from requests.exceptions import ConnectionError
 
-from .internal_data import InternalResponse
-from .logging_util import satosa_logging
-from .response import Redirect
+from ..internal_data import InternalResponse
+from ..logging_util import satosa_logging
+from ..micro_services.base import ResponseMicroService
+from ..response import Redirect
 
 logger = logging.getLogger(__name__)
 
@@ -25,45 +26,27 @@ class UnexpectedResponseError(Exception):
     pass
 
 
-class ConsentModule(object):
+class Consent(ResponseMicroService):
     """
     Module for handling consent. Uses an external consent service
     """
 
-    def __init__(self, config, callback_func):
+    def __init__(self, config, internal_attributes, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.name = "consent"
-        self.callback_func = callback_func
-        self.enabled = "CONSENT" in config and \
-                       ("enable" not in config["CONSENT"] or config["CONSENT"]["enable"])
+        self.enabled = ("enable" not in config or config["enable"])
         if self.enabled:
-            self.proxy_base = config["BASE"]
-            self.api_url = config["CONSENT"]["api_url"]
-            self.redirect_url = config["CONSENT"]["redirect_url"]
+            self.api_url = config["api_url"]
+            self.redirect_url = config["redirect_url"]
             self.locked_attr = None
-            if "user_id_to_attr" in config["INTERNAL_ATTRIBUTES"]:
-                self.locked_attr = config["INTERNAL_ATTRIBUTES"]["user_id_to_attr"]
+            if "user_id_to_attr" in internal_attributes:
+                self.locked_attr = internal_attributes["user_id_to_attr"]
 
-            self.signing_key = RSAKey(key=rsa_load(config["CONSENT"]["sign_key"]), use="sig", alg="RS256")
+            self.signing_key = RSAKey(key=rsa_load(config["sign_key"]), use="sig", alg="RS256")
             self.endpoint = "/handle_consent"
             logger.info("Consent flow is active")
         else:
             logger.info("Consent flow is not active")
-
-    def save_state(self, internal_request, state):
-        """
-        Save stuff needed by the consent module when getting an internal response
-
-        :type internal_request: satosa.internal_data.InternalRequest
-        :type state: satosa.state.State
-        :rtype: None
-
-        :param internal_request: The current request
-        :param state: the current state
-        :return: None
-        """
-        if self.enabled:
-            state[STATE_KEY] = {"filter": internal_request.approved_attributes or [],
-                                "requester_name": internal_request.requester_name}
 
     def _handle_consent_response(self, context):
         """
@@ -107,7 +90,7 @@ class ConsentModule(object):
         consent_args = {
             "attr": internal_response.attributes,
             "id": id_hash,
-            "redirect_endpoint": "%s/consent%s" % (self.proxy_base, self.endpoint),
+            "redirect_endpoint": "%s/consent%s" % (self.base_url, self.endpoint),
             "requester_name": internal_response.requester
         }
         if self.locked_attr:
@@ -125,7 +108,7 @@ class ConsentModule(object):
         consent_redirect = "%s?ticket=%s" % (self.redirect_url, ticket)
         return Redirect(consent_redirect)
 
-    def manage_consent(self, context, internal_response):
+    def process(self, context, internal_response):
         """
         Manage consent and attribute filtering
 
@@ -138,7 +121,7 @@ class ConsentModule(object):
         :return: response
         """
         if not self.enabled:
-            return self.callback_func(context, internal_response)
+            return super().process(context, internal_response)
 
         consent_state = context.state[STATE_KEY]
 
@@ -241,7 +224,7 @@ class ConsentModule(object):
         :return: response
         """
         del context.state[STATE_KEY]
-        return self.callback_func(context, internal_response)
+        return super().process(context, internal_response)
 
     def register_endpoints(self):
         """

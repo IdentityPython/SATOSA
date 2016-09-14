@@ -13,33 +13,26 @@ from satosa.satosa_config import SATOSAConfig
 
 class TestSATOSABase:
     @pytest.fixture
-    def consent_module_config(self, signing_key_path):
-        consent_config = {
-            "api_url": "http://consent.example.com/api",
-            "redirect_url": "http://consent.example.com/redirect",
-            "sign_key": signing_key_path,
-            "state_enc_key": "foo123",
-        }
-        return consent_config
-
-    @pytest.fixture
     def satosa_config(self, satosa_config_dict):
         return SATOSAConfig(satosa_config_dict)
 
-    def test_full_initialisation(self, satosa_config, consent_module_config):
-        satosa_config["CONSENT"] = consent_module_config
-
+    def test_full_initialisation(self, satosa_config):
         base = SATOSABase(satosa_config)
         assert base.config == satosa_config
-        assert base.consent_module
         assert len(base.module_router.frontends) == 1
-        assert len(base.module_router.backends) == 2
+        assert len(base.module_router.backends) == 1
         assert len(base.request_micro_services) == 1
         assert len(base.response_micro_services) == 1
 
     def test_constuctor_should_raise_exception_if_account_linking_is_not_first_in_micro_service_list(
             self, satosa_config, account_linking_module_config):
         satosa_config["MICRO_SERVICES"].append(account_linking_module_config)
+        with pytest.raises(SATOSAConfigurationError):
+            SATOSABase(satosa_config)
+
+    def test_constuctor_should_raise_exception_if_consent_is_not_last_in_micro_service_list(
+            self, satosa_config, consent_module_config):
+        satosa_config["MICRO_SERVICES"].insert(0, consent_module_config)
         with pytest.raises(SATOSAConfigurationError):
             SATOSABase(satosa_config)
 
