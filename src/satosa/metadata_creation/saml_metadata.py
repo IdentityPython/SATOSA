@@ -85,11 +85,11 @@ def create_entity_descriptors(satosa_config):
     """
     frontend_modules = load_frontends(satosa_config, None, satosa_config["INTERNAL_ATTRIBUTES"])
     backend_modules = load_backends(satosa_config, None, satosa_config["INTERNAL_ATTRIBUTES"])
-    logger.info("Loaded frontend plugins: {}".format(list(frontend_modules.keys())))
-    logger.info("Loaded backend plugins: {}".format(list(backend_modules.keys())))
+    logger.info("Loaded frontend plugins: {}".format([frontend.name for frontend in frontend_modules]))
+    logger.info("Loaded backend plugins: {}".format([backend.name for backend in backend_modules]))
 
-    backend_metadata = _create_backend_metadata(backend_modules.values())
-    frontend_metadata = _create_frontend_metadata(frontend_modules.values(), backend_modules.values())
+    backend_metadata = _create_backend_metadata(backend_modules)
+    frontend_metadata = _create_frontend_metadata(frontend_modules, backend_modules)
 
     return frontend_metadata, backend_metadata
 

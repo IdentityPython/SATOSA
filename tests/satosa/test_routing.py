@@ -11,13 +11,13 @@ BACKEND_NAMES = ["Saml2SP", "VOPaaSSaml2SP"]
 class TestModuleRouter:
     @pytest.fixture(autouse=True)
     def create_router(self):
-        backends = {}
+        backends = []
         for provider in BACKEND_NAMES:
-            backends[provider] = TestBackend(None, {"attributes": {}}, None, None, provider)
+            backends.append(TestBackend(None, {"attributes": {}}, None, None, provider))
 
-        frontends = {}
+        frontends = []
         for receiver in FRONTEND_NAMES:
-            frontends[receiver] = TestFrontend(None, {"attributes": {}}, None, None, receiver)
+            frontends.append(TestFrontend(None, {"attributes": {}}, None, None, receiver))
 
         request_micro_service_name = "RequestService"
         response_micro_service_name = "ResponseService"
