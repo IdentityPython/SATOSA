@@ -53,10 +53,12 @@ class ModuleRouter(object):
         if not frontends and not backends:
             raise ValueError("Need at least one frontend and one backend")
 
-        self.frontends = {name: {"instance": instance, "endpoints": instance.register_endpoints(list(backends.keys()))}
-                          for name, instance in frontends.items()}
-        self.backends = {name: {"instance": instance, "endpoints": instance.register_endpoints()}
-                         for name, instance in backends.items()}
+        backend_names = [backend.name for backend in backends]
+        self.frontends = {instance.name: {"instance": instance,
+                                          "endpoints": instance.register_endpoints(backend_names)}
+                          for instance in frontends}
+        self.backends = {instance.name: {"instance": instance, "endpoints": instance.register_endpoints()}
+                         for instance in backends}
 
         if micro_services:
             self.micro_services = {instance.name: {"instance": instance, "endpoints": instance.register_endpoints()}

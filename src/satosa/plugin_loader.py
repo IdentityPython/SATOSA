@@ -35,7 +35,7 @@ def load_backends(config, callback, internal_attributes):
     :type callback:
     (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
     :type internal_attributes: dict[string, dict[str, str | list[str]]]
-    :rtype: dict[str, satosa.backends.base.BackendModule]
+    :rtype: Sequence[satosa.backends.base.BackendModule]
 
     :param config: The configuration of the satosa proxy
     :param callback: Function that will be called by the backend after the authentication is done.
@@ -43,9 +43,8 @@ def load_backends(config, callback, internal_attributes):
     """
     backend_modules = _load_plugins(config.get("CUSTOM_PLUGIN_MODULE_PATHS"), config["BACKEND_MODULES"], backend_filter,
                                     config["BASE"], internal_attributes, callback)
-    endpoint_modules = {module.name: module for module in backend_modules}
-    logger.info("Setup backends: %s" % list(endpoint_modules.keys()))
-    return endpoint_modules
+    logger.info("Setup backends: %s" % [backend.name for backend in backend_modules])
+    return backend_modules
 
 
 def load_frontends(config, callback, internal_attributes):
@@ -56,18 +55,17 @@ def load_frontends(config, callback, internal_attributes):
     :type callback:
     (satosa.context.Context, satosa.internal_data.InternalRequest) -> satosa.response.Response
     :type internal_attributes: dict[string, dict[str, str | list[str]]]
-    :rtype: dict[str, satosa.frontends.base.FrontendModule]
+    :rtype: Sequence[satosa.frontends.base.FrontendModule]
 
     :param config: The configuration of the satosa proxy
     :param callback: Function that will be called by the frontend after the authentication request
     has been processed.
-    :return: A dict of frontend modules
+    :return: A list of frontend modules
     """
     frontend_modules = _load_plugins(config.get("CUSTOM_PLUGIN_MODULE_PATHS"), config["FRONTEND_MODULES"],
                                      frontend_filter, config["BASE"], internal_attributes, callback)
-    endpoint_modules = {module.name: module for module in frontend_modules}
-    logger.info("Setup frontends: %s" % list(endpoint_modules.keys()))
-    return endpoint_modules
+    logger.info("Setup frontends: %s" % [frontend.name for frontend in frontend_modules])
+    return frontend_modules
 
 
 def backend_filter(cls):
