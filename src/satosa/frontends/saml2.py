@@ -497,12 +497,9 @@ class SAMLMirrorFrontend(SAMLFrontend):
 
         for endp_category in self.endpoints:
             for binding, endp in self.endpoints[endp_category].items():
-                valid_providers = ""
-                for provider in providers:
-                    valid_providers = "{}|^{}".format(valid_providers, provider)
-                valid_providers = valid_providers.lstrip("|")
+                valid_providers = "|^".join(providers)
                 parsed_endp = urlparse(endp)
-                url_map.append(("%s/[\s\S]+/%s/?.*$" % (valid_providers, parsed_endp.path),
+                url_map.append(("(^%s)/\S+/%s" % (valid_providers, parsed_endp.path),
                                 functools.partial(self.handle_authn_request, binding_in=binding)))
 
         return url_map
