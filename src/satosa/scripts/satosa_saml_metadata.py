@@ -4,9 +4,9 @@ import click
 from saml2.config import Config
 from saml2.sigver import security_context
 
-from ..metadata_creation.saml_metadata import create_signed_entity_descriptor
 from ..metadata_creation.saml_metadata import create_entity_descriptors
 from ..metadata_creation.saml_metadata import create_signed_entities_descriptor
+from ..metadata_creation.saml_metadata import create_signed_entity_descriptor
 from ..satosa_config import SATOSAConfig
 
 
@@ -71,9 +71,9 @@ def create_and_write_saml_metadata(proxy_conf, key, cert, dir, valid, split_fron
                               resolve_path=False),
               default=".", help="Where the output files should be written.")
 @click.option("--valid", type=click.INT, default=None, help="Number of hours the metadata should be valid.")
-@click.option("--split-frontend", type=click.BOOL, default=False,
+@click.option("--split-frontend", is_flag=True, type=click.BOOL, default=False,
               help="Create one entity descriptor per file for the frontend metadata")
-@click.option("--split-backend", type=click.BOOL, default=False,
+@click.option("--split-backend", is_flag=True, type=click.BOOL, default=False,
               help="Create one entity descriptor per file for the backend metadata")
 def construct_saml_metadata(proxy_conf, key, cert, dir, valid, split_frontend, split_backend):
     create_and_write_saml_metadata(proxy_conf, key, cert, dir, valid, split_frontend, split_backend)
