@@ -16,8 +16,6 @@ from ..response import Redirect
 
 logger = logging.getLogger(__name__)
 
-STATE_KEY = "ACCOUNT_LINKING"
-
 
 class AccountLinking(ResponseMicroService):
     """
@@ -50,7 +48,7 @@ class AccountLinking(ResponseMicroService):
         :param context: The current context
         :return: response
         """
-        saved_state = context.state[STATE_KEY]
+        saved_state = context.state[self.name]
         internal_response = InternalResponse.from_dict(saved_state)
         status_code, message = self._get_uuid(context, internal_response.auth_info.issuer, internal_response.user_id)
 
@@ -58,7 +56,7 @@ class AccountLinking(ResponseMicroService):
             satosa_logging(logger, logging.INFO, "issuer/id pair is linked in AL service",
                            context.state)
             internal_response.user_id = message
-            del context.state[STATE_KEY]
+            del context.state[self.name]
             return super().process(context, internal_response)
         else:
             raise SATOSAAuthenticationError(context.state, "Could not link account for user")
@@ -86,7 +84,7 @@ class AccountLinking(ResponseMicroService):
                            context.state)
             internal_response.user_id = message
             try:
-                del context.state[STATE_KEY]
+                del context.state[self.name]
             except KeyError:
                 pass
             return super().process(context, internal_response)
@@ -109,7 +107,7 @@ class AccountLinking(ResponseMicroService):
         """
         satosa_logging(logger, logging.INFO, "A new ID must be linked by the AL service",
                        context.state)
-        context.state[STATE_KEY] = internal_response.to_dict()
+        context.state[self.name] = internal_response.to_dict()
         return Redirect("%s/%s" % (self.redirect_url, ticket))
 
     def _get_uuid(self, context, issuer, id):

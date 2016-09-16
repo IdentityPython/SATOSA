@@ -83,9 +83,7 @@ class Consent(ResponseMicroService):
         return self._end_consent(context, internal_response)
 
     def _approve_new_consent(self, context, internal_response, id_hash):
-        consent_state = context.state[STATE_KEY]
-        consent_state["internal_resp"] = internal_response.to_dict()
-        context.state[STATE_KEY] = consent_state
+        context.state[STATE_KEY]["internal_resp"] = internal_response.to_dict()
 
         consent_args = {
             "attr": internal_response.attributes,
