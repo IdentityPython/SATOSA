@@ -8,7 +8,7 @@ be configured with a OpenID Connect frontend and a SAML2 backend.
    ```bash
    mkdir -p oidc-saml2/plugins
    cp example/{proxy_conf.yaml.example,internal_attributes.yaml.example} oidc-saml2/
-   cp example/plugins/frontends/oidc_frontend.yaml.example oidc-saml2/plugins/
+   cp example/plugins/frontends/openid_connect_frontend.yaml.example oidc-saml2/plugins/
    cp example/plugins/backends/saml2_backend.yaml.example oidc-saml2/plugins/
    ```
 
@@ -27,7 +27,7 @@ be configured with a OpenID Connect frontend and a SAML2 backend.
      BACKEND_MODULES:
        - "oidc-saml2/plugins/saml2_backend.yaml"
      FRONTEND_MODULES:
-       - "oidc-saml2/plugins/oidc_frontend.yaml"
+       - "oidc-saml2/plugins/openid_connect_frontend.yaml"
      ```
 
 1. Configure the attribute mapping:
@@ -41,10 +41,10 @@ be configured with a OpenID Connect frontend and a SAML2 backend.
      information.
 
 1. Configure the plugins
-  1. Rename `plugins/oidc_frontend.yaml.example` to `plugins/oidc_frontend.yaml`
+  1. Rename `plugins/openid_connect_frontend.yaml.example` to `plugins/openid_connect_frontend.yaml`
      and `plugins/saml2_backend.yaml.example` to `plugins/saml2_backend.yaml`
      ```bash
-     mv plugins/oidc_frontend.yaml.example plugins/oidc_frontend.yaml
+     mv plugins/openid_connect_frontend.yaml.example plugins/openid_connect_frontend.yaml
      mv plugins/saml2_backend.yaml.example plugins/saml2_backend.yaml
      ```
 
