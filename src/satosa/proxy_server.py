@@ -91,7 +91,7 @@ class WsgiApplication(SATOSABase):
     def __call__(self, environ, start_response, debug=False):
         path = environ.get('PATH_INFO', '').lstrip('/')
         if ".." in path or path == "":
-            resp = NotFound("Couldn't find the side you asked for!")
+            resp = NotFound("Couldn't find the page you asked for!")
             return resp(environ, start_response)
 
         context = Context()
@@ -114,7 +114,7 @@ class WsgiApplication(SATOSABase):
                 raise resp
             return resp(environ, start_response)
         except SATOSANoBoundEndpointError:
-            resp = NotFound("Couldn't find the side you asked for!")
+            resp = NotFound("Couldn't find the page you asked for!")
             return resp(environ, start_response)
         except Exception as err:
             logger.exception("%s" % err)
