@@ -161,6 +161,7 @@ class TestOpenIDConnectFrontend(object):
     def test_provider_configuration_endpoint(self, context, frontend):
         expected_capabilities = {
             "response_types_supported": ["code", "id_token", "code id_token token"],
+            "jwks_uri": "{}/{}/jwks".format(BASE_URL, frontend.name),
             "authorization_endpoint": "{}/foo_backend/{}/authorization".format(BASE_URL, frontend.name),
             "token_endpoint": "{}/{}/token".format(BASE_URL, frontend.name),
             "userinfo_endpoint": "{}/{}/userinfo".format(BASE_URL, frontend.name),
