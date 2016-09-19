@@ -60,11 +60,12 @@ class TestOpenIDConnectFrontend(object):
                                    nonce=nonce, claims=claims_req)
         return req
 
-    def insert_client_in_client_db(self, frontend, redirect_uri):
+    def insert_client_in_client_db(self, frontend, redirect_uri, extra_metadata={}):
         frontend.provider.clients = {
             CLIENT_ID: {"response_types": ["code", "id_token"],
                         "redirect_uris": [redirect_uri],
                         "client_secret": CLIENT_SECRET}}
+        frontend.provider.clients[CLIENT_ID].update(extra_metadata)
 
     def insert_user_in_user_db(self, frontend, user_id):
         frontend.user_db[user_id] = {"email": "tester@example.com"}
@@ -104,7 +105,8 @@ class TestOpenIDConnectFrontend(object):
     def test_handle_authn_request(self, context, frontend, authn_req):
         mock_callback = Mock()
         frontend.auth_req_callback_func = mock_callback
-        self.insert_client_in_client_db(frontend, authn_req["redirect_uri"])
+        client_name = "test client"
+        self.insert_client_in_client_db(frontend, authn_req["redirect_uri"], {"client_name": client_name})
 
         context.request = dict(parse_qsl(authn_req.to_urlencoded()))
         frontend.handle_authn_request(context)
@@ -112,6 +114,7 @@ class TestOpenIDConnectFrontend(object):
         assert mock_callback.call_count == 1
         context, internal_req = mock_callback.call_args[0]
         assert internal_req.requester == authn_req["client_id"]
+        assert internal_req.requester_name == [{"lang": "en", "text": client_name}]
         assert internal_req.user_id_hash_type == UserIdHashType.pairwise
 
     def test_handle_backend_error(self, context, frontend):

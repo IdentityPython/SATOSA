@@ -247,7 +247,13 @@ class OpenIDConnectFrontend(FrontendModule):
         client_id = authn_req["client_id"]
         context.state[self.name] = {"oidc_request": request}
         hash_type = oidc_subject_type_to_hash_type(self.provider.clients[client_id].get("subject_type", "pairwise"))
-        internal_req = InternalRequest(hash_type, client_id, self.provider.clients[client_id].get("client_name"))
+        client_name = self.provider.clients[client_id].get("client_name")
+        if client_name:
+            # TODO should process client names for all languages, see OIDC Registration, Section 2.1
+            requester_name = [{"lang": "en", "text": client_name}]
+        else:
+            requester_name = None
+        internal_req = InternalRequest(hash_type, client_id, requester_name)
 
         return self.auth_req_callback_func(context, internal_req)
 
