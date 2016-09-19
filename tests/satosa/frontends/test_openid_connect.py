@@ -161,7 +161,9 @@ class TestOpenIDConnectFrontend(object):
     def test_provider_configuration_endpoint(self, context, frontend):
         expected_capabilities = {
             "response_types_supported": ["code", "id_token", "code id_token token"],
-            "token_endpoint": BASE_URL + "/foo_backend/token",
+            "authorization_endpoint": "{}/foo_backend/{}/authorization".format(BASE_URL, frontend.name),
+            "token_endpoint": "{}/{}/token".format(BASE_URL, frontend.name),
+            "userinfo_endpoint": "{}/{}/userinfo".format(BASE_URL, frontend.name),
             "id_token_signing_alg_values_supported": ["RS256"],
             "response_modes_supported": ["fragment", "query"],
             "subject_types_supported": ["pairwise"],
@@ -169,14 +171,12 @@ class TestOpenIDConnectFrontend(object):
             "claims_parameter_supported": True,
             "request_parameter_supported": False,
             "request_uri_parameter_supported": False,
-            "authorization_endpoint": "{}/foo_backend/authorization".format(BASE_URL),
             "scopes_supported": ["openid", "email"],
             "claims_supported": ["email"],
             "grant_types_supported": ["authorization_code", "implicit"],
             "issuer": BASE_URL,
             "require_request_uri_registration": True,
             "token_endpoint_auth_methods_supported": ["client_secret_basic"],
-            "userinfo_endpoint": "{}/foo_backend/userinfo".format(BASE_URL),
             "version": "3.0"
         }
 
@@ -192,8 +192,8 @@ class TestOpenIDConnectFrontend(object):
 
     def test_register_endpoints_token_and_userinfo_endpoint_is_published_if_necessary(self, frontend):
         urls = frontend.register_endpoints(["test"])
-        assert ("^{}/{}".format("test", TokenEndpoint.url), frontend.token_endpoint) in urls
-        assert ("^{}/{}".format("test", UserinfoEndpoint.url), frontend.userinfo_endpoint) in urls
+        assert ("^{}/{}".format(frontend.name, TokenEndpoint.url), frontend.token_endpoint) in urls
+        assert ("^{}/{}".format(frontend.name, UserinfoEndpoint.url), frontend.userinfo_endpoint) in urls
 
     def test_register_endpoints_token_and_userinfo_endpoint_is_not_published_if_only_implicit_flow(
             self, frontend_config, context):
@@ -218,7 +218,7 @@ class TestOpenIDConnectFrontend(object):
         frontend = self.frontend(frontend_config)
 
         urls = frontend.register_endpoints(["test"])
-        assert (("^{}/{}".format("test", RegistrationEndpoint.url),
+        assert (("^{}/{}".format(frontend.name, RegistrationEndpoint.url),
                  frontend.client_registration) in urls) == client_registration_enabled
         provider_info = ProviderConfigurationResponse().deserialize(frontend.provider_config(None).message, "json")
         assert ("registration_endpoint" in provider_info) == client_registration_enabled
