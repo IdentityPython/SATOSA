@@ -21,7 +21,7 @@ from satosa.internal_data import InternalResponse, AuthenticationInformation, Us
 from tests.users import USERS
 
 INTERNAL_ATTRIBUTES = {
-    'attributes': {"mail": {"saml": ["email"], "openid": ["email"]}}
+    "attributes": {"mail": {"saml": ["email"], "openid": ["email"]}}
 }
 BASE_URL = "https://op.example.com"
 CLIENT_ID = "client1"
@@ -116,6 +116,7 @@ class TestOpenIDConnectFrontend(object):
         assert internal_req.requester == authn_req["client_id"]
         assert internal_req.requester_name == [{"lang": "en", "text": client_name}]
         assert internal_req.user_id_hash_type == UserIdHashType.pairwise
+        assert internal_req.approved_attributes == ["mail"]
 
     def test_handle_backend_error(self, context, frontend):
         redirect_uri = "https://client.example.com"
