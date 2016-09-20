@@ -103,7 +103,7 @@ class OpenIDConnectFrontend(FrontendModule):
         return AuthorizationState(HashBasedSubjectIdentifierFactory(sub_hash_salt), authz_code_db, access_token_db,
                                   refresh_token_db, sub_db, **token_lifetimes)
 
-    def handle_authn_response(self, context, internal_resp):
+    def handle_authn_response(self, context, internal_resp, extra_id_token_claims=None):
         """
         See super class method satosa.frontends.base.FrontendModule#handle_authn_response
         :type context: satosa.context.Context
@@ -115,7 +115,7 @@ class OpenIDConnectFrontend(FrontendModule):
 
         attributes = self.converter.from_internal("openid", internal_resp.attributes)
         self.user_db[internal_resp.user_id] = {k: v[0] for k, v in attributes.items()}
-        auth_resp = self.provider.authorize(auth_req, internal_resp.user_id)
+        auth_resp = self.provider.authorize(auth_req, internal_resp.user_id, extra_id_token_claims)
 
         del context.state[self.name]
         http_response = auth_resp.request(auth_req["redirect_uri"], should_fragment_encode(auth_req))
