@@ -21,7 +21,7 @@ from satosa.internal_data import InternalResponse, AuthenticationInformation, Us
 from tests.users import USERS
 
 INTERNAL_ATTRIBUTES = {
-    'attributes': {"mail": {"saml": ["email"], "openid": ["email"]}}
+    "attributes": {"mail": {"saml": ["email"], "openid": ["email"]}}
 }
 BASE_URL = "https://op.example.com"
 CLIENT_ID = "client1"
@@ -60,11 +60,12 @@ class TestOpenIDConnectFrontend(object):
                                    nonce=nonce, claims=claims_req)
         return req
 
-    def insert_client_in_client_db(self, frontend, redirect_uri):
+    def insert_client_in_client_db(self, frontend, redirect_uri, extra_metadata={}):
         frontend.provider.clients = {
             CLIENT_ID: {"response_types": ["code", "id_token"],
                         "redirect_uris": [redirect_uri],
                         "client_secret": CLIENT_SECRET}}
+        frontend.provider.clients[CLIENT_ID].update(extra_metadata)
 
     def insert_user_in_user_db(self, frontend, user_id):
         frontend.user_db[user_id] = {"email": "tester@example.com"}
@@ -104,7 +105,8 @@ class TestOpenIDConnectFrontend(object):
     def test_handle_authn_request(self, context, frontend, authn_req):
         mock_callback = Mock()
         frontend.auth_req_callback_func = mock_callback
-        self.insert_client_in_client_db(frontend, authn_req["redirect_uri"])
+        client_name = "test client"
+        self.insert_client_in_client_db(frontend, authn_req["redirect_uri"], {"client_name": client_name})
 
         context.request = dict(parse_qsl(authn_req.to_urlencoded()))
         frontend.handle_authn_request(context)
@@ -112,7 +114,9 @@ class TestOpenIDConnectFrontend(object):
         assert mock_callback.call_count == 1
         context, internal_req = mock_callback.call_args[0]
         assert internal_req.requester == authn_req["client_id"]
+        assert internal_req.requester_name == [{"lang": "en", "text": client_name}]
         assert internal_req.user_id_hash_type == UserIdHashType.pairwise
+        assert internal_req.approved_attributes == ["mail"]
 
     def test_handle_backend_error(self, context, frontend):
         redirect_uri = "https://client.example.com"
@@ -158,7 +162,10 @@ class TestOpenIDConnectFrontend(object):
     def test_provider_configuration_endpoint(self, context, frontend):
         expected_capabilities = {
             "response_types_supported": ["code", "id_token", "code id_token token"],
-            "token_endpoint": BASE_URL + "/foo_backend/token",
+            "jwks_uri": "{}/{}/jwks".format(BASE_URL, frontend.name),
+            "authorization_endpoint": "{}/foo_backend/{}/authorization".format(BASE_URL, frontend.name),
+            "token_endpoint": "{}/{}/token".format(BASE_URL, frontend.name),
+            "userinfo_endpoint": "{}/{}/userinfo".format(BASE_URL, frontend.name),
             "id_token_signing_alg_values_supported": ["RS256"],
             "response_modes_supported": ["fragment", "query"],
             "subject_types_supported": ["pairwise"],
@@ -166,14 +173,12 @@ class TestOpenIDConnectFrontend(object):
             "claims_parameter_supported": True,
             "request_parameter_supported": False,
             "request_uri_parameter_supported": False,
-            "authorization_endpoint": "{}/foo_backend/authorization".format(BASE_URL),
             "scopes_supported": ["openid", "email"],
             "claims_supported": ["email"],
             "grant_types_supported": ["authorization_code", "implicit"],
             "issuer": BASE_URL,
             "require_request_uri_registration": True,
             "token_endpoint_auth_methods_supported": ["client_secret_basic"],
-            "userinfo_endpoint": "{}/foo_backend/userinfo".format(BASE_URL),
             "version": "3.0"
         }
 
@@ -189,8 +194,8 @@ class TestOpenIDConnectFrontend(object):
 
     def test_register_endpoints_token_and_userinfo_endpoint_is_published_if_necessary(self, frontend):
         urls = frontend.register_endpoints(["test"])
-        assert ("^{}/{}".format("test", TokenEndpoint.url), frontend.token_endpoint) in urls
-        assert ("^{}/{}".format("test", UserinfoEndpoint.url), frontend.userinfo_endpoint) in urls
+        assert ("^{}/{}".format(frontend.name, TokenEndpoint.url), frontend.token_endpoint) in urls
+        assert ("^{}/{}".format(frontend.name, UserinfoEndpoint.url), frontend.userinfo_endpoint) in urls
 
     def test_register_endpoints_token_and_userinfo_endpoint_is_not_published_if_only_implicit_flow(
             self, frontend_config, context):
@@ -215,7 +220,7 @@ class TestOpenIDConnectFrontend(object):
         frontend = self.frontend(frontend_config)
 
         urls = frontend.register_endpoints(["test"])
-        assert (("^{}/{}".format("test", RegistrationEndpoint.url),
+        assert (("^{}/{}".format(frontend.name, RegistrationEndpoint.url),
                  frontend.client_registration) in urls) == client_registration_enabled
         provider_info = ProviderConfigurationResponse().deserialize(frontend.provider_config(None).message, "json")
         assert ("registration_endpoint" in provider_info) == client_registration_enabled

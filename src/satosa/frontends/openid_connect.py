@@ -3,7 +3,7 @@ A OpenID Connect frontend module for the satosa proxy
 """
 import json
 import logging
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 from jwkest.jwk import rsa_load, RSAKey
 from oic.oic.message import (AuthorizationRequest, AuthorizationErrorResponse, TokenErrorResponse,
@@ -57,6 +57,7 @@ class OpenIDConnectFrontend(FrontendModule):
         capabilities = {
             "issuer": self.base_url,
             "authorization_endpoint": "{}/{}".format(endpoint_baseurl, AuthorizationEndpoint.url),
+            "jwks_uri": "{}/jwks".format(endpoint_baseurl),
             "response_types_supported": response_types_supported,
             "id_token_signing_alg_values_supported": [self.signing_key.alg],
             "response_modes_supported": ["fragment", "query"],
@@ -102,7 +103,7 @@ class OpenIDConnectFrontend(FrontendModule):
         return AuthorizationState(HashBasedSubjectIdentifierFactory(sub_hash_salt), authz_code_db, access_token_db,
                                   refresh_token_db, sub_db, **token_lifetimes)
 
-    def handle_authn_response(self, context, internal_resp):
+    def handle_authn_response(self, context, internal_resp, extra_id_token_claims=None):
         """
         See super class method satosa.frontends.base.FrontendModule#handle_authn_response
         :type context: satosa.context.Context
@@ -114,7 +115,7 @@ class OpenIDConnectFrontend(FrontendModule):
 
         attributes = self.converter.from_internal("openid", internal_resp.attributes)
         self.user_db[internal_resp.user_id] = {k: v[0] for k, v in attributes.items()}
-        auth_resp = self.provider.authorize(auth_req, internal_resp.user_id)
+        auth_resp = self.provider.authorize(auth_req, internal_resp.user_id, extra_id_token_claims)
 
         del context.state[self.name]
         http_response = auth_resp.request(auth_req["redirect_uri"], should_fragment_encode(auth_req))
@@ -138,32 +139,46 @@ class OpenIDConnectFrontend(FrontendModule):
         :rtype: list[(str, ((satosa.context.Context, Any) -> satosa.response.Response, Any))]
         :raise ValueError: if more than one backend is configured
         """
+        backend_name = None
         if len(backend_names) != 1:
             # only supports one backend since there currently is no way to publish multiple authorization endpoints
             # in configuration information and there is no other standard way of authorization_endpoint discovery
             # similar to SAML entity discovery
-            raise ValueError("OpenID Connect frontend only supports one backend.")
-        backend = backend_names[0]
-        endpoint_baseurl = "{}/{}".format(self.base_url, backend)
+            # this can be circumvented with a custom RequestMicroService which handles the routing based on something
+            # in the authentication request
+            logger.warn("More than one backend is configured, make sure to provide a custom routing micro service to "
+                        "determine which backend should be used per request.")
+        else:
+            backend_name = backend_names[0]
+
+        endpoint_baseurl = "{}/{}".format(self.base_url, self.name)
         self._create_provider(endpoint_baseurl)
 
         provider_config = ("^.well-known/openid-configuration$", self.provider_config)
-        jwks_uri = ("^jwks$", self.jwks)
-        authentication = ("^{}/{}".format(backend, AuthorizationEndpoint.url), self.handle_authn_request)
+        jwks_uri = ("^{}/jwks$".format(self.name), self.jwks)
+
+        if backend_name:
+            # if there is only one backend, include its name in the path so the default routing can work
+            auth_endpoint = "{}/{}/{}/{}".format(self.base_url, backend_name, self.name, AuthorizationEndpoint.url)
+            self.provider.configuration_information["authorization_endpoint"] = auth_endpoint
+            auth_path = urlparse(auth_endpoint).path.lstrip("/")
+        else:
+            auth_path = "{}/{}".format(self.name, AuthorizationEndpoint.url)
+        authentication = ("^{}$".format(auth_path), self.handle_authn_request)
         url_map = [provider_config, jwks_uri, authentication]
 
         if any("code" in v for v in self.provider.configuration_information["response_types_supported"]):
             self.provider.configuration_information["token_endpoint"] = "{}/{}".format(endpoint_baseurl,
                                                                                        TokenEndpoint.url)
-            token_endpoint = ("^{}/{}".format(backend, TokenEndpoint.url), self.token_endpoint)
+            token_endpoint = ("^{}/{}".format(self.name, TokenEndpoint.url), self.token_endpoint)
             url_map.append(token_endpoint)
 
             self.provider.configuration_information["userinfo_endpoint"] = "{}/{}".format(endpoint_baseurl,
                                                                                           UserinfoEndpoint.url)
-            userinfo_endpoint = ("^{}/{}".format(backend, UserinfoEndpoint.url), self.userinfo_endpoint)
+            userinfo_endpoint = ("^{}/{}".format(self.name, UserinfoEndpoint.url), self.userinfo_endpoint)
             url_map.append(userinfo_endpoint)
         if "registration_endpoint" in self.provider.configuration_information:
-            client_registration = ("^{}/{}".format(backend, RegistrationEndpoint.url), self.client_registration)
+            client_registration = ("^{}/{}".format(self.name, RegistrationEndpoint.url), self.client_registration)
             url_map.append(client_registration)
 
         return url_map
@@ -247,8 +262,17 @@ class OpenIDConnectFrontend(FrontendModule):
         client_id = authn_req["client_id"]
         context.state[self.name] = {"oidc_request": request}
         hash_type = oidc_subject_type_to_hash_type(self.provider.clients[client_id].get("subject_type", "pairwise"))
-        internal_req = InternalRequest(hash_type, client_id, self.provider.clients[client_id].get("client_name"))
+        client_name = self.provider.clients[client_id].get("client_name")
+        if client_name:
+            # TODO should process client names for all languages, see OIDC Registration, Section 2.1
+            requester_name = [{"lang": "en", "text": client_name}]
+        else:
+            requester_name = None
+        internal_req = InternalRequest(hash_type, client_id, requester_name)
 
+        internal_req.approved_attributes = self.converter.to_internal_filter("openid",
+                                                                             self.provider.configuration_information[
+                                                                                 "claims_supported"])
         return self.auth_req_callback_func(context, internal_req)
 
     def jwks(self, context):

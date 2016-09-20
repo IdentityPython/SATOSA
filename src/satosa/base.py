@@ -105,7 +105,6 @@ class SATOSABase(object):
         context.state[consent.STATE_KEY] = {"filter": internal_request.approved_attributes or []}
         satosa_logging(logger, logging.INFO,
                        "Requesting provider: {}".format(internal_request.requester), state)
-        context.request = None
 
         UserIdHasher.save_state(internal_request, state)
         if self.request_micro_services:
@@ -115,6 +114,7 @@ class SATOSABase(object):
 
     def _auth_req_finish(self, context, internal_request):
         backend = self.module_router.backend_routing(context)
+        context.request = None
         return backend.start_auth(context, internal_request)
 
     def _auth_resp_finish(self, context, internal_response):
