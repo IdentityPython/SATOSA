@@ -70,7 +70,7 @@ class SAMLBackend(BackendModule):
 
         # if there is only one IdP in the metadata, bypass the discovery service
         idps = self.sp.metadata.identity_providers()
-        if len(idps) == 1:
+        if len(idps) == 1 and "mdq" not in self.config["sp_config"]["metadata"]:
             return self.authn_request(context, idps[0])
 
         try:
