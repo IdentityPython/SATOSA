@@ -28,15 +28,11 @@ class AccountLinking(ResponseMicroService):
         :param config: The SATOSA proxy config
         """
         super().__init__(*args, **kwargs)
-        self.enabled = "enable" not in config or config["enable"]
-        if self.enabled:
-            self.api_url = config["api_url"]
-            self.redirect_url = config["redirect_url"]
-            self.signing_key = RSAKey(key=rsa_load(config["sign_key"]), use="sig", alg="RS256")
-            self.endpoint = "/handle_account_linking"
-            logger.info("Account linking is active")
-        else:
-            logger.info("Account linking is not active")
+        self.api_url = config["api_url"]
+        self.redirect_url = config["redirect_url"]
+        self.signing_key = RSAKey(key=rsa_load(config["sign_key"]), use="sig", alg="RS256")
+        self.endpoint = "/handle_account_linking"
+        logger.info("Account linking is active")
 
     def _handle_al_response(self, context):
         """
@@ -73,9 +69,6 @@ class AccountLinking(ResponseMicroService):
         :param internal_response:
         :return: response
         """
-
-        if not self.enabled:
-            return super().process(context, internal_response)
 
         status_code, message = self._get_uuid(context, internal_response.auth_info.issuer, internal_response.user_id)
 
