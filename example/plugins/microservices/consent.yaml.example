@@ -1,7 +1,6 @@
-module: satosa.micro_services.account_linking.Consent
+module: satosa.micro_services.consent.Consent
 name: Consent
 config:
-  enable: Yes
   api_url: "https://127.0.0.1:8166"
   redirect_url: "https://localhost:8166/consent"
   sign_key: "pki/mykey.pem"

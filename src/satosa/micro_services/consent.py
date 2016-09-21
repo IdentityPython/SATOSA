@@ -34,19 +34,15 @@ class Consent(ResponseMicroService):
     def __init__(self, config, internal_attributes, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "consent"
-        self.enabled = ("enable" not in config or config["enable"])
-        if self.enabled:
-            self.api_url = config["api_url"]
-            self.redirect_url = config["redirect_url"]
-            self.locked_attr = None
-            if "user_id_to_attr" in internal_attributes:
-                self.locked_attr = internal_attributes["user_id_to_attr"]
+        self.api_url = config["api_url"]
+        self.redirect_url = config["redirect_url"]
+        self.locked_attr = None
+        if "user_id_to_attr" in internal_attributes:
+            self.locked_attr = internal_attributes["user_id_to_attr"]
 
-            self.signing_key = RSAKey(key=rsa_load(config["sign_key"]), use="sig", alg="RS256")
-            self.endpoint = "/handle_consent"
-            logger.info("Consent flow is active")
-        else:
-            logger.info("Consent flow is not active")
+        self.signing_key = RSAKey(key=rsa_load(config["sign_key"]), use="sig", alg="RS256")
+        self.endpoint = "/handle_consent"
+        logger.info("Consent flow is active")
 
     def _handle_consent_response(self, context):
         """
@@ -118,9 +114,6 @@ class Consent(ResponseMicroService):
         :param internal_response: the response
         :return: response
         """
-        if not self.enabled:
-            return super().process(context, internal_response)
-
         consent_state = context.state[STATE_KEY]
 
         internal_response.attributes = self._filter_attributes(internal_response.attributes, consent_state["filter"])

@@ -87,17 +87,6 @@ class TestConsent:
         assert consent_args["locked_attrs"] == [USER_ID_ATTR]
         assert "id" in consent_args
 
-    def test_disabled_consent(self, consent_config):
-        consent_config["enable"] = False
-        consent_module = Consent(consent_config, {"attributes": {}}, name="Consent",
-                                 base_url="https://satosa.example.com")
-        mock_next_callback = Mock()
-        consent_module.next = mock_next_callback
-
-        assert consent_module.enabled is False
-        consent_module.process(None, None)
-        assert mock_next_callback.called
-
     @responses.activate
     def test_verify_consent_false_on_http_400(self, consent_config):
         consent_id = "1234"
