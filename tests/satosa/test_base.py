@@ -8,6 +8,7 @@ from satosa.base import SATOSABase
 from satosa.exception import SATOSAConfigurationError
 from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHasher, InternalRequest, \
     UserIdHashType
+from satosa.micro_services import consent
 from satosa.satosa_config import SATOSAConfig
 
 
@@ -55,6 +56,18 @@ class TestSATOSABase:
                                                 internal_resp.requester,
                                                 context.state)
         assert internal_resp.user_id == expected_user_id
+
+    def test_auth_req_callback_stores_state_for_consent(self, context, satosa_config):
+        base = SATOSABase(satosa_config)
+
+        context.target_backend = satosa_config["BACKEND_MODULES"][0]["name"]
+        requester_name = [{"lang": "en", "text": "Test EN"}, {"lang": "sv", "text": "Test SV"}]
+        internal_req = InternalRequest(UserIdHashType.transient, None, requester_name)
+        internal_req.approved_attributes = ["attr1", "attr2"]
+        base._auth_req_callback_func(context, internal_req)
+
+        assert context.state[consent.STATE_KEY]["requester_name"] == internal_req.requester_name
+        assert context.state[consent.STATE_KEY]["filter"] == internal_req.approved_attributes
 
     def test_account_linking_callback_func_hashes_all_specified_attributes(self, context, satosa_config):
         satosa_config["INTERNAL_ATTRIBUTES"]["hash"] = ["user_id", "mail"]
