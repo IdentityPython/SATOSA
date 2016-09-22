@@ -199,10 +199,10 @@ class TestSAMLFrontend:
         base_url = self.construct_base_url_from_entity_id(idp_conf["entityid"])
         conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS}
 
-        internal_attributes = {"attributes": {attr_name: {"saml": [attr_name]} for attr_name in
-                                              ["edupersontargetedid", "edupersonprincipalname",
-                                               "edupersonaffiliation", "mail", "displayname", "sn",
-                                               "givenname"]}}  # no op mapping for saml attribute names
+        internal_attributes = {"attributes": {attr_name.lower(): {"saml": [attr_name]} for attr_name in
+                                              ["eduPersonTargetedID", "eduPersonPrincipalName",
+                                               "eduPersonAffiliation", "mail", "displayName", "sn",
+                                               "givenName"]}}  # no op mapping for saml attribute names
 
         samlfrontend = SAMLFrontend(None, internal_attributes, conf, base_url, "saml_frontend")
         samlfrontend.register_endpoints(["testprovider"])
@@ -271,6 +271,7 @@ class TestSAMLFrontend:
 
         user_attributes = {k: "foo" for k in expected_attributes_in_all_entity_categories}
         internal_response.attributes = AttributeMapper(internal_attributes).to_internal("saml", user_attributes)
+        internal_response.requester = sp_conf["entityid"]
 
         resp = self.get_auth_response(samlfrontend, context, internal_response, sp_conf, idp_metadata_str)
         assert Counter(resp.ava.keys()) == Counter(expected_attributes)
