@@ -225,10 +225,21 @@ class SAMLFrontend(FrontendModule):
         attribute_filter = []
         for aconv in attrconvs:
             if aconv.name_format == name_format:
-                attribute_filter = list(idp_policy.restrict(aconv._to, sp_entity_id, idp.metadata).keys())
+                all_attributes = {v: None for v in aconv._fro.values()}
+                attribute_filter = list(idp_policy.restrict(all_attributes, sp_entity_id, idp.metadata).keys())
+                break
         attribute_filter = self.converter.to_internal_filter(self.attribute_profile, attribute_filter)
         satosa_logging(logger, logging.DEBUG, "Filter: %s" % attribute_filter, state)
         return attribute_filter
+
+    def _filter_attributes(self, idp, internal_response, context,):
+        idp_policy = idp.config.getattr("policy", "idp")
+        if idp_policy:
+            approved_attributes = self._get_approved_attributes(idp, idp_policy, internal_response.requester,
+                                                                context.state)
+            attributes = {k: v for k, v in internal_response.attributes.items() if k in approved_attributes}
+
+        return attributes
 
     def _handle_authn_response(self, context, internal_response, idp):
         """
@@ -246,6 +257,7 @@ class SAMLFrontend(FrontendModule):
         request_state = self.load_state(context.state)
 
         resp_args = request_state["resp_args"]
+        internal_response.attributes = self._filter_attributes(idp, internal_response, context)
         ava = self.converter.from_internal(self.attribute_profile, internal_response.attributes)
 
         auth_info = {}
