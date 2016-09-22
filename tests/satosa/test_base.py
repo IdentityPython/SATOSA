@@ -69,7 +69,7 @@ class TestSATOSABase:
         assert context.state[consent.STATE_KEY]["requester_name"] == internal_req.requester_name
         assert context.state[consent.STATE_KEY]["filter"] == internal_req.approved_attributes
 
-    def test_account_linking_callback_func_hashes_all_specified_attributes(self, context, satosa_config):
+    def test_auth_resp_callback_func_hashes_all_specified_attributes(self, context, satosa_config):
         satosa_config["INTERNAL_ATTRIBUTES"]["hash"] = ["user_id", "mail"]
         base = SATOSABase(satosa_config)
 
@@ -86,7 +86,7 @@ class TestSATOSABase:
             assert internal_resp.attributes[attr] == [UserIdHasher.hash_data(satosa_config["USER_ID_HASH_SALT"], v)
                                                       for v in attributes[attr]]
 
-    def test_account_linking_callback_func_respects_user_id_to_attr(self, context, satosa_config):
+    def test_auth_resp_callback_func_respects_user_id_to_attr(self, context, satosa_config):
         satosa_config["INTERNAL_ATTRIBUTES"]["user_id_to_attr"] = "user_id"
         base = SATOSABase(satosa_config)
 
