@@ -85,7 +85,7 @@ class Consent(ResponseMicroService):
             "attr": internal_response.attributes,
             "id": id_hash,
             "redirect_endpoint": "%s/consent%s" % (self.base_url, self.endpoint),
-            "requester_name": internal_response.requester
+            "requester_name": context.state[STATE_KEY]["requester_name"]
         }
         if self.locked_attr:
             consent_args["locked_attrs"] = [self.locked_attr]

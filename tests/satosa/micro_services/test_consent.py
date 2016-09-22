@@ -70,7 +70,7 @@ class TestConsent:
         ticket = parsed_url["ticket"][0]
         assert ticket == expected_ticket
 
-    def assert_registration_req(self, request, internal_response, sign_key_path, base_url):
+    def assert_registration_req(self, request, internal_response, sign_key_path, base_url, requester_name):
         split_path = request.path_url.lstrip("/").split("/")
         assert len(split_path) == 2
         jwks = split_path[1]
@@ -83,7 +83,7 @@ class TestConsent:
         consent_args = jws.msg
         assert consent_args["attr"] == internal_response.attributes
         assert consent_args["redirect_endpoint"] == base_url + "/consent/handle_consent"
-        assert consent_args["requester_name"] == internal_response.requester
+        assert consent_args["requester_name"] == requester_name
         assert consent_args["locked_attrs"] == [USER_ID_ATTR]
         assert "id" in consent_args
 
@@ -150,7 +150,9 @@ class TestConsent:
                                consent_verify_endpoint_regex, consent_registration_endpoint_regex):
         expected_ticket = "my_ticket"
 
-        context.state[consent.STATE_KEY] = {"filter": internal_request.approved_attributes}
+        requester_name = [{"lang": "en", "text": "test requester"}]
+        context.state[consent.STATE_KEY] = {"filter": internal_request.approved_attributes,
+                                            "requester_name": requester_name}
 
         with responses.RequestsMock() as rsps:
             rsps.add(responses.GET, consent_verify_endpoint_regex, status=401)
@@ -162,7 +164,8 @@ class TestConsent:
             self.assert_registration_req(rsps.calls[1].request,
                                          internal_response,
                                          consent_config["sign_key"],
-                                         self.consent_module.base_url)
+                                         self.consent_module.base_url,
+                                         requester_name)
 
         with responses.RequestsMock() as rsps:
             # Now consent has been given, consent service returns 200 OK
@@ -184,7 +187,7 @@ class TestConsent:
         responses.add(responses.GET, consent_registration_endpoint_regex, status=200,
                       body=expected_ticket)
 
-        context.state[consent.STATE_KEY] = {"filter": []}
+        context.state[consent.STATE_KEY] = {"filter": [], "requester_name": None}
 
         resp = self.consent_module.process(context, internal_response)
 
@@ -192,7 +195,8 @@ class TestConsent:
         self.assert_registration_req(responses.calls[1].request,
                                      internal_response,
                                      consent_config["sign_key"],
-                                     self.consent_module.base_url)
+                                     self.consent_module.base_url,
+                                     None)
 
         new_context = Context()
         new_context.state = context.state
