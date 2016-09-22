@@ -99,7 +99,7 @@ class Consent(ResponseMicroService):
             internal_response.attributes = {}
             return self._end_consent(context, internal_response)
 
-        consent_redirect = "%s?ticket=%s" % (self.redirect_url, ticket)
+        consent_redirect = "%s/%s" % (self.redirect_url, ticket)
         return Redirect(consent_redirect)
 
     def process(self, context, internal_response):

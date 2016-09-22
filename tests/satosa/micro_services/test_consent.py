@@ -1,7 +1,6 @@
 import json
 import re
 from collections import Counter
-from unittest.mock import Mock
 from urllib.parse import urlparse, parse_qs
 
 import pytest
@@ -65,10 +64,8 @@ class TestConsent:
     def assert_redirect(self, redirect_resp, expected_ticket):
         assert isinstance(redirect_resp, Redirect)
 
-        parsed_url = parse_qs(urlparse(redirect_resp.message).query)
-        assert len(parsed_url["ticket"]) == 1
-        ticket = parsed_url["ticket"][0]
-        assert ticket == expected_ticket
+        path = urlparse(redirect_resp.message).path
+        assert path == "/consent/" + expected_ticket
 
     def assert_registration_req(self, request, internal_response, sign_key_path, base_url):
         split_path = request.path_url.lstrip("/").split("/")
