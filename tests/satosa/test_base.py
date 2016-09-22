@@ -97,7 +97,7 @@ class TestSATOSABase:
         UserIdHasher.save_state(InternalRequest(UserIdHashType.transient, ""), context.state)
 
         base._auth_resp_callback_func(context, internal_resp)
-        assert internal_resp.attributes["user_id"] == internal_resp.user_id
+        assert internal_resp.attributes["user_id"] == [internal_resp.user_id]
 
     @pytest.mark.parametrize("micro_services", [
         [Mock()],
