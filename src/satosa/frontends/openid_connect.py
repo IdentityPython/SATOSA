@@ -242,16 +242,15 @@ class OpenIDConnectFrontend(FrontendModule):
                     requested_claims.extend(authn_req["claims"][k].keys())
         return set(provider_supported_claims).intersection(set(requested_claims))
 
-    def handle_authn_request(self, context):
+    def _handle_authn_request(self, context):
         """
-        Parse and verify the authentication request and pass it on to the backend.
+        Parse and verify the authentication request into an internal request.
         :type context: satosa.context.Context
-        :rtype: oic.utils.http_util.Response
+        :rtype: internal_data.InternalRequest
 
         :param context: the current context
-        :return: HTTP response to the client
+        :return: the internal request
         """
-
         request = urlencode(context.request)
         satosa_logging(logger, logging.DEBUG, "Authn req from client: {}".format(request),
                        context.state)
@@ -282,7 +281,18 @@ class OpenIDConnectFrontend(FrontendModule):
         internal_req.approved_attributes = self.converter.to_internal_filter(
             "openid", self._get_approved_attributes(self.provider.configuration_information["claims_supported"],
                                                     authn_req))
+        return internal_req
 
+    def handle_authn_request(self, context):
+        """
+        Handle an authentication request and pass it on to the backend.
+        :type context: satosa.context.Context
+        :rtype: oic.utils.http_util.Response
+
+        :param context: the current context
+        :return: HTTP response to the client
+        """
+        internal_req = self._handle_authn_request(context)
         return self.auth_req_callback_func(context, internal_req)
 
     def jwks(self, context):
