@@ -3,6 +3,7 @@ Tests for the SAML frontend module src/frontends/saml2.py.
 """
 import json
 from base64 import urlsafe_b64encode
+from collections import Counter
 from unittest.mock import Mock
 from urllib.parse import urlparse, parse_qsl
 
@@ -117,6 +118,14 @@ class TestOpenIDConnectFrontend(object):
         assert internal_req.requester_name == [{"lang": "en", "text": client_name}]
         assert internal_req.user_id_hash_type == UserIdHashType.pairwise
         assert internal_req.approved_attributes == ["mail"]
+
+    def test_get_approved_attributes(self, frontend):
+        claims_req = ClaimsRequest(id_token=Claims(email=None), userinfo=Claims(userinfo_claim=None))
+        req = AuthorizationRequest(scope="openid profile", claims=claims_req)
+        provider_supported_claims = ["email", "name", "given_name", "family_name", "userinfo_claim", "extra_claim"]
+
+        result = frontend._get_approved_attributes(provider_supported_claims, req)
+        assert Counter(result) == Counter(["email", "name", "given_name", "family_name", "userinfo_claim"])
 
     def test_handle_backend_error(self, context, frontend):
         redirect_uri = "https://client.example.com"

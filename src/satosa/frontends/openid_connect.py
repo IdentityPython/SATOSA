@@ -6,6 +6,7 @@ import logging
 from urllib.parse import urlencode, urlparse
 
 from jwkest.jwk import rsa_load, RSAKey
+from oic.oic import scope2claims
 from oic.oic.message import (AuthorizationRequest, AuthorizationErrorResponse, TokenErrorResponse,
                              UserInfoErrorResponse)
 from oic.oic.provider import RegistrationEndpoint, AuthorizationEndpoint, TokenEndpoint, UserinfoEndpoint
@@ -233,6 +234,14 @@ class OpenIDConnectFrontend(FrontendModule):
         """
         return Response(self.provider.provider_configuration.to_json(), content="application/json")
 
+    def _get_approved_attributes(self, provider_supported_claims, authn_req):
+        requested_claims = list(scope2claims(authn_req["scope"]).keys())
+        if "claims" in authn_req:
+            for k in ["id_token", "userinfo"]:
+                if k in authn_req["claims"]:
+                    requested_claims.extend(authn_req["claims"][k].keys())
+        return set(provider_supported_claims).intersection(set(requested_claims))
+
     def handle_authn_request(self, context):
         """
         Parse and verify the authentication request and pass it on to the backend.
@@ -270,9 +279,10 @@ class OpenIDConnectFrontend(FrontendModule):
             requester_name = None
         internal_req = InternalRequest(hash_type, client_id, requester_name)
 
-        internal_req.approved_attributes = self.converter.to_internal_filter("openid",
-                                                                             self.provider.configuration_information[
-                                                                                 "claims_supported"])
+        internal_req.approved_attributes = self.converter.to_internal_filter(
+            "openid", self._get_approved_attributes(self.provider.configuration_information["claims_supported"],
+                                                    authn_req))
+
         return self.auth_req_callback_func(context, internal_req)
 
     def jwks(self, context):
