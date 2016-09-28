@@ -3,6 +3,7 @@ from unittest.mock import mock_open, patch
 
 import pytest
 
+from satosa.exception import SATOSAConfigurationError
 from satosa.satosa_config import SATOSAConfig
 
 
@@ -37,7 +38,7 @@ class TestSATOSAConfig:
         assert config["STATE_ENCRYPTION_KEY"] == "state_encryption_key"
 
     def test_constructor_should_raise_exception_if_sensitive_keys_are_missing(self, non_sensitive_config_dict):
-        with pytest.raises(ValueError):
+        with pytest.raises(SATOSAConfigurationError):
             SATOSAConfig(non_sensitive_config_dict)
 
     @pytest.mark.parametrize("modules_key", [
