@@ -1,5 +1,6 @@
 import copy
 import logging
+from collections import defaultdict
 
 from saml2.config import Config
 from saml2.metadata import entity_descriptor, entities_descriptor, sign_entity_descriptor
@@ -53,10 +54,9 @@ def _create_mirrored_entity_config(frontend_instance, target_metadata_info, back
 
 
 def _create_frontend_metadata(frontend_modules, backend_modules):
-    frontend_metadata = {}
+    frontend_metadata = defaultdict(list)
 
     for frontend in frontend_modules:
-        frontend_metadata[frontend.name] = []
         if isinstance(frontend, SAMLMirrorFrontend):
             for backend in backend_modules:
                 logger.info("Creating metadata for frontend '%s' and backend '%s'".format(frontend.name, backend.name))
