@@ -53,6 +53,8 @@ class SATOSAConfig(object):
                     if plugin_config:
                         plugin_configs.append(plugin_config)
                         break
+                else:
+                    raise SATOSAConfigurationError('Failed to load plugin config \'{}\''.format(config))
             self._config[key] = plugin_configs
 
         for parser in parsers:
@@ -69,17 +71,17 @@ class SATOSAConfig(object):
 
         :type conf: dict
         :rtype: None
-        :raise ValueError: if the configuration is incorrect
+        :raise SATOSAConfigurationError: if the configuration is incorrect
 
         :param conf: config to verify
         :return: None
         """
         if not conf:
-            raise ValueError("Missing configuration or unknown format")
+            raise SATOSAConfigurationError("Missing configuration or unknown format")
 
         for key in SATOSAConfig.mandatory_dict_keys:
             if key not in conf:
-                raise ValueError("Missing key '%s' in config" % key)
+                raise SATOSAConfigurationError("Missing key '%s' in config" % key)
 
     def __getitem__(self, item):
         """

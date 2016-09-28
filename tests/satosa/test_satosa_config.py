@@ -2,7 +2,9 @@ import json
 from unittest.mock import mock_open, patch
 
 import pytest
+from satosa.exception import SATOSAConfigurationError
 
+from satosa.exception import SATOSAConfigurationError
 from satosa.satosa_config import SATOSAConfig
 
 
@@ -13,8 +15,8 @@ class TestSATOSAConfig:
         config = {
             "BASE": "https://example.com",
             "COOKIE_STATE_NAME": "TEST_STATE",
-            "BACKEND_MODULES": ["foo"],
-            "FRONTEND_MODULES": ["bar"],
+            "BACKEND_MODULES": [],
+            "FRONTEND_MODULES": [],
             "INTERNAL_ATTRIBUTES": {"attributes": {}}
         }
         return config
@@ -37,7 +39,7 @@ class TestSATOSAConfig:
         assert config["STATE_ENCRYPTION_KEY"] == "state_encryption_key"
 
     def test_constructor_should_raise_exception_if_sensitive_keys_are_missing(self, non_sensitive_config_dict):
-        with pytest.raises(ValueError):
+        with pytest.raises(SATOSAConfigurationError):
             SATOSAConfig(non_sensitive_config_dict)
 
     @pytest.mark.parametrize("modules_key", [
@@ -65,3 +67,14 @@ class TestSATOSAConfig:
             config = SATOSAConfig(satosa_config_dict)
 
         assert config[modules_key] == [expected_config]
+
+    @pytest.mark.parametrize("modules_key", [
+        "BACKEND_MODULES",
+        "FRONTEND_MODULES",
+        "MICRO_SERVICES"
+    ])
+    def test_can_read_endpoint_configs_from_file(self, satosa_config_dict, modules_key):
+        satosa_config_dict[modules_key] = ["/fake_file_path"]
+
+        with pytest.raises(SATOSAConfigurationError):
+            SATOSAConfig(satosa_config_dict)
