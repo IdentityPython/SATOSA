@@ -2,6 +2,7 @@ import json
 from unittest.mock import mock_open, patch
 
 import pytest
+from satosa.exception import SATOSAConfigurationError
 
 from satosa.exception import SATOSAConfigurationError
 from satosa.satosa_config import SATOSAConfig
@@ -14,8 +15,8 @@ class TestSATOSAConfig:
         config = {
             "BASE": "https://example.com",
             "COOKIE_STATE_NAME": "TEST_STATE",
-            "BACKEND_MODULES": ["foo"],
-            "FRONTEND_MODULES": ["bar"],
+            "BACKEND_MODULES": [],
+            "FRONTEND_MODULES": [],
             "INTERNAL_ATTRIBUTES": {"attributes": {}}
         }
         return config
@@ -66,3 +67,14 @@ class TestSATOSAConfig:
             config = SATOSAConfig(satosa_config_dict)
 
         assert config[modules_key] == [expected_config]
+
+    @pytest.mark.parametrize("modules_key", [
+        "BACKEND_MODULES",
+        "FRONTEND_MODULES",
+        "MICRO_SERVICES"
+    ])
+    def test_can_read_endpoint_configs_from_file(self, satosa_config_dict, modules_key):
+        satosa_config_dict[modules_key] = ["/fake_file_path"]
+
+        with pytest.raises(SATOSAConfigurationError):
+            SATOSAConfig(satosa_config_dict)

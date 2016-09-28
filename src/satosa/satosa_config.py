@@ -53,6 +53,8 @@ class SATOSAConfig(object):
                     if plugin_config:
                         plugin_configs.append(plugin_config)
                         break
+                else:
+                    raise SATOSAConfigurationError('Failed to load plugin config \'{}\''.format(config))
             self._config[key] = plugin_configs
 
         for parser in parsers:
