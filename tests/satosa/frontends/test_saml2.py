@@ -147,19 +147,19 @@ class TestSAMLFrontend:
         for key in resp.ava:
             assert USERS["testuser1"][key] == resp.ava[key]
 
-    def test_handle_authn_request_without_name_id_policy(self, context, idp_conf, sp_conf, internal_response):
+    def test_handle_authn_request_without_name_id_policy_default_to_name_id_format_from_metadata(
+            self, context, idp_conf, sp_conf):
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, nameid_format="")
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
-        assert internal_req.requester == sp_conf["entityid"]
+        assert internal_req.user_id_hash_type == saml_name_id_format_to_hash_type(
+            sp_conf["service"]["sp"]["name_id_format"][0])
 
-        resp = samlfrontend.handle_authn_response(context, internal_response)
-        resp_dict = parse_qs(urlparse(resp.message).query)
-
-        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
-        resp = fakesp.parse_authn_request_response(resp_dict["SAMLResponse"][0],
-                                                   BINDING_HTTP_REDIRECT)
-        for key in resp.ava:
-            assert USERS["testuser1"][key] == resp.ava[key]
+    def test_handle_authn_request_without_name_id_policy_and_metadata_without_name_id_format(
+            self, context, idp_conf, sp_conf):
+        del sp_conf["service"]["sp"]["name_id_format"]
+        samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, nameid_format="")
+        _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
+        assert internal_req.user_id_hash_type == UserIdHashType.transient
 
     def test_handle_authn_response_without_relay_state(self, context, idp_conf, sp_conf, internal_response):
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, relay_state=None)

@@ -50,7 +50,7 @@ def sp_conf(cert_and_key):
                     "discovery_response": [("%s/disco" % sp_base, BINDING_DISCO)]
                 },
                 "allow_unsolicited": "true",
-                "name_id_format": [NAMEID_FORMAT_TRANSIENT]
+                "name_id_format": [NAMEID_FORMAT_PERSISTENT]
             },
         },
         "cert_file": cert_and_key[0],
