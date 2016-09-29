@@ -190,8 +190,13 @@ class SAMLFrontend(FrontendModule):
         if authn_req.name_id_policy:
             name_format = saml_name_id_format_to_hash_type(authn_req.name_id_policy.format)
         else:
-            # default to requesting transient name id
-            name_format = UserIdHashType.transient
+            # default to name id format from metadata, or just transient name id
+            name_format_from_metadata = idp.metadata[resp_args["sp_entity_id"]]["spsso_descriptor"][0].get(
+                "name_id_format")
+            if name_format_from_metadata:
+                name_format = saml_name_id_format_to_hash_type(name_format_from_metadata[0]["text"])
+            else:
+                name_format = UserIdHashType.transient
 
         requester_name = self._get_sp_display_name(idp, resp_args["sp_entity_id"])
         internal_req = InternalRequest(name_format, resp_args["sp_entity_id"], requester_name)
