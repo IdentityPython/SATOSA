@@ -154,6 +154,15 @@ class TestSAMLBackend:
         resp = samlbackend.start_auth(context, InternalRequest(None, None))
         self.assert_redirect_to_idp(resp, idp_conf)
 
+    def test_always_redirect_to_discovery_service_if_using_mdq(self, context, sp_conf, idp_conf):
+        # one IdP in the metadata, but MDQ also configured so should always redirect to the discovery service
+        sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
+        sp_conf["metadata"]["mdq"] = ["https://mdq.example.com"]
+        samlbackend = SAMLBackend(None, INTERNAL_ATTRIBUTES, {"sp_config": sp_conf, "disco_srv": DISCOSRV_URL,},
+                                  "base_url", "saml_backend")
+        resp = samlbackend.start_auth(context, InternalRequest(None, None))
+        self.assert_redirect_to_discovery_server(resp, sp_conf)
+
     def test_authn_request(self, context, idp_conf):
         resp = self.samlbackend.authn_request(context, idp_conf["entityid"])
         self.assert_redirect_to_idp(resp, idp_conf)
