@@ -18,7 +18,7 @@ setup(
         "oic>=0.8.4.0",
         "pyop>=1.0.1",
         "pyjwkest==1.1.5",
-        "pysaml2==4.0.3",
+        "pysaml2==4.2.0",
         "requests",
         "PyYAML",
         "gunicorn",
