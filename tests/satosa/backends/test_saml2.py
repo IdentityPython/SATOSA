@@ -28,7 +28,6 @@ INTERNAL_ATTRIBUTES = {
     }
 }
 
-METADATA_URL = "http://example.com/SAML2IDP/metadata"
 DISCOSRV_URL = "https://my.dicso.com/role/idp.ds"
 
 
@@ -72,8 +71,7 @@ class TestSAMLBackend:
     def create_backend(self, sp_conf, idp_conf):
         self.setup_test_config(sp_conf, idp_conf)
         self.samlbackend = SAMLBackend(Mock(), INTERNAL_ATTRIBUTES, {"sp_config": sp_conf,
-                                                                     "disco_srv": DISCOSRV_URL,
-                                                                     "publish_metadata": METADATA_URL},
+                                                                     "disco_srv": DISCOSRV_URL},
                                        "base_url",
                                        "samlbackend")
 
@@ -90,8 +88,6 @@ class TestSAMLBackend:
         compiled_regex = [re.compile(regex) for regex, _ in url_map]
         for endp in all_sp_endpoints:
             assert any(p.match(endp) for p in compiled_regex)
-
-        assert any(p.match(get_path_from_url(METADATA_URL)) for p in compiled_regex)
 
     def test_start_auth_defaults_to_redirecting_to_discovery_server(self, context, sp_conf):
         resp = self.samlbackend.start_auth(context, InternalRequest(None, None))
@@ -241,4 +237,3 @@ class TestSAMLBackend:
         assert ui_info["display_name"] == expected_ui_info["display_name"]
         assert ui_info["description"] == expected_ui_info["description"]
         assert ui_info["logo"] == expected_ui_info["logo"]
-

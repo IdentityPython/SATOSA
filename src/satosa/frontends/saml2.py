@@ -348,10 +348,6 @@ class SAMLFrontend(FrontendModule):
                 url_map.append(("%s/%s$" % (valid_providers, parsed_endp.path),
                                 functools.partial(self.handle_authn_request, binding_in=binding)))
 
-        if "publish_metadata" in self.config:
-            metadata_path = urlparse(self.config["publish_metadata"])
-            url_map.append(("^%s$" % metadata_path.path[1:], self._metadata_endpoint))
-
         return url_map
 
     def _build_idp_config_endpoints(self, config, providers):

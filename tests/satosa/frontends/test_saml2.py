@@ -116,9 +116,7 @@ class TestSAMLFrontend:
         def get_path_from_url(url):
             return urlparse(url).path.lstrip("/")
 
-        metadata_url = "http://example.com/SAML2IDP/metadata"
-        config = {"idp_config": idp_conf, "endpoints": ENDPOINTS,
-                  "publish_metadata": metadata_url}
+        config = {"idp_config": idp_conf, "endpoints": ENDPOINTS}
 
         base_url = self.construct_base_url_from_entity_id(idp_conf["entityid"])
         samlfrontend = SAMLFrontend(lambda context, internal_req: (context, internal_req),
@@ -130,8 +128,6 @@ class TestSAMLFrontend:
         compiled_regex = [re.compile(regex) for regex, _ in url_map]
         for endp in all_idp_endpoints:
             assert any(p.match(endp) for p in compiled_regex)
-
-        assert any(p.match(get_path_from_url(metadata_url)) for p in compiled_regex)
 
     def test_handle_authn_request(self, context, idp_conf, sp_conf, internal_response):
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf)

@@ -231,10 +231,6 @@ class SAMLBackend(BackendModule):
             parsed_endp = urlparse(endp)
             url_map.append(("^%s$" % parsed_endp.path[1:], functools.partial(self.authn_response, binding=binding)))
 
-        if "publish_metadata" in self.config:
-            metadata_path = urlparse(self.config["publish_metadata"])
-            url_map.append(("^%s$" % metadata_path.path[1:], self._metadata_endpoint))
-
         if self.discosrv:
             for endp, binding in sp_endpoints["discovery_response"]:
                 parsed_endp = urlparse(endp)
