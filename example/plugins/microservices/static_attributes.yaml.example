@@ -3,3 +3,9 @@ name: AddAttributes
 config:
     static_attributes:
         organisation: Example Org.
+        schachomeorganization: example.com
+        schachomeorganizationtype: urn:schac:homeOrganizationType:eu:higherEducationInstitution
+        organizationname: Example Organization
+        noreduorgacronym: EO
+        countryname: SE
+        friendlycountryname: Sweden
