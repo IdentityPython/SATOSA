@@ -131,6 +131,11 @@ The authentication protocol specific communication is handled by different plugi
 divided into frontends (receiving requests from clients) and backends (sending requests
 to target providers).
 
+### Common plugin configuration parameters
+Both `name` and `module` must be specified in all plugin configurations (frontends, backends, and micro services).
+The `name` must be unique to ensure correct functionality, and the `module` must be the fully qualified name of an
+importable Python module.
+
 ### <a name="saml_plugin" style="color:#000000">SAML2 plugins</a>
 
 Common configuration parameters:
