@@ -20,7 +20,7 @@ be configured with a SAML2 frontend and an SAML2 backend.
    mkdir -p saml2-social/plugins
    cp example/{proxy_conf.yaml.example,internal_attributes.yaml.example} saml2-social/
    cp example/plugins/frontends/saml2_frontend.yaml.example saml2-social/plugins/
-   cp example/plugins/backends/saml2_backend.yaml.example saml2-social/plugins/
+   cp example/plugins/backends/{facebook,google}_backend.yaml.example saml2-social/plugins/
    ```
    
 1. Configure the proxy:
@@ -36,7 +36,8 @@ be configured with a SAML2 frontend and an SAML2 backend.
      configuration parameter values:
      ```yaml  
      BACKEND_MODULES:
-       - saml2-social/plugins/saml2_backend.yaml
+       - saml2-social/plugins/facebook_backend.yaml
+       - saml2-social/plugins/google_backend.yaml
      FRONTEND_MODULES:
        - saml2-social/plugins/saml2_frontend.yaml
      ```
@@ -53,13 +54,14 @@ be configured with a SAML2 frontend and an SAML2 backend.
 
 1. Configure the plugins
   1. Rename `plugins/saml2_frontend.yaml.example` to `plugins/saml2_frontend.yaml`
-     and `plugins/saml2_backend.yaml.example` to `plugins/saml2_backend.yaml`
+     and `plugins/{facebook,google}_backend.yaml.example` to `plugins/{facebook,google}_backend.yaml`
      ```bash
      mv plugins/saml2_frontend.yaml.example plugins/saml2_frontend.yaml
-     mv plugins/saml2_backend.yaml.example plugins/saml2_backend.yaml
+     mv plugins/facebook_backend.yaml.example plugins/facebook_backend.yaml
+     mv plugins/google_backend.yaml.example plugins/google_backend.yaml
      ```
     
-  1. Open saml2_frontend.yaml; Change the **module** attribute to the **satosa.frontends.saml2.SAMLMirrorFrontend** 
+  1. In `saml2_frontend.yaml`: Change the `module` configuration parameter to `satosa.frontends.saml2.SAMLMirrorFrontend`. 
   1. Specify the necessary configuration parameters, see the [Plugins](README.md#plugins) section
      of the proxy configuration instructions for more information.
 
