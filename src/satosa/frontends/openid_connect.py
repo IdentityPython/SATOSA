@@ -293,6 +293,8 @@ class OpenIDConnectFrontend(FrontendModule):
         :return: HTTP response to the client
         """
         internal_req = self._handle_authn_request(context)
+        if not isinstance(internal_req, InternalRequest):
+            return internal_req
         return self.auth_req_callback_func(context, internal_req)
 
     def jwks(self, context):
