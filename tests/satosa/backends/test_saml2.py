@@ -1,21 +1,26 @@
 """
 Tests for the SAML frontend module src/backends/saml2.py.
 """
+import os
 import re
 from base64 import urlsafe_b64encode
-from unittest.mock import Mock
+from collections import Counter
+from unittest.mock import Mock, patch
 from urllib.parse import urlparse, parse_qs, parse_qsl
 
 import pytest
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.authn_context import PASSWORD
 from saml2.config import IdPConfig, SPConfig
+from saml2.s_utils import deflate_and_base64_encode
 
 from satosa.backends.saml2 import SAMLBackend
 from satosa.context import Context
 from satosa.internal_data import InternalRequest
 from tests.users import USERS
 from tests.util import FakeIdP, create_metadata_from_config_dict, FakeSP
+
+TEST_RESOURCE_BASE_PATH = os.path.join(os.path.dirname(__file__), "../../test_resources")
 
 INTERNAL_ATTRIBUTES = {
     'attributes': {
@@ -181,6 +186,48 @@ class TestSAMLBackend:
         context, internal_resp = self.samlbackend.auth_callback_func.call_args[0]
         self.assert_authn_response(internal_resp)
         assert self.samlbackend.name not in context.state
+
+    def test_authn_response_with_encrypted_assertion(self, sp_conf, context):
+        with open(os.path.join(TEST_RESOURCE_BASE_PATH,
+                               "idp_metadata_for_encrypted_signed_auth_response.xml")) as idp_metadata_file:
+            sp_conf["metadata"]["inline"] = [idp_metadata_file.read()]
+        samlbackend = SAMLBackend(Mock(), INTERNAL_ATTRIBUTES, {"sp_config": sp_conf,
+                                                                "disco_srv": DISCOSRV_URL},
+                                  "base_url", "samlbackend")
+        response_binding = BINDING_HTTP_REDIRECT
+        relay_state = "test relay state"
+
+        with open(os.path.join(TEST_RESOURCE_BASE_PATH,
+                               "auth_response_with_encrypted_signed_assertion.xml")) as auth_response_file:
+            auth_response = auth_response_file.read()
+        context.request = {"SAMLResponse": deflate_and_base64_encode(auth_response), "RelayState": relay_state}
+
+        context.state[self.samlbackend.name] = {"relay_state": relay_state}
+        with open(os.path.join(TEST_RESOURCE_BASE_PATH, "encryption_key.pem")) as encryption_key_file:
+            samlbackend.encryption_keys = [encryption_key_file.read()]
+
+        assertion_issued_at = 1479315212
+        with patch('saml2.validate.time_util.utc_now') as time_mock:
+            time_mock.return_value = assertion_issued_at + 1
+            samlbackend.authn_response(context, response_binding)
+
+        context, internal_resp = samlbackend.auth_callback_func.call_args[0]
+        assert Counter(internal_resp.attributes.keys()) == Counter({"mail", "givenname", "displayname", "surname"})
+
+    def test_backend_reads_encryption_key_from_key_file(self, sp_conf):
+        sp_conf["key_file"] = os.path.join(TEST_RESOURCE_BASE_PATH, "encryption_key.pem")
+        samlbackend = SAMLBackend(Mock(), INTERNAL_ATTRIBUTES, {"sp_config": sp_conf,
+                                                                "disco_srv": DISCOSRV_URL},
+                                  "base_url", "samlbackend")
+        assert samlbackend.encryption_keys
+
+    def test_backend_reads_encryption_key_from_encryption_keypair(self, sp_conf):
+        del sp_conf["key_file"]
+        sp_conf["encryption_keypairs"] = [{"key_file": os.path.join(TEST_RESOURCE_BASE_PATH, "encryption_key.pem")}]
+        samlbackend = SAMLBackend(Mock(), INTERNAL_ATTRIBUTES, {"sp_config": sp_conf,
+                                                                "disco_srv": DISCOSRV_URL},
+                                  "base_url", "samlbackend")
+        assert samlbackend.encryption_keys
 
     def test_metadata_endpoint(self, context, sp_conf):
         resp = self.samlbackend._metadata_endpoint(context)
