@@ -191,6 +191,15 @@ class SAMLBackend(BackendModule):
         :param response: The saml authorization response
         :return: A translated internal response
         """
+
+        # The response may have been encrypted by the IdP so if the configuration
+        # includes a key file read it and use it to parse the assertion.
+        if 'sp_config' in self.config:
+            if 'key_file' in self.config['sp_config']:
+                with open(self.config['sp_config']['key_file'], 'rt') as key_file:
+                    key = key_file.read()
+                response.parse_assertion(key)
+
         authn_info = response.authn_info()[0]
         auth_class_ref = authn_info[0]
         timestamp = response.assertion.authn_statement[0].authn_instant
