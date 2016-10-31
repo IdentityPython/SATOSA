@@ -487,6 +487,12 @@ the same REST API).
 This micro service must be the last in the list of configured micro services in the `proxy_conf.yaml` to ensure
 correct functionality.
 
+#### LDAP attribute store
+
+An identifier such as eduPersonPrincipalName asserted by an IdP can be used to look up a person record
+in an LDAP directory to find attributes to assert about the authenticated user to the SP. See the 
+[example config](../example/plugins/microservices/ldap_attribute_store.yaml.example).
+
 ### Custom plugins
 
 It's possible to write custom plugins which can be loaded by SATOSA. They have to be contained in a Python module,
