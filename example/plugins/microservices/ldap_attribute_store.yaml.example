@@ -1,0 +1,17 @@
+module: plugins.microservices.ldap_attribute_store.LdapAttributeStore
+name: LdapAttributeStore
+config:
+  ldap_url: ldaps://ldap.example.org
+  bind_dn: cn=admin,dc=example,dc=org
+  bind_password: xxxxxxxx
+  search_base: ou=People,dc=example,dc=org
+  search_return_attributes:
+    # format is LDAP attribute name : internal attribute name
+    sn: surname
+    givenName: givenname
+    mail: mail
+    employeeNumber: employeenumber
+    isMemberOf: ismemberof
+  idp_identifiers:
+    - eppn
+  ldap_identifier_attribute: uid
