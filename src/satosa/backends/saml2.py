@@ -59,6 +59,18 @@ class SAMLBackend(BackendModule):
         self.attribute_profile = config.get("attribute_profile", "saml")
         self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST]
         self.discosrv = config.get("disco_srv")
+        self.encryption_keys = []
+
+        key_file_paths = None
+        if 'encryption_keypairs' in self.config['sp_config']: # prioritize explicit encryption keypairs
+            key_file_paths = [keypair['key_file'] for keypair in self.config['sp_config']['encryption_keypairs']]
+        elif 'key_file' in self.config['sp_config']:
+            key_file_paths = [self.config['sp_config']['key_file']]
+
+        if key_file_paths:
+            for p in key_file_paths:
+                with open(p) as key_file:
+                    self.encryption_keys.append(key_file.read())
 
     def start_auth(self, context, internal_req):
         """
@@ -191,6 +203,11 @@ class SAMLBackend(BackendModule):
         :param response: The saml authorization response
         :return: A translated internal response
         """
+
+        # The response may have been encrypted by the IdP so if we have an encryption key, try it
+        if self.encryption_keys:
+            response.parse_assertion(self.encryption_keys)
+
         authn_info = response.authn_info()[0]
         auth_class_ref = authn_info[0]
         timestamp = response.assertion.authn_statement[0].authn_instant
