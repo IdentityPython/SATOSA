@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='SATOSA',
-    version='3.3.2',
+    version='3.4.0',
     description='Protocol proxy (SAML/OIDC).',
     author='DIRG',
     author_email='dirg@its.umu.se',
