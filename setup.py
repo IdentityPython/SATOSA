@@ -25,6 +25,9 @@ setup(
         "Werkzeug",
         "click"
     ],
+    extras_require={
+        "ldap": ["ldap3"],
+    },
     zip_safe=False,
     classifiers=[
         "Programming Language :: Python :: 3 :: Only",
