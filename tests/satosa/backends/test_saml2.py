@@ -5,6 +5,7 @@ import os
 import re
 from base64 import urlsafe_b64encode
 from collections import Counter
+from datetime import datetime
 from unittest.mock import Mock, patch
 from urllib.parse import urlparse, parse_qs, parse_qsl
 
@@ -207,8 +208,11 @@ class TestSAMLBackend:
             samlbackend.encryption_keys = [encryption_key_file.read()]
 
         assertion_issued_at = 1479315212
-        with patch('saml2.validate.time_util.utc_now') as time_mock:
-            time_mock.return_value = assertion_issued_at + 1
+        with patch('saml2.validate.time_util.shift_time') as mock_shift_time, \
+                patch('saml2.validate.time_util.utc_now') as mock_utc_now:
+            mock_utc_now.return_value = assertion_issued_at + 1
+            mock_shift_time.side_effect = [datetime.utcfromtimestamp(assertion_issued_at + 1),
+                                     datetime.utcfromtimestamp(assertion_issued_at - 1)]
             samlbackend.authn_response(context, response_binding)
 
         context, internal_resp = samlbackend.auth_callback_func.call_args[0]
