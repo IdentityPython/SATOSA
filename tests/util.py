@@ -6,7 +6,7 @@ import tempfile
 from datetime import datetime
 from urllib.parse import parse_qsl, urlparse
 
-from Crypto.PublicKey import RSA
+from Cryptodome.PublicKey import RSA
 from bs4 import BeautifulSoup
 from saml2 import server, BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.authn_context import AuthnBroker, authn_context_class_ref, PASSWORD

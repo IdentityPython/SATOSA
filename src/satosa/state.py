@@ -10,8 +10,8 @@ import logging
 from http.cookies import SimpleCookie
 from lzma import LZMADecompressor, LZMACompressor
 
-from Crypto import Random
-from Crypto.Cipher import AES
+from Cryptodome import Random
+from Cryptodome.Cipher import AES
 
 from .exception import SATOSAStateError
 from .logging_util import satosa_logging
