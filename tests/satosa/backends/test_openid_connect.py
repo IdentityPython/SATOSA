@@ -7,7 +7,7 @@ from urllib.parse import urlparse, parse_qsl
 import oic
 import pytest
 import responses
-from Crypto.PublicKey import RSA
+from Cryptodome.PublicKey import RSA
 from jwkest.jwk import RSAKey
 from oic.oic.message import RegistrationRequest, IdToken
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD

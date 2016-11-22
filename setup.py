@@ -15,10 +15,9 @@ setup(
     packages=find_packages('src/'),
     package_dir={'': 'src'},
     install_requires=[
-        "oic>=0.8.4.0",
         "pyop==2.0.1",
-        "pyjwkest==1.1.5",
         "pysaml2==4.2.0",
+        "pycryptodomex",
         "requests",
         "PyYAML",
         "gunicorn",
