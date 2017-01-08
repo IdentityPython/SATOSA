@@ -27,6 +27,10 @@ class Context(object):
         self.cookie = None
         self.state = None
 
+    def __repr__(self):
+        from pprint import pformat
+        return pformat(vars(self))
+
     @property
     def path(self):
         """
