@@ -254,6 +254,10 @@ class State(object):
         state_copy._state_dict = copy.deepcopy(self._state_dict)
         return state_copy
 
+    def __repr__(self):
+        from pprint import pformat
+        return pformat(vars(self))
+
     def __str__(self):
         return str(self._state_dict)
 
