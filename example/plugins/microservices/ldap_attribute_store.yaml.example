@@ -15,3 +15,11 @@ config:
   idp_identifiers:
     - eppn
   ldap_identifier_attribute: uid
+  # Configuration may also be done per-SP with any
+  # missing parameters taken from the default if any.
+  # The configuration key is the entityID of the SP.
+  #
+  # For example:
+  https://sp.myserver.edu/shibboleth-sp
+    search_base: ou=People,o=MyVO,dc=example,dc=org
+    eduPersonPrincipalName: employeenumber
