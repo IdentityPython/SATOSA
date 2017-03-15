@@ -165,7 +165,8 @@ class _OAuthBackend(BackendModule):
         See satosa.backends.oauth.get_metadata_desc
         :rtype: satosa.metadata_creation.description.MetadataDescription
         """
-        return get_metadata_desc_for_oauth_backend(self.config, self.config["server_info"]["authorization_endpoint"])
+        return get_metadata_desc_for_oauth_backend(
+            self.config["server_info"]["authorization_endpoint"], self.config)
 
 
 class FacebookBackend(_OAuthBackend):
