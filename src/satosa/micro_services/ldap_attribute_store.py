@@ -90,7 +90,7 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
             satosa_logging(logger, logging.ERROR, "{} Configuration '{}' is missing".format(logprefix, err), context.state)
             return super().process(context, data)
 
-        entry = None
+        record = None
 
         try:
             satosa_logging(logger, logging.DEBUG, "{} Using LDAP URL {}".format(logprefix, ldap_url), context.state)
@@ -102,7 +102,7 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
 
 
             for identifier in idp_identifiers:
-                if entry:
+                if record:
                     break
 
                 satosa_logging(logger, logging.DEBUG, "{} Using IdP asserted attribute {}".format(logprefix, identifier), context.state)
@@ -120,14 +120,14 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                         connection.search(search_base, search_filter, attributes=search_return_attributes.keys())
                         satosa_logging(logger, logging.DEBUG, "{} Done querying LDAP server".format(logprefix), context.state)
 
-                        entries = connection.entries
-                        satosa_logging(logger, logging.DEBUG, "{} LDAP server returned {} entries".format(logprefix, len(entries)), context.state)
+                        responses = connection.response
+                        satosa_logging(logger, logging.DEBUG, "{} LDAP server returned {} records".format(logprefix, len(responses)), context.state)
 
-                        # for now consider only the first entry found (if any)
-                        if len(entries) > 0:
-                            if len(entries) > 1:
-                                satosa_logging(logger, logging.WARN, "{} LDAP server returned {} entries using IdP asserted attribute {}".format(logprefix, len(entries), identifier), context.state)
-                            entry = entries[0]
+                        # for now consider only the first record found (if any)
+                        if len(responses) > 0:
+                            if len(responses) > 1:
+                                satosa_logging(logger, logging.WARN, "{} LDAP server returned {} records using IdP asserted attribute {}".format(logprefix, len(responses), identifier), context.state)
+                            record = responses[0]
                             break
                         
                 else:
@@ -141,14 +141,15 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
             satosa_logging(logger, logging.DEBUG, "{} Unbinding and closing connection to LDAP server".format(logprefix), context.state)
             connection.unbind()
 
-        # use a found entry, if any, to populate attributes
-        if entry:
-            satosa_logging(logger, logging.DEBUG, "{} Using entry with DN {}".format(logprefix, entry.entry_get_dn()), context.state)
+        # use a found record, if any, to populate attributes
+        if record:
+            satosa_logging(logger, logging.DEBUG, "{} Using record with DN {}".format(logprefix, record["dn"]), context.state)
+            satosa_logging(logger, logging.DEBUG, "{} Record with DN {} has attributes {}".format(logprefix, record["dn"], record["attributes"]), context.state)
             data.attributes = {}
             for attr in search_return_attributes.keys():
-                if attr in entry:
-                    data.attributes[search_return_attributes[attr]] = entry[attr].values
-                    satosa_logging(logger, logging.DEBUG, "{} Setting internal attribute {} with values {}".format(logprefix, search_return_attributes[attr], entry[attr].values), context.state)
+                if attr in record["attributes"]:
+                    data.attributes[search_return_attributes[attr]] = record["attributes"][attr]
+                    satosa_logging(logger, logging.DEBUG, "{} Setting internal attribute {} with values {}".format(logprefix, search_return_attributes[attr], record["attributes"][attr]), context.state)
 
         else:
             # We should probably have an option here to clear attributes from IdP
