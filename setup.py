@@ -9,9 +9,9 @@ setup(
     version='3.4.0',
     description='Protocol proxy (SAML/OIDC).',
     author='DIRG',
-    author_email='dirg@its.umu.se',
+    author_email='satosa-dev@lists.sunet.se',
     license='Apache 2.0',
-    url='https://github.com/its-dirg/SATOSA',
+    url='https://github.com/SUNET/SATOSA',
     packages=find_packages('src/'),
     package_dir={'': 'src'},
     install_requires=[
