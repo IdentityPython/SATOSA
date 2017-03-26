@@ -85,6 +85,12 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                 ldap_identifier_attribute = config['ldap_identifier_attribute']
             else:
                 ldap_identifier_attribute = self.config['ldap_identifier_attribute']
+            if 'clear_input_attributes' in config:
+                clear_input_attributes = config['clear_input_attributes']
+            elif 'clear_input_attributes' in self.config:
+                clear_input_attributes = self.config['clear_input_attributes']
+            else:
+                clear_input_attributes = False
 
         except KeyError as err:
             satosa_logging(logger, logging.ERROR, "{} Configuration '{}' is missing".format(logprefix, err), context.state)
@@ -141,19 +147,23 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
             satosa_logging(logger, logging.DEBUG, "{} Unbinding and closing connection to LDAP server".format(logprefix), context.state)
             connection.unbind()
 
-        # use a found record, if any, to populate attributes
+        # Before using a found record, if any, to populate attributes
+        # clear any attributes incoming to this microservice if so configured.
+        if clear_input_attributes:
+            satosa_logging(logger, logging.DEBUG, "{} Clearing values for these input attributes: {}".format(logprefix, data.attributes), context.state)
+            data.attributes = {}
+
+        # Use a found record, if any, to populate attributes
         if record:
             satosa_logging(logger, logging.DEBUG, "{} Using record with DN {}".format(logprefix, record["dn"]), context.state)
             satosa_logging(logger, logging.DEBUG, "{} Record with DN {} has attributes {}".format(logprefix, record["dn"], record["attributes"]), context.state)
-            data.attributes = {}
             for attr in search_return_attributes.keys():
                 if attr in record["attributes"]:
                     data.attributes[search_return_attributes[attr]] = record["attributes"][attr]
                     satosa_logging(logger, logging.DEBUG, "{} Setting internal attribute {} with values {}".format(logprefix, search_return_attributes[attr], record["attributes"][attr]), context.state)
 
         else:
-            # We should probably have an option here to clear attributes from IdP
-            pass
+            satosa_logging(logger, logging.WARN, "{} No record found in LDAP so no attributes will be added".format(logprefix), context.state)
 
         satosa_logging(logger, logging.DEBUG, "{} returning data.attributes {}".format(logprefix, str(data.attributes)), context.state)
         return super().process(context, data)
