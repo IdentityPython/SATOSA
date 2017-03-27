@@ -15,6 +15,9 @@ config:
   idp_identifiers:
     - eppn
   ldap_identifier_attribute: uid
+  # Whether to clear values for attributes incoming
+  # to this microservice. Default is no or false.
+  clear_input_attributes: no
   # Configuration may also be done per-SP with any
   # missing parameters taken from the default if any.
   # The configuration key is the entityID of the SP.
