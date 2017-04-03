@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xmlsec1 \
     libyaml-dev
 
+RUN mkdir -p /src/satosa
+COPY . /src/satosa
 COPY docker/setup.sh /setup.sh
 RUN /setup.sh
 
