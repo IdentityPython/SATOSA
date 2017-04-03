@@ -1,6 +1,8 @@
 FROM ubuntu:16.04
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && \
+    apt-get -y dist-upgrade && \
+    apt-get install -y --no-install-recommends \
     git \
     python3-dev \
     build-essential \
