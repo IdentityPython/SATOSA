@@ -5,7 +5,7 @@ This document describes how to install and configure the SATOSA proxy.
 # Installation
 
 ## <a name="docker" style="color:#000000">Docker</a>
-A pre-built Docker image is accessible at the [Docker Hub](https://hub.docker.com/r/itsdirg/satosa/), and is the
+A pre-built Docker image is accessible at the [Docker Hub](https://hub.docker.com/r/satosa/), and is the
 recommended ways of running the proxy.
 
 ## <a name="manual_installation" style="color:#000000">Manual installation</a>
@@ -17,7 +17,7 @@ apt-get install libffi-dev libssl-dev xmlsec1
 ````
 
 ### <a name="install_instructions" style="color:#000000">Instructions</a>
-1. Download the SATOSA proxy project as a [compressed archive](https://github.com/its-dirg/SATOSA/releases)
+1. Download the SATOSA proxy project as a [compressed archive](https://github.com/SUNET/SATOSA/releases)
    and unpack it to `<satosa_path>`.
 
 1. Install the application:
@@ -26,7 +26,7 @@ apt-get install libffi-dev libssl-dev xmlsec1
    pip install <satosa_path>
    ```
 
-Alternatively the application can be installed directly from PyPI (`pip install satosa`), or the [Docker image](https://hub.docker.com/r/itsdirg/satosa/) can be used.
+Alternatively the application can be installed directly from PyPI (`pip install satosa`), or the [Docker image](https://hub.docker.com/r/satosa/) can be used.
 
 # Configuration
 All default configuration files, as well as an example WSGI application for the proxy, can be found
@@ -306,10 +306,10 @@ The configuration parameters available:
     * `client_registration_supported` (default: `No`): boolean whether [dynamic client registration is supported](https://openid.net/specs/openid-connect-registration-1_0.html).
         If dynamic client registration is not supported all clients must exist in the MongoDB instance configured by the `db_uri` in the `"clients"` collection of the `"satosa"` database.
         The registration info must be stored using the client id as a key, and use the parameter names of a [OIDC Registration Response](https://openid.net/specs/openid-connect-registration-1_0.html#RegistrationResponse).
-    * `authorization_code_lifetime`: how long authorization codes should be valid, see [default](https://github.com/its-dirg/pyop#token-lifetimes)
-    * `access_token_lifetime`: how long access tokens should be valid, see [default](https://github.com/its-dirg/pyop#token-lifetimes)
-    * `refresh_token_lifetime`: how long refresh tokens should be valid, if not specified no refresh tokens will be issued (which is [default](https://github.com/its-dirg/pyop#token-lifetimes))
-    * `refresh_token_threshold`: how long before expiration refresh tokens should be refreshed, if not specified refresh tokens will never be refreshed (which is [default](https://github.com/its-dirg/pyop#token-lifetimes))
+    * `authorization_code_lifetime`: how long authorization codes should be valid, see [default](https://github.com/SUNET/pyop#token-lifetimes)
+    * `access_token_lifetime`: how long access tokens should be valid, see [default](https://github.com/SUNET/pyop#token-lifetimes)
+    * `refresh_token_lifetime`: how long refresh tokens should be valid, if not specified no refresh tokens will be issued (which is [default](https://github.com/SUNET/pyop#token-lifetimes))
+    * `refresh_token_threshold`: how long before expiration refresh tokens should be refreshed, if not specified refresh tokens will never be refreshed (which is [default](https://github.com/SUNET/pyop#token-lifetimes))
 
 The other parameters should be left with their default values.
 
@@ -519,7 +519,7 @@ To produce signed SAML metadata for all SAML front- and backend modules, run the
 satosa-saml-metadata <path to proxy_conf.yaml> <path to key for signing> <path to cert for signing>
 ```
 
-Detailed usage instructions can be viewed by running `satosa-saml-metadata -h`.
+Detailed usage instructions can be viewed by running `satosa-saml-metadata --help`.
 
 # <a name="run" style="color:#000000">Start proxy application</a>
 Start the proxy server with the following command:

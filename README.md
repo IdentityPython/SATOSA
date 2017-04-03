@@ -48,7 +48,7 @@ can convert request and make the communication possible.
 
 ## SAML2<->Social logins
 This setup makes it possible to connect a SAML2 service provider to multiple social media identity 
-providers such as Goolgle, Facebook. The proxy makes it possible to mirror a identity provider by 
+providers such as Google and Facebook. The proxy makes it possible to mirror a identity provider by 
 generating SAML2 metadata corresponding that provider and create dynamic endpoint which 
 are connected to a single identity provider.
 For more information about how to set up, configure and run such a proxy instance please visit 
