@@ -29,7 +29,8 @@ def _create_split_entity_descriptors(entities, secc, valid):
 def _create_merged_entities_descriptors(entities, secc, valid, name):
     output = []
     frontend_entity_descriptors = [e for sublist in entities.values() for e in sublist]
-    output.append((create_signed_entities_descriptor(frontend_entity_descriptors, secc, valid), name))
+    for frontend in frontend_entity_descriptors:
+        output.append((create_signed_entity_descriptor(frontend, secc, valid), name))
 
     return output
 
