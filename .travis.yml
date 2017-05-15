@@ -24,13 +24,18 @@ deploy:
     password:
       secure: NwkpOakaeJjErjTF4Y5MWeHzMvkxYZqrBFdRkzfenVfkWsomuyy553A691d3lc1+oREsh1fJJLjpZQYxTLUFIHOUmt/9zr02rFfguzj7hEYfWF8wHBXG6YSWv6T3aCA4RTMXvvzv9cHf1zfxh0fS7kgc+NRMAnd01diVLfYpBciLgmQ31J4mlwShp8yBQUoRBIvzSdzrgjr0TzCQZXB9xM6R2t/oJgXLo6Zz8dTzqq3De9nOU/1P2ZHLxodDikuFdu2/0CjoDgFXB0KnGKGKmJ6G1WMCVvi7abY7smmGA3s4a4NVL7Cirx6VwIj79PsAcgupr2iBAQk/GsPffzdpLtIrBek9u//p84hxrj/IaJWgPOeKeD7+r2Kc2g0r2dQjaM+9MqBx9/lC57xJRX/JHLQWirXfCucB9YyPun5I13Sf3hArkssQy/Jvd2aLFZ885BTfow6TAwl1ud+UPeauvEj6myKO98sko/3Y521EGXRofLGaPokLyPjI/3I4N4jCvw8m86eZAjjIhPFL7JKHf8OVc5gQCYQy3kxiF5wyvbfOeMBp0sk9UvJOrWvBEXFrimAZPu8o8T5WtlQAV02q7rxUwhMd+fpnbGewsl7Ob6eE4rGVrfWQIb86wOHbbJk3lCwPytjEFEI2bdUfRUFcrWxhC040hRP0gzVKLa+nBHM=
     on:
-      tags: true
       repo: SUNET/SATOSA
+      tags: true
   - provider: script
-    script: scripts/travis_create_docker_image.sh
+    script: scripts/travis_create_docker_image_branch.sh
     on:
       repo: SUNET/SATOSA
       branch: master
+  - provider: script
+    script: scripts/travis_create_docker_image_tag.sh
+    on:
+      repo: SUNET/SATOSA
+      tags: true
 env:
   global:
   - secure: ymdbaVVKJFq193xn+pr7sRyjkcOBtpm6eu+A9QsdtzO6vhaj+MhFfsjWAJbGiaSvX691bLd+9kFqH76HViN1LbmkCujBm2+4k0DBSakb70T/81UNNpYGy4iIYzCKaWPPSwvFGfRjNY14RILEpOI8NCkJuDMuO7CiGkwOtmlOdP/tYdV9T3p36Hgpwa/0U5kIahqwnbBKiwjGGhI8YA4Ik01P4biEv3Fr++jS4dhzMe+hYjWDXW+bksf9OikbtJkPzHlZxCDgFH4yNY1TH6P3X/B8NLTrvpNZOj2GgQoZBDrTEM+RLdaLQ8EYcrJaEaOZs65Jicpw5Ycz8DHUuBXwlSiG1g/VJlzxYchGxnLguVyEELEm7p7vhDFYNOROL3J4PpY8E1+L834xzmhCqbHM2kHB2WeiIob0j1Hq7U1802tFuM+tu8P4gdEyGxstQaIehiTI/VQEJm+sKB1W5xtDQokrnMyiQfJy4K7T4ZrONV/gVhb85ayS6eF/Xu1vr/5s/fWyQOxNKvoeEiO6VVoLTWNPEysTewLFc8o7HcE/Qnv/67IwuK/vx0ZlESbNCRgTfqyWpn5vybyWmgo9aUC51hDiVQtZfVeaoF/Xtg2yxVn/4C1aPybpA2Oacll8LjyYwyoCeH3naD0j9Msy4izny2PF7MTT4iNbtwhRoAAqXic=
