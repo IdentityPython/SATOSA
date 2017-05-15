@@ -7,7 +7,7 @@ import json
 import logging
 from urllib.parse import urlparse
 
-from saml2 import SAMLError
+from saml2 import SAMLError, xmldsig
 from saml2.config import IdPConfig
 from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
 from saml2.metadata import create_metadata_string
@@ -284,7 +284,46 @@ class SAMLFrontend(FrontendModule):
                          name_qualifier=None)
 
         satosa_logging(logger, logging.DEBUG, "returning attributes %s" % json.dumps(ava), context.state)
-        resp = idp.create_authn_response(ava, name_id=name_id, authn=auth_info, sign_response=True, **resp_args)
+
+        # Construct arguments for method create_authn_response on IdP Server instance
+        args = {
+                'identity'      : ava,
+                'name_id'       : name_id,
+                'authn'         : auth_info,
+                'sign_response' : True
+                }
+
+        # Add the SP details
+        args.update(**resp_args)
+
+        # Default signing and digest algorithms
+        args['sign_alg'] = xmldsig.SIG_RSA_SHA256
+        args['digest_alg'] = xmldsig.DIGEST_SHA256
+
+        # Override if SAML2 IdP frontend has a configured default
+        try:
+            args['sign_alg'] = getattr(xmldsig, self.config['idp_config']['service']['idp']['policy']['default']['sign_alg'])
+        except (KeyError, AttributeError):
+            pass
+        try:
+            args['digest_alg'] = getattr(xmldsig, self.config['idp_config']['service']['idp']['policy']['default']['digest_alg'])
+        except (KeyError, AttributeError):
+            pass
+
+        # Override if SAML2 IdP frontend has a per-sp configuration
+        try:
+            args['sign_alg'] = getattr(xmldsig, self.config['idp_config']['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_alg'])
+        except (KeyError, AttributeError):
+            pass
+        try:
+            args['digest_alg'] = getattr(xmldsig, self.config['idp_config']['service']['idp']['policy'][resp_args['sp_entity_id']]['digest_alg'])
+        except (KeyError, AttributeError):
+            pass
+
+        satosa_logging(logger, logging.DEBUG, "signing with algorithm %s" % args['sign_alg'], context.state)
+        satosa_logging(logger, logging.DEBUG, "using digest algorithm %s" % args['digest_alg'], context.state)
+
+        resp = idp.create_authn_response(**args)
         http_args = idp.apply_binding(resp_args["binding"], str(resp), resp_args["destination"],
                                       request_state["relay_state"], response=True)
         del context.state[self.name]
