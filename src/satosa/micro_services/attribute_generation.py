@@ -56,7 +56,69 @@ class MustachAttrValue(object):
 
 class AddSyntheticAttributes(ResponseMicroService):
     """
-    Add synthetic attributes to the responses.
+A class that add generated or synthetic attributes to a response set. Attribute
+generation is done using mustach (http://mustache.github.io) templates. The
+following example configuration illustrates most common features:
+
+```yaml
+module: satosa.micro_services.attribute_generation.AddSyntheticAttributes
+name: AddSyntheticAttributes
+config:
+    synthetic_attributes:
+        target_provider1:
+            requester1:
+                eduPersonAffiliation: member;employee
+        default:
+            default:
+                schacHomeOrganization: {{eduPersonPrincipalName.scope}}
+                schacHomeOrganizationType: tomfoolery provider
+
+```
+
+The use of "" and 'default' is synonymous. Attribute rules are not
+overloaded or inherited. For instance a response from "target_provider1"
+and requester1 in the above config will generate a (static) attribute
+set of 'member' and 'employee' for the eduPersonAffiliation attribute
+and nothing else. Note that synthetic attributes override existing
+attributes if present.
+
+*Evaluating and interpreting templates*
+
+Attribute values are split on combinations of ';' and newline so that
+a template resulting in the following text:
+```
+a;
+b;c
+```
+results in three attribute values: 'a','b' and 'c'. Templates are
+evaluated with a single context that represents the response attributes
+before the microservice is processed. De-referencing the attribute
+name as in '{{name}}' results in a ';'-separated list of all attribute
+values. This notation is useful when you know there is only a single
+attribute value in the set.
+
+*Special contexts*
+
+For treating the values as a list - eg for interating using mustach,
+use the .values sub-context For instance to synthesize all fist-last
+name combinations do this:
+
+```
+{{#givenName.values}}
+   {{#sn.values}}{{givenName}} {{sn}}{{/sn.values}}
+{{/givenName.values}}
+```
+
+Note that the .values sub-context behaves as if it is an iterator
+over single-value context with the same key name as the original
+attribute name.
+
+The .scope sub-context evalues to the right-hand part of any @
+sign. This is assumed to be single valued.
+
+The .first sub-context evalues to the first value of a context
+which may be safer to use if the attribute is multivalued but
+you don't care which value is used in a template.
     """
 
     def __init__(self, config, *args, **kwargs):
