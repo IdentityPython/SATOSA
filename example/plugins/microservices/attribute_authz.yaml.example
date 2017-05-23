@@ -4,7 +4,7 @@ config:
     attribute_allow:
         target_provider1:
             requester1:
-                attr1: 
+                attr1:
                    - "^foo:bar$"
                    - "^kaka$"
             default:

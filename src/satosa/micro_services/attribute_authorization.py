@@ -40,10 +40,10 @@ config:
 
 The use of "" and 'default' is synonymous. Attribute rules are not overloaded
 or inherited. For instance a response from "provider2" would only be allowed
-through if the eppn attribute had all values containing an '@' (something 
+through if the eppn attribute had all values containing an '@' (something
 perhaps best implemented via an allow rule in practice). Responses from
 target_provider1 bound for requester1 would be allowed through only if attr1
-contained foo:bar or kaka. Note that attribute filters (the leaves of the 
+contained foo:bar or kaka. Note that attribute filters (the leaves of the
 structure above) are ORed together - i.e any attribute match is sufficient.
     """
 
