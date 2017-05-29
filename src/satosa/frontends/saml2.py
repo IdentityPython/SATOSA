@@ -271,6 +271,8 @@ class SAMLFrontend(FrontendModule):
         else:
             auth_info["class_ref"] = internal_response.auth_info.auth_class_ref
 
+        auth_info["authn_auth"] = internal_response.auth_info.issuer
+
         if self.custom_attribute_release:
             custom_release_per_idp = self.custom_attribute_release.get(internal_response.auth_info.issuer, {})
             custom_release = custom_release_per_idp.get(resp_args["sp_entity_id"], {})
