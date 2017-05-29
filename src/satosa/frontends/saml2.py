@@ -292,7 +292,8 @@ class SAMLFrontend(FrontendModule):
                 'identity'      : ava,
                 'name_id'       : name_id,
                 'authn'         : auth_info,
-                'sign_response' : True
+                'sign_response' : True,
+                'sign_assertion': True
                 }
 
         # Add the SP details
