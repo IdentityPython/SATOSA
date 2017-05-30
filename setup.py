@@ -22,10 +22,11 @@ setup(
         "PyYAML",
         "gunicorn",
         "Werkzeug",
-        "click"
+        "click",
+        "pystache"
     ],
     extras_require={
-        "ldap": ["ldap3"],
+        "ldap": ["ldap3"]
     },
     zip_safe=False,
     classifiers=[
