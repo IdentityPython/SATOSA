@@ -133,11 +133,8 @@ you don't care which value is used in a template.
            context[attr_name] = MustachAttrValue(attr_name, values)
 
         recipes = _config(self.synthetic_attributes, requester, provider)
-        print(context)
         for attr_name, fmt in recipes:
-           print(fmt)
            syn_attributes[attr_name] = [v.strip().strip(';') for v in re.split("[;\n]+", pystache.render(fmt, context))]
-        print(syn_attributes)
         return syn_attributes
 
     def process(self, context, data):
