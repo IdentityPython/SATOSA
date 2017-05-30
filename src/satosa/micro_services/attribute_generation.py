@@ -35,7 +35,7 @@ class MustachAttrValue(object):
    
     @property 
     def value(self):
-        if 1 == len(self._values):
+        if len(self._values) == 1:
            return self._values[0]
         else:
            return self._values
