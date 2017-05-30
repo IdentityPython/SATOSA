@@ -23,10 +23,10 @@ setup(
         "gunicorn",
         "Werkzeug",
         "click",
+        "pystache"
     ],
     extras_require={
-        "ldap": ["ldap3"],
-        "pystache": ["pystache"]
+        "ldap": ["ldap3"]
     },
     zip_safe=False,
     classifiers=[
