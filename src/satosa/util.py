@@ -7,6 +7,10 @@ import string
 
 logger = logging.getLogger(__name__)
 
+def get_dict_defaults(d, *keys):
+    for key in keys:
+       d = d.get(key, d.get("", d.get("default", {})))
+    return d
 
 def rndstr(size=16, alphabet=""):
     """

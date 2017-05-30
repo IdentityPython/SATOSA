@@ -242,6 +242,18 @@ config:
         idp-entity-id1
             sp-entity-id1:
                 exclude: ["givenName"]
+
+
+The custom_attribute_release mechanism supports defaults based on idp and sp entity Id by specifying "" or "default"
+as the key in the dict. For instance in order to exclude givenName for any sp or idp do this:
+
+```yaml
+config:
+    config: [...]
+    custom_attribute_release:
+        "default":
+            "":
+                exclude: ["givenName"]
             
 
 #### Backend
