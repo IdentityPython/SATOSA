@@ -214,10 +214,16 @@ class SAMLBackend(BackendModule):
         issuer = response.response.issuer.text
 
         auth_info = AuthenticationInformation(auth_class_ref, timestamp, issuer)
-        internal_resp = InternalResponse(auth_info=auth_info)
+        internal_resp = SAMLInternalResponse(auth_info=auth_info)
 
         internal_resp.user_id = response.get_subject().text
         internal_resp.attributes = self.converter.to_internal(self.attribute_profile, response.ava)
+        
+        # The SAML response may not include a NameID
+        try:
+            internal_resp.name_id = response.assertion.subject.name_id
+        except AttributeError:
+            pass
 
         satosa_logging(logger, logging.DEBUG, "received attributes:\n%s" % json.dumps(response.ava, indent=4), state)
         return internal_resp
@@ -315,3 +321,32 @@ class SAMLBackend(BackendModule):
 
             entity_descriptions.append(description)
         return entity_descriptions
+
+class SAMLInternalResponse(InternalResponse):
+    """
+    Like the parent InternalResponse, holds internal representation of 
+    service related data, but includes additional details relevant to
+    SAML interoperability.
+
+    :type name_id: instance of saml2.saml.NameID from pysaml2
+    """
+    def __init__(self, auth_info=None):
+        super().__init__(auth_info)
+
+        self.name_id = None
+
+    def to_dict(self):
+        """
+        Converts a SAMLInternalResponse object to a dict
+        :rtype: dict[str, dict[str, str] | str]
+        :return: A dict representation of the object
+        """
+        _dict = super().to_dict()
+
+        if self.name_id:
+            _dict['name_id'] = {self.name_id.format : self.name_id.text}
+        else:
+            _dict['name_id'] = None
+
+        return _dict
+
