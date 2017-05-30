@@ -2,11 +2,7 @@ import re
 import pystache
 
 from .base import ResponseMicroService
-
-def _config(f, requester, provider):
-    pf = f.get(provider, f.get("", f.get("default", {})))
-    rf = pf.get(requester, pf.get("", pf.get("default", {})))
-    return rf.items()
+from ..util import get_dict_defaults
 
 class MustachAttrValue(object):
     def __init__(self, attr_name, values):
@@ -132,8 +128,8 @@ you don't care which value is used in a template.
         for attr_name,values in attributes.items():
            context[attr_name] = MustachAttrValue(attr_name, values)
 
-        recipes = _config(self.synthetic_attributes, requester, provider)
-        for attr_name, fmt in recipes:
+        recipes = get_dict_defaults(self.synthetic_attributes, requester, provider)
+        for attr_name, fmt in recipes.items():
            syn_attributes[attr_name] = [v.strip().strip(';') for v in re.split("[;\n]+", pystache.render(fmt, context))]
         return syn_attributes
 
