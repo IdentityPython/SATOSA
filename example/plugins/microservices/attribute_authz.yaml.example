@@ -1,0 +1,21 @@
+module: satosa.micro_services.attribute_authorization.AttributeAuthorization
+name: AttributeAuthorization
+config:
+    attribute_allow:
+        target_provider1:
+            requester1:
+                attr1:
+                   - "^foo:bar$"
+                   - "^kaka$"
+            default:
+                attr1:
+                   - "plupp@.+$"
+        "":
+            "":
+                attr2:
+                   - "^knytte:.*$"
+    attribute_deny:
+        default:
+            default:
+                eppn:
+                   - "^[^@]+$"

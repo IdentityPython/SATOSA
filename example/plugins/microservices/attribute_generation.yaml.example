@@ -1,0 +1,11 @@
+module: satosa.micro_services.attribute_generation.AddSyntheticAttributes
+name: AddSyntheticAttributes
+config:
+    synthetic_attributes:
+        target_provider1:
+            requester1:
+                eduPersonAffiliation: member;employee
+        default:
+            default:
+                schacHomeOrganization: {{eduPersonPrincipalName.scope}}
+                schacHomeOrganizationType: tomfoolery provider
