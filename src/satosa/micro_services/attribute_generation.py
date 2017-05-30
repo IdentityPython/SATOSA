@@ -100,7 +100,7 @@ attribute value in the set.
 *Special contexts*
 
 For treating the values as a list - eg for interating using mustach,
-use the .values sub-context For instance to synthesize all fist-last
+use the .values sub-context For instance to synthesize all first-last
 name combinations do this:
 
 ```
