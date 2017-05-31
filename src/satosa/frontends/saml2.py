@@ -6,7 +6,6 @@ import functools
 import json
 import logging
 from urllib.parse import urlparse
-from distutils.util import strtobool
 
 from saml2 import SAMLError, xmldsig
 from saml2.config import IdPConfig
@@ -291,15 +290,15 @@ class SAMLFrontend(FrontendModule):
         # assume saml2int defaults: sign response but not the assertion & allow override
         sign_assertion = False
         try:
-            sign_assertion = strtobool(self.config['idp_config']['service']['idp']['policy']['default']['sign_assertion'])
-            sign_assertion = strtobool(self.config['idp_config']['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_assertion'])
+            sign_assertion = self.config['idp_config']['service']['idp']['policy']['default']['sign_assertion']
+            sign_assertion = self.config['idp_config']['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_assertion']
         except (KeyError, AttributeError, ValueError):
             pass
 
         sign_response = True
         try:
-            sign_response = strtobool(self.config['idp_config']['service']['idp']['policy']['default']['sign_response'])
-            sign_response = strtobool(self.config['idp_config']['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_response'])
+            sign_response = self.config['idp_config']['service']['idp']['policy']['default']['sign_response']
+            sign_response = self.config['idp_config']['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_response']
         except (KeyError, AttributeError, ValueError):
             pass
 
