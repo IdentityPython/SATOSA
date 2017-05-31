@@ -221,7 +221,7 @@ provider will be preserved, and when using a OAuth or OpenID Connect backend, th
 **Example**
 
     config:
-        config: [...]
+        idp_config: [...]
         acr_mapping:
             "": default-LoA
             "https://accounts.google.com": LoA1
@@ -237,7 +237,7 @@ with entity id `"sp-entity-id1"`:
 
 ```yaml
 config:
-    config: [...]
+    idp_config: [...]
     custom_attribute_release:
         idp-entity-id1
             sp-entity-id1:
@@ -249,11 +249,34 @@ as the key in the dict. For instance in order to exclude givenName for any sp or
 
 ```yaml
 config:
-    config: [...]
+    idp_config: [...]
     custom_attribute_release:
         "default":
             "":
                 exclude: ["givenName"]
+
+#### Policy
+
+Some settings related to how a SAML response is formed can be overriden on a per-instance or a per-SP
+basis. This example summarizes the most common settings (hopefully self-explanatory) with their defaults:
+
+```yaml
+config:
+    idp_config:
+        service:
+            idp:
+                policy:
+                    default:
+                        sign_response: True
+                        sign_assertion: False
+                        sign_alg: "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
+                        digest_alg: "http://www.w3.org/2001/04/xmlenc#sha256"
+                    <sp entityID>:
+                        ... 
+
+Overrides per SP entityID is possible by using the entityID as a key instead of the "default" key
+in the yaml structure. The most specific key takes presedence. If no policy overrides are provided
+the defaults above are used.
             
 
 #### Backend
@@ -267,7 +290,7 @@ The SAML backend can indicate which *Name ID* format it wants by specifying the 
 
  ```yaml
  config:
-   config:
+   sp_config:
      service:
        sp:
         name_id_format: urn:oasis:names:tc:SAML:2.0:nameid-format:transient
@@ -279,7 +302,7 @@ parameter `disco_srv`, must be specified if the metadata given to the backend mo
 
 ```yaml
 config:
-  config: [...]
+  sp_config: [...]
     disco_srv: http://disco.example.com
 ```
 
