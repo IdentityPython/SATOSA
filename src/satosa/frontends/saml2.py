@@ -21,6 +21,7 @@ from ..logging_util import satosa_logging
 from ..response import Response
 from ..response import ServiceError
 from ..saml_util import make_saml_response
+from ..util import get_dict_defaults
 
 logger = logging.getLogger(__name__)
 
@@ -271,9 +272,10 @@ class SAMLFrontend(FrontendModule):
         else:
             auth_info["class_ref"] = internal_response.auth_info.auth_class_ref
 
+        auth_info["authn_auth"] = internal_response.auth_info.issuer
+
         if self.custom_attribute_release:
-            custom_release_per_idp = self.custom_attribute_release.get(internal_response.auth_info.issuer, {})
-            custom_release = custom_release_per_idp.get(resp_args["sp_entity_id"], {})
+            custom_release = get_dict_defaults(self.custom_attribute_release, internal_response.auth_info.issuer, resp_args["sp_entity_id"])
             attributes_to_remove = custom_release.get("exclude", [])
             for k in attributes_to_remove:
                 ava.pop(k, None)
