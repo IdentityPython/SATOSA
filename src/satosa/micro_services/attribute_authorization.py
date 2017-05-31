@@ -2,11 +2,7 @@ import re
 
 from .base import ResponseMicroService
 from ..exception import SATOSAAuthenticationError
-
-def _filters(f, requester, provider):
-    pf = f.get(provider, f.get("", f.get("default", {})))
-    rf = pf.get(requester, pf.get("", pf.get("default", {})))
-    return rf.items()
+from ..util import get_dict_defaults
 
 class AttributeAuthorization(ResponseMicroService):
 
@@ -53,12 +49,12 @@ structure above) are ORed together - i.e any attribute match is sufficient.
         self.attribute_deny = config.get("attribute_deny", {})
 
     def _check_authz(self, context, attributes, requester, provider):
-        for attribute_name, attribute_filters in _filters(self.attribute_allow, requester, provider):
+        for attribute_name, attribute_filters in get_dict_defaults(self.attribute_allow, requester, provider).items():
             if attribute_name in attributes:
                 if not any([any(filter(re.compile(af).search, attributes[attribute_name])) for af in attribute_filters]):
                     raise SATOSAAuthenticationError(context.state, "Permission denied")
 
-        for attribute_name, attribute_filters in _filters(self.attribute_deny, requester, provider):
+        for attribute_name, attribute_filters in get_dict_defaults(self.attribute_deny, requester, provider).items():
             if attribute_name in attributes:
                 if any([any(filter(re.compile(af).search, attributes[attribute_name])) for af in attribute_filters]):
                     raise SATOSAAuthenticationError(context.state, "Permission denied")

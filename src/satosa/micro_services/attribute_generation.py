@@ -2,11 +2,7 @@ import re
 import pystache
 
 from .base import ResponseMicroService
-
-def _config(f, requester, provider):
-    pf = f.get(provider, f.get("", f.get("default", {})))
-    rf = pf.get(requester, pf.get("", pf.get("default", {})))
-    return rf.items()
+from ..util import get_dict_defaults
 
 class MustachAttrValue(object):
     def __init__(self, attr_name, values):
@@ -35,7 +31,7 @@ class MustachAttrValue(object):
    
     @property 
     def value(self):
-        if 1 == len(self._values):
+        if len(self._values) == 1:
            return self._values[0]
         else:
            return self._values
@@ -100,7 +96,7 @@ attribute value in the set.
 *Special contexts*
 
 For treating the values as a list - eg for interating using mustach,
-use the .values sub-context For instance to synthesize all fist-last
+use the .values sub-context For instance to synthesize all first-last
 name combinations do this:
 
 ```
@@ -132,12 +128,9 @@ you don't care which value is used in a template.
         for attr_name,values in attributes.items():
            context[attr_name] = MustachAttrValue(attr_name, values)
 
-        recipes = _config(self.synthetic_attributes, requester, provider)
-        print(context)
-        for attr_name, fmt in recipes:
-           print(fmt)
+        recipes = get_dict_defaults(self.synthetic_attributes, requester, provider)
+        for attr_name, fmt in recipes.items():
            syn_attributes[attr_name] = [v.strip().strip(';') for v in re.split("[;\n]+", pystache.render(fmt, context))]
-        print(syn_attributes)
         return syn_attributes
 
     def process(self, context, data):
