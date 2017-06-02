@@ -188,7 +188,7 @@ class SAMLFrontend(FrontendModule):
         context.state[self.name] = self._create_state_data(context, idp.response_args(authn_req),
                                                            context.request.get("RelayState"))
 
-        if authn_req.name_id_policy:
+        if authn_req.name_id_policy and authn_req.name_id_policy.format:
             name_format = saml_name_id_format_to_hash_type(authn_req.name_id_policy.format)
         else:
             # default to name id format from metadata, or just transient name id
