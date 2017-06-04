@@ -18,6 +18,10 @@ config:
   # Whether to clear values for attributes incoming
   # to this microservice. Default is no or false.
   clear_input_attributes: no
+  # List of LDAP attributes to use as input to hashing to create
+  # NameID.
+  user_id_from_attrs:
+    - employeeNumber
   # Configuration may also be done per-SP with any
   # missing parameters taken from the default if any.
   # The configuration key is the entityID of the SP.
@@ -26,3 +30,5 @@ config:
   https://sp.myserver.edu/shibboleth-sp
     search_base: ou=People,o=MyVO,dc=example,dc=org
     eduPersonPrincipalName: employeenumber
+    user_id_from_attrs:
+      - uid
