@@ -13,7 +13,24 @@ config:
     employeeNumber: employeenumber
     isMemberOf: ismemberof
   idp_identifiers:
+    # Ordered list of identifiers asserted as attributes by
+    # IdP to use when constructing search filter to find
+    # user record in LDAP directory. This example searches
+    # in order for eduPersonUniqueId, eduPersonPrincipalName
+    # combined with SAML persistent, eduPersonPrincipalName
+    # combined with eduPersonTargetedId,
+    # eduPersonPrincipalName, SAML persistent, and 
+    # eduPersonTargetedId.
+    - epuid
+    - 
+      - eppn
+      - name_id: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
+    -
+      - eppn
+      - edupersontargetedid
     - eppn
+    - name_id: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
+    - edupersontargetedid
   ldap_identifier_attribute: uid
   # Whether to clear values for attributes incoming
   # to this microservice. Default is no or false.
