@@ -137,9 +137,18 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                 user_id_from_attrs = self.config['user_id_from_attrs']
             else:
                 user_id_from_attrs = []
+            if 'ignore' in config:
+                ignore = True
+            else:
+                ignore = False
 
         except KeyError as err:
             satosa_logging(logger, logging.ERROR, "{} Configuration '{}' is missing".format(logprefix, err), context.state)
+            return super().process(context, data)
+
+        # Ignore this SP entirely if so configured.
+        if ignore:
+            satosa_logging(logger, logging.INFO, "{} Ignoring SP {}".format(logprefix, spEntityID), None)
             return super().process(context, data)
 
         # The list of values for the LDAP search filters that will be tried in order to find the

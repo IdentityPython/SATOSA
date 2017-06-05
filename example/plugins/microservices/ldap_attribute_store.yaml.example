@@ -49,3 +49,7 @@ config:
     eduPersonPrincipalName: employeenumber
     user_id_from_attrs:
       - uid
+  # The microservice may be configured to ignore a particular SP.
+  https://another.sp.myserver.edu
+    ignore: true
+  
