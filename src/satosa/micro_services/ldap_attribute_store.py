@@ -1,5 +1,5 @@
 """
-SATOSA microservice that uses an identifier asserted by 
+SATOSA microservice that uses an identifier asserted by
 the home organization SAML IdP as a key to search an LDAP
 directory for a record and then consume attributes from
 the record and assert them to the receiving SP.
@@ -33,9 +33,9 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
         Construct and return a LDAP directory search filter value from the
         candidate identifier.
 
-        Argument 'canidate' is a dictionary with one required key and 
+        Argument 'canidate' is a dictionary with one required key and
         two optional keys:
-            
+
         key              required   value
         ---------------  --------   ---------------------------------
         attribute_names  Y          list of identifier names
@@ -50,7 +50,7 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
         If the attribute_names list consists of more than one identifier
         name then the values of the identifiers will be concatenated together
         to create the filter value.
-        
+
         If one of the identifier names in the attribute_names is the string
         'name_id' then the NameID value with format name_id_format
         will be concatenated to the filter value.
@@ -87,9 +87,9 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                     if candidate['name_id_format'] in name_id:
                         nameid_value = name_id[candidate['name_id_format']]
 
-            # Only add the NameID value asserted by the IdP if it is not already 
+            # Only add the NameID value asserted by the IdP if it is not already
             # in the list of values. This is necessary because some non-compliant IdPs
-            # have been known, for example, to assert the value of eduPersonPrincipalName 
+            # have been known, for example, to assert the value of eduPersonPrincipalName
             # in the value for SAML2 persistent NameID as well as asserting
             # eduPersonPrincipalName.
             if nameid_value not in values:
@@ -132,7 +132,7 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
         config = self.config
         configClean = copy.deepcopy(config)
         if 'bind_password' in configClean:
-            configClean['bind_password'] = 'XXXXXXXX'    
+            configClean['bind_password'] = 'XXXXXXXX'
 
         satosa_logging(logger, logging.DEBUG, "{} Using default configuration {}".format(logprefix, configClean), context.state)
 
@@ -150,9 +150,9 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
             config = self.config[spEntityID]
             configClean = copy.deepcopy(config)
             if 'bind_password' in configClean:
-                configClean['bind_password'] = 'XXXXXXXX'    
+                configClean['bind_password'] = 'XXXXXXXX'
             satosa_logging(logger, logging.DEBUG, "{} For SP {} using configuration {}".format(logprefix, spEntityID, configClean), context.state)
-        
+
         # Obtain configuration details from the per-SP configuration or the default configuration
         try:
             if 'ldap_url' in config:
@@ -201,9 +201,18 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                 on_ldap_search_result_empty = self.config['on_ldap_search_result_empty']
             else:
                 on_ldap_search_result_empty = None
+            if 'ignore' in config:
+                ignore = True
+            else:
+                ignore = False
 
         except KeyError as err:
             satosa_logging(logger, logging.ERROR, "{} Configuration '{}' is missing".format(logprefix, err), context.state)
+            return super().process(context, data)
+
+        # Ignore this SP entirely if so configured.
+        if ignore:
+            satosa_logging(logger, logging.INFO, "{} Ignoring SP {}".format(logprefix, spEntityID), None)
             return super().process(context, data)
 
         # The list of values for the LDAP search filters that will be tried in order to find the
@@ -253,7 +262,7 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                         satosa_logging(logger, logging.WARN, "{} LDAP server returned {} records using IdP asserted attribute {}".format(logprefix, len(responses), identifier), context.state)
                     record = responses[0]
                     break
-                        
+
         except Exception as err:
             satosa_logging(logger, logging.ERROR, "{} Caught exception: {}".format(logprefix, err), context.state)
             return super().process(context, data)
