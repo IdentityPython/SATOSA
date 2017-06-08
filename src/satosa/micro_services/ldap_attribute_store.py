@@ -91,6 +91,12 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                 clear_input_attributes = self.config['clear_input_attributes']
             else:
                 clear_input_attributes = False
+            if 'user_id_from_attrs' in config:
+                user_id_from_attrs = config['user_id_from_attrs']
+            elif 'user_id_from_attrs' in self.config:
+                user_id_from_attrs = self.config['user_id_from_attrs']
+            else:
+                user_id_from_attrs = []
 
         except KeyError as err:
             satosa_logging(logger, logging.ERROR, "{} Configuration '{}' is missing".format(logprefix, err), context.state)
@@ -153,14 +159,40 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
             satosa_logging(logger, logging.DEBUG, "{} Clearing values for these input attributes: {}".format(logprefix, data.attributes), context.state)
             data.attributes = {}
 
-        # Use a found record, if any, to populate attributes
+        # Use a found record, if any, to populate attributes and input for NameID
         if record:
             satosa_logging(logger, logging.DEBUG, "{} Using record with DN {}".format(logprefix, record["dn"]), context.state)
             satosa_logging(logger, logging.DEBUG, "{} Record with DN {} has attributes {}".format(logprefix, record["dn"], record["attributes"]), context.state)
+
+            # Populate attributes as configured.
             for attr in search_return_attributes.keys():
                 if attr in record["attributes"]:
                     data.attributes[search_return_attributes[attr]] = record["attributes"][attr]
                     satosa_logging(logger, logging.DEBUG, "{} Setting internal attribute {} with values {}".format(logprefix, search_return_attributes[attr], record["attributes"][attr]), context.state)
+
+            # Populate input for NameID if configured. SATOSA core does the hashing of input
+            # to create a persistent NameID.
+            if user_id_from_attrs:
+                userId = ""
+                for attr in user_id_from_attrs:
+                    if attr in record["attributes"]:
+                        value = record["attributes"][attr]
+                        if isinstance(value, list):
+                            # Use a default sort to ensure some predictability since the
+                            # LDAP directory server may return multi-valued attributes
+                            # in any order.
+                            value.sort()
+                            for v in value:
+                                userId += v
+                                satosa_logging(logger, logging.DEBUG, "{} Added attribute {} with value {} to input for NameID".format(logprefix, attr, v), context.state)
+                        else:
+                            userId += value
+                            satosa_logging(logger, logging.DEBUG, "{} Added attribute {} with value {} to input for NameID".format(logprefix, attr, value), context.state)
+                if not userId:
+                    satosa_logging(logger, logging.WARNING, "{} Input for NameID is empty so not overriding default".format(logprefix), context.state)
+                else:
+                    data.user_id = userId
+                    satosa_logging(logger, logging.DEBUG, "{} Input for NameID is {}".format(logprefix, data.user_id), context.state)
 
         else:
             satosa_logging(logger, logging.WARN, "{} No record found in LDAP so no attributes will be added".format(logprefix), context.state)
