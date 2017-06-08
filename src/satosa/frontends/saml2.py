@@ -291,6 +291,9 @@ class SAMLFrontend(FrontendModule):
         sign_assertion = False
         try:
             sign_assertion = self.config['idp_config']['service']['idp']['policy']['default']['sign_assertion']
+        except (KeyError, AttributeError, ValueError):
+            pass
+        try:
             sign_assertion = self.config['idp_config']['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_assertion']
         except (KeyError, AttributeError, ValueError):
             pass
@@ -298,6 +301,9 @@ class SAMLFrontend(FrontendModule):
         sign_response = True
         try:
             sign_response = self.config['idp_config']['service']['idp']['policy']['default']['sign_response']
+        except (KeyError, AttributeError, ValueError):
+            pass
+        try:
             sign_response = self.config['idp_config']['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_response']
         except (KeyError, AttributeError, ValueError):
             pass
