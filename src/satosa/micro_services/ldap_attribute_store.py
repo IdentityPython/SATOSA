@@ -26,6 +26,46 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
         super().__init__(*args, **kwargs)
         self.config = config
 
+    def constructFilterValue(self, identifier, data):
+        """
+        Construct and return a LDAP directory search filter value from the
+        data asserted by the IdP based on the input identifier.
+
+        If the input identifier is a list of identifiers then this
+        method is called recursively and the values concatenated together.
+
+        If the input identifier is a dictionary with 'name_id' as the key
+        and a NameID format as value than the NameID value (if any) asserted
+        by the IdP for that format is used as the value.
+        """
+        value = ""
+
+        # If the identifier is a list of identifiers then loop over them
+        # calling ourself recursively and concatenate the values from 
+        # the identifiers together.
+        if isinstance(identifier, list):
+            for i in identifier:
+                value += self.constructFilterValue(i, data)
+
+        # If the identifier is a dictionary with key 'name_id' then the value
+        # is a NameID format. Look for a NameID asserted by the IdP with that
+        # format and if found use its value.
+        elif isinstance(identifier, dict):
+            if 'name_id' in identifier:
+                nameIdFormat = identifier['name_id']
+                if 'name_id' in data.to_dict():
+                    if nameIdFormat in data.to_dict()['name_id']:
+                        value += data.to_dict()['name_id'][nameIdFormat]
+
+        # The identifier is not a list or dictionary so just consume the asserted values
+        # for this single identifier to create the value.
+        else:
+            if identifier in data.attributes:
+                for v in data.attributes[identifier]:
+                    value += v
+
+        return value
+
     def process(self, context, data):
         logprefix = LdapAttributeStore.logprefix
 
@@ -102,6 +142,23 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
             satosa_logging(logger, logging.ERROR, "{} Configuration '{}' is missing".format(logprefix, err), context.state)
             return super().process(context, data)
 
+        # The list of values for the LDAP search filters that will be tried in order to find the
+        # LDAP directory record for the user.
+        filterValues = []
+
+        # Loop over the configured list of identifiers from the IdP to consider and find
+        # asserted values to construct the ordered list of values for the LDAP search filters.
+        for identifier in idp_identifiers:
+            value = self.constructFilterValue(identifier, data)
+
+            # If we have constructed a non empty value then add it as the next filter value
+            # to use when searching for the user record.
+            if value:
+                filterValues.append(value)
+                satosa_logging(logger, logging.DEBUG, "{} Added identifier {} with value {} to list of search filters".format(logprefix, identifier, value), context.state)
+
+        # Initialize an empty LDAP record. The first LDAP record found using the ordered
+        # list of search filter values will be the record used.
         record = None
 
         try:
@@ -112,39 +169,27 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
             connection = ldap3.Connection(server, bind_dn, bind_password, auto_bind=True)
             satosa_logging(logger, logging.DEBUG, "{} Connected to LDAP server".format(logprefix), context.state)
 
-
-            for identifier in idp_identifiers:
+            for filterVal in filterValues:
                 if record:
                     break
 
-                satosa_logging(logger, logging.DEBUG, "{} Using IdP asserted attribute {}".format(logprefix, identifier), context.state)
+                search_filter = '({0}={1})'.format(ldap_identifier_attribute, filterVal)
+                satosa_logging(logger, logging.DEBUG, "{} Constructed search filter {}".format(logprefix, search_filter), context.state)
 
-                if identifier in data.attributes:
-                    satosa_logging(logger, logging.DEBUG, "{} IdP asserted {} values for attribute {}".format(logprefix, len(data.attributes[identifier]),identifier), context.state)
+                satosa_logging(logger, logging.DEBUG, "{} Querying LDAP server...".format(logprefix), context.state)
+                connection.search(search_base, search_filter, attributes=search_return_attributes.keys())
+                satosa_logging(logger, logging.DEBUG, "{} Done querying LDAP server".format(logprefix), context.state)
 
-                    for identifier_value in data.attributes[identifier]:
-                        satosa_logging(logger, logging.DEBUG, "{} Considering IdP asserted value {} for attribute {}".format(logprefix, identifier_value, identifier), context.state)
+                responses = connection.response
+                satosa_logging(logger, logging.DEBUG, "{} LDAP server returned {} records".format(logprefix, len(responses)), context.state)
 
-                        search_filter = '({0}={1})'.format(ldap_identifier_attribute, identifier_value)
-                        satosa_logging(logger, logging.DEBUG, "{} Constructed search filter {}".format(logprefix, search_filter), context.state)
-
-                        satosa_logging(logger, logging.DEBUG, "{} Querying LDAP server...".format(logprefix), context.state)
-                        connection.search(search_base, search_filter, attributes=search_return_attributes.keys())
-                        satosa_logging(logger, logging.DEBUG, "{} Done querying LDAP server".format(logprefix), context.state)
-
-                        responses = connection.response
-                        satosa_logging(logger, logging.DEBUG, "{} LDAP server returned {} records".format(logprefix, len(responses)), context.state)
-
-                        # for now consider only the first record found (if any)
-                        if len(responses) > 0:
-                            if len(responses) > 1:
-                                satosa_logging(logger, logging.WARN, "{} LDAP server returned {} records using IdP asserted attribute {}".format(logprefix, len(responses), identifier), context.state)
-                            record = responses[0]
-                            break
+                # for now consider only the first record found (if any)
+                if len(responses) > 0:
+                    if len(responses) > 1:
+                        satosa_logging(logger, logging.WARN, "{} LDAP server returned {} records using IdP asserted attribute {}".format(logprefix, len(responses), identifier), context.state)
+                    record = responses[0]
+                    break
                         
-                else:
-                    satosa_logging(logger, logging.DEBUG, "{} IdP did not assert attribute {}".format(logprefix, identifier), context.state)
-
         except Exception as err:
             satosa_logging(logger, logging.ERROR, "{} Caught exception: {0}".format(logprefix, err), None)
             return super().process(context, data)
