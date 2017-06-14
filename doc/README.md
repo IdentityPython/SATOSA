@@ -527,7 +527,8 @@ correct functionality.
 An identifier such as eduPersonPrincipalName asserted by an IdP can be used to look up a person record
 in an LDAP directory to find attributes to assert about the authenticated user to the SP. The identifier
 to consume from the IdP, the LDAP directory details, and the mapping of attributes found in the
-directory may all be confingured on a per-SP basis. To use the 
+directory may all be confingured on a per-SP basis. The input to use when hashing to create a 
+persistent NameID may also be obtained from attributes returned from the LDAP directory. To use the 
 LDAP microservice install the extra necessary dependencies with `pip install satosa[ldap]` and then see the 
 [example config](../example/plugins/microservices/ldap_attribute_store.yaml.example).
 
