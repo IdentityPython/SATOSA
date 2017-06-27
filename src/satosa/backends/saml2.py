@@ -15,6 +15,7 @@ from saml2.config import SPConfig
 from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
 from saml2.metadata import create_metadata_string
 
+from satosa.base import SAMLBaseModule
 from .base import BackendModule
 from ..exception import SATOSAAuthenticationError
 from ..internal_data import (InternalResponse,
@@ -29,7 +30,7 @@ from ..util import rndstr
 logger = logging.getLogger(__name__)
 
 
-class SAMLBackend(BackendModule):
+class SAMLBackend(BackendModule, SAMLBaseModule):
     """
     A saml2 backend module (acting as a SP).
     """
@@ -51,7 +52,6 @@ class SAMLBackend(BackendModule):
         :param name: name of the plugin
         """
         super().__init__(outgoing, internal_attributes, base_url, name)
-
         sp_config = SPConfig().load(copy.deepcopy(config["sp_config"]), False)
         self.sp = Base(sp_config)
 
@@ -218,7 +218,7 @@ class SAMLBackend(BackendModule):
 
         internal_resp.user_id = response.get_subject().text
         internal_resp.attributes = self.converter.to_internal(self.attribute_profile, response.ava)
-        
+
         # The SAML response may not include a NameID
         try:
             internal_resp.name_id = response.assertion.subject.name_id
@@ -259,6 +259,11 @@ class SAMLBackend(BackendModule):
                 parsed_endp = urlparse(endp)
                 url_map.append(
                     ("^%s$" % parsed_endp.path[1:], self.disco_response))
+
+        if self.expose_entityid_endpoint():
+            parsed_entity_id = urlparse(self.sp.config.entityid)
+            url_map.append(("^{0}".format(parsed_entity_id.path[1:]),
+                            self._metadata_endpoint))
 
         return url_map
 
@@ -324,7 +329,7 @@ class SAMLBackend(BackendModule):
 
 class SAMLInternalResponse(InternalResponse):
     """
-    Like the parent InternalResponse, holds internal representation of 
+    Like the parent InternalResponse, holds internal representation of
     service related data, but includes additional details relevant to
     SAML interoperability.
 

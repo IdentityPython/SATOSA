@@ -266,3 +266,11 @@ class SATOSABase(object):
                            exc_info=True)
             raise SATOSAUnknownError("Unknown error") from err
         return resp
+
+
+class SAMLBaseModule(object):
+    KEY_ENTITYID_ENDPOINT = 'entityid_endpoint'
+
+    def expose_entityid_endpoint(self):
+        value = self.config.get(self.KEY_ENTITYID_ENDPOINT, False)
+        return bool(value)
