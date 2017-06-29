@@ -18,7 +18,7 @@ class SATOSAConfig(object):
     """
     sensitive_dict_keys = ["STATE_ENCRYPTION_KEY", "USER_ID_HASH_SALT"]
     mandatory_dict_keys = ["BASE", "BACKEND_MODULES", "FRONTEND_MODULES",
-                           "INTERNAL_ATTRIBUTES", "COOKIE_STATE_NAME"] + sensitive_dict_keys
+                           "INTERNAL_ATTRIBUTES", "COOKIE_STATE_NAME"]
 
     def __init__(self, config):
         """
@@ -82,6 +82,10 @@ class SATOSAConfig(object):
         for key in SATOSAConfig.mandatory_dict_keys:
             if key not in conf:
                 raise SATOSAConfigurationError("Missing key '%s' in config" % key)
+
+        for key in SATOSAConfig.sensitive_dict_keys:
+            if key not in conf and "SATOSA_{key}".format(key=key) not in os.environ:
+                raise SATOSAConfigurationError("Missing key '%s' from config and ENVIRONMENT" % key)
 
     def __getitem__(self, item):
         """
