@@ -4,9 +4,11 @@ attributes:
     saml: [postaladdress]
   displayname:
     openid: [nickname]
+    github: [login]
     saml: [displayName]
   edupersontargetedid:
     facebook: [id]
+    github: [id]
     openid: [sub]
     saml: [eduPersonTargetedID]
   givenname:
@@ -15,10 +17,12 @@ attributes:
     saml: [givenName]
   mail:
     facebook: [email]
+    github: [email]
     openid: [email]
     saml: [email, emailAdress, mail]
   name:
     facebook: [name]
+    github: [name]
     openid: [name]
     saml: [cn]
   surname:

@@ -1,0 +1,29 @@
+module: satosa.backends.github.GitHubBackend
+name: github
+config:
+  authz_page: github/auth/callback
+  base_url: https://www.example.org
+  client_config:
+    client_id: 123d45g678
+  client_secret: 3h4h5j67l5k3l3l
+  scope: [user]
+  response_type: code
+  allow_signup: false
+  server_info: {
+    authorization_endpoint: 'http://github.com/login/oauth/authorize',
+    token_endpoint: 'https://github.com/login/oauth/access_token',
+    user_info: 'https://api.github.com/user'
+  }
+  entity_info:
+    organization:
+      display_name:
+      - ["GitHub", "en"]
+      name:
+      - ["GitHub", "en"]
+      url:
+      - ["https://www.github.com/", "en"]
+    ui_info:
+      description:
+      - ["GitHub oauth", "en"]
+      display_name:
+      - ["GitHub", "en"]
