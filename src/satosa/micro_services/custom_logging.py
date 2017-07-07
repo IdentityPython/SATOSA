@@ -12,7 +12,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class CustomLogginService(ResponseMicroService):
+class CustomLoggingService(ResponseMicroService):
     """
     Use context and data object to create custom log output
     """

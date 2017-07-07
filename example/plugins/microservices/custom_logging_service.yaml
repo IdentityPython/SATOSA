@@ -1,4 +1,4 @@
-module: satosa.micro_services.custom_logging.CustomLogginService
+module: satosa.micro_services.custom_logging.CustomLoggingService
 name: CustomLogginService
 config:
   log_target: 'var/custom.log'
