@@ -7,14 +7,17 @@ attributes:
     saml: [displayName]
   edupersontargetedid:
     facebook: [id]
+    linkedin: [id]
     openid: [sub]
     saml: [eduPersonTargetedID]
   givenname:
     facebook: [first_name]
+    linkedin: [email-address]
     openid: [given_name]
     saml: [givenName]
   mail:
     facebook: [email]
+    linkedin: [email-address]
     openid: [email]
     saml: [email, emailAdress, mail]
   name:
@@ -23,6 +26,7 @@ attributes:
     saml: [cn]
   surname:
     facebook: [last_name]
+    linkedin: [lastName]
     openid: [family_name]
     saml: [sn, surname]
 hash: [edupersontargetedid]
