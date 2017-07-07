@@ -23,7 +23,7 @@ class CustomLoggingService(ResponseMicroService):
         self.config = config
         
     def process(self, context, data):
-        logprefix = CustomLogginService.logprefix
+        logprefix = CustomLoggingService.logprefix
 
         # Initialize the configuration to use as the default configuration
         # that is passed during initialization.
