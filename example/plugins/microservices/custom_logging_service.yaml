@@ -1,0 +1,5 @@
+module: satosa.micro_services.custom_logging.CustomLoggingService
+name: CustomLogginService
+config:
+  log_target: 'var/custom.log'
+  attrs: ['uid', 'eppn']
