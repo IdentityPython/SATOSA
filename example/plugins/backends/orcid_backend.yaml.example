@@ -1,0 +1,29 @@
+module: satosa.backends.orcid.OrcidBackend
+name: orcid
+config:
+  authz_page: orcid/auth/callback
+  base_url: https://example.org
+  client_config:
+    client_id: 4123r355242
+  client_secret: 23rt2t4tg42te-42t4ter2t4-23rt2t-234t
+  scope: [/authenticate]
+  response_type: code
+  allow_signup: true
+  server_info: {
+    authorization_endpoint: 'https://orcid.org/oauth/authorize',
+    token_endpoint: 'https://pub.orcid.org/oauth/token',
+    user_info: 'https://pub.orcid.org/v2.0/'
+  }
+  entity_info:
+    organization:
+      display_name:
+      - ["GitHub", "en"]
+      name:
+      - ["GitHub", "en"]
+      url:
+      - ["https://www.github.com/", "en"]
+    ui_info:
+      description:
+      - ["GitHub oauth", "en"]
+      display_name:
+      - ["GitHub", "en"]
