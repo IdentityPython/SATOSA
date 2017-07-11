@@ -129,7 +129,14 @@ class OpenIDConnectFrontend(FrontendModule):
         :rtype: oic.utils.http_util.Response
         """
         auth_req = self._get_authn_request_from_state(exception.state)
-        error_resp = AuthorizationErrorResponse(error="access_denied", error_description=exception.message)
+        # If the client sent us a state parameter, we should reflect it back according to the spec
+        if 'state' in auth_req: 
+            error_resp = AuthorizationErrorResponse(error="access_denied",
+                                                    error_description=exception.message,
+                                                    state=auth_req['state'])
+        else:                                           
+            error_resp = AuthorizationErrorResponse(error="access_denied", 
+                                                    error_description=exception.message)
         satosa_logging(logger, logging.DEBUG, exception.message, exception.state)
         return SeeOther(error_resp.request(auth_req["redirect_uri"], should_fragment_encode(auth_req)))
 
