@@ -10,17 +10,20 @@ attributes:
     saml: [displayName]
   edupersontargetedid:
     facebook: [id]
+    linkedin: [id]
     orcid: [orcid]
     github: [id]
     openid: [sub]
     saml: [eduPersonTargetedID]
   givenname:
     facebook: [first_name]
+    linkedin: [email-address]
     orcid: [name.given-names.value]
     openid: [given_name]
     saml: [givenName]
   mail:
     facebook: [email]
+    linkedin: [email-address]
     orcid: [emails.str]
     github: [email]
     openid: [email]
@@ -33,6 +36,7 @@ attributes:
     saml: [cn]
   surname:
     facebook: [last_name]
+    linkedin: [lastName]
     orcid: [name.family-name.value]
     openid: [family_name]
     saml: [sn, surname]
