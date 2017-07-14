@@ -6,10 +6,12 @@ attributes:
   displayname:
     openid: [nickname]
     orcid: [name.credit-name]
+    github: [login]
     saml: [displayName]
   edupersontargetedid:
     facebook: [id]
     orcid: [orcid]
+    github: [id]
     openid: [sub]
     saml: [eduPersonTargetedID]
   givenname:
@@ -20,11 +22,13 @@ attributes:
   mail:
     facebook: [email]
     orcid: [emails.str]
+    github: [email]
     openid: [email]
     saml: [email, emailAdress, mail]
   name:
     facebook: [name]
     orcid: [name.credit-name]
+    github: [name]
     openid: [name]
     saml: [cn]
   surname:
