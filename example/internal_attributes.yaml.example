@@ -1,28 +1,35 @@
 attributes:
   address:
     openid: [address.street_address]
+    orcid: [addresses.str]
     saml: [postaladdress]
   displayname:
     openid: [nickname]
+    orcid: [name.credit-name]
     saml: [displayName]
   edupersontargetedid:
     facebook: [id]
+    orcid: [orcid]
     openid: [sub]
     saml: [eduPersonTargetedID]
   givenname:
     facebook: [first_name]
+    orcid: [name.given-names.value]
     openid: [given_name]
     saml: [givenName]
   mail:
     facebook: [email]
+    orcid: [emails.str]
     openid: [email]
     saml: [email, emailAdress, mail]
   name:
     facebook: [name]
+    orcid: [name.credit-name]
     openid: [name]
     saml: [cn]
   surname:
     facebook: [last_name]
+    orcid: [name.family-name.value]
     openid: [family_name]
     saml: [sn, surname]
 hash: [edupersontargetedid]
