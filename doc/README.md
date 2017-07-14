@@ -22,7 +22,7 @@ apt-get install libffi-dev libssl-dev xmlsec1
 
 1. Install the application:
 
-   ```bash  
+   ```bash
    pip install <satosa_path>
    ```
 
@@ -205,7 +205,7 @@ For the simple case where an SP does not support discovery it's also possible to
 ##### Providing `AuthnContextClassRef`
 The SAML2 frontends can provide a custom (configurable) *Authentication Context Class Reference* in in the
 `AuthnStatement` of in the authentication response. This can be used to describe for example the Level of Assurance,
-as described for example by [eIDAS](https://joinup.ec.europa.eu/sites/default/files/eidas_message_format_v1.0.pdf).
+as described for example by [eIDAS](https://ec.europa.eu/cefdigital/wiki/display/CEFDIGITAL/eIDAS+Profile?preview=/46992719/47190128/eIDAS%20Message%20Format_v1.1-2.pdf).
 
 The `AuthnContextClassRef`(ACR) can be specified per target provider in a mapping under the
 configuration parameter `acr_mapping`. The mapping must contain a default ACR value under the key `""`
@@ -225,7 +225,7 @@ provider will be preserved, and when using a OAuth or OpenID Connect backend, th
         acr_mapping:
             "": default-LoA
             "https://accounts.google.com": LoA1
-            
+
 ##### Custom attribute release
 In addition to respecting for example entity categories from the SAML metadata, the SAML frontend can also further
 restrict the attribute release with the `custom_attribute_release` configuration parameter based on the SP entity id.
@@ -272,12 +272,12 @@ config:
                         sign_alg: "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
                         digest_alg: "http://www.w3.org/2001/04/xmlenc#sha256"
                     <sp entityID>:
-                        ... 
+                        ...
 
 Overrides per SP entityID is possible by using the entityID as a key instead of the "default" key
 in the yaml structure. The most specific key takes presedence. If no policy overrides are provided
 the defaults above are used.
-            
+
 
 #### Backend
 The SAML2 backend act as a SAML Service Provider (SP), making authentication
@@ -425,7 +425,7 @@ where the keys are the internal attribute names defined in `internal_attributes.
 
 Attribute values delivered from the target provider can be filtered based on a per target provider per requester basis
 using the `FilterAttributeValues` class. See the [example configuration](../example/plugins/microservices/filter_attributes.yaml.example).
- 
+
 The filters are described as regular expressions in a YAML file with the following structure:
 
 ```yaml
@@ -435,7 +435,7 @@ The filters are described as regular expressions in a YAML file with the followi
 ```
 
 where the empty string (`""`) can be used as a key on any level to describe a default filter.
-The filters are applied such that all attribute values matched by the regular expression are preserved, while any 
+The filters are applied such that all attribute values matched by the regular expression are preserved, while any
 non-matching attribute values will be discarded.
 
 ##### Examples
@@ -468,7 +468,7 @@ To choose which backend (essentially choosing target provider) to use based on t
 [example configuration](../example/plugins/microservices/requester_based_routing.yaml.example).
 
 #### Filter authentication requests to target SAML entities
-If using the `SAMLMirrorFrontend` module and some of the target providers should support some additional SP's, the 
+If using the `SAMLMirrorFrontend` module and some of the target providers should support some additional SP's, the
 `DecideIfRequesterIsAllowed` micro service can be used. It provides a rules mechanism to describe which SP's are
 allowed to send requests to which IdP's. See the [example configuration](../example/plugins/microservices/allowed_requesters.yaml.example).
 
@@ -476,7 +476,7 @@ Metadata containing all SP's (any SP that might be allowed by a target IdP) must
 `SAMLMirrorFrontend` plugin config.
 
 The rules are described using `allow` and `deny` directives under the `rules` configuration parameter.
- 
+
 In the following example, the target IdP `target_entity_id1` only allows requests from `requester1` and `requester2`.
 ```yaml
 rules:
@@ -527,9 +527,9 @@ correct functionality.
 An identifier such as eduPersonPrincipalName asserted by an IdP can be used to look up a person record
 in an LDAP directory to find attributes to assert about the authenticated user to the SP. The identifier
 to consume from the IdP, the LDAP directory details, and the mapping of attributes found in the
-directory may all be confingured on a per-SP basis. The input to use when hashing to create a 
-persistent NameID may also be obtained from attributes returned from the LDAP directory. To use the 
-LDAP microservice install the extra necessary dependencies with `pip install satosa[ldap]` and then see the 
+directory may all be confingured on a per-SP basis. The input to use when hashing to create a
+persistent NameID may also be obtained from attributes returned from the LDAP directory. To use the
+LDAP microservice install the extra necessary dependencies with `pip install satosa[ldap]` and then see the
 [example config](../example/plugins/microservices/ldap_attribute_store.yaml.example).
 
 ### Custom plugins
