@@ -242,7 +242,7 @@ config:
         idp-entity-id1
             sp-entity-id1:
                 exclude: ["givenName"]
-
+```
 
 The custom_attribute_release mechanism supports defaults based on idp and sp entity Id by specifying "" or "default"
 as the key in the dict. For instance in order to exclude givenName for any sp or idp do this:
@@ -254,6 +254,7 @@ config:
         "default":
             "":
                 exclude: ["givenName"]
+```
 
 #### Policy
 
@@ -273,6 +274,7 @@ config:
                         digest_alg: "http://www.w3.org/2001/04/xmlenc#sha256"
                     <sp entityID>:
                         ...
+```
 
 Overrides per SP entityID is possible by using the entityID as a key instead of the "default" key
 in the yaml structure. The most specific key takes presedence. If no policy overrides are provided
