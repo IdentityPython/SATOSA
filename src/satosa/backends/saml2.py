@@ -8,8 +8,6 @@ import logging
 from base64 import urlsafe_b64encode, urlsafe_b64decode
 from urllib.parse import urlparse
 
-from saml2 import BINDING_HTTP_POST
-from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client_base import Base
 from saml2.config import SPConfig
 from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
@@ -57,7 +55,6 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         self.config = config
         self.attribute_profile = config.get("attribute_profile", "saml")
-        self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST]
         self.discosrv = config.get("disco_srv")
         self.encryption_keys = []
         self.outstanding_queries = {}
@@ -126,8 +123,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :return: response to the user agent
         """
         try:
-            binding, destination = self.sp.pick_binding("single_sign_on_service", self.bindings, "idpsso",
-                                                        entity_id=entity_id)
+            binding, destination = self.sp.pick_binding(
+                "single_sign_on_service", None, "idpsso", entity_id=entity_id)
             satosa_logging(logger, logging.DEBUG, "binding: %s, destination: %s" % (binding, destination),
                            context.state)
             acs_endp, response_binding = self.sp.config.getattr("endpoints", "sp")["assertion_consumer_service"][0]
