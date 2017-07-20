@@ -15,6 +15,7 @@ from saml2.saml import NameID, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
 from saml2.samlp import name_id_policy_from_string
 from saml2.server import Server
 
+from satosa.base import SAMLBaseModule
 from .base import FrontendModule
 from ..internal_data import InternalRequest, UserIdHashType
 from ..logging_util import satosa_logging
@@ -57,7 +58,7 @@ def hash_type_to_saml_name_id_format(hash_type):
     return NAMEID_FORMAT_PERSISTENT
 
 
-class SAMLFrontend(FrontendModule):
+class SAMLFrontend(FrontendModule, SAMLBaseModule):
     """
     A pysaml2 frontend module
     """
@@ -410,6 +411,11 @@ class SAMLFrontend(FrontendModule):
                 parsed_endp = urlparse(endp)
                 url_map.append(("(%s)/%s$" % (valid_providers, parsed_endp.path),
                                 functools.partial(self.handle_authn_request, binding_in=binding)))
+
+        if self.expose_entityid_endpoint():
+            parsed_entity_id = urlparse(self.idp.config.entityid)
+            url_map.append(("^{0}".format(parsed_entity_id.path[1:]),
+                            self._metadata_endpoint))
 
         return url_map
 

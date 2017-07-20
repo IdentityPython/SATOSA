@@ -1,0 +1,17 @@
+module: satosa.micro_services.attribute_processor.AttributeProcessor
+name: AttributeProcessor
+config:
+  process:
+  - attribute: gender
+    processors:
+    - name: GenderToSchacProcessor
+      module: satosa.micro_services.processors.gender_processor
+  - attribute: identifier
+    processors:
+    - name: HashProcessor
+      module: satosa.micro_services.processors.hash_processor
+      hash_alg: sha256
+      salt: abcdef0123456789
+    - name: ScopeProcessor
+      module: satosa.micro_services.processors.scope_processor
+      scope: example.com

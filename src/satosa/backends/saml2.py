@@ -8,13 +8,12 @@ import logging
 from base64 import urlsafe_b64encode, urlsafe_b64decode
 from urllib.parse import urlparse
 
-from saml2 import BINDING_HTTP_POST
-from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client_base import Base
 from saml2.config import SPConfig
 from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
 from saml2.metadata import create_metadata_string
 
+from satosa.base import SAMLBaseModule
 from .base import BackendModule
 from ..exception import SATOSAAuthenticationError
 from ..internal_data import (InternalResponse,
@@ -29,7 +28,7 @@ from ..util import rndstr
 logger = logging.getLogger(__name__)
 
 
-class SAMLBackend(BackendModule):
+class SAMLBackend(BackendModule, SAMLBaseModule):
     """
     A saml2 backend module (acting as a SP).
     """
@@ -51,15 +50,14 @@ class SAMLBackend(BackendModule):
         :param name: name of the plugin
         """
         super().__init__(outgoing, internal_attributes, base_url, name)
-
         sp_config = SPConfig().load(copy.deepcopy(config["sp_config"]), False)
         self.sp = Base(sp_config)
 
         self.config = config
         self.attribute_profile = config.get("attribute_profile", "saml")
-        self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST]
         self.discosrv = config.get("disco_srv")
         self.encryption_keys = []
+        self.outstanding_queries = {}
 
         key_file_paths = None
         if 'encryption_keypairs' in self.config['sp_config']: # prioritize explicit encryption keypairs
@@ -120,13 +118,13 @@ class SAMLBackend(BackendModule):
         :type entity_id: str
         :rtype: satosa.response.Response
 
-        :param context: The curretn context
+        :param context: The current context
         :param entity_id: Target IDP entity id
         :return: response to the user agent
         """
         try:
-            binding, destination = self.sp.pick_binding("single_sign_on_service", self.bindings, "idpsso",
-                                                        entity_id=entity_id)
+            binding, destination = self.sp.pick_binding(
+                "single_sign_on_service", None, "idpsso", entity_id=entity_id)
             satosa_logging(logger, logging.DEBUG, "binding: %s, destination: %s" % (binding, destination),
                            context.state)
             acs_endp, response_binding = self.sp.config.getattr("endpoints", "sp")["assertion_consumer_service"][0]
@@ -138,6 +136,13 @@ class SAMLBackend(BackendModule):
             satosa_logging(logger, logging.DEBUG, "Failed to construct the AuthnRequest for state", context.state,
                            exc_info=True)
             raise SATOSAAuthenticationError(context.state, "Failed to construct the AuthnRequest") from exc
+
+        if self.sp.config.getattr('allow_unsolicited', 'sp') is False:
+            if req_id in self.outstanding_queries:
+                errmsg = "Request with duplicate id {}".format(req_id)
+                satosa_logging(logger, logging.DEBUG, errmsg, context.state)
+                raise SATOSAAuthenticationError(context.state, errmsg)
+            self.outstanding_queries[req_id] = req
 
         context.state[self.name] = {"relay_state": relay_state}
         return make_saml_response(binding, ht_args)
@@ -158,11 +163,21 @@ class SAMLBackend(BackendModule):
             raise SATOSAAuthenticationError(context.state, "Missing Response")
 
         try:
-            authn_response = self.sp.parse_authn_request_response(context.request["SAMLResponse"], binding)
+            authn_response = self.sp.parse_authn_request_response(
+                context.request["SAMLResponse"],
+                binding, outstanding=self.outstanding_queries)
         except Exception as err:
             satosa_logging(logger, logging.DEBUG, "Failed to parse authn request for state", context.state,
                            exc_info=True)
             raise SATOSAAuthenticationError(context.state, "Failed to parse authn request") from err
+
+        if self.sp.config.getattr('allow_unsolicited', 'sp') is False:
+            req_id = authn_response.in_response_to
+            if req_id not in self.outstanding_queries:
+                errmsg = "No request with id: {}".format(req_id),
+                satosa_logging(logger, logging.DEBUG, errmsg, context.state)
+                raise SATOSAAuthenticationError(context.state, errmsg)
+            del self.outstanding_queries[req_id]
 
         # check if the relay_state matches the cookie state
         if context.state[self.name]["relay_state"] != context.request["RelayState"]:
@@ -218,7 +233,7 @@ class SAMLBackend(BackendModule):
 
         internal_resp.user_id = response.get_subject().text
         internal_resp.attributes = self.converter.to_internal(self.attribute_profile, response.ava)
-        
+
         # The SAML response may not include a NameID
         try:
             internal_resp.name_id = response.assertion.subject.name_id
@@ -259,6 +274,11 @@ class SAMLBackend(BackendModule):
                 parsed_endp = urlparse(endp)
                 url_map.append(
                     ("^%s$" % parsed_endp.path[1:], self.disco_response))
+
+        if self.expose_entityid_endpoint():
+            parsed_entity_id = urlparse(self.sp.config.entityid)
+            url_map.append(("^{0}".format(parsed_entity_id.path[1:]),
+                            self._metadata_endpoint))
 
         return url_map
 
@@ -324,7 +344,7 @@ class SAMLBackend(BackendModule):
 
 class SAMLInternalResponse(InternalResponse):
     """
-    Like the parent InternalResponse, holds internal representation of 
+    Like the parent InternalResponse, holds internal representation of
     service related data, but includes additional details relevant to
     SAML interoperability.
 
