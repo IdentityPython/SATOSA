@@ -270,7 +270,14 @@ class SATOSABase(object):
 
 class SAMLBaseModule(object):
     KEY_ENTITYID_ENDPOINT = 'entityid_endpoint'
+    KEY_ATTRIBUTE_PROFILE = 'attribute_profile'
+    VALUE_ATTRIBUTE_PROFILE_DEFAULT = 'saml'
 
     def expose_entityid_endpoint(self):
         value = self.config.get(self.KEY_ENTITYID_ENDPOINT, False)
         return bool(value)
+
+    def init_attribute_profile(self):
+        self.attribute_profile = self.config.get(
+            self.KEY_ATTRIBUTE_PROFILE,
+            self.VALUE_ATTRIBUTE_PROFILE_DEFAULT)

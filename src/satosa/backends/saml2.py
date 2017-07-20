@@ -50,11 +50,12 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :param name: name of the plugin
         """
         super().__init__(outgoing, internal_attributes, base_url, name)
+        self.config = config
+        self.init_attribute_profile()
+
         sp_config = SPConfig().load(copy.deepcopy(config["sp_config"]), False)
         self.sp = Base(sp_config)
 
-        self.config = config
-        self.attribute_profile = config.get("attribute_profile", "saml")
         self.discosrv = config.get("disco_srv")
         self.encryption_keys = []
         self.outstanding_queries = {}
