@@ -57,9 +57,11 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                     if nameIdFormat in data.to_dict()['name_id']:
                         value += data.to_dict()['name_id'][nameIdFormat]
 
-        # If the identifier is 'issuer' then append the value of the IdP issuer entityID.
+        # If the identifier is 'issuer' then append the value of the IdP issuer entityID
+        # to 'scope' the value but only if the value is not empty.
         elif identifier == 'issuer':
-            value += data.to_dict()['auth_info']['issuer']
+            if value:
+                value += data.to_dict()['auth_info']['issuer']
 
         # The identifier is not a list or dictionary so just consume the asserted values
         # for this single identifier to create the value.
