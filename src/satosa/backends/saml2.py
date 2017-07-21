@@ -12,7 +12,9 @@ from saml2.client_base import Base
 from saml2.config import SPConfig
 from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
 from saml2.metadata import create_metadata_string
+from saml2.authn_context import requested_authn_context
 
+import satosa.util as util
 from satosa.base import SAMLBaseModule
 from .base import BackendModule
 from ..exception import SATOSAAuthenticationError
@@ -23,7 +25,6 @@ from ..metadata_creation.description import (MetadataDescription, OrganizationDe
                                              ContactPersonDesc, UIInfoDesc)
 from ..response import SeeOther, Response
 from ..saml_util import make_saml_response
-from ..util import rndstr
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
     """
     A saml2 backend module (acting as a SP).
     """
+    VALUE_ACR_CLASS_REF_DEFAULT = 'http://eidas.europa.eu/LoA/low'
+    VALUE_ACR_COMPARISON_DEFAULT = 'minimum'
 
     def __init__(self, outgoing, internal_attributes, config, base_url, name):
         """
@@ -57,6 +60,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         self.sp = Base(sp_config)
 
         self.discosrv = config.get("disco_srv")
+        self.acr_mapping = config.get("acr_mapping")
         self.encryption_keys = []
         self.outstanding_queries = {}
 
@@ -110,6 +114,27 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         loc = self.sp.create_discovery_service_request(self.discosrv, self.sp.config.entityid, **{"return": return_url})
         return SeeOther(loc)
 
+    def construct_requested_authn_context(self, entity_id):
+        if not self.acr_mapping:
+            return None
+
+        acr_entry = util.get_dict_defaults(self.acr_mapping, entity_id)
+        if not acr_entry:
+            return None
+
+        if type(acr_entry) is not dict:
+            acr_entry = {
+                "class_ref": acr_entry,
+                "comparison": self.VALUE_ACR_COMPARISON_DEFAULT,
+            }
+
+        authn_context = requested_authn_context(
+            acr_entry.get('class_ref', self.VALUE_ACR_CLASS_REF_DEFAULT),
+            comparison=acr_entry.get(
+                'comparison', self.VALUE_ACR_COMPARISON_DEFAULT))
+
+        return authn_context
+
     def authn_request(self, context, entity_id):
         """
         Do an authorization request on idp with given entity id.
@@ -123,14 +148,20 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :param entity_id: Target IDP entity id
         :return: response to the user agent
         """
+        kwargs = {}
+        authn_context = self.construct_requested_authn_context(entity_id)
+        if authn_context:
+            kwargs['requested_authn_context'] = authn_context
+
         try:
             binding, destination = self.sp.pick_binding(
                 "single_sign_on_service", None, "idpsso", entity_id=entity_id)
             satosa_logging(logger, logging.DEBUG, "binding: %s, destination: %s" % (binding, destination),
                            context.state)
             acs_endp, response_binding = self.sp.config.getattr("endpoints", "sp")["assertion_consumer_service"][0]
-            req_id, req = self.sp.create_authn_request(destination, binding=response_binding)
-            relay_state = rndstr()
+            req_id, req = self.sp.create_authn_request(
+                destination, binding=response_binding, **kwargs)
+            relay_state = util.rndstr()
             ht_args = self.sp.apply_binding(binding, "%s" % req, destination, relay_state=relay_state)
             satosa_logging(logger, logging.DEBUG, "ht_args: %s" % ht_args, context.state)
         except Exception as exc:
