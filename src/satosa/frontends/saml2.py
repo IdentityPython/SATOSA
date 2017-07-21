@@ -68,10 +68,11 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
 
         super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
         self.config = conf
+        self.init_attribute_profile()
+
         self.endpoints = conf["endpoints"]
         self.acr_mapping = conf.get("acr_mapping")
         self.custom_attribute_release = conf.get("custom_attribute_release")
-        self.attribute_profile = conf.get("attribute_profile", "saml")
         self.idp = None
 
     def handle_authn_response(self, context, internal_response):
