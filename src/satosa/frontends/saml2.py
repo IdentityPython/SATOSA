@@ -63,16 +63,16 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
     A pysaml2 frontend module
     """
 
-    def __init__(self, auth_req_callback_func, internal_attributes, conf, base_url, name):
-        self._validate_config(conf)
+    def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name):
+        self._validate_config(config)
 
         super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
-        self.config = conf
+        self.config = config
         self.init_attribute_profile()
 
-        self.endpoints = conf["endpoints"]
-        self.acr_mapping = conf.get("acr_mapping")
-        self.custom_attribute_release = conf.get("custom_attribute_release")
+        self.endpoints = config["endpoints"]
+        self.acr_mapping = config.get("acr_mapping")
+        self.custom_attribute_release = config.get("custom_attribute_release")
         self.idp = None
 
     def handle_authn_response(self, context, internal_response):
