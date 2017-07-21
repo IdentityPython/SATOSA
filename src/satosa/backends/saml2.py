@@ -33,8 +33,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
     """
     A saml2 backend module (acting as a SP).
     """
-    VALUE_ACR_CLASS_REF_DEFAULT = 'http://eidas.europa.eu/LoA/low'
-    VALUE_ACR_COMPARISON_DEFAULT = 'minimum'
+    VALUE_ACR_COMPARISON_DEFAULT = 'exact'
 
     def __init__(self, outgoing, internal_attributes, config, base_url, name):
         """
@@ -129,8 +128,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             }
 
         authn_context = requested_authn_context(
-            acr_entry.get('class_ref', self.VALUE_ACR_CLASS_REF_DEFAULT),
-            comparison=acr_entry.get(
+            acr_entry['class_ref'], comparison=acr_entry.get(
                 'comparison', self.VALUE_ACR_COMPARISON_DEFAULT))
 
         return authn_context
