@@ -64,6 +64,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
     """
     KEY_CUSTOM_ATTR_RELEASE = 'custom_attribute_release'
     KEY_ENDPOINTS = 'endpoints'
+    KEY_IDP_CONFIG = 'idp_config'
 
     def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name):
         self._validate_config(config)
@@ -115,7 +116,8 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         :type backend_names: list[str]
         :rtype: list[(str, ((satosa.context.Context, Any) -> satosa.response.Response, Any))]
         """
-        self.idp_config = self._build_idp_config_endpoints(self.config["idp_config"], backend_names)
+        self.idp_config = self._build_idp_config_endpoints(
+            self.config[self.KEY_IDP_CONFIG], backend_names)
         # Create the idp
         idp_config = IdPConfig().load(copy.deepcopy(self.idp_config), metadata_construction=False)
         self.idp = Server(config=idp_config)
@@ -162,7 +164,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         if not config:
             raise ValueError("conf can't be 'None'")
 
-        for key in {"idp_config", self.KEY_ENDPOINTS}:
+        for key in {self.KEY_IDP_CONFIG, self.KEY_ENDPOINTS}:
             if key not in config:
                 raise ValueError("Missing key '%s' in config" % key)
 
@@ -295,21 +297,21 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         # assume saml2int defaults: sign response but not the assertion & allow override
         sign_assertion = False
         try:
-            sign_assertion = self.config['idp_config']['service']['idp']['policy']['default']['sign_assertion']
+            sign_assertion = self.idp_config['service']['idp']['policy']['default']['sign_assertion']
         except (KeyError, AttributeError, ValueError):
             pass
         try:
-            sign_assertion = self.config['idp_config']['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_assertion']
+            sign_assertion = self.idp_config['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_assertion']
         except (KeyError, AttributeError, ValueError):
             pass
 
         sign_response = True
         try:
-            sign_response = self.config['idp_config']['service']['idp']['policy']['default']['sign_response']
+            sign_response = self.idp_config['service']['idp']['policy']['default']['sign_response']
         except (KeyError, AttributeError, ValueError):
             pass
         try:
-            sign_response = self.config['idp_config']['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_response']
+            sign_response = self.idp_config['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_response']
         except (KeyError, AttributeError, ValueError):
             pass
 
@@ -331,21 +333,21 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
 
         # Override if SAML2 IdP frontend has a configured default
         try:
-            args['sign_alg'] = getattr(xmldsig, self.config['idp_config']['service']['idp']['policy']['default']['sign_alg'])
+            args['sign_alg'] = getattr(xmldsig, self.idp_config['service']['idp']['policy']['default']['sign_alg'])
         except (KeyError, AttributeError):
             pass
         try:
-            args['digest_alg'] = getattr(xmldsig, self.config['idp_config']['service']['idp']['policy']['default']['digest_alg'])
+            args['digest_alg'] = getattr(xmldsig, self.idp_config['service']['idp']['policy']['default']['digest_alg'])
         except (KeyError, AttributeError):
             pass
 
         # Override if SAML2 IdP frontend has a per-sp configuration
         try:
-            args['sign_alg'] = getattr(xmldsig, self.config['idp_config']['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_alg'])
+            args['sign_alg'] = getattr(xmldsig, self.idp_config['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_alg'])
         except (KeyError, AttributeError):
             pass
         try:
-            args['digest_alg'] = getattr(xmldsig, self.config['idp_config']['service']['idp']['policy'][resp_args['sp_entity_id']]['digest_alg'])
+            args['digest_alg'] = getattr(xmldsig, self.idp_config['service']['idp']['policy'][resp_args['sp_entity_id']]['digest_alg'])
         except (KeyError, AttributeError):
             pass
 
