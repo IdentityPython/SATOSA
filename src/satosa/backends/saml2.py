@@ -34,6 +34,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
     """
     A saml2 backend module (acting as a SP).
     """
+    KEY_DISCO_SRV = 'disco_srv'
     VALUE_ACR_COMPARISON_DEFAULT = 'exact'
 
     def __init__(self, outgoing, internal_attributes, config, base_url, name):
@@ -59,7 +60,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         sp_config = SPConfig().load(copy.deepcopy(config["sp_config"]), False)
         self.sp = Base(sp_config)
 
-        self.discosrv = config.get("disco_srv")
+        self.discosrv = config.get(self.KEY_DISCO_SRV)
         self.acr_mapping = config.get(self.KEY_ACR_MAPPING)
         self.encryption_keys = []
         self.outstanding_queries = {}
