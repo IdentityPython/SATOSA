@@ -62,6 +62,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
     """
     A pysaml2 frontend module
     """
+    KEY_CUSTOM_ATTR_RELEASE = 'custom_attribute_release'
 
     def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name):
         self._validate_config(config)
@@ -72,7 +73,8 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
 
         self.endpoints = config["endpoints"]
         self.acr_mapping = config.get(self.KEY_ACR_MAPPING)
-        self.custom_attribute_release = config.get("custom_attribute_release")
+        self.custom_attribute_release = config.get(
+            self.KEY_CUSTOM_ATTR_RELEASE)
         self.idp = None
 
     def handle_authn_response(self, context, internal_response):
