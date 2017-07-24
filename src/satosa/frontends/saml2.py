@@ -161,12 +161,19 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         :type config: dict[str, dict[str, Any] | str]
         :param config: The module config
         """
-        if not config:
-            raise ValueError("conf can't be 'None'")
+        required_keys = [
+            self.KEY_IDP_CONFIG,
+            self.KEY_ENDPOINTS,
+        ]
 
-        for key in {self.KEY_IDP_CONFIG, self.KEY_ENDPOINTS}:
-            if key not in config:
-                raise ValueError("Missing key '%s' in config" % key)
+        if not config:
+            raise ValueError("No configuration given")
+
+        for key in required_keys:
+            try:
+                _val = config[key]
+            except KeyError as e:
+                raise ValueError("Missing configuration key: %s" % key) from e
 
     def _handle_authn_request(self, context, binding_in, idp):
         """
