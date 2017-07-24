@@ -63,6 +63,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
     A pysaml2 frontend module
     """
     KEY_CUSTOM_ATTR_RELEASE = 'custom_attribute_release'
+    KEY_ENDPOINTS = 'endpoints'
 
     def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name):
         self._validate_config(config)
@@ -71,7 +72,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         self.config = config
         self.init_attribute_profile()
 
-        self.endpoints = config["endpoints"]
+        self.endpoints = config[self.KEY_ENDPOINTS]
         self.acr_mapping = config.get(self.KEY_ACR_MAPPING)
         self.custom_attribute_release = config.get(
             self.KEY_CUSTOM_ATTR_RELEASE)
@@ -161,7 +162,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         if not config:
             raise ValueError("conf can't be 'None'")
 
-        for key in {"idp_config", "endpoints"}:
+        for key in {"idp_config", self.KEY_ENDPOINTS}:
             if key not in config:
                 raise ValueError("Missing key '%s' in config" % key)
 
