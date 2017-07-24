@@ -71,7 +71,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         self.init_attribute_profile()
 
         self.endpoints = config["endpoints"]
-        self.acr_mapping = config.get("acr_mapping")
+        self.acr_mapping = config.get(self.KEY_ACR_MAPPING)
         self.custom_attribute_release = config.get("custom_attribute_release")
         self.idp = None
 

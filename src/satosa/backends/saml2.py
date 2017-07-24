@@ -26,6 +26,7 @@ from ..metadata_creation.description import (MetadataDescription, OrganizationDe
 from ..response import SeeOther, Response
 from ..saml_util import make_saml_response
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -59,7 +60,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         self.sp = Base(sp_config)
 
         self.discosrv = config.get("disco_srv")
-        self.acr_mapping = config.get("acr_mapping")
+        self.acr_mapping = config.get(self.KEY_ACR_MAPPING)
         self.encryption_keys = []
         self.outstanding_queries = {}
 
