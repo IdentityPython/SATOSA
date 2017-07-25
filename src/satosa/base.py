@@ -275,11 +275,13 @@ class SAMLBaseModule(object):
     KEY_ACR_MAPPING = 'acr_mapping'
     VALUE_ATTRIBUTE_PROFILE_DEFAULT = 'saml'
 
+    def init_config(self, config):
+        self.attribute_profile = config.get(
+            self.KEY_ATTRIBUTE_PROFILE,
+            self.VALUE_ATTRIBUTE_PROFILE_DEFAULT)
+        self.acr_mapping = config.get(self.KEY_ACR_MAPPING)
+        return config
+
     def expose_entityid_endpoint(self):
         value = self.config.get(self.KEY_ENTITYID_ENDPOINT, False)
         return bool(value)
-
-    def init_attribute_profile(self):
-        self.attribute_profile = self.config.get(
-            self.KEY_ATTRIBUTE_PROFILE,
-            self.VALUE_ATTRIBUTE_PROFILE_DEFAULT)

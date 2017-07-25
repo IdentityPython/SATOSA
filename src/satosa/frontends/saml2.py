@@ -71,11 +71,9 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         self._validate_config(config)
 
         super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
-        self.config = config
-        self.init_attribute_profile()
+        self.config = self.init_config(config)
 
         self.endpoints = config[self.KEY_ENDPOINTS]
-        self.acr_mapping = config.get(self.KEY_ACR_MAPPING)
         self.custom_attribute_release = config.get(
             self.KEY_CUSTOM_ATTR_RELEASE)
         self.idp = None
