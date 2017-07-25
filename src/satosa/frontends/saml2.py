@@ -311,26 +311,15 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         dbgmsg = "returning attributes %s" % json.dumps(ava)
         satosa_logging(logger, logging.DEBUG, dbgmsg, context.state)
 
-        # assume saml2int defaults: sign response but not the assertion & allow override
-        sign_assertion = False
-        try:
-            sign_assertion = self.idp_config['service']['idp']['policy']['default']['sign_assertion']
-        except (KeyError, AttributeError, ValueError):
-            pass
-        try:
-            sign_assertion = self.idp_config['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_assertion']
-        except (KeyError, AttributeError, ValueError):
-            pass
+        policies = self.idp_config.get(
+            'service', {}).get('idp', {}).get('policy', {})
+        sp_policy = policies.get('default', {})
+        sp_policy.update(policies.get(sp_entity_id, {}))
 
-        sign_response = True
-        try:
-            sign_response = self.idp_config['service']['idp']['policy']['default']['sign_response']
-        except (KeyError, AttributeError, ValueError):
-            pass
-        try:
-            sign_response = self.idp_config['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_response']
-        except (KeyError, AttributeError, ValueError):
-            pass
+        sign_assertion = sp_policy.get('sign_assertion', False)
+        sign_response = sp_policy.get('sign_response', True)
+        sign_alg = sp_policy.get('sign_alg', 'SIG_RSA_SHA256')
+        digest_alg = sp_policy.get('digest_alg', 'DIGEST_SHA256')
 
         # Construct arguments for method create_authn_response
         # on IdP Server instance
@@ -345,34 +334,24 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         # Add the SP details
         args.update(**resp_args)
 
-        # Default signing and digest algorithms
-        args['sign_alg'] = xmldsig.SIG_RSA_SHA256
-        args['digest_alg'] = xmldsig.DIGEST_SHA256
+        try:
+            args['sign_alg'] = getattr(xmldsig, sign_alg)
+        except AttributeError as e:
+            errmsg = "Unsupported sign algorithm %s" % sign_alg
+            satosa_logging(logger, logging.ERROR, errmsg, context.state)
+            raise Exception(errmsg) from e
+        else:
+            dbgmsg = "signing with algorithm %s" % args['sign_alg']
+            satosa_logging(logger, logging.DEBUG, dbgmsg, context.state)
 
-        # Override if SAML2 IdP frontend has a configured default
         try:
-            args['sign_alg'] = getattr(xmldsig, self.idp_config['service']['idp']['policy']['default']['sign_alg'])
-        except (KeyError, AttributeError):
-            pass
-        try:
-            args['digest_alg'] = getattr(xmldsig, self.idp_config['service']['idp']['policy']['default']['digest_alg'])
-        except (KeyError, AttributeError):
-            pass
-
-        # Override if SAML2 IdP frontend has a per-sp configuration
-        try:
-            args['sign_alg'] = getattr(xmldsig, self.idp_config['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_alg'])
-        except (KeyError, AttributeError):
-            pass
-        try:
-            args['digest_alg'] = getattr(xmldsig, self.idp_config['service']['idp']['policy'][resp_args['sp_entity_id']]['digest_alg'])
-        except (KeyError, AttributeError):
-            pass
-
-        for dbgmsg in [
-            "signing with algorithm %s" % args['sign_alg'],
-            "using digest algorithm %s" % args['digest_alg'],
-        ]:
+            args['digest_alg'] = getattr(xmldsig, digest_alg)
+        except AttributeError as e:
+            errmsg = "Unsupported digest algorithm %s" % digest_alg
+            satosa_logging(logger, logging.ERROR, errmsg, context.state)
+            raise Exception(errmsg) from e
+        else:
+            dbgmsg = "using digest algorithm %s" % args['digest_alg']
             satosa_logging(logger, logging.DEBUG, dbgmsg, context.state)
 
         resp = idp.create_authn_response(**args)
