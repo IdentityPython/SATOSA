@@ -22,7 +22,8 @@ from ..logging_util import satosa_logging
 from ..response import Response
 from ..response import ServiceError
 from ..saml_util import make_saml_response
-from ..util import get_dict_defaults
+import satosa.util as util
+
 
 logger = logging.getLogger(__name__)
 
@@ -277,29 +278,38 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         request_state = self.load_state(context.state)
 
         resp_args = request_state["resp_args"]
-        internal_response.attributes = self._filter_attributes(idp, internal_response, context)
-        ava = self.converter.from_internal(self.attribute_profile, internal_response.attributes)
+        sp_entity_id = resp_args["sp_entity_id"]
+        internal_response.attributes = self._filter_attributes(
+            idp, internal_response, context)
+        ava = self.converter.from_internal(
+            self.attribute_profile, internal_response.attributes)
 
         auth_info = {}
         if self.acr_mapping:
-            auth_info["class_ref"] = self.acr_mapping.get(internal_response.auth_info.issuer, self.acr_mapping[""])
+            auth_info["class_ref"] = self.acr_mapping.get(
+                internal_response.auth_info.issuer, self.acr_mapping[""])
         else:
             auth_info["class_ref"] = internal_response.auth_info.auth_class_ref
 
         auth_info["authn_auth"] = internal_response.auth_info.issuer
 
         if self.custom_attribute_release:
-            custom_release = get_dict_defaults(self.custom_attribute_release, internal_response.auth_info.issuer, resp_args["sp_entity_id"])
+            custom_release = util.get_dict_defaults(
+                self.custom_attribute_release,
+                internal_response.auth_info.issuer,
+                sp_entity_id)
             attributes_to_remove = custom_release.get("exclude", [])
             for k in attributes_to_remove:
                 ava.pop(k, None)
 
         name_id = NameID(text=internal_response.user_id,
-                         format=hash_type_to_saml_name_id_format(internal_response.user_id_hash_type),
+                         format=hash_type_to_saml_name_id_format(
+                             internal_response.user_id_hash_type),
                          sp_name_qualifier=None,
                          name_qualifier=None)
 
-        satosa_logging(logger, logging.DEBUG, "returning attributes %s" % json.dumps(ava), context.state)
+        dbgmsg = "returning attributes %s" % json.dumps(ava)
+        satosa_logging(logger, logging.DEBUG, dbgmsg, context.state)
 
         # assume saml2int defaults: sign response but not the assertion & allow override
         sign_assertion = False
@@ -322,14 +332,15 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         except (KeyError, AttributeError, ValueError):
             pass
 
-        # Construct arguments for method create_authn_response on IdP Server instance
+        # Construct arguments for method create_authn_response
+        # on IdP Server instance
         args = {
-                'identity'      : ava,
-                'name_id'       : name_id,
-                'authn'         : auth_info,
-                'sign_response' : sign_response,
-                'sign_assertion': sign_assertion
-                }
+            'identity'      : ava,
+            'name_id'       : name_id,
+            'authn'         : auth_info,
+            'sign_response' : sign_response,
+            'sign_assertion': sign_assertion,
+        }
 
         # Add the SP details
         args.update(**resp_args)
@@ -358,12 +369,16 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         except (KeyError, AttributeError):
             pass
 
-        satosa_logging(logger, logging.DEBUG, "signing with algorithm %s" % args['sign_alg'], context.state)
-        satosa_logging(logger, logging.DEBUG, "using digest algorithm %s" % args['digest_alg'], context.state)
+        for dbgmsg in [
+            "signing with algorithm %s" % args['sign_alg'],
+            "using digest algorithm %s" % args['digest_alg'],
+        ]:
+            satosa_logging(logger, logging.DEBUG, dbgmsg, context.state)
 
         resp = idp.create_authn_response(**args)
-        http_args = idp.apply_binding(resp_args["binding"], str(resp), resp_args["destination"],
-                                      request_state["relay_state"], response=True)
+        http_args = idp.apply_binding(
+            resp_args["binding"], str(resp), resp_args["destination"],
+            request_state["relay_state"], response=True)
         del context.state[self.name]
         return make_saml_response(resp_args["binding"], http_args)
 
