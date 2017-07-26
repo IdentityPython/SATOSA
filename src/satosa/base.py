@@ -3,9 +3,13 @@ The SATOSA main module
 """
 import json
 import logging
-from uuid import uuid4
+import uuid
 
+from saml2.s_utils import UnknownSystemEntity
+
+from satosa import util
 from satosa.micro_services import consent
+
 from .context import Context
 from .exception import SATOSAConfigurationError
 from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
@@ -17,7 +21,6 @@ from .plugin_loader import load_backends, load_frontends
 from .plugin_loader import load_request_microservices, load_response_microservices
 from .routing import ModuleRouter, SATOSANoBoundEndpointError
 from .state import cookie_to_state, SATOSAStateError, State, state_to_cookie
-from saml2.s_utils import UnknownSystemEntity
 
 
 logger = logging.getLogger(__name__)
@@ -212,7 +215,7 @@ class SATOSABase(object):
         try:
             return spec(context)
         except SATOSAAuthenticationError as error:
-            error.error_id = uuid4().urn
+            error.error_id = uuid.uuid4().urn
             msg = "ERROR_ID [{err_id}]\nSTATE:\n{state}".format(err_id=error.error_id,
                                                                 state=json.dumps(
                                                                     error.state.state_dict,
@@ -298,3 +301,16 @@ class SAMLBaseModule(object):
     def expose_entityid_endpoint(self):
         value = self.config.get(self.KEY_ENTITYID_ENDPOINT, False)
         return bool(value)
+
+
+class SAMLEIDASBaseModule(SAMLBaseModule):
+    VALUE_ATTRIBUTE_PROFILE_DEFAULT = 'eidas'
+
+    def init_config(self, config):
+        config = super().init_config(config)
+
+        spec_eidas = {
+            'entityid_endpoint': True,
+        }
+
+        return util.check_set_dict_defaults(config, spec_eidas)

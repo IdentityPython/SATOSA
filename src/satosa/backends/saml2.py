@@ -16,6 +16,7 @@ from saml2.authn_context import requested_authn_context
 
 import satosa.util as util
 from satosa.base import SAMLBaseModule
+from satosa.base import SAMLEIDASBaseModule
 from .base import BackendModule
 from ..exception import SATOSAAuthenticationError
 from ..internal_data import (InternalResponse,
@@ -386,6 +387,36 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             entity_descriptions.append(description)
         return entity_descriptions
 
+
+class SAMLEIDASBackend(SAMLBackend, SAMLEIDASBaseModule):
+    """
+    A saml2 eidas backend module (acting as a SP).
+    """
+    VALUE_ACR_CLASS_REF_DEFAULT = 'http://eidas.europa.eu/LoA/high'
+    VALUE_ACR_COMPARISON_DEFAULT = 'minimum'
+
+    def init_config(self, config):
+        config = super().init_config(config)
+
+        spec_eidas_sp = {
+            'acr_mapping': {
+                "": {
+                    'class_ref': self.VALUE_ACR_CLASS_REF_DEFAULT,
+                    'comparison': self.VALUE_ACR_COMPARISON_DEFAULT,
+                },
+            },
+            'sp_config.service.sp.authn_requests_signed': True,
+            'sp_config.service.sp.want_response_signed': True,
+            'sp_config.service.sp.allow_unsolicited': False,
+            'sp_config.service.sp.force_authn': True,
+            'sp_config.service.sp.hide_assertion_consumer_service': True,
+            'sp_config.service.sp.sp_type': ['private', 'public'],
+            'sp_config.service.sp.sp_type_in_metadata': [True, False],
+        }
+
+        return util.check_set_dict_defaults(config, spec_eidas_sp)
+
+
 class SAMLInternalResponse(InternalResponse):
     """
     Like the parent InternalResponse, holds internal representation of
@@ -413,4 +444,3 @@ class SAMLInternalResponse(InternalResponse):
             _dict['name_id'] = None
 
         return _dict
-

@@ -5,7 +5,48 @@ import logging
 import random
 import string
 
+from satosa.logging_util import satosa_logging
+
+
 logger = logging.getLogger(__name__)
+
+
+def check_set_dict_defaults(dic, spec):
+    for path, value in spec.items():
+        keys = path.split('.')
+        try:
+            _val = dict_get_nested(dic, keys)
+        except KeyError:
+            if type(value) is list:
+                value_default = value[0]
+            else:
+                value_default = value
+            dict_set_nested(dic, keys, value_default)
+        else:
+            if type(value) is list:
+                is_value_valid = _val in value
+            elif type(value) is dict:
+                # do not validate dict
+                is_value_valid = bool(_val)
+            else:
+                is_value_valid = _val == value
+            if not is_value_valid:
+                satosa_logging(
+                    logger, logging.WARNING,
+                    "Incompatible configuration value '{}' for '{}'."
+                    " Value shoud be: {}".format(_val, path, value),
+                    {})
+    return dic
+
+def dict_set_nested(dic, keys, value):
+    for key in keys[:-1]:
+        dic = dic.setdefault(key, {})
+    dic[keys[-1]] = value
+
+def dict_get_nested(dic, keys):
+    for key in keys[:-1]:
+        dic = dic.setdefault(key, {})
+    return dic[keys[-1]]
 
 def get_dict_defaults(d, *keys):
     for key in keys:
