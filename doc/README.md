@@ -149,6 +149,7 @@ Common configuration parameters:
 | `metadata["local"]` | string[] | `[metadata/entity.xml]` | list of paths to metadata for all service providers (frontend)/identity providers (backend) communicating with the proxy |
 | `attribute_profile` | string | `saml` | attribute profile to use for mapping attributes from/to response
 | `entityid_endpoint` | bool | `true` | whether `entityid` should be used as a URL that serves the metadata xml document
+| `acr_mapping` | dict | `None` | custom Authentication Context Class Reference
 
 The metadata could be loaded in multiple ways in the table above it's loaded from a static
 file by using the key "local". It's also possible to load read the metadata from a remote URL.
@@ -173,7 +174,36 @@ see the
 [documentation of the underlying library pysaml2](https://github.com/rohe/pysaml2/blob/master/doc/howto/config.rst).
 
 
+##### Providing `AuthnContextClassRef`
+
+SAML2 frontends and backends can provide a custom (configurable) *Authentication Context Class Reference*.
+For the frontend this is defined in the `AuthnStatement` of the authentication response, while,
+for the backend this is defined in the `AuthnRequest`.
+
+This can be used to describe for example the Level of Assurance, as described for example by [eIDAS](https://ec.europa.eu/cefdigital/wiki/jdisplay/CEFDIGITAL/eIDAS+Profile?preview=/46992719/47190128/eIDAS%20Message%20Format_v1.1-2.pdf).
+
+The `AuthnContextClassRef`(ACR) can be specified per target provider in a mapping under the
+configuration parameter `acr_mapping`. The mapping must contain a default ACR value under the key `""`
+(empty string), each other ACR value specific per target provider is specified with key-value pairs, where the
+key is the target providers identifier (entity id for SAML IdP behind SAML2 backend, authorization endpoint
+URL for OAuth AS behind OAuth backend, and issuer URL for OpenID Connect OP behind OpenID Connect backend).
+
+If no `acr_mapping` is provided in the configuration, the ACR received from the backend plugin will
+be used instead. This means that when using a SAML2 backend, the ACR provided by the target
+provider will be preserved, and when using a OAuth or OpenID Connect backend, the ACR will be
+`urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified`.
+
+**Example**
+
+    config:
+        [...]
+        acr_mapping:
+            "": default-LoA
+            "https://accounts.google.com": LoA1
+
+
 #### Frontend
+
 The SAML2 frontend act as a SAML Identity Provider (IdP), accepting
 authentication requests from SAML Service Providers (SP). The default
 configuration file can be found [here](../example/plugins/frontends/saml2_frontend.yaml.example).
@@ -202,30 +232,6 @@ For the simple case where an SP does not support discovery it's also possible to
 
 `SP -> SAMLFrontend -> SAMLBackend -> discovery to select target IdP -> target IdP`
 
-
-##### Providing `AuthnContextClassRef`
-The SAML2 frontends can provide a custom (configurable) *Authentication Context Class Reference* in in the
-`AuthnStatement` of in the authentication response. This can be used to describe for example the Level of Assurance,
-as described for example by [eIDAS](https://ec.europa.eu/cefdigital/wiki/display/CEFDIGITAL/eIDAS+Profile?preview=/46992719/47190128/eIDAS%20Message%20Format_v1.1-2.pdf).
-
-The `AuthnContextClassRef`(ACR) can be specified per target provider in a mapping under the
-configuration parameter `acr_mapping`. The mapping must contain a default ACR value under the key `""`
-(empty string), each other ACR value specific per target provider is specified with key-value pairs, where the
-key is the target providers identifier (entity id for SAML IdP behind SAML2 backend, authorization endpoint
-URL for OAuth AS behind OAuth backend, and issuer URL for OpenID Connect OP behind OpenID Connect backend).
-
-If no `acr_mapping` is provided in the configuration, the ACR received from the backend plugin will
-be used instead. This means that when using a SAML2 backend, the ACR provided by the target
-provider will be preserved, and when using a OAuth or OpenID Connect backend, the ACR will be
-`urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified`.
-
-**Example**
-
-    config:
-        idp_config: [...]
-        acr_mapping:
-            "": default-LoA
-            "https://accounts.google.com": LoA1
 
 ##### Custom attribute release
 In addition to respecting for example entity categories from the SAML metadata, the SAML frontend can also further
