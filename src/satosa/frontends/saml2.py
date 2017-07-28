@@ -22,7 +22,8 @@ from ..logging_util import satosa_logging
 from ..response import Response
 from ..response import ServiceError
 from ..saml_util import make_saml_response
-from ..util import get_dict_defaults
+import satosa.util as util
+
 
 logger = logging.getLogger(__name__)
 
@@ -62,17 +63,19 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
     """
     A pysaml2 frontend module
     """
+    KEY_CUSTOM_ATTR_RELEASE = 'custom_attribute_release'
+    KEY_ENDPOINTS = 'endpoints'
+    KEY_IDP_CONFIG = 'idp_config'
 
-    def __init__(self, auth_req_callback_func, internal_attributes, conf, base_url, name):
-        self._validate_config(conf)
+    def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name):
+        self._validate_config(config)
 
         super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
-        self.config = conf
-        self.init_attribute_profile()
+        self.config = self.init_config(config)
 
-        self.endpoints = conf["endpoints"]
-        self.acr_mapping = conf.get("acr_mapping")
-        self.custom_attribute_release = conf.get("custom_attribute_release")
+        self.endpoints = config[self.KEY_ENDPOINTS]
+        self.custom_attribute_release = config.get(
+            self.KEY_CUSTOM_ATTR_RELEASE)
         self.idp = None
 
     def handle_authn_response(self, context, internal_response):
@@ -112,7 +115,8 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         :type backend_names: list[str]
         :rtype: list[(str, ((satosa.context.Context, Any) -> satosa.response.Response, Any))]
         """
-        self.idp_config = self._build_idp_config_endpoints(self.config["idp_config"], backend_names)
+        self.idp_config = self._build_idp_config_endpoints(
+            self.config[self.KEY_IDP_CONFIG], backend_names)
         # Create the idp
         idp_config = IdPConfig().load(copy.deepcopy(self.idp_config), metadata_construction=False)
         self.idp = Server(config=idp_config)
@@ -156,12 +160,19 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         :type config: dict[str, dict[str, Any] | str]
         :param config: The module config
         """
-        if not config:
-            raise ValueError("conf can't be 'None'")
+        required_keys = [
+            self.KEY_IDP_CONFIG,
+            self.KEY_ENDPOINTS,
+        ]
 
-        for key in {"idp_config", "endpoints"}:
-            if key not in config:
-                raise ValueError("Missing key '%s' in config" % key)
+        if not config:
+            raise ValueError("No configuration given")
+
+        for key in required_keys:
+            try:
+                _val = config[key]
+            except KeyError as e:
+                raise ValueError("Missing configuration key: %s" % key) from e
 
     def _handle_authn_request(self, context, binding_in, idp):
         """
@@ -265,93 +276,86 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         request_state = self.load_state(context.state)
 
         resp_args = request_state["resp_args"]
-        internal_response.attributes = self._filter_attributes(idp, internal_response, context)
-        ava = self.converter.from_internal(self.attribute_profile, internal_response.attributes)
+        sp_entity_id = resp_args["sp_entity_id"]
+        internal_response.attributes = self._filter_attributes(
+            idp, internal_response, context)
+        ava = self.converter.from_internal(
+            self.attribute_profile, internal_response.attributes)
 
         auth_info = {}
         if self.acr_mapping:
-            auth_info["class_ref"] = self.acr_mapping.get(internal_response.auth_info.issuer, self.acr_mapping[""])
+            auth_info["class_ref"] = self.acr_mapping.get(
+                internal_response.auth_info.issuer, self.acr_mapping[""])
         else:
             auth_info["class_ref"] = internal_response.auth_info.auth_class_ref
 
         auth_info["authn_auth"] = internal_response.auth_info.issuer
 
         if self.custom_attribute_release:
-            custom_release = get_dict_defaults(self.custom_attribute_release, internal_response.auth_info.issuer, resp_args["sp_entity_id"])
+            custom_release = util.get_dict_defaults(
+                self.custom_attribute_release,
+                internal_response.auth_info.issuer,
+                sp_entity_id)
             attributes_to_remove = custom_release.get("exclude", [])
             for k in attributes_to_remove:
                 ava.pop(k, None)
 
         name_id = NameID(text=internal_response.user_id,
-                         format=hash_type_to_saml_name_id_format(internal_response.user_id_hash_type),
+                         format=hash_type_to_saml_name_id_format(
+                             internal_response.user_id_hash_type),
                          sp_name_qualifier=None,
                          name_qualifier=None)
 
-        satosa_logging(logger, logging.DEBUG, "returning attributes %s" % json.dumps(ava), context.state)
+        dbgmsg = "returning attributes %s" % json.dumps(ava)
+        satosa_logging(logger, logging.DEBUG, dbgmsg, context.state)
 
-        # assume saml2int defaults: sign response but not the assertion & allow override
-        sign_assertion = False
-        try:
-            sign_assertion = self.config['idp_config']['service']['idp']['policy']['default']['sign_assertion']
-        except (KeyError, AttributeError, ValueError):
-            pass
-        try:
-            sign_assertion = self.config['idp_config']['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_assertion']
-        except (KeyError, AttributeError, ValueError):
-            pass
+        policies = self.idp_config.get(
+            'service', {}).get('idp', {}).get('policy', {})
+        sp_policy = policies.get('default', {})
+        sp_policy.update(policies.get(sp_entity_id, {}))
 
-        sign_response = True
-        try:
-            sign_response = self.config['idp_config']['service']['idp']['policy']['default']['sign_response']
-        except (KeyError, AttributeError, ValueError):
-            pass
-        try:
-            sign_response = self.config['idp_config']['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_response']
-        except (KeyError, AttributeError, ValueError):
-            pass
+        sign_assertion = sp_policy.get('sign_assertion', False)
+        sign_response = sp_policy.get('sign_response', True)
+        sign_alg = sp_policy.get('sign_alg', 'SIG_RSA_SHA256')
+        digest_alg = sp_policy.get('digest_alg', 'DIGEST_SHA256')
 
-        # Construct arguments for method create_authn_response on IdP Server instance
+        # Construct arguments for method create_authn_response
+        # on IdP Server instance
         args = {
-                'identity'      : ava,
-                'name_id'       : name_id,
-                'authn'         : auth_info,
-                'sign_response' : sign_response,
-                'sign_assertion': sign_assertion
-                }
+            'identity'      : ava,
+            'name_id'       : name_id,
+            'authn'         : auth_info,
+            'sign_response' : sign_response,
+            'sign_assertion': sign_assertion,
+        }
 
         # Add the SP details
         args.update(**resp_args)
 
-        # Default signing and digest algorithms
-        args['sign_alg'] = xmldsig.SIG_RSA_SHA256
-        args['digest_alg'] = xmldsig.DIGEST_SHA256
+        try:
+            args['sign_alg'] = getattr(xmldsig, sign_alg)
+        except AttributeError as e:
+            errmsg = "Unsupported sign algorithm %s" % sign_alg
+            satosa_logging(logger, logging.ERROR, errmsg, context.state)
+            raise Exception(errmsg) from e
+        else:
+            dbgmsg = "signing with algorithm %s" % args['sign_alg']
+            satosa_logging(logger, logging.DEBUG, dbgmsg, context.state)
 
-        # Override if SAML2 IdP frontend has a configured default
         try:
-            args['sign_alg'] = getattr(xmldsig, self.config['idp_config']['service']['idp']['policy']['default']['sign_alg'])
-        except (KeyError, AttributeError):
-            pass
-        try:
-            args['digest_alg'] = getattr(xmldsig, self.config['idp_config']['service']['idp']['policy']['default']['digest_alg'])
-        except (KeyError, AttributeError):
-            pass
-
-        # Override if SAML2 IdP frontend has a per-sp configuration
-        try:
-            args['sign_alg'] = getattr(xmldsig, self.config['idp_config']['service']['idp']['policy'][resp_args['sp_entity_id']]['sign_alg'])
-        except (KeyError, AttributeError):
-            pass
-        try:
-            args['digest_alg'] = getattr(xmldsig, self.config['idp_config']['service']['idp']['policy'][resp_args['sp_entity_id']]['digest_alg'])
-        except (KeyError, AttributeError):
-            pass
-
-        satosa_logging(logger, logging.DEBUG, "signing with algorithm %s" % args['sign_alg'], context.state)
-        satosa_logging(logger, logging.DEBUG, "using digest algorithm %s" % args['digest_alg'], context.state)
+            args['digest_alg'] = getattr(xmldsig, digest_alg)
+        except AttributeError as e:
+            errmsg = "Unsupported digest algorithm %s" % digest_alg
+            satosa_logging(logger, logging.ERROR, errmsg, context.state)
+            raise Exception(errmsg) from e
+        else:
+            dbgmsg = "using digest algorithm %s" % args['digest_alg']
+            satosa_logging(logger, logging.DEBUG, dbgmsg, context.state)
 
         resp = idp.create_authn_response(**args)
-        http_args = idp.apply_binding(resp_args["binding"], str(resp), resp_args["destination"],
-                                      request_state["relay_state"], response=True)
+        http_args = idp.apply_binding(
+            resp_args["binding"], str(resp), resp_args["destination"],
+            request_state["relay_state"], response=True)
         del context.state[self.name]
         return make_saml_response(resp_args["binding"], http_args)
 

@@ -26,6 +26,7 @@ from ..metadata_creation.description import (MetadataDescription, OrganizationDe
 from ..response import SeeOther, Response
 from ..saml_util import make_saml_response
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -33,6 +34,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
     """
     A saml2 backend module (acting as a SP).
     """
+    KEY_DISCO_SRV = 'disco_srv'
+    KEY_SP_CONFIG = 'sp_config'
     VALUE_ACR_COMPARISON_DEFAULT = 'exact'
 
     def __init__(self, outgoing, internal_attributes, config, base_url, name):
@@ -52,27 +55,27 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :param name: name of the plugin
         """
         super().__init__(outgoing, internal_attributes, base_url, name)
-        self.config = config
-        self.init_attribute_profile()
+        self.config = self.init_config(config)
 
-        sp_config = SPConfig().load(copy.deepcopy(config["sp_config"]), False)
+        sp_config = SPConfig().load(copy.deepcopy(config[self.KEY_SP_CONFIG]), False)
         self.sp = Base(sp_config)
 
-        self.discosrv = config.get("disco_srv")
-        self.acr_mapping = config.get("acr_mapping")
+        self.discosrv = config.get(self.KEY_DISCO_SRV)
         self.encryption_keys = []
         self.outstanding_queries = {}
 
-        key_file_paths = None
-        if 'encryption_keypairs' in self.config['sp_config']: # prioritize explicit encryption keypairs
-            key_file_paths = [keypair['key_file'] for keypair in self.config['sp_config']['encryption_keypairs']]
-        elif 'key_file' in self.config['sp_config']:
-            key_file_paths = [self.config['sp_config']['key_file']]
+        sp_keypairs = sp_config.getattr('encryption_keypairs', '')
+        sp_key_file = sp_config.getattr('key_file', '')
+        if sp_keypairs:
+            key_file_paths = [pair['key_file'] for pair in sp_keypairs]
+        elif sp_key_file:
+            key_file_paths = [sp_key_file]
+        else:
+            key_file_paths = []
 
-        if key_file_paths:
-            for p in key_file_paths:
-                with open(p) as key_file:
-                    self.encryption_keys.append(key_file.read())
+        for p in key_file_paths:
+            with open(p) as key_file:
+                self.encryption_keys.append(key_file.read())
 
     def start_auth(self, context, internal_req):
         """
