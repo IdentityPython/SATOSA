@@ -148,6 +148,7 @@ Common configuration parameters:
 | `cert_file` | string | `pki/cert.pem` | path to certificate for the public key associated with the private key in `key_file` |
 | `metadata["local"]` | string[] | `[metadata/entity.xml]` | list of paths to metadata for all service providers (frontend)/identity providers (backend) communicating with the proxy |
 | `attribute_profile` | string | `saml` | attribute profile to use for mapping attributes from/to response
+| `entityid_endpoint` | bool | `true` | whether `entityid` should be used as a URL that serves the metadata xml document
 
 The metadata could be loaded in multiple ways in the table above it's loaded from a static
 file by using the key "local". It's also possible to load read the metadata from a remote URL.
