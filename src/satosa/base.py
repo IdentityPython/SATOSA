@@ -103,8 +103,13 @@ class SATOSABase(object):
         state = context.state
         state[STATE_KEY] = {"requester": internal_request.requester}
         # TODO consent module should manage any state it needs by itself
-        context.state[consent.STATE_KEY] = {"filter": internal_request.approved_attributes or [],
-                                            "requester_name": internal_request.requester_name}
+        if consent.STATE_KEY in context.state:
+            context.state[consent.STATE_KEY]["filter"] = internal_request.approved_attributes or []
+            context.state[consent.STATE_KEY]["requester_name"] = internal_request.requester_name
+        else:
+            context.state[consent.STATE_KEY] = {"filter": internal_request.approved_attributes or [],
+                                                "requester_name": internal_request.requester_name}
+
         satosa_logging(logger, logging.INFO,
                        "Requesting provider: {}".format(internal_request.requester), state)
 
