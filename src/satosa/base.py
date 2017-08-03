@@ -8,7 +8,7 @@ from uuid import uuid4
 from satosa.micro_services import consent
 from .context import Context
 from .exception import SATOSAConfigurationError
-from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
+from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError, SATOSAProcessingHaltError
 from .internal_data import UserIdHasher
 from .logging_util import satosa_logging
 from .micro_services.account_linking import AccountLinking
@@ -17,6 +17,7 @@ from .plugin_loader import load_backends, load_frontends
 from .plugin_loader import load_request_microservices, load_response_microservices
 from .routing import ModuleRouter, SATOSANoBoundEndpointError
 from .state import cookie_to_state, SATOSAStateError, State, state_to_cookie
+from .response import SeeOther, ServiceError
 
 
 logger = logging.getLogger(__name__)
@@ -258,6 +259,12 @@ class SATOSABase(object):
             self._save_state(resp, context)
         except SATOSANoBoundEndpointError:
             raise
+        except SATOSAProcessingHaltError as e:
+            if e.redirect_uri:
+                resp = SeeOther(redirect_url=e.redirect_uri)
+            else:
+                resp = ServiceError(message=e.message)
+
         except SATOSAError:
             satosa_logging(logger, logging.ERROR, "Uncaught SATOSA error", context.state,
                            exc_info=True)
