@@ -15,6 +15,7 @@ config:
     entityid: <base_url>/<name>/proxy_saml2_backend.xml
     service:
       sp:
+        want_response_signed: true
         allow_unsolicited: true
         endpoints:
           assertion_consumer_service:

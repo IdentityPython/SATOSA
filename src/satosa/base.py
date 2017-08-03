@@ -18,6 +18,7 @@ from .plugin_loader import load_request_microservices, load_response_microservic
 from .routing import ModuleRouter, SATOSANoBoundEndpointError
 from .state import cookie_to_state, SATOSAStateError, State, state_to_cookie
 
+
 logger = logging.getLogger(__name__)
 
 STATE_KEY = "SATOSA_BASE"
@@ -271,13 +272,16 @@ class SATOSABase(object):
 class SAMLBaseModule(object):
     KEY_ENTITYID_ENDPOINT = 'entityid_endpoint'
     KEY_ATTRIBUTE_PROFILE = 'attribute_profile'
+    KEY_ACR_MAPPING = 'acr_mapping'
     VALUE_ATTRIBUTE_PROFILE_DEFAULT = 'saml'
+
+    def init_config(self, config):
+        self.attribute_profile = config.get(
+            self.KEY_ATTRIBUTE_PROFILE,
+            self.VALUE_ATTRIBUTE_PROFILE_DEFAULT)
+        self.acr_mapping = config.get(self.KEY_ACR_MAPPING)
+        return config
 
     def expose_entityid_endpoint(self):
         value = self.config.get(self.KEY_ENTITYID_ENDPOINT, False)
         return bool(value)
-
-    def init_attribute_profile(self):
-        self.attribute_profile = self.config.get(
-            self.KEY_ATTRIBUTE_PROFILE,
-            self.VALUE_ATTRIBUTE_PROFILE_DEFAULT)
