@@ -58,6 +58,7 @@ class OpenIDConnectFrontend(FrontendModule):
         capabilities = {
             "issuer": self.base_url,
             "authorization_endpoint": "{}/{}".format(endpoint_baseurl, AuthorizationEndpoint.url),
+            "token_endpoint": "{}/{}".format(endpoint_baseurl, TokenEndpoint.url),
             "jwks_uri": "{}/jwks".format(endpoint_baseurl),
             "response_types_supported": response_types_supported,
             "id_token_signing_alg_values_supported": [self.signing_key.alg],
