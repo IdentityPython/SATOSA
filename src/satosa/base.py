@@ -17,6 +17,7 @@ from .plugin_loader import load_backends, load_frontends
 from .plugin_loader import load_request_microservices, load_response_microservices
 from .routing import ModuleRouter, SATOSANoBoundEndpointError
 from .state import cookie_to_state, SATOSAStateError, State, state_to_cookie
+from saml2.s_utils import UnknownSystemEntity
 
 
 logger = logging.getLogger(__name__)
@@ -131,7 +132,7 @@ class SATOSABase(object):
         if user_id_to_attr:
             internal_response.attributes[user_id_to_attr] = [internal_response.user_id]
 
-        # Hash all attributes specified in INTERNAL_ATTRIBUTES["hash]
+        # Hash all attributes specified in INTERNAL_ATTRIBUTES["hash"]
         hash_attributes = self.config["INTERNAL_ATTRIBUTES"].get("hash", [])
         internal_attributes = internal_response.attributes
         for attribute in hash_attributes:
@@ -259,8 +260,13 @@ class SATOSABase(object):
         except SATOSANoBoundEndpointError:
             raise
         except SATOSAError:
-            satosa_logging(logger, logging.ERROR, "Uncaught SATOSA error", context.state,
+            satosa_logging(logger, logging.ERROR, "Uncaught SATOSA error ", context.state,
                            exc_info=True)
+            raise
+        except UnknownSystemEntity as err:
+            satosa_logging(logger, logging.ERROR,
+                           "configuration error: unknown system entity " + str(err),
+                           context.state, exc_info=False)
             raise
         except Exception as err:
             satosa_logging(logger, logging.ERROR, "Uncaught exception", context.state,
