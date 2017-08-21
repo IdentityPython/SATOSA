@@ -32,6 +32,7 @@ class AccountLinking(ResponseMicroService):
         self.redirect_url = config["redirect_url"]
         self.signing_key = RSAKey(key=rsa_load(config["sign_key"]), use="sig", alg="RS256")
         self.endpoint = "/handle_account_linking"
+        self.config = config
         logger.info("Account linking is active")
 
     def _handle_al_response(self, context):
