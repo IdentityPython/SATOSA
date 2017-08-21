@@ -32,7 +32,7 @@ class AccountLinking(ResponseMicroService):
         self.redirect_url = config["redirect_url"]
         self.signing_key = RSAKey(key=rsa_load(config["sign_key"]), use="sig", alg="RS256")
         self.endpoint = "/handle_account_linking"
-        self.config = config
+        self.id_to_attr = config.get("id_to_attr", None)
         logger.info("Account linking is active")
 
     def _handle_al_response(self, context):
@@ -53,9 +53,8 @@ class AccountLinking(ResponseMicroService):
             satosa_logging(logger, logging.INFO, "issuer/id pair is linked in AL service",
                            context.state)
             internal_response.user_id = message
-            id_to_attr = self.config.get("id_to_attr", None)
-            if id_to_attr:
-                internal_response.attributes[id_to_attr] = message
+            if self.id_to_attr:
+                internal_response.attributes[id_to_attr] = [message]
 
             del context.state[self.name]
             return super().process(context, internal_response)
@@ -81,9 +80,8 @@ class AccountLinking(ResponseMicroService):
             satosa_logging(logger, logging.INFO, "issuer/id pair is linked in AL service",
                            context.state)
             internal_response.user_id = message
-            id_to_attr = self.config.get("id_to_attr", None)
-            if id_to_attr:
-                internal_response.attributes[id_to_attr] = message
+            if self.id_to_attr:
+                internal_response.attributes[id_to_attr] = [message]
             try:
                 del context.state[self.name]
             except KeyError:
