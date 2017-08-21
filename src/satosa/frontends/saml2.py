@@ -300,8 +300,11 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             attributes_to_remove = custom_release.get("exclude", [])
             for k in attributes_to_remove:
                 ava.pop(k, None)
+        idp_conf = self.idp_config.get('service', {}).get('idp', {})
         try:
-            config_nameidformat = self.config['idp_config']['service']['idp']['name_id_format'][0]
+            config_nameidformat = idp_conf['name_id_format']
+            if isinstance(config_nameidformat, list):
+                config_nameidformat = config_nameidformat[0]
         except KeyError:
             config_nameidformat = None
             satosa_logging(logger, logging.DEBUG, "No nameid format configured for frontend idp",
@@ -320,14 +323,13 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
                              format=nameidfmt,
                              sp_name_qualifier=None,
                              name_qualifier=None)
-        satosa_logging(logger, logging.DEBUG, "Set nameid with format %s to '%s'" %
+        satosa_logging(logger, logging.DEBUG, "Frontend Resonse nameid format %s to '%s'" %
                        (nameidfmt, nameidval), context.state)
 
         dbgmsg = "returning attributes %s" % json.dumps(ava)
         satosa_logging(logger, logging.DEBUG, dbgmsg, context.state)
 
-        policies = self.idp_config.get(
-            'service', {}).get('idp', {}).get('policy', {})
+        policies = idp_conf.get('policy', {})
         sp_policy = policies.get('default', {})
         sp_policy.update(policies.get(sp_entity_id, {}))
 

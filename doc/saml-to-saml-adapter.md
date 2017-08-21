@@ -1,12 +1,12 @@
-# saml-to-saml Adapter
+# Proxy: SAML2 <--> SAML2
 
-The might be a mismatch between the SAML profile of an IDP (1:1) or a federation (1:many) 
-and an SP with a limited SAML implementation. the proxy can convert the SAMl profile 
+There might be a mismatch between the SAML profile of an IDP (1:1) or a federation (1:many) 
+and an SP with a limited SAML implementation. The proxy can convert the SAMl profile 
 to make both sides compatible. 
 
 ## Support for a NameID format Emailaddress
 
-If the SP requires a NameID format EMailAddress add this configuration entry the SAMLFrontend 
+If the SP requires a NameID format emailAddress add this configuration entry the SAMLFrontend 
 file:
 
 module: satosa.frontends.saml2.SAMLFrontend
@@ -17,14 +17,14 @@ config:
     service:
       idp:
         ...
-        name_id_format: ['urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress']
+        name_id_format: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress'
 
 ## Renaming friendly attribute names
  
- If an SP used friendly attribute names instead of OIDs that implementaiton should fix
- this. In the meantime attributes can be renamed using the internal_attributes configuration. 
+ If an SP uses friendly attribute names instead of conforming to the X.500/LDAP Attribute Profile, 
+ the proxy can rename the friendly names. In the meantime attributes can be renamed using the internal_attributes configuration. 
  For example, to rename a backend attribute called "principalName" to "surname" at the
- frontend, add a second attribute profile:
+ frontend, set different attribute_profile values for the backend and frontend:
  
     attributes:
       ...
