@@ -17,7 +17,4 @@ class ScopeProcessor(BaseProcessor):
         if not isinstance(values, list):
             values = [values]
         if values:
-            new_values=[]
-            for value in values:
-                new_values.append(value + '@' + scope)
-            attributes[attribute] = new_values
+            attributes[attribute] = list(v + '@' + scope for v in values)
