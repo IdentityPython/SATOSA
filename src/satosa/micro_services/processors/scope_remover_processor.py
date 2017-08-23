@@ -10,10 +10,9 @@ class ScopeRemoverProcessor(BaseProcessor):
         attributes = internal_data.attributes
         new_values = []
         values = attributes.get(attribute, [None])
-        if values:
-            for value in attributes.get(attribute, [None]):
-                unscoped_value = value.split('@')[0]
-                new_values.append(unscoped_value)
-            attributes[attribute] = new_values
-        else:
-            raise AttributeProcessorWarning("Attribute {} is not available".format(attribute))
+        if not values:
+            raise AttributeProcessorWarning("Attribute {} has no values".format(attribute))
+        for value in values:
+            unscoped_value = value.split('@')[0]
+            new_values.append(unscoped_value)
+        attributes[attribute] = new_values
