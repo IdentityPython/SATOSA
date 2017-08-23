@@ -149,6 +149,17 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :param entity_id: Target IDP entity id
         :return: response to the user agent
         """
+
+        # If IDP blacklisting is enabled and the selected IDP is blacklisted,
+        # stop here
+        if self.config["sp_config"]["idp_blacklist_enabled"]:
+            with open(self.config["sp_config"]["idp_blacklist_file"]) as blacklist_file:
+                blacklist_array = json.load(blacklist_file)['blacklist']
+                if entity_id in blacklist_array:
+            satosa_logging(logger, logging.DEBUG, "IdP with EntityID {} is blacklisted".format(entity_id), context.state,
+                           exc_info=False)
+            raise SATOSAAuthenticationError(context.state, "Selected IdP is blacklisted for this backend")
+
         kwargs = {}
         authn_context = self.construct_requested_authn_context(entity_id)
         if authn_context:
