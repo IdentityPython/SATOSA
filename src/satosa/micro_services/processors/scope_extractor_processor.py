@@ -1,4 +1,4 @@
-from ..attribute_processor import AttributeProcessorError
+from ..attribute_processor import AttributeProcessorError, AttributeProcessorWarning
 from .base_processor import BaseProcessor
 
 
@@ -8,9 +8,9 @@ CONFIG_DEFAULT_MAPPEDATTRIBUTE = ''
 
 class ScopeExtractorProcessor(BaseProcessor):
     """
-    Extracts the scope from a scoped attribute and maps that to 
+    Extracts the scope from a scoped attribute and maps that to
     another attribute
-    
+
     Example configuration:
     module: satosa.micro_services.attribute_processor.AttributeProcessor
     name: AttributeProcessor
@@ -28,8 +28,13 @@ class ScopeExtractorProcessor(BaseProcessor):
             raise AttributeProcessorError("The mapped_attribute needs to be set")
 
         attributes = internal_data.attributes
-        for value in attributes.get(attribute, [None]):
+        values = attributes.get(attribute, [None])
+        if not values:
+            raise AttributeProcessorWarning("Cannot apply scope_extractor to {}, it has no values".format(attribute))
+        if not any('@' in val for val in values):
+            raise AttributeProcessorWarning("Cannot apply scope_extractor to {}, it's values are not scoped".format(attribute))
+        for value in values:
             if '@' in value:
                 scope = value.split('@')[1]
                 attributes[mapped_attribute] = [scope]
-
+                break
