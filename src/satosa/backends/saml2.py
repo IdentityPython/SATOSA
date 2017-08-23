@@ -152,7 +152,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         # If IDP blacklisting is enabled and the selected IDP is blacklisted,
         # stop here
-        if self.config["sp_config"]["idp_blacklist_enabled"]:
+        if self.config["sp_config"].get("idp_blacklist_enabled", None):
             with open(self.config["sp_config"]["idp_blacklist_file"]) as blacklist_file:
                 blacklist_array = json.load(blacklist_file)['blacklist']
                 if entity_id in blacklist_array:
