@@ -156,9 +156,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             with open(self.config["sp_config"]["idp_blacklist_file"]) as blacklist_file:
                 blacklist_array = json.load(blacklist_file)['blacklist']
                 if entity_id in blacklist_array:
-            satosa_logging(logger, logging.DEBUG, "IdP with EntityID {} is blacklisted".format(entity_id), context.state,
-                           exc_info=False)
-            raise SATOSAAuthenticationError(context.state, "Selected IdP is blacklisted for this backend")
+                    satosa_logging(logger, logging.DEBUG, "IdP with EntityID {} is blacklisted".format(entity_id), context.state, exc_info=False)
+                    raise SATOSAAuthenticationError(context.state, "Selected IdP is blacklisted for this backend")
 
         kwargs = {}
         authn_context = self.construct_requested_authn_context(entity_id)
