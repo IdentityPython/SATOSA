@@ -63,6 +63,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         self.discosrv = config.get(self.KEY_DISCO_SRV)
         self.encryption_keys = []
         self.outstanding_queries = {}
+        self.idp_blacklist_file = config.get('idp_blacklist_file', None)
 
         sp_keypairs = sp_config.getattr('encryption_keypairs', '')
         sp_key_file = sp_config.getattr('key_file', '')
@@ -152,8 +153,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         # If IDP blacklisting is enabled and the selected IDP is blacklisted,
         # stop here
-        if self.config["sp_config"].get("idp_blacklist_enabled", None):
-            with open(self.config["sp_config"]["idp_blacklist_file"]) as blacklist_file:
+        if self.idp_blacklist_file:
+            with open(self.idp_blacklist_file) as blacklist_file:
                 blacklist_array = json.load(blacklist_file)['blacklist']
                 if entity_id in blacklist_array:
                     satosa_logging(logger, logging.DEBUG, "IdP with EntityID {} is blacklisted".format(entity_id), context.state, exc_info=False)
