@@ -16,9 +16,10 @@ RUN apt-get update && \
 RUN mkdir -p /src/satosa
 COPY . /src/satosa
 COPY docker/setup.sh /setup.sh
-RUN /setup.sh
-
 COPY docker/start.sh /start.sh
+RUN chmod +x /setup.sh /start.sh \
+ && /setup.sh
+
 COPY docker/attributemaps /opt/satosa/attributemaps
 
 VOLUME /opt/satosa/etc
