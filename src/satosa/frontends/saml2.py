@@ -311,18 +311,20 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
                            context.state)
         if config_nameidformat == NAMEID_FORMAT_EMAILADDRESS:
             nameidfmt = NAMEID_FORMAT_EMAILADDRESS
-            nameidval = internal_response.attributes.get('mail', None)[0]
-            name_id = NameID(text=nameidval,
-                             format=nameidfmt,
-                             sp_name_qualifier=None,
-                             name_qualifier=None)
+            try:
+                nameidval = internal_response.attributes['mail'][0]
+            except KeyError:
+                satosa_logging(logger, logging.ERROR,
+                               "Missing attribute 'mail' required for nameid format emailAddress",
+                               context.state)
+                raise Exception("Missing attribute 'mail' required for nameid format emailAddress")
         else:
             nameidfmt = hash_type_to_saml_name_id_format(internal_response.user_id_hash_type)
             nameidval = internal_response.user_id
-            name_id = NameID(text=nameidval,
-                             format=nameidfmt,
-                             sp_name_qualifier=None,
-                             name_qualifier=None)
+        name_id = NameID(text=nameidval,
+                         format=nameidfmt,
+                         sp_name_qualifier=None,
+                         name_qualifier=None)
         satosa_logging(logger, logging.DEBUG, "Frontend Resonse nameid format %s to '%s'" %
                        (nameidfmt, nameidval), context.state)
 
