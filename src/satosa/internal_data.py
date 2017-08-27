@@ -15,6 +15,7 @@ class UserIdHashType(Enum):
     persistent = 2
     pairwise = 3
     public = 4
+    public_email = 5
 
     @classmethod
     def from_string(cls, str):

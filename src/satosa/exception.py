@@ -67,3 +67,12 @@ class SATOSAAuthenticationError(SATOSAError):
         :return: Exception message
         """
         return self._message.format(error_id=self.error_id)
+
+
+class SATOSAModuleError(SATOSAError):
+    """
+    Modules related to Plugins
+    """
+    pass
+
+

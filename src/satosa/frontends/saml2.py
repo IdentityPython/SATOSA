@@ -12,7 +12,7 @@ from saml2.config import IdPConfig
 from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
 from saml2.metadata import create_metadata_string
 from saml2.saml import NameID, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT, \
-    NAMEID_FORMAT_EMAILADDRESS
+    NAMEID_FORMAT_EMAILADDRESS, NAMEID_FORMAT_UNKNOWN
 from saml2.samlp import name_id_policy_from_string
 from saml2.server import Server
 
@@ -40,8 +40,14 @@ def saml_name_id_format_to_hash_type(name_format):
     """
     if name_format == NAMEID_FORMAT_PERSISTENT:
         return UserIdHashType.persistent
+    elif name_format == NAMEID_FORMAT_TRANSIENT:
+        return UserIdHashType.transient
+    elif name_format == NAMEID_FORMAT_EMAILADDRESS:
+        return UserIdHashType.public_email
+    else:
+        raise SATOSAModuleError('Mapping of SAML NameID Format {} to internal '
+                                'representation not implemented'.format(name_format))
 
-    return UserIdHashType.transient
 
 
 def hash_type_to_saml_name_id_format(hash_type):
@@ -57,7 +63,11 @@ def hash_type_to_saml_name_id_format(hash_type):
         return NAMEID_FORMAT_TRANSIENT
     elif hash_type == UserIdHashType.persistent.name:
         return NAMEID_FORMAT_PERSISTENT
-    return NAMEID_FORMAT_PERSISTENT
+    elif hash_type == UserIdHashType.public_email.name:
+        return NAMEID_FORMAT_EMAILADDRESS
+    else:
+        raise SATOSAModuleError('Mapping to SAML NameID Format {} '
+                                'not implemented'.format(hash_type.name))
 
 
 class SAMLFrontend(FrontendModule, SAMLBaseModule):
@@ -300,26 +310,12 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             attributes_to_remove = custom_release.get("exclude", [])
             for k in attributes_to_remove:
                 ava.pop(k, None)
-        try:
-            config_nameidformat = self.config['idp_config']['service']['idp']['name_id_format'][0]
-        except KeyError:
-            config_nameidformat = None
-            satosa_logging(logger, logging.DEBUG, "No nameid format configured for frontend idp",
-                           context.state)
-        if config_nameidformat == NAMEID_FORMAT_EMAILADDRESS:
-            nameidfmt = NAMEID_FORMAT_EMAILADDRESS
-            nameidval = internal_response.attributes.get('mail', None)[0]
-            name_id = NameID(text=nameidval,
-                             format=nameidfmt,
-                             sp_name_qualifier=None,
-                             name_qualifier=None)
-        else:
-            nameidfmt = hash_type_to_saml_name_id_format(internal_response.user_id_hash_type)
-            nameidval = internal_response.user_id
-            name_id = NameID(text=nameidval,
-                             format=nameidfmt,
-                             sp_name_qualifier=None,
-                             name_qualifier=None)
+
+        name_id = NameID(text=internal_response.user_id,
+                         format=hash_type_to_saml_name_id_format(
+                             internal_response.user_id_hash_type),
+                         sp_name_qualifier=None,
+                         name_qualifier=None)
         satosa_logging(logger, logging.DEBUG, "Set nameid with format %s to '%s'" %
                        (nameidfmt, nameidval), context.state)
 
