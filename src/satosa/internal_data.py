@@ -87,7 +87,7 @@ class UserIdHasher(object):
             user_id = "{req}{time}{id}".format(req=requester, time=timestamp, id=user_id)
         elif hash_type == UserIdHashType.persistent or hash_type == UserIdHashType.pairwise:
             user_id = "{req}{id}".format(req=requester, id=user_id)
-            elif hash_type in (UserIdHashType.public, UserIdHashType.public_email):
+        elif hash_type in (UserIdHashType.public, UserIdHashType.public_email):
             user_id = "{id}".format(id=user_id)
         else:
             raise ValueError("Unknown hash type: '{}'".format(hash_type))
