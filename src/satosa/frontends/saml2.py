@@ -60,9 +60,9 @@ def hash_type_to_saml_name_id_format(hash_type):
     :param hash_type: satosa format
     :return: pySAML2 name format
     """
-    if hash_type == UserIdHashType.transient.name:
+    if hash_type == UserIdHashType.transient:
         return NAMEID_FORMAT_TRANSIENT
-    elif hash_type == UserIdHashType.persistent.name:
+    elif hash_type == UserIdHashType.persistent:
         return NAMEID_FORMAT_PERSISTENT
     elif hash_type == UserIdHashType.public_email:
         return NAMEID_FORMAT_EMAILADDRESS
