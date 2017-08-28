@@ -85,7 +85,7 @@ class UserIdHasher(object):
         if hash_type == UserIdHashType.transient:
             timestamp = datetime.datetime.now().time()
             user_id = "{req}{time}{id}".format(req=requester, time=timestamp, id=user_id)
-        elif hash_type == UserIdHashType.persistent or hash_type == UserIdHashType.pairwise:
+        elif hash_type in (UserIdHashType.persistent, UserIdHashType.pairwise):
             user_id = "{req}{id}".format(req=requester, id=user_id)
         elif hash_type in (UserIdHashType.public, UserIdHashType.public_email):
             user_id = "{id}".format(id=user_id)
