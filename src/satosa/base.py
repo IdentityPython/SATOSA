@@ -260,6 +260,8 @@ class SATOSABase(object):
         except SATOSANoBoundEndpointError:
             raise
         except SATOSAProcessingHaltError as e:
+            satosa_logging(logger, logging.ERROR, "Caught error, we will stop processing and exit", context.state,
+                           exc_info=True)
             if e.redirect_uri:
                 resp = SeeOther(redirect_url=e.redirect_uri)
             else:
@@ -274,7 +276,7 @@ class SATOSABase(object):
                            exc_info=True)
             raise SATOSAUnknownError("Unknown error") from err
         return resp
-
+ 
 
 class SAMLBaseModule(object):
     KEY_ENTITYID_ENDPOINT = 'entityid_endpoint'
