@@ -38,6 +38,47 @@ def oidc_subject_type_to_hash_type(subject_type):
 
     return UserIdHashType.pairwise
 
+class FileWrapper(object):
+    def __init__(self, file):
+        try:
+            with open(file) as collection:    
+                self._coll = json.load(collection)
+        except:
+            logger.debug('Client file error: %s', sys.exc_info()[0], exc_info=True)
+            self._coll = []
+        
+    def __setitem__(self, key, value):
+        doc = {
+            'lookup_key': key,
+            'data': value
+        }
+        self._coll.append(doc)
+        
+    def __getitem__(self, key):
+        doc = next((i for i in self._coll if i["lookup_key"] == key), None)
+        if not doc:
+            raise KeyError(key)
+        return doc['data']
+
+    def __delitem__(self, key):
+        self._coll[:] = [i for i in self._coll if i.get("lookup_key") != key]
+        return
+
+    def __contains__(self, key):
+        count = len(self[key])
+        return bool(count)
+
+    def items(self):
+        for doc in self._coll:
+            yield (doc["lookup_key"], doc["data"])
+
+    def pop(self, key, default=None):
+        try:
+            data = self[key]
+        except KeyError:
+            return default
+        del self[key]
+        return data
 
 class OpenIDConnectFrontend(FrontendModule):
     """
@@ -78,7 +119,13 @@ class OpenIDConnectFrontend(FrontendModule):
 
         authz_state = self._init_authorization_state()
         db_uri = self.config.get("db_uri")
-        cdb = MongoWrapper(db_uri, "satosa", "clients") if db_uri else {}
+        db_file = self.config.get("db_file")
+        if db_uri:
+            cdb = MongoWrapper(db_uri, "satosa", "clients")
+        elif db_file:
+            cdb = FileWrapper(db_file)
+        else:
+            cdb = {}
         self.user_db = MongoWrapper(db_uri, "satosa", "authz_codes") if db_uri else {}
         self.provider = Provider(self.signing_key, capabilities, authz_state, cdb, Userinfo(self.user_db))
 
