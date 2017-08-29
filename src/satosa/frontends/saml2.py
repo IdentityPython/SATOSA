@@ -41,13 +41,10 @@ def saml_name_id_format_to_hash_type(name_format):
     """
     if name_format == NAMEID_FORMAT_PERSISTENT:
         return UserIdHashType.persistent
-    elif name_format == NAMEID_FORMAT_TRANSIENT:
-        return UserIdHashType.transient
     elif name_format == NAMEID_FORMAT_EMAILADDRESS:
         return UserIdHashType.public_email
     else:
-        raise SATOSAModuleError('Mapping of SAML NameID Format {} to internal '
-                                'representation not implemented'.format(name_format))
+        return UserIdHashType.transient
 
 
 
