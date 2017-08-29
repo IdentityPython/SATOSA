@@ -28,7 +28,7 @@ class ScopeExtractorProcessor(BaseProcessor):
             raise AttributeProcessorError("The mapped_attribute needs to be set")
 
         attributes = internal_data.attributes
-        values = attributes.get(attribute, [None])
+        values = attributes.get(attribute, [])
         if not values:
             raise AttributeProcessorWarning("Cannot apply scope_extractor to {}, it has no values".format(attribute))
         if not any('@' in val for val in values):
