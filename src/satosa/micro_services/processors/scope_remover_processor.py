@@ -9,7 +9,7 @@ class ScopeRemoverProcessor(BaseProcessor):
     def process(self, internal_data, attribute, **kwargs):
         attributes = internal_data.attributes
         new_values = []
-        values = attributes.get(attribute, [None])
+        values = attributes.get(attribute, [])
         if not values:
             raise AttributeProcessorWarning("Attribute {} has no values".format(attribute))
         for value in values:
