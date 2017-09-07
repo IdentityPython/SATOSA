@@ -14,6 +14,7 @@ config:
       local: [idp.xml]
 
     entityid: <base_url>/<name>/proxy_saml2_backend.xml
+    accepted_time_diff: 60
     service:
       sp:
         want_response_signed: true
