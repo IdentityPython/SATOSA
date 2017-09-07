@@ -11,6 +11,7 @@ from .base import SATOSABase
 from .context import Context
 from .response import ServiceError, NotFound
 from .routing import SATOSANoBoundEndpointError
+from saml2.s_utils import UnknownSystemEntity
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +118,8 @@ class WsgiApplication(SATOSABase):
             resp = NotFound("Couldn't find the page you asked for!")
             return resp(environ, start_response)
         except Exception as err:
-            logger.exception("%s" % err)
+            if type(err) != UnknownSystemEntity:
+                logger.exception("%s" % err)
             if debug:
                 raise
 
@@ -137,7 +139,12 @@ def make_app(satosa_config):
             root_logger.addHandler(stderr_handler)
             root_logger.setLevel(logging.DEBUG)
 
-        logger.info("Running SATOSA version %s", pkg_resources.get_distribution("SATOSA").version)
+        try:
+            pkg = pkg_resources.get_distribution(module.__name__)
+            logger.info("Running SATOSA version %s",
+                        pkg_resources.get_distribution("SATOSA").version)
+        except (NameError, pkg_resources.DistributionNotFound):
+            pass
         return ToBytesMiddleware(WsgiApplication(satosa_config))
     except Exception:
         logger.exception("Failed to create WSGI app.")

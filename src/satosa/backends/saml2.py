@@ -273,7 +273,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         except AttributeError:
             pass
 
-        satosa_logging(logger, logging.DEBUG, "received attributes:\n%s" % json.dumps(response.ava, indent=4), state)
+        satosa_logging(logger, logging.DEBUG, "backend received attributes:\n%s" % json.dumps(response.ava, indent=4), state)
         return internal_resp
 
     def _metadata_endpoint(self, context):
