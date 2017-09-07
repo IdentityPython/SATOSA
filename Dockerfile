@@ -10,15 +10,19 @@ RUN apt-get update && \
     libffi-dev \
     libssl-dev \
     xmlsec1 \
-    libyaml-dev
+    libyaml-dev && \
+    apt-get clean
 
 RUN mkdir -p /src/satosa
 COPY . /src/satosa
 COPY docker/setup.sh /setup.sh
-RUN /setup.sh
-
 COPY docker/start.sh /start.sh
+RUN chmod +x /setup.sh /start.sh \
+ && /setup.sh
+
 COPY docker/attributemaps /opt/satosa/attributemaps
 
 VOLUME /opt/satosa/etc
-ENTRYPOINT ["/start.sh"]
+CMD ["/start.sh"]
+ARG PROXY_PORT=8000
+EXPOSE $PROXY_PORT
