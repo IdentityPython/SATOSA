@@ -14,14 +14,17 @@ from saml2.entity_category import refeds, swamid, edugain
 from saml2.entity_category.edugain import COCO
 from saml2.entity_category.refeds import RESEARCH_AND_SCHOLARSHIP
 from saml2.entity_category.swamid import SFS_1993_1153, RESEARCH_AND_EDUCATION, EU, HEI, NREN
-from saml2.saml import NAMEID_FORMAT_PERSISTENT, NAMEID_FORMAT_TRANSIENT
+from saml2.saml import NAMEID_FORMAT_PERSISTENT, NAMEID_FORMAT_TRANSIENT, \
+    NAMEID_FORMAT_EMAILADDRESS, NAMEID_FORMAT_UNSPECIFIED
 from saml2.samlp import NameIDPolicy
 
 from satosa.attribute_mapping import AttributeMapper
-from satosa.frontends.saml2 import SAMLFrontend, saml_name_id_format_to_hash_type, SAMLMirrorFrontend
+from satosa.frontends.saml2 import SAMLFrontend, saml_name_id_format_to_hash_type, \
+    hash_type_to_saml_name_id_format, SAMLMirrorFrontend
 from satosa.internal_data import InternalResponse, AuthenticationInformation, InternalRequest
 from satosa.internal_data import UserIdHashType
 from satosa.state import State
+from satosa.exception import SATOSAModuleError
 from tests.users import USERS
 from tests.util import FakeSP, create_metadata_from_config_dict
 
@@ -365,3 +368,21 @@ class TestSamlNameIdFormatToHashType:
 
     def test_should_map_persistent(self):
         assert saml_name_id_format_to_hash_type(NAMEID_FORMAT_PERSISTENT) == UserIdHashType.persistent
+
+
+class TestSamlHashTypeToNameIdFormat:
+    def test_should_fail_unknown(self):
+        with pytest.raises(SATOSAModuleError):
+            hash_type_to_saml_name_id_format(UserIdHashType.public)
+
+    def test_should_map_transient(self):
+        assert hash_type_to_saml_name_id_format(UserIdHashType.transient) == NAMEID_FORMAT_TRANSIENT
+
+    def test_should_map_persistent(self):
+        assert hash_type_to_saml_name_id_format(UserIdHashType.persistent) == NAMEID_FORMAT_PERSISTENT
+
+    def test_should_map_email(self):
+        assert hash_type_to_saml_name_id_format(UserIdHashType.public_email) == NAMEID_FORMAT_EMAILADDRESS
+
+    def test_should_map_none_to_unspecified(self):
+        assert hash_type_to_saml_name_id_format(None) == NAMEID_FORMAT_UNSPECIFIED

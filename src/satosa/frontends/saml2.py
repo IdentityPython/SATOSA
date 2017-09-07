@@ -11,7 +11,8 @@ from saml2 import SAMLError, xmldsig
 from saml2.config import IdPConfig
 from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
 from saml2.metadata import create_metadata_string
-from saml2.saml import NameID, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
+from saml2.saml import NameID, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT, \
+    NAMEID_FORMAT_EMAILADDRESS, NAMEID_FORMAT_UNSPECIFIED
 from saml2.samlp import name_id_policy_from_string
 from saml2.server import Server
 
@@ -22,6 +23,7 @@ from ..logging_util import satosa_logging
 from ..response import Response
 from ..response import ServiceError
 from ..saml_util import make_saml_response
+from ..exception import SATOSAModuleError
 import satosa.util as util
 
 
@@ -39,8 +41,11 @@ def saml_name_id_format_to_hash_type(name_format):
     """
     if name_format == NAMEID_FORMAT_PERSISTENT:
         return UserIdHashType.persistent
+    elif name_format == NAMEID_FORMAT_EMAILADDRESS:
+        return UserIdHashType.public_email
+    else:
+        return UserIdHashType.transient
 
-    return UserIdHashType.transient
 
 
 def hash_type_to_saml_name_id_format(hash_type):
@@ -52,11 +57,17 @@ def hash_type_to_saml_name_id_format(hash_type):
     :param hash_type: satosa format
     :return: pySAML2 name format
     """
-    if hash_type == UserIdHashType.transient.name:
+    if hash_type == UserIdHashType.transient:
         return NAMEID_FORMAT_TRANSIENT
-    elif hash_type == UserIdHashType.persistent.name:
+    elif hash_type == UserIdHashType.persistent:
         return NAMEID_FORMAT_PERSISTENT
-    return NAMEID_FORMAT_PERSISTENT
+    elif hash_type == UserIdHashType.public_email:
+        return NAMEID_FORMAT_EMAILADDRESS
+    elif hash_type is None:
+        return NAMEID_FORMAT_UNSPECIFIED
+    else:
+        raise SATOSAModuleError('Mapping to SAML NameID Format {} '
+                                'not implemented'.format(hash_type.name))
 
 
 class SAMLFrontend(FrontendModule, SAMLBaseModule):
@@ -300,11 +311,13 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             for k in attributes_to_remove:
                 ava.pop(k, None)
 
+        nameidfmt = hash_type_to_saml_name_id_format(internal_response.user_id_hash_type)
         name_id = NameID(text=internal_response.user_id,
-                         format=hash_type_to_saml_name_id_format(
-                             internal_response.user_id_hash_type),
+                         format=nameidfmt,
                          sp_name_qualifier=None,
                          name_qualifier=None)
+        satosa_logging(logger, logging.DEBUG, "Set nameid with format %s to '%s'" %
+                       (nameidfmt, internal_response.user_id), context.state)
 
         dbgmsg = "returning attributes %s" % json.dumps(ava)
         satosa_logging(logger, logging.DEBUG, dbgmsg, context.state)

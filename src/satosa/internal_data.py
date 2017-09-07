@@ -15,6 +15,7 @@ class UserIdHashType(Enum):
     persistent = 2
     pairwise = 3
     public = 4
+    public_email = 5
 
     @classmethod
     def from_string(cls, str):
@@ -84,9 +85,9 @@ class UserIdHasher(object):
         if hash_type == UserIdHashType.transient:
             timestamp = datetime.datetime.now().time()
             user_id = "{req}{time}{id}".format(req=requester, time=timestamp, id=user_id)
-        elif hash_type == UserIdHashType.persistent or hash_type == UserIdHashType.pairwise:
+        elif hash_type in (UserIdHashType.persistent, UserIdHashType.pairwise):
             user_id = "{req}{id}".format(req=requester, id=user_id)
-        elif hash_type == UserIdHashType.public:
+        elif hash_type in (UserIdHashType.public, UserIdHashType.public_email):
             user_id = "{id}".format(id=user_id)
         else:
             raise ValueError("Unknown hash type: '{}'".format(hash_type))
