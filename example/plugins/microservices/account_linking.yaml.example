@@ -4,3 +4,4 @@ config:
   api_url: "https://localhost:8167"
   redirect_url: "https://localhost:8167/approve"
   sign_key: "pki/account_linking.key"
+  id_to_attr: "uniqueid"
