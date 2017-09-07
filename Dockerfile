@@ -18,6 +18,7 @@ COPY . /src/satosa
 COPY docker/setup.sh /setup.sh
 COPY docker/start.sh /start.sh
 RUN chmod +x /setup.sh /start.sh \
+ && sync \
  && /setup.sh
 
 COPY docker/attributemaps /opt/satosa/attributemaps
