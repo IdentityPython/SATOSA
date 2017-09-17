@@ -63,6 +63,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         self.discosrv = config.get(self.KEY_DISCO_SRV)
         self.encryption_keys = []
         self.outstanding_queries = {}
+        self.idp_blacklist_file = config.get('idp_blacklist_file', None)
 
         sp_keypairs = sp_config.getattr('encryption_keypairs', '')
         sp_key_file = sp_config.getattr('key_file', '')
@@ -149,6 +150,16 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :param entity_id: Target IDP entity id
         :return: response to the user agent
         """
+
+        # If IDP blacklisting is enabled and the selected IDP is blacklisted,
+        # stop here
+        if self.idp_blacklist_file:
+            with open(self.idp_blacklist_file) as blacklist_file:
+                blacklist_array = json.load(blacklist_file)['blacklist']
+                if entity_id in blacklist_array:
+                    satosa_logging(logger, logging.DEBUG, "IdP with EntityID {} is blacklisted".format(entity_id), context.state, exc_info=False)
+                    raise SATOSAAuthenticationError(context.state, "Selected IdP is blacklisted for this backend")
+
         kwargs = {}
         authn_context = self.construct_requested_authn_context(entity_id)
         if authn_context:
@@ -273,7 +284,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         except AttributeError:
             pass
 
-        satosa_logging(logger, logging.DEBUG, "received attributes:\n%s" % json.dumps(response.ava, indent=4), state)
+        satosa_logging(logger, logging.DEBUG, "backend received attributes:\n%s" % json.dumps(response.ava, indent=4), state)
         return internal_resp
 
     def _metadata_endpoint(self, context):

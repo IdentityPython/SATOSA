@@ -98,7 +98,7 @@ class GitHubBackend(_OAuthBackend):
         internal_response = InternalResponse(auth_info=auth_info)
         internal_response.attributes = self.converter.to_internal(
             self.external_type, user_info)
-        internal_response.user_id = user_info[self.user_id_attr]
+        internal_response.user_id = str(user_info[self.user_id_attr])
         del context.state[self.name]
         return self.auth_callback_func(context, internal_response)
 
