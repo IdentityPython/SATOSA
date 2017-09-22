@@ -28,48 +28,104 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
         super().__init__(*args, **kwargs)
         self.config = config
 
-    def constructFilterValue(self, identifier, data):
+    def constructFilterValue(self, candidate, data):
         """
         Construct and return a LDAP directory search filter value from the
-        data asserted by the IdP based on the input identifier.
+        candidate identifier.
 
-        If the input identifier is a list of identifiers then this
-        method is called recursively and the values concatenated together.
+        Argument 'canidate' is a dictionary with one required key and 
+        two optional keys:
+            
+        key              required   value
+        ---------------  --------   ---------------------------------
+        attribute_names  Y          list of identifier names
 
-        If the input identifier is a dictionary with 'name_id' as the key
-        and a NameID format as value than the NameID value (if any) asserted
-        by the IdP for that format is used as the value.
+        name_id_format   N          NameID format (string)
+
+        add_scope        N          "issuer_entityid" or other string
+
+        Argument 'data' is that object passed into the microservice
+        method process().
+
+        If the attribute_names list consists of more than one identifier
+        name then the values of the identifiers will be concatenated together
+        to create the filter value.
+        
+        If one of the identifier names in the attribute_names is the string
+        'name_id' then the NameID value with format name_id_format
+        will be concatenated to the filter value.
+
+        If the add_scope key is present with value 'issuer_entityid' then the
+        entityID for the IdP will be concatenated to "scope" the value. If the
+        string is any other value it will be directly concatenated.
         """
-        value = ""
+        logprefix = self.logprefix
+        context = self.context
 
-        # If the identifier is a list of identifiers then loop over them
-        # calling ourself recursively and concatenate the values from 
-        # the identifiers together.
-        if isinstance(identifier, list):
-            for i in identifier:
-                value += self.constructFilterValue(i, data)
+        attributes = data.attributes
+        satosa_logging(logger, logging.DEBUG, "{} Input attributes {}".format(logprefix, attributes), context.state)
 
-        # If the identifier is a dictionary with key 'name_id' then the value
-        # is a NameID format. Look for a NameID asserted by the IdP with that
-        # format and if found use its value.
-        elif isinstance(identifier, dict):
-            if 'name_id' in identifier:
-                nameIdFormat = identifier['name_id']
-                if 'name_id' in data.to_dict():
-                    if nameIdFormat in data.to_dict()['name_id']:
-                        value += data.to_dict()['name_id'][nameIdFormat]
+        # Get the values configured list of identifier names for this candidate
+        # and substitute None if there are no values for a configured identifier.
+        values = []
+        for identifier_name in candidate['attribute_names']:
+            v = attributes.get(identifier_name, None)
+            if isinstance(v, list):
+                v = v[0]
+            values.append(v)
+        satosa_logging(logger, logging.DEBUG, "{} Found candidate values {}".format(logprefix, values), context.state)
 
-        # The identifier is not a list or dictionary so just consume the asserted values
-        # for this single identifier to create the value.
-        else:
-            if identifier in data.attributes:
-                for v in data.attributes[identifier]:
-                    value += v
+        # If one of the configured identifier names is name_id then if there is also a configured
+        # name_id_format add the value for the NameID of that format if it was asserted by the IdP
+        # or else add the value None.
+        if 'name_id' in candidate['attribute_names']:
+            nameid_value = None
+            if 'name_id' in data.to_dict():
+                name_id = data.to_dict()['name_id']
+                satosa_logging(logger, logging.DEBUG, "{} IdP asserted NameID {}".format(logprefix, name_id), context.state)
+                if 'name_id_format' in candidate:
+                    if candidate['name_id_format'] in name_id:
+                        nameid_value = name_id[candidate['name_id_format']]
+
+            # Only add the NameID value asserted by the IdP if it is not already 
+            # in the list of values. This is necessary because some non-compliant IdPs
+            # have been known, for example, to assert the value of eduPersonPrincipalName 
+            # in the value for SAML2 persistent NameID as well as asserting
+            # eduPersonPrincipalName.
+            if nameid_value not in values:
+                satosa_logging(logger, logging.DEBUG, "{} Added NameID {} to candidate values".format(logprefix, nameid_value), context.state)
+                values.append(nameid_value)
+            else:
+                satosa_logging(logger, logging.WARN, "{} NameID {} value also asserted as attribute value".format(logprefix, nameid_value), context.state)
+
+        # If no value was asserted by the IdP for one of the configured list of identifier names
+        # for this candidate then go onto the next candidate.
+        if None in values:
+            satosa_logging(logger, logging.DEBUG, "{} Candidate is missing value so skipping".format(logprefix), context.state)
+            return None
+
+        # All values for the configured list of attribute names are present
+        # so we can create a value. Add a scope if configured
+        # to do so.
+        if 'add_scope' in candidate:
+            if candidate['add_scope'] == 'issuer_entityid':
+                scope = data.to_dict()['auth_info']['issuer']
+            else:
+                scope = candidate['add_scope']
+            satosa_logging(logger, logging.DEBUG, "{} Added scope {} to values".format(logprefix, scope), context.state)
+            values.append(scope)
+
+        # Concatenate all values to create the filter value.
+        value = ''.join(values)
+
+        satosa_logging(logger, logging.DEBUG, "{} Constructed filter value {}".format(logprefix, value), context.state)
 
         return value
 
     def process(self, context, data):
         logprefix = LdapAttributeStore.logprefix
+        self.logprefix = logprefix
+        self.context = context
 
         # Initialize the configuration to use as the default configuration
         # that is passed during initialization.
@@ -119,10 +175,10 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                 search_return_attributes = config['search_return_attributes']
             else:
                 search_return_attributes = self.config['search_return_attributes']
-            if 'idp_identifiers' in config:
-                idp_identifiers = config['idp_identifiers']
+            if 'ordered_identifier_candidates' in config:
+                ordered_identifier_candidates = config['ordered_identifier_candidates']
             else:
-                idp_identifiers = self.config['idp_identifiers']
+                ordered_identifier_candidates = self.config['ordered_identifier_candidates']
             if 'ldap_identifier_attribute' in config:
                 ldap_identifier_attribute = config['ldap_identifier_attribute']
             else:
@@ -156,14 +212,14 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
 
         # Loop over the configured list of identifiers from the IdP to consider and find
         # asserted values to construct the ordered list of values for the LDAP search filters.
-        for identifier in idp_identifiers:
-            value = self.constructFilterValue(identifier, data)
+        for candidate in ordered_identifier_candidates:
+            value = self.constructFilterValue(candidate, data)
 
             # If we have constructed a non empty value then add it as the next filter value
             # to use when searching for the user record.
             if value:
                 filterValues.append(value)
-                satosa_logging(logger, logging.DEBUG, "{} Added identifier {} with value {} to list of search filters".format(logprefix, identifier, value), context.state)
+                satosa_logging(logger, logging.DEBUG, "{} Added search filter value {} to list of search filters".format(logprefix, value), context.state)
 
         # Initialize an empty LDAP record. The first LDAP record found using the ordered
         # list of search filter values will be the record used.
@@ -199,7 +255,7 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                     break
                         
         except Exception as err:
-            satosa_logging(logger, logging.ERROR, "{} Caught exception: {0}".format(logprefix, err), None)
+            satosa_logging(logger, logging.ERROR, "{} Caught exception: {}".format(logprefix, err), context.state)
             return super().process(context, data)
 
         else:
