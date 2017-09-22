@@ -7,10 +7,12 @@ the record and assert them to the receiving SP.
 
 import satosa.micro_services.base
 from satosa.logging_util import satosa_logging
+from satosa.response import Redirect
 
 import copy
 import logging
 import ldap3
+import urllib
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +139,12 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                 user_id_from_attrs = self.config['user_id_from_attrs']
             else:
                 user_id_from_attrs = []
+            if 'on_ldap_search_result_empty' in config:
+                on_ldap_search_result_empty = config['on_ldap_search_result_empty']
+            elif 'on_ldap_search_result_empty' in self.config:
+                on_ldap_search_result_empty = self.config['on_ldap_search_result_empty']
+            else:
+                on_ldap_search_result_empty = None
 
         except KeyError as err:
             satosa_logging(logger, logging.ERROR, "{} Configuration '{}' is missing".format(logprefix, err), context.state)
@@ -244,6 +252,15 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
 
         else:
             satosa_logging(logger, logging.WARN, "{} No record found in LDAP so no attributes will be added".format(logprefix), context.state)
+            if on_ldap_search_result_empty:
+                # Redirect to the configured URL with
+                # the entityIDs for the target SP and IdP used by the user
+                # as query string parameters (URL encoded).
+                encodedSpEntityID = urllib.parse.quote_plus(spEntityID)
+                encodedIdpEntityID = urllib.parse.quote_plus(data.to_dict()['auth_info']['issuer'])
+                url = "{}?sp={}&idp={}".format(on_ldap_search_result_empty, encodedSpEntityID, encodedIdpEntityID)
+                satosa_logging(logger, logging.INFO, "{} Redirecting to {}".format(logprefix, url), context.state)
+                return Redirect(url)
 
         satosa_logging(logger, logging.DEBUG, "{} returning data.attributes {}".format(logprefix, str(data.attributes)), context.state)
         return super().process(context, data)

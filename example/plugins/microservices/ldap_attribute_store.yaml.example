@@ -39,6 +39,9 @@ config:
   # NameID.
   user_id_from_attrs:
     - employeeNumber
+  # Where to redirect the browser if no record is returned
+  # from LDAP. The default is not to redirect.
+  on_ldap_search_result_empty: https://my.vo.org/please/go/enroll
   # Configuration may also be done per-SP with any
   # missing parameters taken from the default if any.
   # The configuration key is the entityID of the SP.
