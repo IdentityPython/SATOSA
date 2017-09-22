@@ -57,3 +57,6 @@ For more information about how to set up, configure and run such a proxy instanc
 ## SAML2<->OIDC
 The proxy is able to act as a proxy between a SAML2 service provider and a OpenID connect provider 
 [SAML2<->OIDC](doc/saml2-to-oidc.md)
+
+# Contact
+If you have any questions regarding operations/deployment of SATOSA please use the satosa-users [mailing list](https://lists.sunet.se/listinfo/satosa-users).

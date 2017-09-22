@@ -89,7 +89,8 @@ class Consent(ResponseMicroService):
         }
         if self.locked_attr:
             consent_args["locked_attrs"] = [self.locked_attr]
-
+        if 'requester_logo' in context.state[STATE_KEY]:
+             consent_args["requester_logo"] = context.state[STATE_KEY]['requester_logo']
         try:
             ticket = self._consent_registration(consent_args)
         except (ConnectionError, UnexpectedResponseError) as e:

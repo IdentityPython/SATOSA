@@ -1,6 +1,7 @@
 module: satosa.backends.saml2.SAMLBackend
 name: Saml2
 config:
+  idp_blacklist_file: /path/to/blacklist.json
   sp_config:
     key_file: backend.key
     cert_file: backend.crt
@@ -13,6 +14,7 @@ config:
       local: [idp.xml]
 
     entityid: <base_url>/<name>/proxy_saml2_backend.xml
+    accepted_time_diff: 60
     service:
       sp:
         want_response_signed: true

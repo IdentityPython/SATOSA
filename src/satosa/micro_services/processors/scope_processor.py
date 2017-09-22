@@ -13,5 +13,8 @@ class ScopeProcessor(BaseProcessor):
             raise AttributeProcessorError("No scope set.")
 
         attributes = internal_data.attributes
-        value = attributes.get(attribute, [None])[0]
-        attributes[attribute][0] = value + '@' + scope
+        values = attributes.get(attribute, [])
+        if not isinstance(values, list):
+            values = [values]
+        if values:
+            attributes[attribute] = list(v + '@' + scope for v in values)
