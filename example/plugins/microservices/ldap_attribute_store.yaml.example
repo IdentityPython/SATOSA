@@ -12,25 +12,23 @@ config:
     mail: mail
     employeeNumber: employeenumber
     isMemberOf: ismemberof
-  idp_identifiers:
-    # Ordered list of identifiers asserted as attributes by
-    # IdP to use when constructing search filter to find
-    # user record in LDAP directory. This example searches
-    # in order for eduPersonUniqueId, eduPersonPrincipalName
-    # combined with SAML persistent, eduPersonPrincipalName
-    # combined with eduPersonTargetedId,
-    # eduPersonPrincipalName, SAML persistent, and 
-    # eduPersonTargetedId.
-    - epuid
-    - 
-      - eppn
-      - name_id: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
-    -
-      - eppn
-      - edupersontargetedid
-    - eppn
-    - name_id: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
-    - edupersontargetedid
+  ordered_identifier_candidates:
+    # Ordered list of identifiers to use when constructing the
+    # search filter  to find the user record in LDAP directory. 
+    # This example searches in order for eduPersonUniqueId, eduPersonPrincipalName
+    # combined with SAML persistent NameID, eduPersonPrincipalName
+    # combined with eduPersonTargetedId, eduPersonPrincipalName, 
+    # SAML persistent NameID, and eduPersonTargetedId.
+    - attribute_names: [epuid]
+    - attribute_names: [eppn, name_id]
+      name_id_format: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
+    - attribute_names: [eppn, edupersontargetedid]
+    - attribute_names: [eppn]
+    - attribute_names: [name_id]
+      name_id_format: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
+      add_scope: issuer_entityid
+    - attribute_names: [edupersontargetedid]
+      add_scope: issuer_entityid
   ldap_identifier_attribute: uid
   # Whether to clear values for attributes incoming
   # to this microservice. Default is no or false.
@@ -46,7 +44,10 @@ config:
   # For example:
   https://sp.myserver.edu/shibboleth-sp
     search_base: ou=People,o=MyVO,dc=example,dc=org
-    eduPersonPrincipalName: employeenumber
+    search_return_attributes:
+        employeeNumber: employeenumber
+    ordered_identifier_candidates:
+      - attribute_names: [eppn]
     user_id_from_attrs:
       - uid
   # The microservice may be configured to ignore a particular SP.
