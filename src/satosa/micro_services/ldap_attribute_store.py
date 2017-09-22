@@ -212,8 +212,11 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
             # Populate attributes as configured.
             for attr in search_return_attributes.keys():
                 if attr in record["attributes"]:
-                    data.attributes[search_return_attributes[attr]] = record["attributes"][attr]
-                    satosa_logging(logger, logging.DEBUG, "{} Setting internal attribute {} with values {}".format(logprefix, search_return_attributes[attr], record["attributes"][attr]), context.state)
+                    if record["attributes"][attr]:
+                        data.attributes[search_return_attributes[attr]] = record["attributes"][attr]
+                        satosa_logging(logger, logging.DEBUG, "{} Setting internal attribute {} with values {}".format(logprefix, search_return_attributes[attr], record["attributes"][attr]), context.state)
+                    else:
+                        satosa_logging(logger, logging.DEBUG, "{} Not setting internal attribute {} because value {} is null or empty".format(logprefix, search_return_attributes[attr], record["attributes"][attr]), context.state)
 
             # Populate input for NameID if configured. SATOSA core does the hashing of input
             # to create a persistent NameID.
