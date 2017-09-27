@@ -37,7 +37,8 @@ class AccountLinking(ResponseMicroService):
 
     def _handle_al_response(self, context):
         """
-        Endpoint for handling account linking service response
+        Endpoint for handling account linking service response. When getting here
+        user might have approved or rejected linking their account
 
         :type context: satosa.context.Context
         :rtype: satosa.response.Response
@@ -47,7 +48,9 @@ class AccountLinking(ResponseMicroService):
         """
         saved_state = context.state[self.name]
         internal_response = InternalResponse.from_dict(saved_state)
-        status_code, message = self._get_uuid(context, internal_response.auth_info.issuer, internal_response.user_id)
+
+        #user_id here is the linked id , not the facebook one, Figure out what to do 
+        status_code, message = self._get_uuid(context, internal_response.auth_info.issuer, internal_response.attributes['issuer_user_id'])
 
         if status_code == 200:
             satosa_logging(logger, logging.INFO, "issuer/id pair is linked in AL service",
@@ -59,7 +62,13 @@ class AccountLinking(ResponseMicroService):
             del context.state[self.name]
             return super().process(context, internal_response)
         else:
-            raise SATOSAAuthenticationError(context.state, "Could not link account for user")
+            # User selected not to link their accounts, so the internal.response.user_id is based on the 
+            # issuers id/sub which is fine
+            satosa_logging(logger, logging.INFO, "User selected to not link their identity in AL service",
+                           context.state)
+            del context.state[self.name]
+            return super().process(context, internal_response)
+
 
     def process(self, context, internal_response):
         """
@@ -72,42 +81,32 @@ class AccountLinking(ResponseMicroService):
         :param context:
         :param internal_response:
         :return: response
+        :
         """
 
         status_code, message = self._get_uuid(context, internal_response.auth_info.issuer, internal_response.user_id)
 
+        data = {
+            "issuer": internal_response.auth_info.issuer,
+            "redirect_endpoint": "%s/account_linking%s" % (self.base_url, self.endpoint)
+        }
+    
+        # Store the issuer user_id/sub because we'll need it in handle_al_response
+        internal_response.attributes['issuer_user_id'] = internal_response.user_id
         if status_code == 200:
             satosa_logging(logger, logging.INFO, "issuer/id pair is linked in AL service",
                            context.state)
             internal_response.user_id = message
+            data['user_id'] = message
             if self.id_to_attr:
                 internal_response.attributes[id_to_attr] = [message]
-            try:
-                del context.state[self.name]
-            except KeyError:
-                pass
-            return super().process(context, internal_response)
-
-        return self._approve_new_id(context, internal_response, message)
-
-    def _approve_new_id(self, context, internal_response, ticket):
-        """
-        Redirect the user to approve the new id
-
-        :type context: satosa.context.Context
-        :type internal_response: satosa.internal_data.InternalResponse
-        :type ticket: str
-        :rtype: satosa.response.Redirect
-
-        :param context: The current context
-        :param internal_response: The internal response
-        :param ticket: The ticket given by the al service
-        :return: A redirect to approve the new id linking
-        """
-        satosa_logging(logger, logging.INFO, "A new ID must be linked by the AL service",
-                       context.state)
+        else:
+            satosa_logging(logger, logging.INFO, "issuer/id pair is not linked in AL service. Got a ticket",
+                           context.state)
+            data['ticket'] = message
+        jws = JWS(json.dumps(data), alg=self.signing_key.alg).sign_compact([self.signing_key])
         context.state[self.name] = internal_response.to_dict()
-        return Redirect("%s/%s" % (self.redirect_url, ticket))
+        return Redirect("%s/%s" % (self.redirect_url, jws))
 
     def _get_uuid(self, context, issuer, id):
         """
@@ -136,7 +135,7 @@ class AccountLinking(ResponseMicroService):
         try:
             request = "{}/get_id?jwt={}".format(self.api_url, jws)
             response = requests.get(request)
-        except requests.ConnectionError as con_exc:
+        except Exception as con_exc:
             msg = "Could not connect to account linking service"
             satosa_logging(logger, logging.CRITICAL, msg, context.state, exc_info=True)
             raise SATOSAAuthenticationError(context.state, msg) from con_exc
