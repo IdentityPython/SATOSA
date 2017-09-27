@@ -3,6 +3,7 @@ name: OIDC
 config:
   signing_key_path: frontend.key
   db_uri: mongodb://db.example.com # optional: only support MongoDB, will default to in-memory storage if not specified
+  client_db_path: /path/to/your/cdb.json
   provider:
     client_registration_supported: Yes
     response_types_supported: ["code", "id_token token"]
