@@ -102,14 +102,15 @@ class TestAccountLinking():
             body=ticket,
             content_type="text/html"
         )
-
+        issuer_user_id = internal_response.user_id
         result = self.account_linking.process(context, internal_response)
         assert isinstance(result, Redirect)
         assert result.message.startswith(account_linking_config["redirect_url"])
 
         # account linking endpoint still does not return an id
-        with pytest.raises(SATOSAAuthenticationError):
-            self.account_linking._handle_al_response(context)
+        internal_response = self.account_linking._handle_al_response(context)
+        #Verify that we kept the user_id the issuer sent us
+        assert internal_response.user_id == issuer_user_id
 
     @responses.activate
     def test_manage_al_handle_failed_connection(self, account_linking_config, internal_response, context):
