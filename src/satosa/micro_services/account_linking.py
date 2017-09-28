@@ -57,7 +57,7 @@ class AccountLinking(ResponseMicroService):
                            context.state)
             internal_response.user_id = message
             if self.id_to_attr:
-                internal_response.attributes[id_to_attr] = [message]
+                internal_response.attributes[self.id_to_attr] = [message]
 
             del context.state[self.name]
             return super().process(context, internal_response)
@@ -99,7 +99,7 @@ class AccountLinking(ResponseMicroService):
             internal_response.user_id = message
             data['user_id'] = message
             if self.id_to_attr:
-                internal_response.attributes[id_to_attr] = [message]
+                internal_response.attributes[self.id_to_attr] = [message]
         else:
             satosa_logging(logger, logging.INFO, "issuer/id pair is not linked in AL service. Got a ticket",
                            context.state)
