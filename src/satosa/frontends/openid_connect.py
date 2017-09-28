@@ -78,7 +78,14 @@ class OpenIDConnectFrontend(FrontendModule):
 
         authz_state = self._init_authorization_state()
         db_uri = self.config.get("db_uri")
-        cdb = MongoWrapper(db_uri, "satosa", "clients") if db_uri else {}
+        cdb_file = self.config.get("client_db_path")
+        if db_uri:
+            cdb = MongoWrapper(db_uri, "satosa", "clients")
+        elif cdb_file:
+            with open(cdb_file) as f:
+                cdb = json.loads(f.read())
+        else:
+            cdb = {}
         self.user_db = MongoWrapper(db_uri, "satosa", "authz_codes") if db_uri else {}
         self.provider = Provider(self.signing_key, capabilities, authz_state, cdb, Userinfo(self.user_db))
 
