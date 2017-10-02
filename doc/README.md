@@ -407,6 +407,13 @@ for information on how to obtain them.
 A list of all user attributes released by Facebook can be found [here](https://developers.facebook.com/docs/graph-api/reference/v2.5/user),
 which should be used when configuring the attribute mapping (see above).
 
+### Ping frontend for simple heartbeat monitoring
+
+The ping frontend responds to a query with a simple
+200 OK and is intended to be used as a simple heartbeat monitor, 
+for example by a load balancer. The default configuration file can
+be found [here](../example/plugins/frontends/ping_frontend.yaml.example).
+
 ### Micro services
 
 Additional behaviour can be configured in the proxy through so called *micro services*. There are two different types
