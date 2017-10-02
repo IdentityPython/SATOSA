@@ -12,6 +12,11 @@ config:
     mail: mail
     employeeNumber: employeenumber
     isMemberOf: ismemberof
+  # LDAP connection pool size
+  # pool_size: 10
+  # LDAP connection pool seconds to wait between calls out to server
+  # to keep the connection alive (uses harmless Abandon(0) call)
+  # pool_keepalive: 10
   ordered_identifier_candidates:
     # Ordered list of identifiers to use when constructing the
     # search filter  to find the user record in LDAP directory. 

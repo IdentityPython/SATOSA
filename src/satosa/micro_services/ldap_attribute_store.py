@@ -14,6 +14,8 @@ import logging
 import ldap3
 import urllib
 
+from ldap3.core.exceptions import LDAPException
+
 logger = logging.getLogger(__name__)
 
 class LdapAttributeStoreException(Exception):
@@ -36,29 +38,36 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
     # entityID for a per-SP configuration.
     #
     # The keys are the allowed configuration options. The values
-    # are a list of [default value, if required or not]. Note that
-    # required here means required as part of an effective
+    # are a list of [default value, if required or not, new connection], 
+    # where 'new connection' means whether of not an override for an SP
+    # of that configuration option causes a separate connection to be
+    # created for that SP.  Required here means required as part of an effective
     # configuration during a particular flow, so it applies
     # to the default configuration overridden with any per-SP
     # configuration details.
     config_options = {
-        'bind_dn'                       : {'default' : None,  'required' : True},
-        'bind_password'                 : {'default' : None,  'required' : True},
-        'clear_input_attributes'        : {'default' : False, 'required' : False},
-        'ignore'                        : {'default' : False, 'required' : False},
-        'ldap_identifier_attribute'     : {'default' : None,  'required' : True},
-        'ldap_url'                      : {'default' : None,  'required' : True},
-        'on_ldap_search_result_empty'   : {'default' : None,  'required' : False},
-        'ordered_identifier_candidates' : {'default' : None,  'required' : True},
-        'search_base'                   : {'default' : None,  'required' : True},
-        'search_return_attributes'      : {'default' : None,  'required' : True},
-        'user_id_from_attrs'            : {'default' : [],    'required' : False} 
+        'bind_dn'                       : {'default' : None,  'required' : True,  'connection' : True},
+        'bind_password'                 : {'default' : None,  'required' : True,  'connection' : True},
+        'clear_input_attributes'        : {'default' : False, 'required' : False, 'connection' : False},
+        'ignore'                        : {'default' : False, 'required' : False, 'connection' : False},
+        'ldap_identifier_attribute'     : {'default' : None,  'required' : True,  'connection' : False},
+        'ldap_url'                      : {'default' : None,  'required' : True,  'connection' : True},
+        'on_ldap_search_result_empty'   : {'default' : None,  'required' : False, 'connection' : False},
+        'ordered_identifier_candidates' : {'default' : None,  'required' : True,  'connection' : False},
+        'pool_size'                     : {'default' : 10,    'required' : False, 'connection' : True},
+        'pool_keepalive'                : {'default' : 10,    'required' : False, 'connection' : True},
+        'search_base'                   : {'default' : None,  'required' : True,  'connection' : False},
+        'search_return_attributes'      : {'default' : None,  'required' : True,  'connection' : False},
+        'user_id_from_attrs'            : {'default' : [],    'required' : False, 'connection' : False} 
         }
 
     def __init__(self, config, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.config = config
         self.logprefix = LdapAttributeStore.logprefix
+        self._createLdapConnectionPools()
+
+        satosa_logging(logger, logging.INFO, "{} LDAP Attribute Store microservice initialized".format(self.logprefix), None)
 
     def _constructFilterValue(self, candidate, data):
         """
@@ -163,6 +172,107 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
             if option in source:
                 target[option] = source[option]
 
+    def _createLdapConnectionPools(self):
+        """
+        Examine the configuration and create a LDAP connection pool
+        for each unique set of configured LDAP options. The connections
+        are stored as a dictionary with the SP entityID or 'default'
+        as the keys and ldap3 Connection instances as the values.
+        """
+        logprefix = self.logprefix
+
+        # Initialize dictionary that holds mappings between entityID and
+        # LDAP connection pools. The special key 'default' holds the default
+        # connection pool.
+        connections = {}
+
+        # List of connections to create.
+        connections_to_create = ['default']
+
+        # Find the entityID for SP overrides if any. 
+        spEntityIds = self._getSPConfigOverrideEntityIds()
+
+        # Determine if the SP configuration requires a separate connection.
+        ldap_config_options = { key: value['connection'] for key, value in LdapAttributeStore.config_options.items()}
+        for entityId in spEntityIds:
+            for option, new_connection in ldap_config_options.items():
+                if new_connection and option in self.config[entityId]:
+                    if entityId not in connections_to_create:
+                        connections_to_create.append(entityId)
+
+        # Create the connections.
+        for label in connections_to_create:
+            config = self._getEffectiveConfig(label if label != 'default' else None)
+            if 'ldap_url' in config:
+                try:
+                    connection = self._ldapConnectionFactory(config)
+                except LdapAttributeStoreException as e:
+                    msg = "{} Caught exception creating LDAP connection: {}".format(logprefix, e)
+                    satosa_logging(logger, logging.ERROR, msg, None)
+                    raise 
+
+                connections[label] = connection
+                satosa_logging(logger, logging.DEBUG, "{} Created LDAP connection with label '{}'".format(logprefix, label), None)
+
+        satosa_logging(logger, logging.INFO, "{} Created {} LDAP connections".format(logprefix,len(connections.keys())), None)
+
+        self.connections = connections
+
+    def _ldapConnectionFactory(self, config):
+        """
+        Use the input configuration to instantiate and return
+        a ldap3 Connection object.
+        """
+        logprefix = self.logprefix
+
+        ldap_url = config['ldap_url']
+        bind_dn = config['bind_dn']
+        bind_password = config['bind_password']
+        pool_size = config['pool_size']
+        pool_keepalive = config['pool_keepalive']
+
+        server = ldap3.Server(config['ldap_url'])
+
+        satosa_logging(logger, logging.DEBUG, "{} Creating a new LDAP connection".format(logprefix), None)
+        satosa_logging(logger, logging.DEBUG, "{} Using LDAP URL {}".format(logprefix, ldap_url), None)
+        satosa_logging(logger, logging.DEBUG, "{} Using bind DN {}".format(logprefix, bind_dn), None)
+        satosa_logging(logger, logging.DEBUG, "{} Using pool size {}".format(logprefix, pool_size), None)
+        satosa_logging(logger, logging.DEBUG, "{} Using pool keep alive {}".format(logprefix, pool_keepalive), None)
+
+        try:
+            connection = ldap3.Connection(
+                            server, 
+                            bind_dn, 
+                            bind_password, 
+                            auto_bind=True,
+                            client_strategy=ldap3.REUSABLE,
+                            pool_size=pool_size,
+                            pool_keepalive=pool_keepalive
+                            )
+
+        except LDAPException as e:
+            msg = "{} Caught exception when connecting to LDAP server: {}".format(logprefix, e)
+            satosa_logging(logger, logging.ERROR, msg, None)
+            raise LdapAttributeStoreException(msg)
+
+        satosa_logging(logger, logging.DEBUG, "{} Successfully connected to LDAP server".format(logprefix), None)
+
+        return connection
+
+    def _getConnection(self, entityID = None):
+        """
+        Return the ldap3 Connection instance for the input SP entityID
+        or the default if no entityID is input.
+        """
+        label = entityID if not entityID else 'default'
+        try:
+            connection = self.connections[label]
+        except KeyError as e:
+            msg = "No LDAP connection for {}".format(label)
+            raise LdapAttributeStoreException(msg)
+
+        return connection
+
     def _getEffectiveConfig(self, entityID = None, state = None):
         """
         Get the effective configuration for the SP with entityID
@@ -193,6 +303,22 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                     raise LdapAttributeStoreException("Configuration option {} is required but missing".format(config_opt))
 
         return effective_config
+
+    def _getSPConfigOverrideEntityIds(self):
+        """
+        Get the list of SP entityIDs from the configuration that are
+        configured as overrides to the default configuration.
+        """
+        entityIds = []
+        known_config_options = LdapAttributeStore.config_options.keys()
+
+        for key in self.config.keys():
+            if key not in known_config_options:
+                entityIds.append(key)
+
+        entityIds.sort()
+
+        return entityIds
 
     def _hideConfigSecrets(self, config):
         """
@@ -255,14 +381,7 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
         record = None
 
         try:
-            ldap_url = config['ldap_url']
-            satosa_logging(logger, logging.DEBUG, "{} Using LDAP URL {}".format(logprefix, ldap_url), context.state)
-            server = ldap3.Server(ldap_url)
-
-            bind_dn = config['bind_dn']
-            satosa_logging(logger, logging.DEBUG, "{} Using bind DN {}".format(logprefix, bind_dn), context.state)
-            connection = ldap3.Connection(server, bind_dn, config['bind_password'], auto_bind=True)
-            satosa_logging(logger, logging.DEBUG, "{} Connected to LDAP server".format(logprefix), context.state)
+            connection = self._getConnection(spEntityID)
 
             for filterVal in filterValues:
                 if record:
@@ -272,26 +391,28 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                 satosa_logging(logger, logging.DEBUG, "{} Constructed search filter {}".format(logprefix, search_filter), context.state)
 
                 satosa_logging(logger, logging.DEBUG, "{} Querying LDAP server...".format(logprefix), context.state)
-                connection.search(config['search_base'], search_filter, attributes=config['search_return_attributes'].keys())
+                message_id = connection.search(config['search_base'], search_filter, attributes=config['search_return_attributes'].keys())
+                responses = connection.get_response(message_id)[0]
                 satosa_logging(logger, logging.DEBUG, "{} Done querying LDAP server".format(logprefix), context.state)
-
-                responses = connection.response
                 satosa_logging(logger, logging.DEBUG, "{} LDAP server returned {} records".format(logprefix, len(responses)), context.state)
 
                 # for now consider only the first record found (if any)
                 if len(responses) > 0:
                     if len(responses) > 1:
-                        satosa_logging(logger, logging.WARN, "{} LDAP server returned {} records using search filter value {}".format(logprefix, len(responses), filterVar), context.state)
+                        satosa_logging(logger, logging.WARN, "{} LDAP server returned {} records using search filter value {}".format(logprefix, len(responses), filterVal), context.state)
                     record = responses[0]
                     break
-                        
-        except Exception as err:
-            satosa_logging(logger, logging.ERROR, "{} Caught exception: {}".format(logprefix, err), context.state)
+        except LDAPException as err:
+            satosa_logging(logger, logging.ERROR, "{} Caught LDAP exception: {}".format(logprefix, err), context.state)
             return super().process(context, data)
 
-        else:
-            satosa_logging(logger, logging.DEBUG, "{} Unbinding and closing connection to LDAP server".format(logprefix), context.state)
-            connection.unbind()
+        except LdapAttributeStoreException as err:
+            satosa_logging(logger, logging.ERROR, "{} Caught LDAP Attribute Store exception: {}".format(logprefix, err), context.state)
+            return super().process(context, data)
+                        
+        except Exception as err:
+            satosa_logging(logger, logging.ERROR, "{} Caught unhandled exception: {}".format(logprefix, err), context.state)
+            return super().process(context, data)
 
         # Before using a found record, if any, to populate attributes
         # clear any attributes incoming to this microservice if so configured.
