@@ -1,0 +1,5 @@
+module:
+  ping.PingFrontend
+name:
+  ping
+config:
