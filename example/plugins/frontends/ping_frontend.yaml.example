@@ -1,5 +1,5 @@
 module:
-  ping.PingFrontend
+  satosa.frontends.ping.PingFrontend
 name:
   ping
 config:
