@@ -52,12 +52,14 @@ class _OAuthBackend(BackendModule):
         self.redirect_url = "%s/%s" % (self.config["base_url"], self.config["authz_page"])
         self.external_type = external_type
         self.user_id_attr = user_id_attr
+        scope = self.config["scope"] if "scope" in self.config else ""
         self.consumer = Consumer(
             session_db=None,
             client_config=self.config["client_config"],
             server_info=self.config["server_info"],
             authz_page=self.config["authz_page"],
-            response_type=self.config["response_type"])
+            response_type=self.config["response_type"],
+            scope=scope)
         self.consumer.client_secret = self.config["client_secret"]
 
     def start_auth(self, context, internal_request, get_state=stateID):
