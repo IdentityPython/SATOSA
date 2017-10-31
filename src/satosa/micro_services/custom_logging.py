@@ -77,7 +77,7 @@ class CustomLoggingService(ResponseMicroService):
             log['sessionid'] = context.state.state_dict['SESSION_ID']
             log['idp'] = idpEntityID
             log['sp'] = spEntityID
-            log['attr'] = { key: data.to_dict()['attr'][key] for key in attrs }
+            log['attr'] = { key: data.to_dict()['attr'].get(key) for key in attrs }
             
             print(json.dumps(log), file=loghandle, end="\n")
 
