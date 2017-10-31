@@ -69,13 +69,23 @@ def cookie_to_state(cookie_str, name, encryption_key):
     :return: A state
     """
     try:
-        state = State(SimpleCookie(cookie_str)[name].value, encryption_key)
-        satosa_logging(logger, logging.DEBUG, "Loading state from cookie: %s" % cookie_str, state)
+        cookie = SimpleCookie(cookie_str)
+        state = State(cookie[name].value, encryption_key)
+    except KeyError as e:
+        msg_tmpl = 'No cookie named {name} in {data}'
+        msg = msg_tmpl.format(name=name, data=cookie_str)
+        logger.exception(msg)
+        raise SATOSAStateError(msg) from e
+    except ValueError as e:
+        msg_tmpl = 'Failed to process {name} from {data}'
+        msg = msg_tmpl.format(name=name, data=cookie_str)
+        logger.exception(msg)
+        raise SATOSAStateError(msg) from e
+    else:
+        msg_tmpl = 'Loading state from cookie {data}'
+        msg = msg_tmpl.format(data=cookie_str)
+        satosa_logging(logger, logging.DEBUG, msg, state)
         return state
-    except KeyError:
-        logger.debug("Did not find cookie named '%s' in cookie string '%s'" % (name, cookie_str))
-        raise SATOSAStateError(
-            "No cookie named '{}' in cookie string '{}'".format(name, cookie_str))
 
 
 class _AESCipher(object):

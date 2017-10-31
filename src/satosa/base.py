@@ -225,17 +225,23 @@ class SATOSABase(object):
 
     def _load_state(self, context):
         """
-        Load a state to the context
+        Load state from cookie to the context
 
         :type context: satosa.context.Context
         :param context: Session context
         """
         try:
-            state = cookie_to_state(context.cookie, self.config["COOKIE_STATE_NAME"],
-                                    self.config["STATE_ENCRYPTION_KEY"])
-        except SATOSAStateError:
+            state = cookie_to_state(
+                    context.cookie,
+                    self.config["COOKIE_STATE_NAME"],
+                    self.config["STATE_ENCRYPTION_KEY"])
+        except SATOSAStateError as e:
+            msg_tmpl = 'Failed to decrypt state {state} with {error}'
+            msg = msg_tmpl.format(state=context.cookie, error=str(e))
+            satosa_logging(logger, logging.WARNING, msg, None)
             state = State()
-        context.state = state
+        finally:
+            context.state = state
 
     def _save_state(self, resp, context):
         """
