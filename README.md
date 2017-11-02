@@ -1,5 +1,5 @@
 # SATOSA
-[![Build Status](https://travis-ci.org/SUNET/SATOSA.svg?branch=travis)](https://travis-ci.org/SUNET/SATOSA)
+[![Build Status](https://travis-ci.org/IdentityPython/SATOSA.svg?branch=travis)](https://travis-ci.org/IdentityPython/SATOSA)
 [![PyPI](https://img.shields.io/pypi/v/SATOSA.svg)](https://pypi.python.org/pypi/SATOSA)
 
 A configurable proxy for translating between different authentication protocols such as SAML2, 
