@@ -274,6 +274,81 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
 
         return connection
 
+    def _populate_attributes(self, config, record, context, data):
+        """
+        Use a record found in LDAP to populate attributes.
+        """
+        search_return_attributes = config['search_return_attributes']
+        for attr in search_return_attributes.keys():
+            if attr in record["attributes"]:
+                if record["attributes"][attr]:
+                    data.attributes[search_return_attributes[attr]] = record["attributes"][attr]
+                    satosa_logging(
+                        logger, 
+                        logging.DEBUG, 
+                        "Setting internal attribute {} with values {}".format(
+                            search_return_attributes[attr], 
+                            record["attributes"][attr]
+                            ), 
+                        context.state
+                        )
+                else:
+                    satosa_logging(
+                        logger, 
+                        logging.DEBUG, 
+                        "Not setting internal attribute {} because value {} is null or empty".format(
+                            search_return_attributes[attr], 
+                            record["attributes"][attr]
+                            ), 
+                        context.state
+                        )
+
+    def _populate_input_for_name_id(self, config, record, context, data):
+        """
+        Use a record found in LDAP to populate input for 
+        NameID generation.
+        """
+        user_id = ""
+        user_id_from_attrs = config['user_id_from_attrs']
+        for attr in user_id_from_attrs:
+            if attr in record["attributes"]:
+                value = record["attributes"][attr]
+                if isinstance(value, list):
+                    # Use a default sort to ensure some predictability since the
+                    # LDAP directory server may return multi-valued attributes
+                    # in any order.
+                    value.sort()
+                    user_id += "".join(value)
+                    satosa_logging(
+                        logger, 
+                        logging.DEBUG, 
+                        "Added attribute {} with values {} to input for NameID".format(attr, v), 
+                        context.state
+                        )
+                else:
+                    user_id += value
+                    satosa_logging(
+                        logger, 
+                        logging.DEBUG, 
+                        "Added attribute {} with value {} to input for NameID".format(attr, value), 
+                        context.state
+                        )
+        if not user_id:
+            satosa_logging(
+                logger, 
+                logging.WARNING, 
+                "Input for NameID is empty so not overriding default", 
+                context.state
+                )
+        else:
+            data.user_id = user_id
+            satosa_logging(
+                logger, 
+                logging.DEBUG, 
+                "Input for NameID is {}".format(data.user_id), 
+                context.state
+                )
+
     def process(self, context, data):
         """
         Default interface for microservices. Process the input data for
@@ -346,15 +421,15 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                     break
         except LDAPException as err:
             satosa_logging(logger, logging.ERROR, "Caught LDAP exception: {}".format(err), context.state)
-            return super().process(context, data)
-
         except LdapAttributeStoreError as err:
             satosa_logging(logger, logging.ERROR, "Caught LDAP Attribute Store exception: {}".format(err), context.state)
-            return super().process(context, data)
-                        
         except Exception as err:
             satosa_logging(logger, logging.ERROR, "Caught unhandled exception: {}".format(err), context.state)
-            return super().process(context, data)
+        else:
+            err = None
+        finally:
+            if err:
+                return super().process(context, data)
 
         # Before using a found record, if any, to populate attributes
         # clear any attributes incoming to this microservice if so configured.
@@ -368,39 +443,11 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
             satosa_logging(logger, logging.DEBUG, "Record with DN {} has attributes {}".format(record["dn"], record["attributes"]), context.state)
 
             # Populate attributes as configured.
-            search_return_attributes = config['search_return_attributes']
-            for attr in search_return_attributes.keys():
-                if attr in record["attributes"]:
-                    if record["attributes"][attr]:
-                        data.attributes[search_return_attributes[attr]] = record["attributes"][attr]
-                        satosa_logging(logger, logging.DEBUG, "Setting internal attribute {} with values {}".format(search_return_attributes[attr], record["attributes"][attr]), context.state)
-                    else:
-                        satosa_logging(logger, logging.DEBUG, "Not setting internal attribute {} because value {} is null or empty".format(search_return_attributes[attr], record["attributes"][attr]), context.state)
+            self._populate_attributes(config, record, context, data)
 
             # Populate input for NameID if configured. SATOSA core does the hashing of input
             # to create a persistent NameID.
-            user_id_from_attrs = config['user_id_from_attrs']
-            if user_id_from_attrs:
-                user_id = ""
-                for attr in user_id_from_attrs:
-                    if attr in record["attributes"]:
-                        value = record["attributes"][attr]
-                        if isinstance(value, list):
-                            # Use a default sort to ensure some predictability since the
-                            # LDAP directory server may return multi-valued attributes
-                            # in any order.
-                            value.sort()
-                            for v in value:
-                                user_id += v
-                                satosa_logging(logger, logging.DEBUG, "Added attribute {} with value {} to input for NameID".format(attr, v), context.state)
-                        else:
-                            user_id += value
-                            satosa_logging(logger, logging.DEBUG, "Added attribute {} with value {} to input for NameID".format(attr, value), context.state)
-                if not user_id:
-                    satosa_logging(logger, logging.WARNING, "Input for NameID is empty so not overriding default", context.state)
-                else:
-                    data.user_id = user_id
-                    satosa_logging(logger, logging.DEBUG, "Input for NameID is {}".format(data.user_id), context.state)
+            self._populate_input_for_name_id(config, record, context, data)
 
         else:
             satosa_logging(logger, logging.WARN, "No record found in LDAP so no attributes will be added", context.state)
