@@ -11,7 +11,7 @@ from saml2 import SAMLError, xmldsig
 from saml2.config import IdPConfig
 from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
 from saml2.metadata import create_metadata_string
-from saml2.saml import NameID, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
+from saml2.saml import NameID, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT, NAMEID_FORMAT_EMAILADDRESS
 from saml2.samlp import name_id_policy_from_string
 from saml2.server import Server
 
@@ -39,6 +39,8 @@ def saml_name_id_format_to_hash_type(name_format):
     """
     if name_format == NAMEID_FORMAT_PERSISTENT:
         return UserIdHashType.persistent
+    elif name_format == NAMEID_FORMAT_EMAILADDRESS:
+        return UserIdHashType.emailaddress
 
     return UserIdHashType.transient
 
@@ -56,6 +58,8 @@ def hash_type_to_saml_name_id_format(hash_type):
         return NAMEID_FORMAT_TRANSIENT
     elif hash_type is UserIdHashType.persistent:
         return NAMEID_FORMAT_PERSISTENT
+    elif hash_type is UserIdHashType.emailaddress:
+        return NAMEID_FORMAT_EMAILADDRESS
     return NAMEID_FORMAT_PERSISTENT
 
 
@@ -300,7 +304,13 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             for k in attributes_to_remove:
                 ava.pop(k, None)
 
-        name_id = NameID(text=internal_response.user_id,
+        if 'mail' in internal_response.attributes:
+            name_id = NameID(text=internal_response.attributes['mail'][0],
+                         format=NAMEID_FORMAT_EMAILADDRESS,
+                         sp_name_qualifier=None,
+                         name_qualifier=None)
+        else:
+            name_id = NameID(text=internal_response.user_id,
                          format=hash_type_to_saml_name_id_format(
                              internal_response.user_id_hash_type),
                          sp_name_qualifier=None,
