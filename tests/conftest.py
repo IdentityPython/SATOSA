@@ -49,7 +49,8 @@ def sp_conf(cert_and_key):
                     ],
                     "discovery_response": [("%s/disco" % sp_base, BINDING_DISCO)]
                 },
-                "allow_unsolicited": "true",
+                "want_response_signed": False,
+                "allow_unsolicited": True,
                 "name_id_format": [NAMEID_FORMAT_PERSISTENT]
             },
         },
@@ -259,6 +260,7 @@ def saml_backend_config(idp_conf):
                 ],
                 "service": {
                     "sp": {
+                        "want_response_signed": False,
                         "allow_unsolicited": True,
                         "endpoints": {
                             "assertion_consumer_service": [
