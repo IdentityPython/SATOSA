@@ -6,7 +6,11 @@ import functools
 import json
 import logging
 from base64 import urlsafe_b64decode
+from base64 import urlsafe_b64encode
+from urllib.parse import quote
+from urllib.parse import unquote
 from urllib.parse import urlparse
+from http.cookies import SimpleCookie
 
 from saml2 import SAMLError, xmldsig
 from saml2.config import IdPConfig
@@ -359,6 +363,12 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         http_args = idp.apply_binding(
             resp_args["binding"], str(resp), resp_args["destination"],
             request_state["relay_state"], response=True)
+
+        # Set the common domain cookie _saml_idp if so configured.
+        if 'common_domain_cookie' in self.config:
+            if self.config['common_domain_cookie']:
+                self._set_common_domain_cookie(internal_response, http_args, context)
+
         del context.state[self.name]
         return make_saml_response(resp_args["binding"], http_args)
 
@@ -426,6 +436,62 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
                             self._metadata_endpoint))
 
         return url_map
+
+    def _set_common_domain_cookie(self, internal_response, http_args, context):
+        """
+        """
+        # Find any existing common domain cookie and deconsruct it to
+        # obtain the list of IdPs.
+        cookie = SimpleCookie(context.cookie)
+        if '_saml_idp' in cookie:
+            common_domain_cookie = cookie['_saml_idp']
+            satosa_logging(logger, logging.DEBUG, "Found existing common domain cookie {}".format(common_domain_cookie), context.state)
+            space_separated_b64_idp_string = unquote(common_domain_cookie.value)
+            b64_idp_list = space_separated_b64_idp_string.split()
+            idp_list = [ urlsafe_b64decode(b64_idp).decode('utf-8') for b64_idp in b64_idp_list ]
+        else:
+            satosa_logging(logger, logging.DEBUG, "No existing common domain cookie found", context.state)
+            idp_list = []
+
+        satosa_logging(logger, logging.DEBUG, "Common domain cookie list of IdPs is {}".format(idp_list), context.state)
+
+        # Identity the current IdP just used for authentication in this flow.
+        this_flow_idp = internal_response.to_dict()['auth_info']['issuer']
+
+        # Remove all occurrences of the current IdP from the list of IdPs.
+        idp_list = [ idp for idp in idp_list if idp != this_flow_idp ]
+
+        # Append the current IdP.
+        idp_list.append(this_flow_idp)
+        satosa_logging(logger, logging.DEBUG, "Added IdP {} to common domain cookie list of IdPs".format(this_flow_idp), context.state)
+        satosa_logging(logger, logging.DEBUG, "Common domain cookie list of IdPs is now {}".format(idp_list), context.state)
+
+        # Construct the cookie.
+        b64_idp_list = [ urlsafe_b64encode(idp.encode()).decode("utf-8") for idp in idp_list ]
+        space_separated_b64_idp_string = " ".join(b64_idp_list)
+        url_encoded_space_separated_b64_idp_string = quote(space_separated_b64_idp_string)
+
+        cookie = SimpleCookie()
+        cookie['_saml_idp'] = url_encoded_space_separated_b64_idp_string
+        cookie['_saml_idp']['path'] = '/'
+
+        # Use the domain from configuration if present else use the domain
+        # from the base URL for the front end.
+        domain = urlparse(self.base_url).netloc
+        if isinstance(self.config['common_domain_cookie'], dict):
+            if 'domain' in self.config['common_domain_cookie']:
+                domain = self.config['common_domain_cookie']['domain']
+
+        # Ensure that the domain begins with a '.'
+        if domain[0] != '.':
+            domain = '.' + domain
+
+        cookie['_saml_idp']['domain'] = domain
+        cookie['_saml_idp']['secure'] = True
+
+        # Set the cookie.
+        satosa_logging(logger, logging.DEBUG, "Setting common domain cookie with {}".format(cookie.output()), context.state)
+        http_args['headers'].append(tuple(cookie.output().split(": ", 1)))
 
     def _build_idp_config_endpoints(self, config, providers):
         """

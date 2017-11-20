@@ -54,3 +54,11 @@ config:
   endpoints:
     single_sign_on_service: {'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST': sso/post,
       'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect': sso/redirect}
+
+  # If configured and not false or empty the common domain cookie _saml_idp will be set
+  # with or have appended the IdP used for authentication. The default is not to set the
+  # cookie. If the value is a dictionary with key 'domain' then the domain for the cookie
+  # will be set to the value for the 'domain' key. If no 'domain' is set then the domain
+  # from the BASE defined for the proxy will be used.
+  common_domain_cookie:
+    domain: .example.com
