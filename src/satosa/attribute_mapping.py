@@ -95,7 +95,7 @@ class AttributeMapper(object):
 
             external_attribute_name = mapping[attribute_profile]
             attribute_values = self._collate_attribute_values_by_priority_order(external_attribute_name,
-                                                                                external_dict)
+                                                                                external_dict, attribute_profile)
             if attribute_values:  # Only insert key if it has some values
                 logger.debug("backend attribute '%s' mapped to %s" % (external_attribute_name,
                                                             internal_attribute_name))
@@ -106,10 +106,10 @@ class AttributeMapper(object):
         internal_dict = self._handle_template_attributes(attribute_profile, internal_dict)
         return internal_dict
 
-    def _collate_attribute_values_by_priority_order(self, attribute_names, data):
+    def _collate_attribute_values_by_priority_order(self, attribute_names, data, profile):
         result = []
         for attr_name in attribute_names:
-            attr_val = self._get_nested_attribute_value(attr_name, data)
+            attr_val = self._get_nested_attribute_value(attr_name, data, profile)
 
             if isinstance(attr_val, list):
                 result.extend(attr_val)
@@ -145,8 +145,11 @@ class AttributeMapper(object):
 
         return internal_dict
 
-    def _get_nested_attribute_value(self, nested_key, data):
-        keys = nested_key.split(self.separator)
+    def _get_nested_attribute_value(self, nested_key, data, profile):
+        if (profile == 'openid'):
+            keys = nested_key.split(self.separator)
+        else:
+            keys = [nested_key]
 
         d = data
         for key in keys:
