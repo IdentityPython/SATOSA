@@ -238,6 +238,9 @@ class SATOSABase(object):
                                     self.config["STATE_ENCRYPTION_KEY"])
         except SATOSAStateError:
             state = State()
+        # also catch bogus cookie
+        except ValueError:
+            state = State()
         context.state = state
 
     def _save_state(self, resp, context):
