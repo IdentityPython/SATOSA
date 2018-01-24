@@ -97,4 +97,4 @@ class TestOIDCToSAML:
         signing_key = RSAKey(key=rsa_load(oidc_frontend_config["config"]["signing_key_path"]),
                              use="sig", alg="RS256")
         id_token_claims = JWS().verify_compact(resp_dict["id_token"], keys=[signing_key])
-        assert all((k, v[0]) in id_token_claims.items() for k, v in USERS[user_id].items())
+        assert all((k, v) in {ck:cv if isinstance(cv,list) else [cv] for ck, cv in id_token_claims.items()}.items() for k, v in USERS[user_id].items())

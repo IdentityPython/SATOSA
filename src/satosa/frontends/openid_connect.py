@@ -76,6 +76,9 @@ class OpenIDConnectFrontend(FrontendModule):
         if self.config["provider"].get("client_registration_supported", False):
             capabilities["registration_endpoint"] = "{}/{}".format(endpoint_baseurl, RegistrationEndpoint.url)
 
+        if any("code" in rts for rts in response_types_supported):
+            capabilities["token_endpoint"] = True
+
         authz_state = self._init_authorization_state()
         db_uri = self.config.get("db_uri")
         cdb_file = self.config.get("client_db_path")
@@ -122,7 +125,7 @@ class OpenIDConnectFrontend(FrontendModule):
         auth_req = self._get_authn_request_from_state(context.state)
 
         attributes = self.converter.from_internal("openid", internal_resp.attributes)
-        self.user_db[internal_resp.user_id] = {k: v[0] for k, v in attributes.items()}
+        self.user_db[internal_resp.user_id] = {k: v for k, v in attributes.items()}
         auth_resp = self.provider.authorize(auth_req, internal_resp.user_id, extra_id_token_claims)
 
         del context.state[self.name]
@@ -137,12 +140,12 @@ class OpenIDConnectFrontend(FrontendModule):
         """
         auth_req = self._get_authn_request_from_state(exception.state)
         # If the client sent us a state parameter, we should reflect it back according to the spec
-        if 'state' in auth_req: 
+        if 'state' in auth_req:
             error_resp = AuthorizationErrorResponse(error="access_denied",
                                                     error_description=exception.message,
                                                     state=auth_req['state'])
-        else:                                           
-            error_resp = AuthorizationErrorResponse(error="access_denied", 
+        else:
+            error_resp = AuthorizationErrorResponse(error="access_denied",
                                                     error_description=exception.message)
         satosa_logging(logger, logging.DEBUG, exception.message, exception.state)
         return SeeOther(error_resp.request(auth_req["redirect_uri"], should_fragment_encode(auth_req)))
@@ -253,7 +256,13 @@ class OpenIDConnectFrontend(FrontendModule):
         if "claims" in authn_req:
             for k in ["id_token", "userinfo"]:
                 if k in authn_req["claims"]:
-                    requested_claims.extend(authn_req["claims"][k].keys())
+                    for sk, sv in authn_req["claims"][k].items():
+                        try:
+                            for ssk in sv.keys():
+                                requested_claims.extend([sk + '.' + ssk])
+                        except:
+                            requested_claims.extend([sk])
+
         return set(provider_supported_claims).intersection(set(requested_claims))
 
     def _handle_authn_request(self, context):
