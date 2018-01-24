@@ -333,7 +333,7 @@ section about Google configuration below, in the static registration.
 #### Frontend
 The OpenID Connect frontend acts as and OpenID Connect Provider (OP), accepting requests from OpenID
 Connect Relying Parties (RPs). The default configuration file can be found
-[here](../example/plugins/frontends/oidc_frontend.yaml.example).
+[here](../example/plugins/frontends/openid_connect_frontend.yaml.example).
 
 As opposed to the other plugins, this plugin is NOT stateless (due to the nature of OpenID Connect using any other
 flow than "Implicit Flow"). However, the frontend supports using a MongoDB instance as its backend storage, so as long
