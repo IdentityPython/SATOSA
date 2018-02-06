@@ -256,7 +256,13 @@ class OpenIDConnectFrontend(FrontendModule):
         if "claims" in authn_req:
             for k in ["id_token", "userinfo"]:
                 if k in authn_req["claims"]:
-                    requested_claims.extend(authn_req["claims"][k].keys())
+                    for sk, sv in authn_req["claims"][k].items():
+                        try:
+                            for ssk in sv.keys():
+                                requested_claims.extend([sk + '.' + ssk])
+                        except:
+                            requested_claims.extend([sk])
+
         return set(provider_supported_claims).intersection(set(requested_claims))
 
     def _handle_authn_request(self, context):
