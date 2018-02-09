@@ -91,6 +91,7 @@ class OpenIDConnectFrontend(FrontendModule):
             cdb = {}
         self.user_db = MongoWrapper(db_uri, "satosa", "authz_codes") if db_uri else {}
         self.provider = Provider(self.signing_key, capabilities, authz_state, cdb, Userinfo(self.user_db))
+        self.multi_value = self.config.get("multi_value", False)
 
     def _init_authorization_state(self):
         sub_hash_salt = self.config.get("sub_hash_salt", rndstr(16))
@@ -125,7 +126,10 @@ class OpenIDConnectFrontend(FrontendModule):
         auth_req = self._get_authn_request_from_state(context.state)
 
         attributes = self.converter.from_internal("openid", internal_resp.attributes)
-        self.user_db[internal_resp.user_id] = {k: v[0] for k, v in attributes.items()}
+        if self.multi_value:
+            self.user_db[internal_resp.user_id] = {k: v for k, v in attributes.items()}
+        else:
+            self.user_db[internal_resp.user_id] = {k: v[0] for k, v in attributes.items()}
         auth_resp = self.provider.authorize(auth_req, internal_resp.user_id, extra_id_token_claims)
 
         del context.state[self.name]
