@@ -47,7 +47,7 @@ class TestSAMLToOIDC:
         id_token_claims["sub"] = user_id
         id_token_claims["iat"] = time.time()
         id_token_claims["exp"] = time.time() + 3600
-        id_token_claims["iss"] = "http://op.example.com"
+        id_token_claims["iss"] = "https://op.example.com"
         id_token_claims["aud"] = oidc_backend_config["config"]["client"]["client_metadata"]["client_id"]
         id_token_claims["nonce"] = parsed_auth_req["nonce"]
         id_token = IdToken(**id_token_claims).to_jwt()

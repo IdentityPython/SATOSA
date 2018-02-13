@@ -73,6 +73,9 @@ class OpenIDConnectFrontend(FrontendModule):
             "scopes_supported": scopes_supported
         }
 
+        if 'code' in response_types_supported:
+            capabilities["token_endpoint"] = "{}/{}".format(endpoint_baseurl, TokenEndpoint.url)
+
         if self.config["provider"].get("client_registration_supported", False):
             capabilities["registration_endpoint"] = "{}/{}".format(endpoint_baseurl, RegistrationEndpoint.url)
 
