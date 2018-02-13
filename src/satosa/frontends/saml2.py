@@ -16,6 +16,7 @@ from saml2.samlp import name_id_policy_from_string
 from saml2.server import Server
 
 from satosa.base import SAMLBaseModule
+from satosa.context import Context
 from .base import FrontendModule
 from ..internal_data import InternalRequest, UserIdHashType
 from ..logging_util import satosa_logging
@@ -503,7 +504,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         :return: An idp server
         """
         target_entity_id = context.path.split("/")[1]
-        context.internal_data["mirror.target_entity_id"] = target_entity_id
+        context.decorate(Context.KEY_MIRROR_TARGET_ENTITYID, target_entity_id)
         idp_conf_file = self._load_endpoints_to_config(context.target_backend, target_entity_id)
         idp_config = IdPConfig().load(idp_conf_file, metadata_construction=False)
         return Server(config=idp_config)

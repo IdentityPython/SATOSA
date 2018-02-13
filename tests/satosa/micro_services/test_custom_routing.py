@@ -2,6 +2,7 @@ from base64 import urlsafe_b64encode
 
 import pytest
 
+from satosa.context import Context
 from satosa.exception import SATOSAError, SATOSAConfigurationError
 from satosa.internal_data import InternalRequest
 from satosa.micro_services.custom_routing import DecideIfRequesterIsAllowed
@@ -11,7 +12,9 @@ TARGET_ENTITY = "entity1"
 
 @pytest.fixture
 def target_context(context):
-    context.internal_data["mirror.target_entity_id"] = urlsafe_b64encode(TARGET_ENTITY.encode("utf-8")).decode("utf-8")
+    entityid_bytes = TARGET_ENTITY.encode("utf-8")
+    entityid_b64_str = urlsafe_b64encode(entityid_bytes).decode("utf-8")
+    context.decorate(Context.KEY_MIRROR_TARGET_ENTITYID, entityid_b64_str)
     return context
 
 

@@ -141,9 +141,12 @@ class TestSAMLBackend:
         assert context.state[test_state_key] == "my_state"
         self.assert_authn_response(internal_resp)
 
-    def test_start_auth_redirects_directly_to_mirrored_idp(self, context, idp_conf):
-        context.internal_data["mirror.target_entity_id"] = urlsafe_b64encode(
-            idp_conf["entityid"].encode("utf-8")).decode("utf-8")
+    def test_start_auth_redirects_directly_to_mirrored_idp(
+            self, context, idp_conf):
+        entityid = idp_conf["entityid"]
+        entityid_bytes = entityid.encode("utf-8")
+        entityid_b64_str = urlsafe_b64encode(entityid_bytes).decode("utf-8")
+        context.decorate(Context.KEY_MIRROR_TARGET_ENTITYID, entityid_b64_str)
 
         resp = self.samlbackend.start_auth(context, InternalRequest(None, None))
         self.assert_redirect_to_idp(resp, idp_conf)
