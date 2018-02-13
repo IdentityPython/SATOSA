@@ -115,7 +115,9 @@ class WsgiApplication(SATOSABase):
                 raise resp
             return resp(environ, start_response)
         except SATOSANoBoundEndpointError:
-            resp = NotFound("Couldn't find the page you asked for!")
+            resp = NotFound(
+                    "The Service or Identity Provider"
+                    "you requested could not be found.")
             return resp(environ, start_response)
         except Exception as err:
             if type(err) != UnknownSystemEntity:
