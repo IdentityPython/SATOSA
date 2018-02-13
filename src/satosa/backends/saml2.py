@@ -229,6 +229,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                            "State did not match relay state for state", context.state)
             raise SATOSAAuthenticationError(context.state, "State did not match relay state")
 
+        context.decorate(Context.KEY_BACKEND_METADATA_STORE, self.sp.metadata)
+
         del context.state[self.name]
         return self.auth_callback_func(context, self._translate_response(authn_response, context.state))
 
