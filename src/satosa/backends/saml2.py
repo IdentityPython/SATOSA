@@ -17,6 +17,7 @@ from saml2.authn_context import requested_authn_context
 import satosa.util as util
 from satosa.base import SAMLBaseModule
 from satosa.base import SAMLEIDASBaseModule
+from satosa.context import Context
 from .base import BackendModule
 from ..exception import SATOSAAuthenticationError
 from ..internal_data import (InternalResponse,
@@ -92,15 +93,13 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         if len(idps) == 1 and "mdq" not in self.config["sp_config"]["metadata"]:
             return self.authn_request(context, idps[0])
 
-        try:
-            # find mirrored entity id
-            entity_id = context.internal_data["mirror.target_entity_id"]
-        except KeyError:
-            # redirect to discovery server
+        entity_id = context.get_decoration(
+                Context.KEY_MIRROR_TARGET_ENTITYID)
+        if None is entity_id:
             return self.disco_query()
-        else:
-            entity_id = urlsafe_b64decode(entity_id).decode("utf-8")
-            return self.authn_request(context, entity_id)
+
+        entity_id = urlsafe_b64decode(entity_id).decode("utf-8")
+        return self.authn_request(context, entity_id)
 
     def disco_query(self):
         """
@@ -229,6 +228,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             satosa_logging(logger, logging.DEBUG,
                            "State did not match relay state for state", context.state)
             raise SATOSAAuthenticationError(context.state, "State did not match relay state")
+
+        context.decorate(Context.KEY_BACKEND_METADATA_STORE, self.sp.metadata)
 
         del context.state[self.name]
         return self.auth_callback_func(context, self._translate_response(authn_response, context.state))
