@@ -110,7 +110,7 @@ class UIInfoDesc(object):
             ui_info["display_name"] = self._display_name
         if self._logos:
             ui_info["logo"] = self._logos
-        return {"service": {"idp": {"ui_info": ui_info}}} if ui_info else {}
+        return {"service": {"ui_info": ui_info}} if ui_info else {}
 
 
 class OrganizationDesc(object):

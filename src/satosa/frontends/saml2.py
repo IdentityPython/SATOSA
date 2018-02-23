@@ -6,6 +6,7 @@ import functools
 import json
 import logging
 from urllib.parse import urlparse
+from base64 import urlsafe_b64encode, urlsafe_b64decode
 
 from saml2 import SAMLError, xmldsig
 from saml2.config import IdPConfig
@@ -25,6 +26,8 @@ from ..response import ServiceError
 from ..saml_util import make_saml_response
 import satosa.util as util
 
+from ..metadata_creation.description import (MetadataDescription, OrganizationDesc,
+                                             ContactPersonDesc, UIInfoDesc)
 
 logger = logging.getLogger(__name__)
 
@@ -461,6 +464,65 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
 
         return None
 
+    def get_metadata_desc(self):
+        """
+        See super class satosa.frontends.frontend_base.FrontendModule#get_metadata_desc
+        :rtype: satosa.metadata_creation.description.MetadataDescription
+        """
+        entity_descriptions = []
+
+        sp_entities = self.idp.metadata.with_descriptor("spsso")
+        for entity_id, entity in sp_entities.items():
+            description = MetadataDescription(urlsafe_b64encode(entity_id.encode("utf-8")).decode("utf-8"))
+
+            # Add organization info
+            try:
+                organization_info = entity["organization"]
+            except KeyError:
+                pass
+            else:
+                organization = OrganizationDesc()
+                for name_info in organization_info.get("organization_name", []):
+                    organization.add_name(name_info["text"], name_info["lang"])
+                for display_name_info in organization_info.get("organization_display_name", []):
+                    organization.add_display_name(display_name_info["text"], display_name_info["lang"])
+                for url_info in organization_info.get("organization_url", []):
+                    organization.add_url(url_info["text"], url_info["lang"])
+                description.organization = organization
+
+            # Add contact person info
+            try:
+                contact_persons = entity["contact_person"]
+            except KeyError:
+                pass
+            else:
+                for person in contact_persons:
+                    person_desc = ContactPersonDesc()
+                    person_desc.contact_type = person.get("contact_type")
+                    for address in person.get('email_address', []):
+                        person_desc.add_email_address(address["text"])
+                    if "given_name" in person:
+                        person_desc.given_name = person["given_name"]["text"]
+                    if "sur_name" in person:
+                        person_desc.sur_name = person["sur_name"]["text"]
+
+                    description.add_contact_person(person_desc)
+
+            # Add UI info
+            ui_info = self.idp.metadata.extension(entity_id, "spsso_descriptor", "{}&UIInfo".format(UI_NAMESPACE))
+            if ui_info:
+                ui_info = ui_info[0]
+                ui_info_desc = UIInfoDesc()
+                for desc in ui_info.get("description", []):
+                    ui_info_desc.add_description(desc["text"], desc["lang"])
+                for name in ui_info.get("display_name", []):
+                    ui_info_desc.add_display_name(name["text"], name["lang"])
+                for logo in ui_info.get("logo", []):
+                    ui_info_desc.add_logo(logo["text"], logo["width"], logo["height"], logo.get("lang"))
+                description.ui_info = ui_info_desc
+
+            entity_descriptions.append(description)
+        return entity_descriptions
 
 class SAMLMirrorFrontend(SAMLFrontend):
     """
@@ -521,7 +583,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         """
         # Change the idp entity id dynamically
         idp_config_file = copy.deepcopy(self.idp_config)
-        idp_config_file["entityid"] = "{}/{}".format(self.idp_config["entityid"], state[self.name]["target_entity_id"])
+        idp_config_file["entityid"] = "{}/{}/{}".format(self.idp_config["entityid"], state["target_backend"], state[self.name]["target_entity_id"])
         idp_config = IdPConfig().load(idp_config_file, metadata_construction=False)
         return Server(config=idp_config)
 

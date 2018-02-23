@@ -3,6 +3,7 @@ Tests for the SAML frontend module src/frontends/saml2.py.
 """
 import itertools
 import re
+from base64 import urlsafe_b64encode
 from collections import Counter
 from urllib.parse import urlparse, parse_qs
 
@@ -284,6 +285,7 @@ class TestSAMLFrontend:
         assert samlfrontend._get_sp_display_name(samlfrontend.idp, sp_conf["entityid"]) is None
 
     def test_sp_metadata_without_uiinfo(self, context, idp_conf, sp_conf):
+        sp_conf["service"]["sp"].pop("ui_info")
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf)
         assert samlfrontend._get_sp_display_name(samlfrontend.idp, sp_conf["entityid"]) is None
 
@@ -318,6 +320,57 @@ class TestSAMLFrontend:
         resp = self.get_auth_response(samlfrontend, context, internal_response, sp_conf, idp_metadata_str)
         assert len(resp.ava.keys()) == 0
 
+    def test_get_metadata_desc(self, context, idp_conf, sp_conf):
+        idp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(sp_conf)]
+        # instantiate new frontend, with a single backing SP
+        samlfrontend = SAMLFrontend(None, INTERNAL_ATTRIBUTES, {"idp_config": idp_conf, "endpoints": ENDPOINTS}, "base_url", "saml_frontend")
+        samlfrontend.register_endpoints(["saml"])
+        entity_descriptions = samlfrontend.get_metadata_desc()
+
+        assert len(entity_descriptions) == 1
+
+        sp_desc = entity_descriptions[0].to_dict()
+
+        assert sp_desc["entityid"] == urlsafe_b64encode(sp_conf["entityid"].encode("utf-8")).decode("utf-8")
+        assert sp_desc["contact_person"] == sp_conf["contact_person"]
+
+        assert sp_desc["organization"]["name"][0] == tuple(sp_conf["organization"]["name"][0])
+        assert sp_desc["organization"]["display_name"][0] == tuple(sp_conf["organization"]["display_name"][0])
+        assert sp_desc["organization"]["url"][0] == tuple(sp_conf["organization"]["url"][0])
+
+        expected_ui_info = sp_conf["service"]["sp"]["ui_info"]
+        ui_info = sp_desc["service"]["ui_info"]
+        assert ui_info["display_name"] == expected_ui_info["display_name"]
+        assert ui_info["description"] == expected_ui_info["description"]
+        assert ui_info["logo"] == expected_ui_info["logo"]
+
+    def test_get_metadata_desc_with_logo_without_lang(self, context, idp_conf, sp_conf):
+        # add logo without 'lang'
+        sp_conf["service"]["sp"]["ui_info"]["logo"] = [{"text": "https://idp.example.com/static/logo.png",
+                                                          "width": "120", "height": "60"}]
+
+        idp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(sp_conf)]
+        # instantiate new backend, with a single backing IdP
+        samlfrontend = SAMLFrontend(None, INTERNAL_ATTRIBUTES, {"idp_config": idp_conf, "endpoints": ENDPOINTS}, "base_url", "saml_frontend")
+        samlfrontend.register_endpoints(["saml"])
+        entity_descriptions = samlfrontend.get_metadata_desc()
+
+        assert len(entity_descriptions) == 1
+
+        sp_desc = entity_descriptions[0].to_dict()
+
+        assert sp_desc["entityid"] == urlsafe_b64encode(sp_conf["entityid"].encode("utf-8")).decode("utf-8")
+        assert sp_desc["contact_person"] == sp_conf["contact_person"]
+
+        assert sp_desc["organization"]["name"][0] == tuple(sp_conf["organization"]["name"][0])
+        assert sp_desc["organization"]["display_name"][0] == tuple(sp_conf["organization"]["display_name"][0])
+        assert sp_desc["organization"]["url"][0] == tuple(sp_conf["organization"]["url"][0])
+
+        expected_ui_info = sp_conf["service"]["sp"]["ui_info"]
+        ui_info = sp_desc["service"]["ui_info"]
+        assert ui_info["display_name"] == expected_ui_info["display_name"]
+        assert ui_info["description"] == expected_ui_info["description"]
+        assert ui_info["logo"] == expected_ui_info["logo"]
 
 class TestSAMLMirrorFrontend:
     BACKEND = "test_backend"
@@ -352,8 +405,9 @@ class TestSAMLMirrorFrontend:
     def test_load_idp_dynamic_entity_id(self, idp_conf):
         state = State()
         state[self.frontend.name] = {"target_entity_id": self.TARGET_ENTITY_ID}
+        state['target_backend'] = self.BACKEND
         idp = self.frontend._load_idp_dynamic_entity_id(state)
-        assert idp.config.entityid == "{}/{}".format(idp_conf["entityid"], self.TARGET_ENTITY_ID)
+        assert idp.config.entityid == "{}/{}/{}".format(idp_conf["entityid"], self.BACKEND, self.TARGET_ENTITY_ID)
 
 
 class TestSamlNameIdFormatToHashType:

@@ -30,14 +30,18 @@ class TestCreateEntityDescriptors:
 
     def assert_single_sign_on_endpoints_for_saml_mirror_frontend(self, entity_descriptors, encoded_target_entity_id,
                                                                  saml_mirror_frontend_config, backend_names):
-        expected_entity_id = saml_mirror_frontend_config["config"]["idp_config"][
-                                 "entityid"] + "/" + encoded_target_entity_id
-        metadata = InMemoryMetaData(None, None)
-        for ed in entity_descriptors:
-            metadata.parse(str(ed))
-        sso = metadata.service(expected_entity_id, "idpsso_descriptor", "single_sign_on_service")
-
         for backend_name in backend_names:
+            expected_entity_id = saml_mirror_frontend_config["config"]["idp_config"][
+                                    "entityid"] + "/" + backend_name + "/" + encoded_target_entity_id
+            metadata = InMemoryMetaData(None, None)
+            for ed in entity_descriptors:
+                print("ed: {}".format(ed))
+                metadata.parse(str(ed))
+            sso = metadata.service(expected_entity_id, "idpsso_descriptor", "single_sign_on_service")
+
+            print("expected_entity_id: {}".format(expected_entity_id))
+            print("sso: {}".format(sso))
+
             for binding, path in saml_mirror_frontend_config["config"]["endpoints"]["single_sign_on_service"].items():
                 sso_urls_for_binding = [endpoint["location"] for endpoint in sso[binding]]
                 expected_url = "{}/{}/{}/{}".format(BASE_URL, backend_name, encoded_target_entity_id, path)
