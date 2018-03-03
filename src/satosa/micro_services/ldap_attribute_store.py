@@ -268,7 +268,7 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
         except LDAPException as e:
             msg = "Caught exception when connecting to LDAP server: {}".format(e)
             satosa_logging(logger, logging.ERROR, msg, None)
-            raise AttributeStoreError(msg)
+            raise LdapAttributeStoreError(msg)
 
         satosa_logging(logger, logging.DEBUG, "Successfully connected to LDAP server", None)
 
