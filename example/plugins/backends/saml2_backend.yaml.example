@@ -17,6 +17,28 @@ config:
     accepted_time_diff: 60
     service:
       sp:
+        ui_info:
+          display_name:
+            - lang: en
+              text: "SP Display Name"
+          description:
+            - lang: en
+              text: "SP Description"
+          information_url:
+            - lang: en
+              text: "http://sp.information.url/"
+          privacy_statement_url:
+            - lang: en
+              text: "http://sp.privacy.url/"
+          keywords:
+            - lang: se
+              text: ["Satosa", "SP-SE"]
+            - lang: en
+              text: ["Satosa", "SP-EN"]
+          logo:
+            text: "http://sp.logo.url/"
+            width: "100"
+            height: "100"
         want_response_signed: true
         allow_unsolicited: true
         endpoints:
