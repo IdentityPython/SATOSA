@@ -254,6 +254,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
 
     def _filter_attributes(self, idp, internal_response, context,):
         idp_policy = idp.config.getattr("policy", "idp")
+        attributes = {}
         if idp_policy:
             approved_attributes = self._get_approved_attributes(idp, idp_policy, internal_response.requester,
                                                                 context.state)
