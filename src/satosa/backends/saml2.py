@@ -39,6 +39,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
     KEY_DISCO_SRV = 'disco_srv'
     KEY_SP_CONFIG = 'sp_config'
     VALUE_ACR_COMPARISON_DEFAULT = 'exact'
+    KEY_SELECTED_IDP_FROM_DISCO = 'selected_idp_from_disco'
 
     def __init__(self, outgoing, internal_attributes, config, base_url, name):
         """
@@ -93,9 +94,17 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         if len(idps) == 1 and "mdq" not in self.config["sp_config"]["metadata"]:
             return self.authn_request(context, idps[0])
 
+        # if the user has selected an IdP and it is available in the context.state,
+        # while ForceAutn is not set, then bypass discovery service
+        if self.KEY_SELECTED_IDP_FROM_DISCO in context.state and not context.get_decoration(Context.KEY_FORCE_AUTHN):
+            satosa_logging(logger, logging.DEBUG, "Bypassing discovery service. Using IdP %s" % context.state[self.KEY_SELECTED_IDP_FROM_DISCO], context.state)
+            return self.authn_request(context, context.state[self.KEY_SELECTED_IDP_FROM_DISCO])
+
         entity_id = context.get_decoration(
                 Context.KEY_MIRROR_TARGET_ENTITYID)
         if None is entity_id:
+            # since context is passed to disco_query, keep the information in the state cookie
+            context.state[Context.KEY_FORCE_AUTHN] = context.get_decoration(Context.KEY_FORCE_AUTHN)
             return self.disco_query()
 
         entity_id = urlsafe_b64decode(entity_id).decode("utf-8")
@@ -165,6 +174,12 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         if authn_context:
             kwargs['requested_authn_context'] = authn_context
 
+        # If ForceAuthn is found in the state cookie, use that
+        if context.state[Context.KEY_FORCE_AUTHN]:
+            kwargs['force_authn'] = context.state[Context.KEY_FORCE_AUTHN]
+        else:
+            kwargs['force_authn'] = context.get_decoration(Context.KEY_FORCE_AUTHN)
+
         try:
             binding, destination = self.sp.pick_binding(
                 "single_sign_on_service", None, "idpsso", entity_id=entity_id)
@@ -232,6 +247,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         context.decorate(Context.KEY_BACKEND_METADATA_STORE, self.sp.metadata)
 
         del context.state[self.name]
+        # we should not remember ForceAuthn any longer
+        context.state[Context.KEY_FORCE_AUTHN] = None
         return self.auth_callback_func(context, self._translate_response(authn_response, context.state))
 
     def disco_response(self, context):
@@ -252,6 +269,10 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         except KeyError as err:
             satosa_logging(logger, logging.DEBUG, "No IDP chosen for state", state, exc_info=True)
             raise SATOSAAuthenticationError(state, "No IDP chosen") from err
+
+        sp_config = self.config["sp_config"]
+        if "remember_selected_idp_from_disco" in sp_config and sp_config["remember_selected_idp_from_disco"]:
+            context.state[self.KEY_SELECTED_IDP_FROM_DISCO] = entity_id
 
         return self.authn_request(context, entity_id)
 

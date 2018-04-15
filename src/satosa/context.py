@@ -17,6 +17,7 @@ class Context(object):
     """
     KEY_BACKEND_METADATA_STORE = 'metadata_store'
     KEY_MIRROR_TARGET_ENTITYID = 'mirror_target_entity_id'
+    KEY_FORCE_AUTHN = 'force_authn'
 
     def __init__(self):
         self._path = None
