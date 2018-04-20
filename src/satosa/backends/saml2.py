@@ -175,7 +175,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             kwargs['requested_authn_context'] = authn_context
 
         # If ForceAuthn is found in the state cookie, use that
-        if context.state[Context.KEY_FORCE_AUTHN]:
+        if Context.KEY_FORCE_AUTHN in context.state:
             kwargs['force_authn'] = context.state[Context.KEY_FORCE_AUTHN]
         else:
             kwargs['force_authn'] = context.get_decoration(Context.KEY_FORCE_AUTHN)
