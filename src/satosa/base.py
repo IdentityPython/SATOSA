@@ -161,9 +161,13 @@ class SATOSABase(object):
             self.config.get("USER_ID_HASH_SALT", ""),
         )
 
-        # remove all session state
+        # remove all session state unless CONTEXT_STATE_DELETE is false
         context.request = None
-        context.state.delete = True
+        if "CONTEXT_STATE_DELETE" in self.config:
+            context.state.delete = self.config["CONTEXT_STATE_DELETE"]
+        else:
+            context.state.delete = True
+
         frontend = self.module_router.frontend_routing(context)
         return frontend.handle_authn_response(context, internal_response)
 

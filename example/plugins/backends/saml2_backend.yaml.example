@@ -3,6 +3,7 @@ name: Saml2
 config:
   idp_blacklist_file: /path/to/blacklist.json
   sp_config:
+    remember_selected_idp_from_disco: False
     key_file: backend.key
     cert_file: backend.crt
     organization: {display_name: Example Identities, name: Example Identities Org., url: 'http://www.example.com'}
