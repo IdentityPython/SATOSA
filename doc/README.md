@@ -37,6 +37,7 @@ in the [example directory](../example).
 | -------------- | --------- | ------------- | ----------- |
 | `BASE` | string | `https://proxy.example.com` | base url of the proxy |
 | `COOKIE_STATE_NAME` | string | `satosa_state` | name of cooke SATOSA uses for preserving state between requests |
+| `CONTEXT_STATE_DELETE` | bool | `True` | controls whether SATOSA will delete the state after receiving the authentication response from the upstream IdP|
 | `STATE_ENCRYPTION_KEY` | string | `52fddd3528a44157` | key used for encrypting the state cookie, will be overriden by the environment variable `SATOSA_STATE_ENCRYPTION_KEY` if it is set |
 | `INTERNAL_ATTRIBUTES` | string | `example/internal_attributes.yaml` | path to attribute mapping
 | `CUSTOM_PLUGIN_MODULE_PATHS` | string[] | `[example/plugins/backends, example/plugins/frontends]` | list of directory paths containing any front-/backend plugin modules |
@@ -313,6 +314,19 @@ parameter `disco_srv`, must be specified if the metadata given to the backend mo
 config:
   sp_config: [...]
     disco_srv: http://disco.example.com
+```
+
+##### Remember the IdP provided in the discovery service
+
+The `remember_selected_idp_from_disco` parameter controls whether the user will have to always select a
+target provider when a discovery service is configured. If the parameter is set to `True` and ForceAutn is not set,
+SATOSA will remember and reuse the selected target provider for the duration that context.state is valid.
+The default behaviour is `False`.
+
+```yaml
+config:
+  sp_config: [...]
+    remember_selected_idp_from_disco: True
 ```
 
 ### <a name="openid_plugin" style="color:#000000">OpenID Connect plugins</a>

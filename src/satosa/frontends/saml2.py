@@ -193,6 +193,8 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         authn_req = req_info.message
         satosa_logging(logger, logging.DEBUG, "%s" % authn_req, context.state)
 
+        context.decorate(Context.KEY_FORCE_AUTHN, authn_req.force_authn)
+
         try:
             resp_args = idp.response_args(authn_req)
         except SAMLError as e:
