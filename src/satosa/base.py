@@ -152,6 +152,12 @@ class SATOSABase(object):
                              for v in internal_attributes[attribute]]
                 internal_attributes[attribute] = hashed_values
 
+        # FOX UW
+        # For myplan we have to fixup the uid value ( yes it's a hack )
+        uid_hack = self.config["INTERNAL_ATTRIBUTES"].get("myplan_uid_hack", None)
+        if uid_hack:
+            internal_attributes['uid'][0] = uid_hack % (internal_attributes['uid'][0])
+
         # remove all session state
         context.request = None
         context.state.delete = True
@@ -234,6 +240,9 @@ class SATOSABase(object):
             state = cookie_to_state(context.cookie, self.config["COOKIE_STATE_NAME"],
                                     self.config["STATE_ENCRYPTION_KEY"])
         except SATOSAStateError:
+            state = State()
+        # also catch bogus cookie
+        except ValueError:
             state = State()
         context.state = state
 

@@ -125,7 +125,10 @@ class WsgiApplication(SATOSABase):
             if debug:
                 raise
 
-            resp = ServiceError("%s" % err)
+            if type(err) == UnknownSystemEntity:
+                resp = ServiceError("The application you are attempting to access is not registered for social logins.")
+            else:
+                resp = ServiceError("%s" % err)
             return resp(environ, start_response)
 
 
