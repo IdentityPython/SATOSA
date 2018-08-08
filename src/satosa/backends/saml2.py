@@ -7,6 +7,7 @@ import json
 import logging
 from base64 import urlsafe_b64encode, urlsafe_b64decode
 from urllib.parse import urlparse
+from urllib.parse import parse_qs
 
 from saml2.client_base import Base
 from saml2.config import SPConfig
@@ -247,9 +248,12 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         info = context.request
         state = context.state
 
+        qs = parse_qs(context.path)
         try:
-            entity_id = info["entityID"]
-        except KeyError as err:
+            entity_id = qs["entityID"][0]
+        except Exception as err:
+            msg = "qs:\n{pa}".format(pa=json.dumps(qs, indent=4))
+            satosa_logging(logger, logging.DEBUG, msg, context.state)
             satosa_logging(logger, logging.DEBUG, "No IDP chosen for state", state, exc_info=True)
             raise SATOSAAuthenticationError(state, "No IDP chosen") from err
 
@@ -319,7 +323,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             for endp, binding in sp_endpoints["discovery_response"]:
                 parsed_endp = urlparse(endp)
                 url_map.append(
-                    ("^%s$" % parsed_endp.path[1:], self.disco_response))
+                    ("^%s" % parsed_endp.path[1:], self.disco_response))
 
         if self.expose_entityid_endpoint():
             parsed_entity_id = urlparse(self.sp.config.entityid)
