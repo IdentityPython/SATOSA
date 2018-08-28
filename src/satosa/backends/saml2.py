@@ -88,18 +88,18 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :rtype: satosa.response.Response
         """
 
+        target_entity_id = context.get_decoration(Context.KEY_TARGET_ENTITYID)
+        if target_entity_id:
+            entity_id = urlsafe_b64decode(target_entity_id).decode()
+            return self.authn_request(context, entity_id)
+
         # if there is only one IdP in the metadata, bypass the discovery service
         idps = self.sp.metadata.identity_providers()
         if len(idps) == 1 and "mdq" not in self.config["sp_config"]["metadata"]:
-            return self.authn_request(context, idps[0])
+            entity_id = idps[0]
+            return self.authn_request(context, entity_id)
 
-        entity_id = context.get_decoration(
-                Context.KEY_TARGET_ENTITYID)
-        if None is entity_id:
-            return self.disco_query()
-
-        entity_id = urlsafe_b64decode(entity_id).decode("utf-8")
-        return self.authn_request(context, entity_id)
+        return self.disco_query()
 
     def disco_query(self):
         """
