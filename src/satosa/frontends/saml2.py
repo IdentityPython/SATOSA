@@ -504,7 +504,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         :param context:
         :return: An idp server
         """
-        target_entity_id = context.path.split("/")[1]
+        target_entity_id = context.target_entity_id_from_path()
         context.decorate(Context.KEY_TARGET_ENTITYID, target_entity_id)
         idp_conf_file = self._load_endpoints_to_config(context.target_backend, target_entity_id)
         idp_config = IdPConfig().load(idp_conf_file, metadata_construction=False)
@@ -549,7 +549,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         :rtype: dict[str, dict[str, str] | str]
         """
         state = super()._create_state_data(context, resp_args, relay_state)
-        state["target_entity_id"] = context.path.split("/")[1]
+        state["target_entity_id"] = context.target_entity_id_from_path()
         return state
 
     def handle_backend_error(self, exception):
