@@ -16,7 +16,7 @@ class Context(object):
     Holds information about the current request.
     """
     KEY_BACKEND_METADATA_STORE = 'metadata_store'
-    KEY_MIRROR_TARGET_ENTITYID = 'mirror_target_entity_id'
+    KEY_TARGET_ENTITYID = 'target_entity_id'
 
     def __init__(self):
         self._path = None

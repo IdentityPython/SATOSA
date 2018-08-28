@@ -505,7 +505,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         :return: An idp server
         """
         target_entity_id = context.path.split("/")[1]
-        context.decorate(Context.KEY_MIRROR_TARGET_ENTITYID, target_entity_id)
+        context.decorate(Context.KEY_TARGET_ENTITYID, target_entity_id)
         idp_conf_file = self._load_endpoints_to_config(context.target_backend, target_entity_id)
         idp_config = IdPConfig().load(idp_conf_file, metadata_construction=False)
         return Server(config=idp_config)

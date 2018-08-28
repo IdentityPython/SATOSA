@@ -94,7 +94,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             return self.authn_request(context, idps[0])
 
         entity_id = context.get_decoration(
-                Context.KEY_MIRROR_TARGET_ENTITYID)
+                Context.KEY_TARGET_ENTITYID)
         if None is entity_id:
             return self.disco_query()
 

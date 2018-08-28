@@ -14,7 +14,7 @@ TARGET_ENTITY = "entity1"
 def target_context(context):
     entityid_bytes = TARGET_ENTITY.encode("utf-8")
     entityid_b64_str = urlsafe_b64encode(entityid_bytes).decode("utf-8")
-    context.decorate(Context.KEY_MIRROR_TARGET_ENTITYID, entityid_b64_str)
+    context.decorate(Context.KEY_TARGET_ENTITYID, entityid_b64_str)
     return context
 
 
