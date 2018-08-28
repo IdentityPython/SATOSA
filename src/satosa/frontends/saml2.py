@@ -505,7 +505,6 @@ class SAMLMirrorFrontend(SAMLFrontend):
         :return: An idp server
         """
         target_entity_id = context.target_entity_id_from_path()
-        context.decorate(Context.KEY_TARGET_ENTITYID, target_entity_id)
         idp_conf_file = self._load_endpoints_to_config(context.target_backend, target_entity_id)
         idp_config = IdPConfig().load(idp_conf_file, metadata_construction=False)
         return Server(config=idp_config)
@@ -535,6 +534,9 @@ class SAMLMirrorFrontend(SAMLFrontend):
         :type binding_in: str
         :rtype: satosa.response.Response
         """
+        context.decorate(
+                Context.KEY_TARGET_ENTITYID,
+                context.target_entity_id_from_path())
         idp = self._load_idp_dynamic_endpoints(context)
         return self._handle_authn_request(context, binding_in, idp)
 
