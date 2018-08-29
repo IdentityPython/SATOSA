@@ -5,6 +5,7 @@ import copy
 import functools
 import json
 import logging
+from base64 import urlsafe_b64decode
 from urllib.parse import urlparse
 
 from saml2 import SAMLError, xmldsig
@@ -534,9 +535,10 @@ class SAMLMirrorFrontend(SAMLFrontend):
         :type binding_in: str
         :rtype: satosa.response.Response
         """
-        context.decorate(
-                Context.KEY_TARGET_ENTITYID,
-                context.target_entity_id_from_path())
+        target_entity_id = context.target_entity_id_from_path()
+        target_entity_id = urlsafe_b64decode(target_entity_id).decode()
+        context.decorate(Context.KEY_TARGET_ENTITYID, target_entity_id)
+
         idp = self._load_idp_dynamic_endpoints(context)
         return self._handle_authn_request(context, binding_in, idp)
 

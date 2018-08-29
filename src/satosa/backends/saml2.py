@@ -5,7 +5,7 @@ import copy
 import functools
 import json
 import logging
-from base64 import urlsafe_b64encode, urlsafe_b64decode
+from base64 import urlsafe_b64encode
 from urllib.parse import urlparse
 
 from saml2.client_base import Base
@@ -90,7 +90,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         target_entity_id = context.get_decoration(Context.KEY_TARGET_ENTITYID)
         if target_entity_id:
-            entity_id = urlsafe_b64decode(target_entity_id).decode()
+            entity_id = target_entity_id
             return self.authn_request(context, entity_id)
 
         # if there is only one IdP in the metadata, bypass the discovery service
