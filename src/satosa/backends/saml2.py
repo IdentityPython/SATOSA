@@ -189,6 +189,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             self.outstanding_queries[req_id] = req
 
         context.state[self.name] = {"relay_state": relay_state}
+        context.state['target_backend'] = self.name
         return make_saml_response(binding, ht_args)
 
     def authn_response(self, context, binding):
@@ -445,3 +446,34 @@ class SAMLInternalResponse(InternalResponse):
             _dict['name_id'] = None
 
         return _dict
+
+class SAMLMirrorBackend(SAMLBackend):
+    """
+    A saml2 backend module (acting as a SP) that gives out requesting SP dependant entityID in authnRequest.
+    """
+    def start_auth(self, context, internal_req):
+        """
+        See super class method satosa.backends.base.BackendModule#start_auth
+        :type context: satosa.context.Context
+        :type internal_req: satosa.internal_data.InternalRequest
+        :rtype: satosa.response.Response
+        """
+
+        satosa_logging(logger, logging.DEBUG, "Target Frontend: %s" % context.target_frontend, context.state)
+        satosa_logging(logger, logging.DEBUG, "SP entityid: %s" % internal_req.requester, context.state)
+        satosa_logging(logger, logging.DEBUG, "Internal SP: %s" % self.sp.config.entityid, context.state)
+
+        requester_desc = self._urlenc(internal_req.requester)
+        self.sp.config.entityid = self.config["sp_config"]["entityid"] + "/" + context.target_frontend + "/" + requester_desc
+
+        satosa_logging(logger, logging.DEBUG, "New Internal SP: %s" % self.sp.config.entityid, context.state)
+
+        return super().start_auth(context, internal_req)
+
+    def _urlenc(self, s):
+        """
+        Create short unique url-safe hash of string
+        """
+
+        desc = urlsafe_b64encode(s.encode('utf-8')).decode('utf-8')
+        return desc

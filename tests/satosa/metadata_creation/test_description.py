@@ -28,7 +28,7 @@ class TestUIInfoDesc(object):
         desc.add_logo("logo.jpg", 80, 80, "en")
 
         serialized = desc.to_dict()
-        ui_info = serialized["service"]["idp"]["ui_info"]
+        ui_info = serialized["service"]["ui_info"]
         assert ui_info["description"] == [{"text": "test", "lang": "en"}]
         assert ui_info["display_name"] == [{"text": "my company", "lang": "en"}]
         assert ui_info["logo"] == [{"text": "logo.jpg", "width": 80, "height": 80, "lang": "en"}]
@@ -38,7 +38,7 @@ class TestUIInfoDesc(object):
         desc.add_logo("logo.jpg", 80, 80, None)
 
         serialized = desc.to_dict()
-        ui_info = serialized["service"]["idp"]["ui_info"]
+        ui_info = serialized["service"]["ui_info"]
         assert ui_info["logo"] == [{"text": "logo.jpg", "width": 80, "height": 80}]
 
     def test_to_dict_with_empty(self):
@@ -91,7 +91,7 @@ class TestMetadataDescription(object):
         assert serialized["entityid"] == "my_entity"
         assert serialized["organization"]
         assert serialized["contact_person"]
-        assert serialized["service"]["idp"]["ui_info"]
+        assert serialized["service"]["ui_info"]
 
     def test_set_organization_rejects_bad_input(self):
         desc = MetadataDescription("my_entity")

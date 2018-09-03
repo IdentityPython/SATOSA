@@ -15,7 +15,7 @@ from saml2.authn_context import PASSWORD
 from saml2.config import IdPConfig, SPConfig
 from saml2.s_utils import deflate_and_base64_encode
 
-from satosa.backends.saml2 import SAMLBackend
+from satosa.backends.saml2 import SAMLBackend, SAMLMirrorBackend
 from satosa.context import Context
 from satosa.internal_data import InternalRequest
 from tests.users import USERS
@@ -260,7 +260,7 @@ class TestSAMLBackend:
         assert idp_desc["organization"]["url"][0] == tuple(idp_conf["organization"]["url"][0])
 
         expected_ui_info = idp_conf["service"]["idp"]["ui_info"]
-        ui_info = idp_desc["service"]["idp"]["ui_info"]
+        ui_info = idp_desc["service"]["ui_info"]
         assert ui_info["display_name"] == expected_ui_info["display_name"]
         assert ui_info["description"] == expected_ui_info["description"]
         assert ui_info["logo"] == expected_ui_info["logo"]
@@ -287,7 +287,37 @@ class TestSAMLBackend:
         assert idp_desc["organization"]["url"][0] == tuple(idp_conf["organization"]["url"][0])
 
         expected_ui_info = idp_conf["service"]["idp"]["ui_info"]
-        ui_info = idp_desc["service"]["idp"]["ui_info"]
+        ui_info = idp_desc["service"]["ui_info"]
         assert ui_info["display_name"] == expected_ui_info["display_name"]
         assert ui_info["description"] == expected_ui_info["description"]
         assert ui_info["logo"] == expected_ui_info["logo"]
+
+class TestSAMLMirrorBackend:
+    def setup_test_config(self, sp_conf, idp_conf):
+        idp_metadata_str = create_metadata_from_config_dict(idp_conf)
+        sp_conf["metadata"]["inline"].append(idp_metadata_str)
+        idp2_config = idp_conf.copy()
+        idp2_config["entityid"] = "just_an_extra_idp"
+        idp_metadata_str2 = create_metadata_from_config_dict(idp2_config)
+        sp_conf["metadata"]["inline"].append(idp_metadata_str2)
+
+        sp_metadata_str = create_metadata_from_config_dict(sp_conf)
+        idp_conf["metadata"]["inline"] = [sp_metadata_str]
+
+    @pytest.fixture(autouse=True)
+    def create_backend(self, sp_conf, idp_conf):
+        self.setup_test_config(sp_conf, idp_conf)
+        self.samlbackend = SAMLMirrorBackend(Mock(), INTERNAL_ATTRIBUTES, {"sp_config": sp_conf,
+                                                                           "disco_srv": DISCOSRV_URL},
+                                       "base_url",
+                                       "samlbackend")
+
+    def test_dynamic_entityid(self, context, sp_conf, idp_conf):
+        test_state_key = "test_state_key_456afgrh"
+        context.state[test_state_key] = "my_state"
+        context.target_frontend = "target_frontend"
+        requester = "requester_id"
+
+        self.samlbackend.start_auth(context, InternalRequest(None, requester))
+        assert self.samlbackend.sp.config.entityid == sp_conf['entityid'] + '/' + context.target_frontend + '/' +  urlsafe_b64encode(requester.encode('utf-8')).decode('utf-8')
+

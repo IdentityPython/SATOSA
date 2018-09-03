@@ -51,12 +51,30 @@ def sp_conf(cert_and_key):
                 },
                 "want_response_signed": False,
                 "allow_unsolicited": True,
-                "name_id_format": [NAMEID_FORMAT_PERSISTENT]
+                "name_id_format": [NAMEID_FORMAT_PERSISTENT],
+                "ui_info": {
+                    "display_name": [{"text": "SATOSA Test SP", "lang": "en"}],
+                    "description": [{"text": "Test SP for SATOSA unit tests.", "lang": "en"}],
+                    "logo": [{"text": "https://sp.example.com/static/logo.png", "width": "120", "height": "60",
+                              "lang": "en"}],
+                },
             },
         },
         "cert_file": cert_and_key[0],
         "key_file": cert_and_key[1],
         "metadata": {"inline": []},
+        "organization": {
+            "name": [["Test SP Org.", "en"]],
+            "display_name": [["Test SP", "en"]],
+            "url": [["https://sp.example.com/about", "en"]]
+        },
+        "contact_person": [
+            {"given_name": "Test SP", "sur_name": "Support", "email_address": ["help@sp.example.com"],
+             "contact_type": "support"
+             },
+            {"given_name": "Test SP", "sur_name": "Tech support",
+             "email_address": ["tech@sp.example.com"], "contact_type": "technical"}
+        ]
     }
 
     return spconfig

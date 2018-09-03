@@ -83,6 +83,7 @@ class OpenIDConnectBackend(BackendModule):
         args.update(self.config["client"]["auth_req_params"])
         auth_req = self.client.construct_AuthorizationRequest(request_args=args)
         login_url = auth_req.request(self.client.authorization_endpoint)
+        context.state['target_backend'] = self.name
         return Redirect(login_url)
 
     def register_endpoints(self):
