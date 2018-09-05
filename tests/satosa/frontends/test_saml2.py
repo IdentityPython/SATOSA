@@ -14,7 +14,9 @@ from saml2.entity_category import refeds, swamid, edugain
 from saml2.entity_category.edugain import COCO
 from saml2.entity_category.refeds import RESEARCH_AND_SCHOLARSHIP
 from saml2.entity_category.swamid import SFS_1993_1153, RESEARCH_AND_EDUCATION, EU, HEI, NREN
-from saml2.saml import NAMEID_FORMAT_PERSISTENT, NAMEID_FORMAT_TRANSIENT
+from saml2.saml import NameID, NAMEID_FORMAT_TRANSIENT, \
+    NAMEID_FORMAT_PERSISTENT, NAMEID_FORMAT_EMAILADDRESS, \
+    NAMEID_FORMAT_UNSPECIFIED
 from saml2.samlp import NameIDPolicy
 
 from satosa.attribute_mapping import AttributeMapper
@@ -365,3 +367,9 @@ class TestSamlNameIdFormatToHashType:
 
     def test_should_map_persistent(self):
         assert saml_name_id_format_to_hash_type(NAMEID_FORMAT_PERSISTENT) == UserIdHashType.persistent
+
+    def test_should_map_email(self):
+        assert saml_name_id_format_to_hash_type(NAMEID_FORMAT_EMAILADDRESS) == UserIdHashType.emailaddress
+
+    def test_should_map_unspecified(self):
+        assert saml_name_id_format_to_hash_type(NAMEID_FORMAT_UNSPECIFIED) == UserIdHashType.unspecified
