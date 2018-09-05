@@ -360,16 +360,21 @@ class TestSAMLMirrorFrontend:
 
 class TestSamlNameIdFormatToHashType:
     def test_should_default_to_transient(self):
-        assert saml_name_id_format_to_hash_type("foobar") == UserIdHashType.transient
+        assert (saml_name_id_format_to_hash_type("foobar") ==
+                UserIdHashType.transient)
 
     def test_should_map_transient(self):
-        assert saml_name_id_format_to_hash_type(NAMEID_FORMAT_TRANSIENT) == UserIdHashType.transient
+        assert (saml_name_id_format_to_hash_type(NAMEID_FORMAT_TRANSIENT) ==
+                UserIdHashType.transient)
 
     def test_should_map_persistent(self):
-        assert saml_name_id_format_to_hash_type(NAMEID_FORMAT_PERSISTENT) == UserIdHashType.persistent
+        assert (saml_name_id_format_to_hash_type(NAMEID_FORMAT_PERSISTENT) ==
+                UserIdHashType.persistent)
 
     def test_should_map_email(self):
-        assert saml_name_id_format_to_hash_type(NAMEID_FORMAT_EMAILADDRESS) == UserIdHashType.emailaddress
+        assert (saml_name_id_format_to_hash_type(NAMEID_FORMAT_EMAILADDRESS) ==
+                UserIdHashType.emailaddress)
 
     def test_should_map_unspecified(self):
-        assert saml_name_id_format_to_hash_type(NAMEID_FORMAT_UNSPECIFIED) == UserIdHashType.unspecified
+        assert (saml_name_id_format_to_hash_type(NAMEID_FORMAT_UNSPECIFIED) ==
+                UserIdHashType.unspecified)
