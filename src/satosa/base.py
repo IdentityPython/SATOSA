@@ -70,7 +70,7 @@ class SATOSABase(object):
             self._link_micro_services(self.response_micro_services, self._auth_resp_finish)
 
         self.module_router = ModuleRouter(frontends, backends,
-                                          self.request_micro_services + self.response_micro_services)
+                                          self.request_micro_services + self.response_micro_services, config)
 
     def _link_micro_services(self, micro_services, finisher):
         if not micro_services:
@@ -293,7 +293,7 @@ class SATOSABase(object):
                            exc_info=True)
             raise SATOSAUnknownError("Unknown error") from err
         return resp
- 
+
 
 class SAMLBaseModule(object):
     KEY_ENTITYID_ENDPOINT = 'entityid_endpoint'
