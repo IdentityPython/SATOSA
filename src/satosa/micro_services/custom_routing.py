@@ -39,7 +39,9 @@ class DecideIfRequesterIsAllowed(RequestMicroService):
     """
     Decide whether a requester is allowed to send an authentication request to the target entity.
 
-    This micro service currently only works with `SAMLMirrorFrontend`.
+    This micro service currently only works when a target entityid is set.
+    Currently, a target entityid is set only when the `SAMLMirrorFrontend` is
+    used.
     """
     def __init__(self, config, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -58,11 +60,12 @@ class DecideIfRequesterIsAllowed(RequestMicroService):
         return urlsafe_b64encode(data.encode("utf-8")).decode("utf-8")
 
     def process(self, context, data):
-        target_entity_id = context.get_decoration(
-                Context.KEY_MIRROR_TARGET_ENTITYID)
+        target_entity_id = context.get_decoration(Context.KEY_TARGET_ENTITYID)
         if None is target_entity_id:
-            logger.error("DecideIfRequesterIsAllowed can only be used with SAMLMirrorFrontend")
-            raise SATOSAError("DecideIfRequesterIsAllowed can only be used with SAMLMirrorFrontend")
+            msg_tpl = "{name} can only be used when a target entityid is set"
+            msg = msg_tpl.format(name=self.__class__.__name__)
+            logger.error(msg)
+            raise SATOSAError(msg)
 
         target_specific_rules = self.rules.get(target_entity_id)
         # default to allowing everything if there are no specific rules

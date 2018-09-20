@@ -5,6 +5,7 @@ import copy
 import functools
 import json
 import logging
+from base64 import urlsafe_b64decode
 from urllib.parse import urlparse
 
 from saml2 import SAMLError, xmldsig
@@ -199,6 +200,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             satosa_logging(logger, logging.ERROR, "Could not find necessary info about entity: %s" % e, context.state)
             return ServiceError("Incorrect request from requester: %s" % e)
 
+        requester = resp_args["sp_entity_id"]
         context.state[self.name] = self._create_state_data(context, idp.response_args(authn_req),
                                                            context.request.get("RelayState"))
 
@@ -206,20 +208,19 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             name_format = saml_name_id_format_to_hash_type(authn_req.name_id_policy.format)
         else:
             # default to name id format from metadata, or just transient name id
-            name_format_from_metadata = idp.metadata[resp_args["sp_entity_id"]]["spsso_descriptor"][0].get(
-                "name_id_format")
+            name_format_from_metadata = idp.metadata[requester]["spsso_descriptor"][0].get("name_id_format")
             if name_format_from_metadata:
                 name_format = saml_name_id_format_to_hash_type(name_format_from_metadata[0]["text"])
             else:
                 name_format = UserIdHashType.transient
 
-        requester_name = self._get_sp_display_name(idp, resp_args["sp_entity_id"])
-        internal_req = InternalRequest(name_format, resp_args["sp_entity_id"], requester_name)
+        requester_name = self._get_sp_display_name(idp, requester)
+        internal_req = InternalRequest(name_format, requester, requester_name)
 
         idp_policy = idp.config.getattr("policy", "idp")
         if idp_policy:
-            approved_attributes = self._get_approved_attributes(idp, idp_policy, internal_req.requester, context.state)
-            internal_req.approved_attributes = approved_attributes
+            internal_req.approved_attributes = self._get_approved_attributes(
+                    idp, idp_policy, requester, context.state)
 
         return self.auth_req_callback_func(context, internal_req)
 
@@ -504,8 +505,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         :param context:
         :return: An idp server
         """
-        target_entity_id = context.path.split("/")[1]
-        context.decorate(Context.KEY_MIRROR_TARGET_ENTITYID, target_entity_id)
+        target_entity_id = context.target_entity_id_from_path()
         idp_conf_file = self._load_endpoints_to_config(context.target_backend, target_entity_id)
         idp_config = IdPConfig().load(idp_conf_file, metadata_construction=False)
         return Server(config=idp_config)
@@ -535,6 +535,10 @@ class SAMLMirrorFrontend(SAMLFrontend):
         :type binding_in: str
         :rtype: satosa.response.Response
         """
+        target_entity_id = context.target_entity_id_from_path()
+        target_entity_id = urlsafe_b64decode(target_entity_id).decode()
+        context.decorate(Context.KEY_TARGET_ENTITYID, target_entity_id)
+
         idp = self._load_idp_dynamic_endpoints(context)
         return self._handle_authn_request(context, binding_in, idp)
 
@@ -549,7 +553,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         :rtype: dict[str, dict[str, str] | str]
         """
         state = super()._create_state_data(context, resp_args, relay_state)
-        state["target_entity_id"] = context.path.split("/")[1]
+        state["target_entity_id"] = context.target_entity_id_from_path()
         return state
 
     def handle_backend_error(self, exception):

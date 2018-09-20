@@ -16,7 +16,7 @@ class Context(object):
     Holds information about the current request.
     """
     KEY_BACKEND_METADATA_STORE = 'metadata_store'
-    KEY_MIRROR_TARGET_ENTITYID = 'mirror_target_entity_id'
+    KEY_TARGET_ENTITYID = 'target_entity_id'
 
     def __init__(self):
         self._path = None
@@ -62,6 +62,10 @@ class Context(object):
         elif p.startswith('/'):
             raise ValueError("path can't start with '/'")
         self._path = p
+
+    def target_entity_id_from_path(self):
+        target_entity_id = self.path.split("/")[1]
+        return target_entity_id
 
     def decorate(self, key, value):
         """
