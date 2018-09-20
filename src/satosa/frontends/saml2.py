@@ -448,7 +448,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             satosa_logging(logger, logging.DEBUG, "Found existing common domain cookie {}".format(common_domain_cookie), context.state)
             space_separated_b64_idp_string = unquote(common_domain_cookie.value)
             b64_idp_list = space_separated_b64_idp_string.split()
-            idp_list = [ urlsafe_b64decode(b64_idp).decode('utf-8') for b64_idp in b64_idp_list ]
+            idp_list = [urlsafe_b64decode(b64_idp).decode('utf-8') for b64_idp in b64_idp_list]
         else:
             satosa_logging(logger, logging.DEBUG, "No existing common domain cookie found", context.state)
             idp_list = []
@@ -459,7 +459,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         this_flow_idp = internal_response.to_dict()['auth_info']['issuer']
 
         # Remove all occurrences of the current IdP from the list of IdPs.
-        idp_list = [ idp for idp in idp_list if idp != this_flow_idp ]
+        idp_list = [idp for idp in idp_list if idp != this_flow_idp]
 
         # Append the current IdP.
         idp_list.append(this_flow_idp)
@@ -467,7 +467,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         satosa_logging(logger, logging.DEBUG, "Common domain cookie list of IdPs is now {}".format(idp_list), context.state)
 
         # Construct the cookie.
-        b64_idp_list = [ urlsafe_b64encode(idp.encode()).decode("utf-8") for idp in idp_list ]
+        b64_idp_list = [urlsafe_b64encode(idp.encode()).decode("utf-8") for idp in idp_list]
         space_separated_b64_idp_string = " ".join(b64_idp_list)
         url_encoded_space_separated_b64_idp_string = quote(space_separated_b64_idp_string)
 
