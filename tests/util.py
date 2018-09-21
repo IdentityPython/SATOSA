@@ -135,14 +135,13 @@ class FakeIdP(server.Server):
             resp = {"SAMLResponse": saml_response, "RelayState": relay_state}
         elif response_binding == BINDING_HTTP_REDIRECT:
             http_args = self.apply_binding(
-                            response_binding,
-                            '%s' % resp,
-                            destination,
-                            relay_state,
-                            response=True
-                            )
+                response_binding,
+                '%s' % resp,
+                destination,
+                relay_state,
+                response=True)
             resp = dict(parse_qsl(urlparse(
-                                dict(http_args["headers"])["Location"]).query))
+                dict(http_args["headers"])["Location"]).query))
 
         return resp
 
@@ -166,26 +165,24 @@ class FakeIdP(server.Server):
         """
 
         destination, _resp = self.__create_authn_response(
-                                saml_request,
-                                relay_state,
-                                binding,
-                                userid,
-                                response_binding
-                                )
+            saml_request,
+            relay_state,
+            binding,
+            userid,
+            response_binding)
 
         resp = self.__apply_binding_to_authn_response(
-                        _resp,
-                        response_binding,
-                        relay_state,
-                        destination
-                        )
+            _resp,
+            response_binding,
+            relay_state,
+            destination)
 
         return destination, resp
 
     def handle_auth_req_no_name_id(self, saml_request, relay_state, binding,
                                    userid, response_binding=BINDING_HTTP_POST):
         """
-        Handles a SAML request, validates and creates a SAML response but 
+        Handles a SAML request, validates and creates a SAML response but
         without a <NameID> element.
         :type saml_request: str
         :type relay_state: str
@@ -203,22 +200,20 @@ class FakeIdP(server.Server):
         """
 
         destination, _resp = self.__create_authn_response(
-                                saml_request,
-                                relay_state,
-                                binding,
-                                userid,
-                                response_binding
-                                )
+            saml_request,
+            relay_state,
+            binding,
+            userid,
+            response_binding)
 
         # Remove the <NameID> element from the response.
         _resp.assertion.subject.name_id = None
 
         resp = self.__apply_binding_to_authn_response(
-                        _resp,
-                        response_binding,
-                        relay_state,
-                        destination
-                        )
+            _resp,
+            response_binding,
+            relay_state,
+            destination)
 
         return destination, resp
 

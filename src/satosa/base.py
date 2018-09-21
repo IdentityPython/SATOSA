@@ -178,9 +178,9 @@ class SATOSABase(object):
         # If configured construct the user id from attribute values.
         if "user_id_from_attrs" in self.config["INTERNAL_ATTRIBUTES"]:
             user_id = [
-                       "".join(internal_response.attributes[attr]) for attr in
-                       self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"]
-                      ]
+                "".join(internal_response.attributes[attr]) for attr in
+                self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"]
+            ]
             internal_response.user_id = "".join(user_id)
 
         # The authentication response may not contain a user id. For example
@@ -188,13 +188,14 @@ class SATOSABase(object):
         # not be configured to construct one from asserted attributes.
         # So only hash the user_id if it is not None.
         if internal_response.user_id:
-            user_id = UserIdHasher.hash_data(self.config["USER_ID_HASH_SALT"],
-                                             internal_response.user_id)
+            user_id = UserIdHasher.hash_data(
+                self.config["USER_ID_HASH_SALT"],
+                internal_response.user_id)
             internal_response.user_id = user_id
 
         if self.response_micro_services:
-            return self.response_micro_services[0].process(context,
-                                                           internal_response)
+            return self.response_micro_services[0].process(
+                context, internal_response)
 
         return self._auth_resp_finish(context, internal_response)
 

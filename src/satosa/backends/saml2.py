@@ -287,9 +287,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             pass
 
         internal_resp.attributes = self.converter.to_internal(
-                                       self.attribute_profile,
-                                       response.ava
-                                       )
+                self.attribute_profile, response.ava)
 
         satosa_logging(logger, logging.DEBUG,
                        "backend received attributes:\n%s" %
