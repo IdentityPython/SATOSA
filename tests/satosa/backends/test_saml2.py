@@ -189,6 +189,39 @@ class TestSAMLBackend:
         self.assert_authn_response(internal_resp)
         assert self.samlbackend.name not in context.state
 
+    def test_authn_response_no_name_id(self, context, idp_conf, sp_conf):
+        response_binding = BINDING_HTTP_REDIRECT
+
+        fakesp_conf = SPConfig().load(sp_conf, metadata_construction=False)
+        fakesp = FakeSP(fakesp_conf)
+
+        fakeidp_conf = IdPConfig().load(idp_conf, metadata_construction=False)
+        fakeidp = FakeIdP(USERS, config=fakeidp_conf)
+
+        destination, request_params = fakesp.make_auth_req(
+            idp_conf["entityid"])
+
+        # Use the fake IdP to mock up an authentication request that has no
+        # <NameID> element.
+        url, auth_resp = fakeidp.handle_auth_req_no_name_id(
+            request_params["SAMLRequest"],
+            request_params["RelayState"],
+            BINDING_HTTP_REDIRECT,
+            "testuser1",
+            response_binding=response_binding)
+
+        backend = self.samlbackend
+
+        context.request = auth_resp
+        context.state[backend.name] = {
+            "relay_state": request_params["RelayState"],
+        }
+        backend.authn_response(context, response_binding)
+
+        context, internal_resp = backend.auth_callback_func.call_args[0]
+        self.assert_authn_response(internal_resp)
+        assert backend.name not in context.state
+
     def test_authn_response_with_encrypted_assertion(self, sp_conf, context):
         with open(os.path.join(TEST_RESOURCE_BASE_PATH,
                                "idp_metadata_for_encrypted_signed_auth_response.xml")) as idp_metadata_file:

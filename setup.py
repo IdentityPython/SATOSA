@@ -16,7 +16,7 @@ setup(
     package_dir={'': 'src'},
     install_requires=[
         "pyop",
-        "pysaml2==4.5.0",
+        "pysaml2>=4.6.1",
         "pycryptodomex",
         "requests",
         "PyYAML",

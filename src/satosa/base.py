@@ -160,7 +160,8 @@ class SATOSABase(object):
 
     def _auth_resp_callback_func(self, context, internal_response):
         """
-        This function is called by a backend module when the authorization is complete.
+        This function is called by a backend module when the authorization is
+        complete.
 
         :type context: satosa.context.Context
         :type internal_response: satosa.internal_data.InternalResponse
@@ -173,16 +174,28 @@ class SATOSABase(object):
 
         context.request = None
         internal_response.requester = context.state[STATE_KEY]["requester"]
+
+        # If configured construct the user id from attribute values.
         if "user_id_from_attrs" in self.config["INTERNAL_ATTRIBUTES"]:
-            user_id = ["".join(internal_response.attributes[attr]) for attr in
-                       self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"]]
+            user_id = [
+                "".join(internal_response.attributes[attr]) for attr in
+                self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"]
+            ]
             internal_response.user_id = "".join(user_id)
-        # Hash the user id
-        user_id = UserIdHasher.hash_data(self.config["USER_ID_HASH_SALT"], internal_response.user_id)
-        internal_response.user_id = user_id
+
+        # The authentication response may not contain a user id. For example
+        # a SAML IdP may not assert a SAML NameID in the subject and we may
+        # not be configured to construct one from asserted attributes.
+        # So only hash the user_id if it is not None.
+        if internal_response.user_id:
+            user_id = UserIdHasher.hash_data(
+                self.config["USER_ID_HASH_SALT"],
+                internal_response.user_id)
+            internal_response.user_id = user_id
 
         if self.response_micro_services:
-            return self.response_micro_services[0].process(context, internal_response)
+            return self.response_micro_services[0].process(
+                context, internal_response)
 
         return self._auth_resp_finish(context, internal_response)
 

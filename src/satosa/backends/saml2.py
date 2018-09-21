@@ -265,7 +265,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :return: A translated internal response
         """
 
-        # The response may have been encrypted by the IdP so if we have an encryption key, try it
+        # The response may have been encrypted by the IdP so if we have an
+        # encryption key, try it.
         if self.encryption_keys:
             response.parse_assertion(self.encryption_keys)
 
@@ -274,19 +275,23 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         timestamp = response.assertion.authn_statement[0].authn_instant
         issuer = response.response.issuer.text
 
-        auth_info = AuthenticationInformation(auth_class_ref, timestamp, issuer)
+        auth_info = AuthenticationInformation(auth_class_ref,
+                                              timestamp, issuer)
         internal_resp = SAMLInternalResponse(auth_info=auth_info)
 
-        internal_resp.user_id = response.get_subject().text
-        internal_resp.attributes = self.converter.to_internal(self.attribute_profile, response.ava)
-
-        # The SAML response may not include a NameID
+        # The SAML response may not include a NameID.
         try:
+            internal_resp.user_id = response.get_subject().text
             internal_resp.name_id = response.assertion.subject.name_id
         except AttributeError:
             pass
 
-        satosa_logging(logger, logging.DEBUG, "backend received attributes:\n%s" % json.dumps(response.ava, indent=4), state)
+        internal_resp.attributes = self.converter.to_internal(
+                self.attribute_profile, response.ava)
+
+        satosa_logging(logger, logging.DEBUG,
+                       "backend received attributes:\n%s" %
+                       json.dumps(response.ava, indent=4), state)
         return internal_resp
 
     def _metadata_endpoint(self, context):

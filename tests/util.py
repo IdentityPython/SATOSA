@@ -83,23 +83,25 @@ class FakeIdP(server.Server):
         server.Server.__init__(self, config=config)
         self.user_db = user_db
 
-    def handle_auth_req(self, saml_request, relay_state, binding, userid,
-                        response_binding=BINDING_HTTP_POST):
+    def __create_authn_response(self, saml_request, relay_state, binding,
+                                userid, response_binding=BINDING_HTTP_POST):
         """
-        Handles a SAML request, validates and creates a SAML response.
+        Handles a SAML request, validates and creates a SAML response but
+        does not apply the binding to encode it.
         :type saml_request: str
         :type relay_state: str
         :type binding: str
         :type userid: str
-        :rtype:
+        :rtype: tuple [string, saml2.samlp.Response]
 
         :param saml_request:
-        :param relay_state: RelayState is a parameter used by some SAML protocol implementations to
-        identify the specific resource at the resource provider in an IDP initiated single sign on
-        scenario.
+        :param relay_state: RelayState is a parameter used by some SAML
+        protocol implementations to identify the specific resource at the
+        resource provider in an IDP initiated single sign on scenario.
         :param binding:
         :param userid: The user identification.
-        :return: A tuple with
+        :return: A tuple containing the destination and instance of
+        saml2.samlp.Response
         """
         auth_req = self.parse_authn_request(saml_request, binding)
         binding_out, destination = self.pick_binding(
@@ -114,17 +116,104 @@ class FakeIdP(server.Server):
         authn_broker.get_authn_by_accr(PASSWORD)
         resp_args['authn'] = authn_broker.get_authn_by_accr(PASSWORD)
 
-        _resp = self.create_authn_response(self.user_db[userid],
-                                           userid=userid,
-                                           **resp_args)
+        resp = self.create_authn_response(self.user_db[userid],
+                                          userid=userid,
+                                          **resp_args)
 
+        return destination, resp
+
+    def __apply_binding_to_authn_response(self,
+                                          resp,
+                                          response_binding,
+                                          relay_state,
+                                          destination):
+        """
+        Applies the binding to the response.
+        """
         if response_binding == BINDING_HTTP_POST:
-            saml_response = base64.b64encode(str(_resp).encode("utf-8"))
+            saml_response = base64.b64encode(str(resp).encode("utf-8"))
             resp = {"SAMLResponse": saml_response, "RelayState": relay_state}
         elif response_binding == BINDING_HTTP_REDIRECT:
-            http_args = self.apply_binding(response_binding, '%s' % _resp,
-                                           destination, relay_state, response=True)
-            resp = dict(parse_qsl(urlparse(dict(http_args["headers"])["Location"]).query))
+            http_args = self.apply_binding(
+                response_binding,
+                '%s' % resp,
+                destination,
+                relay_state,
+                response=True)
+            resp = dict(parse_qsl(urlparse(
+                dict(http_args["headers"])["Location"]).query))
+
+        return resp
+
+    def handle_auth_req(self, saml_request, relay_state, binding, userid,
+                        response_binding=BINDING_HTTP_POST):
+        """
+        Handles a SAML request, validates and creates a SAML response.
+        :type saml_request: str
+        :type relay_state: str
+        :type binding: str
+        :type userid: str
+        :rtype: tuple
+
+        :param saml_request:
+        :param relay_state: RelayState is a parameter used by some SAML
+        protocol implementations to identify the specific resource at the
+        resource provider in an IDP initiated single sign on scenario.
+        :param binding:
+        :param userid: The user identification.
+        :return: A tuple with the destination and encoded response as a string
+        """
+
+        destination, _resp = self.__create_authn_response(
+            saml_request,
+            relay_state,
+            binding,
+            userid,
+            response_binding)
+
+        resp = self.__apply_binding_to_authn_response(
+            _resp,
+            response_binding,
+            relay_state,
+            destination)
+
+        return destination, resp
+
+    def handle_auth_req_no_name_id(self, saml_request, relay_state, binding,
+                                   userid, response_binding=BINDING_HTTP_POST):
+        """
+        Handles a SAML request, validates and creates a SAML response but
+        without a <NameID> element.
+        :type saml_request: str
+        :type relay_state: str
+        :type binding: str
+        :type userid: str
+        :rtype: tuple
+
+        :param saml_request:
+        :param relay_state: RelayState is a parameter used by some SAML
+        protocol implementations to identify the specific resource at the
+        resource provider in an IDP initiated single sign on scenario.
+        :param binding:
+        :param userid: The user identification.
+        :return: A tuple with the destination and encoded response as a string
+        """
+
+        destination, _resp = self.__create_authn_response(
+            saml_request,
+            relay_state,
+            binding,
+            userid,
+            response_binding)
+
+        # Remove the <NameID> element from the response.
+        _resp.assertion.subject.name_id = None
+
+        resp = self.__apply_binding_to_authn_response(
+            _resp,
+            response_binding,
+            relay_state,
+            destination)
 
         return destination, resp
 
