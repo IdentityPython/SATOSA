@@ -23,10 +23,12 @@ from saml2.samlp import NameIDPolicy
 
 from satosa.attribute_mapping import AttributeMapper
 from satosa.frontends.saml2 import SAMLFrontend, SAMLMirrorFrontend
+from satosa.frontends.saml2 import SAMLVirtualCoFrontend
 from satosa.frontends.saml2 import subject_type_to_saml_nameid_format
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from satosa.state import State
+from satosa.context import Context
 from tests.users import USERS
 from tests.util import FakeSP, create_metadata_from_config_dict
 
@@ -401,6 +403,72 @@ class TestSAMLMirrorFrontend:
         state[self.frontend.name] = {"target_entity_id": self.TARGET_ENTITY_ID}
         idp = self.frontend._load_idp_dynamic_entity_id(state)
         assert idp.config.entityid == "{}/{}".format(idp_conf["entityid"], self.TARGET_ENTITY_ID)
+
+
+class TestSAMLVirtualCoFrontend:
+    BACKEND = "test_backend"
+    CO = "MESS"
+    KEY_SSO = "single_sign_on_service"
+
+    @pytest.fixture(autouse=True)
+    def create_frontend(self, idp_conf):
+        collab_orgs = [{"encodeable_name": self.CO}]
+        conf = {
+                "idp_config": idp_conf,
+                "endpoints": ENDPOINTS,
+                "collaborative_organizations": collab_orgs
+               }
+        self.frontend = SAMLVirtualCoFrontend(lambda ctx, req: None,
+                                              INTERNAL_ATTRIBUTES,
+                                              conf,
+                                              BASE_URL,
+                                              "saml_virtual_co_frontend")
+        self.frontend.register_endpoints([self.BACKEND])
+
+    @pytest.fixture(autouse=True)
+    def create_context(self, context):
+        context.path = "{}/{}/sso/redirect".format(self.BACKEND, self.CO)
+        context.target_backend = self.BACKEND
+        self.context = context
+
+    def test_create_state_data(self):
+        self.context.decorate(self.frontend.KEY_CO_NAME, self.CO)
+        state = self.frontend._create_state_data(self.context, {}, "")
+        assert state[self.frontend.KEY_CO_NAME] == self.CO
+
+    def test_get_co_name(self):
+        co_name = self.frontend._get_co_name(self.context)
+        assert co_name == self.CO
+
+        self.frontend._create_state_data(self.context, {}, "")
+        co_name = self.frontend._get_co_name(self.context)
+        assert co_name == self.CO
+
+    def test_create_co_virtual_idp(self, idp_conf):
+        expected_entityid = "{}/{}".format(idp_conf['entityid'], self.CO)
+
+        endpoint_base_url = "{}/{}/{}".format(BASE_URL, self.BACKEND, self.CO)
+        expected_endpoints = []
+        for binding, endpoint in ENDPOINTS[self.KEY_SSO].items():
+            endp = "{}/{}".format(endpoint_base_url, endpoint)
+            expected_endpoints.append((endp, binding))
+
+        idp_server = self.frontend._create_co_virtual_idp(self.context)
+        sso_endpoints = idp_server.config._idp_endpoints[self.KEY_SSO]
+
+        assert idp_server.config.entityid == expected_entityid
+        assert all(sso in sso_endpoints for sso in expected_endpoints)
+
+    def test_register_endpoints(self):
+        idp_server = self.frontend._create_co_virtual_idp(self.context)
+        url_map = self.frontend.register_endpoints([self.BACKEND])
+        all_idp_endpoints = [urlparse(endpoint[0]).path[1:] for
+                             endpoint in
+                             idp_server.config._idp_endpoints[self.KEY_SSO]]
+        compiled_regex = [re.compile(regex) for regex, _ in url_map]
+
+        for endpoint in all_idp_endpoints:
+            assert any(pat.match(endpoint) for pat in compiled_regex)
 
 
 class TestSubjectTypeToSamlNameIdFormat:

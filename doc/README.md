@@ -208,29 +208,36 @@ The SAML2 frontend act as a SAML Identity Provider (IdP), accepting
 authentication requests from SAML Service Providers (SP). The default
 configuration file can be found [here](../example/plugins/frontends/saml2_frontend.yaml.example).
 
-The SAML2 frontend comes in two different flavors:
+The SAML2 frontend comes in three different flavors:
 
-The **SAMLMirrorFrontend** module mirrors each target provider as a separate entity in the SAML metadata.
-In this proxy this is handled with dynamic entity id's, encoding the target provider.
-This allows external discovery services to present the mirrored providers transparently, as separate entities
-in its UI. The following flow diagram shows the communcation:
-
-`SP -> optional discovery service -> selected proxy SAML entity -> target IdP`
-
-
-The **SAMLFrontend** module acts like a single IdP, and hides all target providers. This enables the proxy to support
+1. The **SAMLFrontend** module acts like a single IdP, and hides all target providers. This enables the proxy to support
 SP's which only support communication with a single IdP, while the proxy will seamlessly communicate with multiple
 target providers. The metadata for the published IdP will contain one *Single Sign On Location* for each target
 provider.
 
-The following flow diagram shows the communication:
+   The following flow diagram shows the communication:
 
-`SP -> proxy SAML SSO location -> target IdP`
+   `SP -> proxy SAML SSO location -> target IdP`
 
-For the simple case where an SP does not support discovery it's also possible to delegate the discovery to the
+   For the simple case where an SP does not support discovery it's also possible to delegate the discovery to the
 `SAMLBackend` (see below), which would enable the following communication flow:
 
-`SP -> SAMLFrontend -> SAMLBackend -> discovery to select target IdP -> target IdP`
+   `SP -> SAMLFrontend -> SAMLBackend -> discovery to select target IdP -> target IdP`
+
+2. The **SAMLMirrorFrontend** module mirrors each target provider as a separate entity in the SAML metadata.
+In this proxy this is handled with dynamic entity id's, encoding the target provider.
+This allows external discovery services to present the mirrored providers transparently, as separate entities
+in its UI. The following flow diagram shows the communcation:
+
+   `SP -> optional discovery service -> selected proxy SAML entity -> target IdP`
+
+3. The **SAMLVirtualCoFrontend** module enables multiple IdP frontends, each with its own distinct
+entityID and SSO endpoints, and each representing a distinct collaborative organization or CO. 
+An example configuration can be found [here](../example/plugins/frontends/saml2_virtualcofrontend.yaml.example).
+
+   The following flow diagram shows the communication:
+
+   `SP -> Virtual CO SAMLFrontend -> SAMLBackend -> optional discovery service -> target IdP`
 
 
 ##### Custom attribute release
