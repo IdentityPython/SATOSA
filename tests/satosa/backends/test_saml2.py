@@ -10,6 +10,8 @@ from unittest.mock import Mock, patch
 from urllib.parse import urlparse, parse_qs, parse_qsl
 
 import pytest
+
+import saml2
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.authn_context import PASSWORD
 from saml2.config import IdPConfig, SPConfig
@@ -189,6 +191,9 @@ class TestSAMLBackend:
         self.assert_authn_response(internal_resp)
         assert self.samlbackend.name not in context.state
 
+    @pytest.mark.skipif(
+            saml2.__version__ < '4.6.1',
+            reason="Optional NameID needs pysaml2 v4.6.1 or higher")
     def test_authn_response_no_name_id(self, context, idp_conf, sp_conf):
         response_binding = BINDING_HTTP_REDIRECT
 
