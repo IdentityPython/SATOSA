@@ -132,12 +132,14 @@ class SATOSABase(object):
 
     def _auth_resp_finish(self, context, internal_response):
         # re-hash user id since e.g. account linking micro service might have changed it
-        user_id = UserIdHasher.hash_id(self.config["USER_ID_HASH_SALT"],
-                                       internal_response.user_id,
-                                       internal_response.requester,
-                                       context.state)
+        user_id = UserIdHasher.hash_id(
+            self.config["USER_ID_HASH_SALT"],
+            internal_response.user_id,
+            internal_response.requester,
+            context.state)
         internal_response.user_id = user_id
-        internal_response.user_id_hash_type = UserIdHasher.hash_type(context.state)
+        internal_response.user_id_hash_type = UserIdHasher.hash_type(
+            context.state)
         user_id_to_attr = self.config["INTERNAL_ATTRIBUTES"].get("user_id_to_attr", None)
         if user_id_to_attr:
             internal_response.attributes[user_id_to_attr] = [internal_response.user_id]
@@ -148,8 +150,10 @@ class SATOSABase(object):
         for attribute in hash_attributes:
             # hash all attribute values individually
             if attribute in internal_attributes:
-                hashed_values = [UserIdHasher.hash_data(self.config["USER_ID_HASH_SALT"], v)
-                             for v in internal_attributes[attribute]]
+                hashed_values = [
+                    UserIdHasher.hash_data(self.config["USER_ID_HASH_SALT"], v)
+                    for v in internal_attributes[attribute]
+                ]
                 internal_attributes[attribute] = hashed_values
 
         # remove all session state
@@ -188,10 +192,14 @@ class SATOSABase(object):
         # not be configured to construct one from asserted attributes.
         # So only hash the user_id if it is not None.
         if internal_response.user_id:
-            user_id = UserIdHasher.hash_data(
+            user_id = UserIdHasher.hash_id(
                 self.config["USER_ID_HASH_SALT"],
-                internal_response.user_id)
+                internal_response.user_id,
+                internal_response.requester,
+                context.state)
             internal_response.user_id = user_id
+            internal_response.user_id_hash_type = UserIdHasher.hash_type(
+                context.state)
 
         if self.response_micro_services:
             return self.response_micro_services[0].process(

@@ -50,11 +50,17 @@ class TestSATOSABase:
 
         base._auth_resp_callback_func(context, internal_resp)
 
-        expected_user_id = UserIdHasher.hash_data(satosa_config["USER_ID_HASH_SALT"], "user@example.com")
-        expected_user_id = UserIdHasher.hash_id(satosa_config["USER_ID_HASH_SALT"],
-                                                expected_user_id,
-                                                internal_resp.requester,
-                                                context.state)
+        expected_user_id = "user@example.com"
+        expected_user_id = UserIdHasher.hash_id(
+                satosa_config["USER_ID_HASH_SALT"],
+                expected_user_id,
+                internal_resp.requester,
+                context.state)
+        expected_user_id = UserIdHasher.hash_id(
+                satosa_config["USER_ID_HASH_SALT"],
+                expected_user_id,
+                internal_resp.requester,
+                context.state)
         assert internal_resp.user_id == expected_user_id
 
     def test_auth_req_callback_stores_state_for_consent(self, context, satosa_config):
