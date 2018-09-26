@@ -112,6 +112,7 @@ class UserIdHasher(object):
             (lambda salt, value: value)
             if hash_type in [
                 UserIdHashType.emailaddress,
+                UserIdHashType.unspecified,
             ]
             else UserIdHasher.hash_data)
         return hasher(salt, user_id)
