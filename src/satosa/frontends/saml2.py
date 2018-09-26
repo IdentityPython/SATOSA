@@ -16,9 +16,11 @@ from saml2 import SAMLError, xmldsig
 from saml2.config import IdPConfig
 from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
 from saml2.metadata import create_metadata_string
-from saml2.saml import NameID, NAMEID_FORMAT_TRANSIENT, \
-    NAMEID_FORMAT_PERSISTENT, NAMEID_FORMAT_EMAILADDRESS, \
-    NAMEID_FORMAT_UNSPECIFIED
+from saml2.saml import NameID
+from saml2.saml import NAMEID_FORMAT_TRANSIENT
+from saml2.saml import NAMEID_FORMAT_PERSISTENT
+from saml2.saml import NAMEID_FORMAT_EMAILADDRESS
+from saml2.saml import NAMEID_FORMAT_UNSPECIFIED
 from saml2.samlp import name_id_policy_from_string
 from saml2.server import Server
 
@@ -45,14 +47,16 @@ def saml_name_id_format_to_hash_type(name_format):
     :param name_format: SAML2 name format
     :return: satosa format
     """
-    if name_format == NAMEID_FORMAT_PERSISTENT:
-        return UserIdHashType.persistent
-    elif name_format == NAMEID_FORMAT_EMAILADDRESS:
-        return UserIdHashType.emailaddress
-    elif name_format == NAMEID_FORMAT_UNSPECIFIED:
-        return UserIdHashType.unspecified
+    name_id_format_to_hash_type = {
+        NAMEID_FORMAT_TRANSIENT:    UserIdHashType.transient,
+        NAMEID_FORMAT_PERSISTENT:   UserIdHashType.persistent,
+        NAMEID_FORMAT_EMAILADDRESS: UserIdHashType.emailaddress,
+        NAMEID_FORMAT_UNSPECIFIED:  UserIdHashType.unspecified,
+    }
 
-    return UserIdHashType.transient
+    return name_id_format_to_hash_type.get(
+            name_format,
+            UserIdHashType.transient)
 
 
 def hash_type_to_saml_name_id_format(hash_type):
@@ -64,16 +68,16 @@ def hash_type_to_saml_name_id_format(hash_type):
     :param hash_type: satosa format
     :return: pySAML2 name format
     """
-    if hash_type is UserIdHashType.transient:
-        return NAMEID_FORMAT_TRANSIENT
-    elif hash_type is UserIdHashType.persistent:
-        return NAMEID_FORMAT_PERSISTENT
-    elif hash_type is UserIdHashType.emailaddress:
-        return NAMEID_FORMAT_EMAILADDRESS
-    elif hash_type is UserIdHashType.unspecified:
-        return NAMEID_FORMAT_UNSPECIFIED
+    hash_type_to_name_id_format = {
+        UserIdHashType.transient:    NAMEID_FORMAT_TRANSIENT,
+        UserIdHashType.persistent:   NAMEID_FORMAT_PERSISTENT,
+        UserIdHashType.emailaddress: NAMEID_FORMAT_EMAILADDRESS,
+        UserIdHashType.unspecified:  NAMEID_FORMAT_UNSPECIFIED,
+    }
 
-    return NAMEID_FORMAT_PERSISTENT
+    return hash_type_to_name_id_format.get(
+            hash_type,
+            NAMEID_FORMAT_PERSISTENT)
 
 
 class SAMLFrontend(FrontendModule, SAMLBaseModule):

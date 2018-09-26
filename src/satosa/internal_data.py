@@ -6,6 +6,7 @@ import datetime
 import hashlib
 from enum import Enum
 
+
 class UserIdHashType(Enum):
     """
     All different user id hash types
@@ -56,7 +57,9 @@ class UserIdHasher(object):
         :param value: value to hash together with the salt
         :return: hash value (SHA512)
         """
-        return hashlib.sha512((value + salt).encode("utf-8")).hexdigest()
+        data = '{value}{salt}'.format(value=value, salt=salt).encode()
+        hash = hashlib.sha512(data).hexdigest()
+        return hash
 
     @staticmethod
     def hash_type(state):
@@ -82,23 +85,36 @@ class UserIdHasher(object):
         :param state: The current state
         :return: the internal_response containing the hashed user ID
         """
-        hash_type = UserIdHasher.hash_type(state)
-        if hash_type == UserIdHashType.transient:
-            timestamp = datetime.datetime.now().time()
-            user_id = "{req}{time}{id}".format(req=requester, time=timestamp,
-                                               id=user_id)
-        elif (hash_type == UserIdHashType.persistent or
-              hash_type == UserIdHashType.pairwise):
-            user_id = "{req}{id}".format(req=requester, id=user_id)
-        elif hash_type == UserIdHashType.public:
-            user_id = "{id}".format(id=user_id)
-        elif (hash_type == UserIdHashType.emailaddress or
-              hash_type == UserIdHashType.unspecified):
-            return user_id
-        else:
-            raise ValueError("Unknown hash type: '{}'".format(hash_type))
+        hash_type_to_format = {
+            UserIdHashType.transient:    '{id}{req}{time}',
+            UserIdHashType.persistent:   '{id}{req}',
+            UserIdHashType.pairwise:     '{id}{req}',
+            UserIdHashType.public:       '{id}',
+            UserIdHashType.emailaddress: '{id}',
+            UserIdHashType.unspecified:  '{id}',
+        }
 
-        return UserIdHasher.hash_data(salt, user_id)
+        format_args = {
+            'id': user_id,
+            'req': requester,
+            'time': datetime.datetime.utcnow().timestamp(),
+        }
+
+        hash_type = UserIdHasher.hash_type(state)
+        try:
+            fmt = hash_type_to_format[hash_type]
+        except KeyError as e:
+            raise ValueError('Unknown hash type: {}'.format(hash_type)) from e
+        else:
+            user_id = fmt.format(**format_args)
+
+        hasher = (
+            (lambda salt, value: value)
+            if hash_type in [
+                UserIdHashType.emailaddress,
+            ]
+            else UserIdHasher.hash_data)
+        return hasher(salt, user_id)
 
 
 class AuthenticationInformation(object):
