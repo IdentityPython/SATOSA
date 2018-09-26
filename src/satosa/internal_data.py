@@ -6,7 +6,6 @@ import datetime
 import hashlib
 from enum import Enum
 
-
 class UserIdHashType(Enum):
     """
     All different user id hash types
@@ -15,6 +14,8 @@ class UserIdHashType(Enum):
     persistent = 2
     pairwise = 3
     public = 4
+    emailaddress = 5
+    unspecified = 6
 
     @classmethod
     def from_string(cls, str):
@@ -66,7 +67,8 @@ class UserIdHasher(object):
     @staticmethod
     def hash_id(salt, user_id, requester, state):
         """
-        Sets a user id to the internal_response, in the format specified by the internal response
+        Sets a user id to the internal_response,
+        in the format specified by the internal response
 
         :type salt: str
         :type user_id: str
@@ -83,11 +85,16 @@ class UserIdHasher(object):
         hash_type = UserIdHasher.hash_type(state)
         if hash_type == UserIdHashType.transient:
             timestamp = datetime.datetime.now().time()
-            user_id = "{req}{time}{id}".format(req=requester, time=timestamp, id=user_id)
-        elif hash_type == UserIdHashType.persistent or hash_type == UserIdHashType.pairwise:
+            user_id = "{req}{time}{id}".format(req=requester, time=timestamp,
+                                               id=user_id)
+        elif (hash_type == UserIdHashType.persistent or
+              hash_type == UserIdHashType.pairwise):
             user_id = "{req}{id}".format(req=requester, id=user_id)
         elif hash_type == UserIdHashType.public:
             user_id = "{id}".format(id=user_id)
+        elif (hash_type == UserIdHashType.emailaddress or
+              hash_type == UserIdHashType.unspecified):
+            return user_id
         else:
             raise ValueError("Unknown hash type: '{}'".format(hash_type))
 
