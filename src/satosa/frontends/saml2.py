@@ -27,57 +27,32 @@ from saml2.server import Server
 from satosa.base import SAMLBaseModule
 from satosa.context import Context
 from .base import FrontendModule
-from ..internal_data import InternalRequest, UserIdHashType
+from ..internal_data import InternalRequest
 from ..logging_util import satosa_logging
 from ..response import Response
 from ..response import ServiceError
 from ..saml_util import make_saml_response
 import satosa.util as util
 
+from satosa.deprecated import saml_name_id_format_to_hash_type
+from satosa.deprecated import hash_type_to_saml_name_id_format
+
 
 logger = logging.getLogger(__name__)
 
 
-def saml_name_id_format_to_hash_type(name_format):
-    """
-    Translate pySAML2 name format to satosa format
-
-    :type name_format: str
-    :rtype: satosa.internal_data.UserIdHashType
-    :param name_format: SAML2 name format
-    :return: satosa format
-    """
-    name_id_format_to_hash_type = {
-        NAMEID_FORMAT_TRANSIENT:    UserIdHashType.transient,
-        NAMEID_FORMAT_PERSISTENT:   UserIdHashType.persistent,
-        NAMEID_FORMAT_EMAILADDRESS: UserIdHashType.emailaddress,
-        NAMEID_FORMAT_UNSPECIFIED:  UserIdHashType.unspecified,
-    }
-
-    return name_id_format_to_hash_type.get(
-            name_format,
-            UserIdHashType.transient)
+subject_type_map = {
+    NAMEID_FORMAT_TRANSIENT: NAMEID_FORMAT_TRANSIENT,
+    NAMEID_FORMAT_PERSISTENT: NAMEID_FORMAT_PERSISTENT,
+    NAMEID_FORMAT_EMAILADDRESS: NAMEID_FORMAT_EMAILADDRESS,
+    NAMEID_FORMAT_UNSPECIFIED: NAMEID_FORMAT_UNSPECIFIED,
+    "public": NAMEID_FORMAT_PERSISTENT,
+    "pairwise": NAMEID_FORMAT_TRANSIENT,
+}
 
 
-def hash_type_to_saml_name_id_format(hash_type):
-    """
-    Translate satosa format to pySAML2 name format
-
-    :type hash_type: satosa.internal_data.UserIdHashType
-    :rtype: str
-    :param hash_type: satosa format
-    :return: pySAML2 name format
-    """
-    hash_type_to_name_id_format = {
-        UserIdHashType.transient:    NAMEID_FORMAT_TRANSIENT,
-        UserIdHashType.persistent:   NAMEID_FORMAT_PERSISTENT,
-        UserIdHashType.emailaddress: NAMEID_FORMAT_EMAILADDRESS,
-        UserIdHashType.unspecified:  NAMEID_FORMAT_UNSPECIFIED,
-    }
-
-    return hash_type_to_name_id_format.get(
-            hash_type,
-            NAMEID_FORMAT_PERSISTENT)
+def subject_type_to_saml_nameid_format(subject_type):
+    return subject_type_map.get(subject_type, NAMEID_FORMAT_PERSISTENT)
 
 
 class SAMLFrontend(FrontendModule, SAMLBaseModule):
@@ -224,14 +199,14 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
                                                            context.request.get("RelayState"))
 
         if authn_req.name_id_policy and authn_req.name_id_policy.format:
-            name_format = saml_name_id_format_to_hash_type(authn_req.name_id_policy.format)
+            name_format = authn_req.name_id_policy.format
         else:
             # default to name id format from metadata, or just transient name id
             name_format_from_metadata = idp.metadata[requester]["spsso_descriptor"][0].get("name_id_format")
             if name_format_from_metadata:
-                name_format = saml_name_id_format_to_hash_type(name_format_from_metadata[0]["text"])
+                name_format = name_format_from_metadata[0]["text"]
             else:
-                name_format = UserIdHashType.transient
+                name_format = NAMEID_FORMAT_TRANSIENT
 
         requester_name = self._get_sp_display_name(idp, requester)
         internal_req = InternalRequest(name_format, requester, requester_name)
@@ -322,11 +297,16 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             for k in attributes_to_remove:
                 ava.pop(k, None)
 
-        name_id = NameID(text=internal_response.user_id,
-                         format=hash_type_to_saml_name_id_format(
-                             internal_response.user_id_hash_type),
-                         sp_name_qualifier=None,
-                         name_qualifier=None)
+        nameid_value = internal_response.user_id
+        nameid_format = subject_type_to_saml_nameid_format(
+            internal_response.user_id_hash_type
+        )
+        name_id = NameID(
+            text=nameid_value,
+            format=nameid_format,
+            sp_name_qualifier=None,
+            name_qualifier=None,
+        )
 
         dbgmsg = "returning attributes %s" % json.dumps(ava)
         satosa_logging(logger, logging.DEBUG, dbgmsg, context.state)

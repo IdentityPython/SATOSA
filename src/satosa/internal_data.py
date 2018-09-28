@@ -3,28 +3,14 @@ The module contains internal data representation in SATOSA and general converter
 for converting from SAML/OAuth/OpenID connect to the internal representation.
 """
 import datetime
-from enum import Enum
+
+from saml2.saml import NAMEID_FORMAT_TRANSIENT
+from saml2.saml import NAMEID_FORMAT_PERSISTENT
+from saml2.saml import NAMEID_FORMAT_EMAILADDRESS
+from saml2.saml import NAMEID_FORMAT_UNSPECIFIED
 
 import satosa.util as util
-
-
-class UserIdHashType(Enum):
-    """
-    All different user id hash types
-    """
-    transient = 1
-    persistent = 2
-    pairwise = 3
-    public = 4
-    emailaddress = 5
-    unspecified = 6
-
-    @classmethod
-    def from_string(cls, str):
-        try:
-            return getattr(cls, str)
-        except AttributeError:
-            raise ValueError("Unknown hash type '{}'".format(str))
+from satosa.deprecated import UserIdHashType
 
 
 class UserIdHasher(object):
@@ -44,7 +30,7 @@ class UserIdHasher(object):
         :param state: The current state
         """
         state_data = {
-            "hash_type": internal_request.user_id_hash_type.name
+            "hash_type": internal_request.user_id_hash_type
         }
         state[UserIdHasher.STATE_KEY] = state_data
 
@@ -63,7 +49,7 @@ class UserIdHasher(object):
     @staticmethod
     def hash_type(state):
         state_data = state[UserIdHasher.STATE_KEY]
-        hash_type = UserIdHashType.from_string(state_data["hash_type"])
+        hash_type = state_data["hash_type"]
         return hash_type
 
     @staticmethod
@@ -85,12 +71,12 @@ class UserIdHasher(object):
         :return: the internal_response containing the hashed user ID
         """
         hash_type_to_format = {
-            UserIdHashType.transient:    '{id}{req}{time}',
-            UserIdHashType.persistent:   '{id}{req}',
-            UserIdHashType.pairwise:     '{id}{req}',
-            UserIdHashType.public:       '{id}',
-            UserIdHashType.emailaddress: '{id}',
-            UserIdHashType.unspecified:  '{id}',
+            NAMEID_FORMAT_TRANSIENT:    '{id}{req}{time}',
+            NAMEID_FORMAT_PERSISTENT:   '{id}{req}',
+            "pairwise":                 '{id}{req}',
+            "public":                   '{id}',
+            NAMEID_FORMAT_EMAILADDRESS: '{id}',
+            NAMEID_FORMAT_UNSPECIFIED:  '{id}',
         }
 
         format_args = {
@@ -110,8 +96,8 @@ class UserIdHasher(object):
         hasher = (
             (lambda salt, value: value)
             if hash_type in [
-                UserIdHashType.emailaddress,
-                UserIdHashType.unspecified,
+                NAMEID_FORMAT_EMAILADDRESS,
+                NAMEID_FORMAT_UNSPECIFIED,
             ]
             else UserIdHasher.hash_data)
         return hasher(salt, user_id)
@@ -179,7 +165,7 @@ class InternalRequest(InternalData):
         :param user_id_hash_type:
         :param requester: identifier of the requester
 
-        :type user_id_hash_type: UserIdHashType
+        :type user_id_hash_type: str
         :type requester: str
         """
         self.user_id_hash_type = user_id_hash_type
@@ -197,7 +183,7 @@ class InternalResponse(InternalData):
 
     :type _user_id: str
     :type attributes: dict[str, str]
-    :type user_id_hash_type: UserIdHashType
+    :type user_id_hash_type: str
     :type auth_info: AuthenticationInformation
     """
 
@@ -221,7 +207,7 @@ class InternalResponse(InternalData):
         auth_info = AuthenticationInformation.from_dict(int_resp_dict["auth_info"])
         internal_response = InternalResponse(auth_info=auth_info)
         if "hash_type" in int_resp_dict:
-            internal_response.user_id_hash_type = UserIdHashType.from_string(int_resp_dict["hash_type"])
+            internal_response.user_id_hash_type = int_resp_dict["hash_type"]
         internal_response.attributes = int_resp_dict["attr"]
         internal_response.user_id = int_resp_dict["usr_id"]
         internal_response.requester = int_resp_dict["to"]
@@ -238,5 +224,5 @@ class InternalResponse(InternalData):
                  "to": self.requester,
                  "auth_info": self.auth_info.to_dict()}
         if self.user_id_hash_type:
-            _dict["hash_type"] = self.user_id_hash_type.name
+            _dict["hash_type"] = self.user_id_hash_type
         return _dict

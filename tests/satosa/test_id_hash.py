@@ -1,4 +1,7 @@
-from satosa.internal_data import InternalRequest, UserIdHashType, UserIdHasher
+from saml2.saml import NAMEID_FORMAT_TRANSIENT
+from saml2.saml import NAMEID_FORMAT_PERSISTENT
+
+from satosa.internal_data import InternalRequest, UserIdHasher
 from satosa.state import State
 
 SALT = "asdasdasdasdewr234"
@@ -17,7 +20,7 @@ def _get_id(requester, user_id, hash_type):
 def test_id_hash_transient():
     requesters = ["test_requester0", "test_requester0", "test_requester2"]
     user_ids = ["userid0", "userid1", "userid2"]
-    hash_type = UserIdHashType.transient
+    hash_type = NAMEID_FORMAT_TRANSIENT
 
     ids = []
     for requester in requesters:
@@ -30,7 +33,7 @@ def test_id_hash_transient():
 def test_id_hash_persistent():
     requesters = ["test_requester0"]
     user_ids = ["userid0", "userid1", "userid2"]
-    hash_type = UserIdHashType.persistent
+    hash_type = NAMEID_FORMAT_PERSISTENT
 
     ids = []
     for requester in requesters:
@@ -44,7 +47,7 @@ def test_id_hash_persistent():
 def test_id_hash_pairwise():
     requesters = ["test_requester0", "test_requester1"]
     user_ids = ["userid0", "userid1", "userid2"]
-    hash_type = UserIdHashType.pairwise
+    hash_type = 'pairwise'
 
     ids = []
     for requester in requesters:
@@ -58,7 +61,7 @@ def test_id_hash_pairwise():
 def test_id_hash_public():
     requesters = ["test_requester0", "test_requester1", "test_requester2"]
     user_ids = ["userid0", "userid1", "userid2"]
-    hash_type = UserIdHashType.public
+    hash_type = 'public'
 
     ids = []
     for id in user_ids:

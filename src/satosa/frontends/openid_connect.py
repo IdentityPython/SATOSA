@@ -22,21 +22,16 @@ from pyop.util import should_fragment_encode
 
 from .base import FrontendModule
 from ..internal_data import InternalRequest
-from ..internal_data import UserIdHashType
 from ..logging_util import satosa_logging
 from ..response import BadRequest, Created
 from ..response import SeeOther, Response
 from ..response import Unauthorized
 from ..util import rndstr
 
+from satosa.deprecated import oidc_subject_type_to_hash_type
+
+
 logger = logging.getLogger(__name__)
-
-
-def oidc_subject_type_to_hash_type(subject_type):
-    if subject_type == "public":
-        return UserIdHashType.public
-
-    return UserIdHashType.pairwise
 
 
 class OpenIDConnectFrontend(FrontendModule):
@@ -140,12 +135,12 @@ class OpenIDConnectFrontend(FrontendModule):
         """
         auth_req = self._get_authn_request_from_state(exception.state)
         # If the client sent us a state parameter, we should reflect it back according to the spec
-        if 'state' in auth_req: 
+        if 'state' in auth_req:
             error_resp = AuthorizationErrorResponse(error="access_denied",
                                                     error_description=exception.message,
                                                     state=auth_req['state'])
-        else:                                           
-            error_resp = AuthorizationErrorResponse(error="access_denied", 
+        else:
+            error_resp = AuthorizationErrorResponse(error="access_denied",
                                                     error_description=exception.message)
         satosa_logging(logger, logging.DEBUG, exception.message, exception.state)
         return SeeOther(error_resp.request(auth_req["redirect_uri"], should_fragment_encode(auth_req)))
@@ -286,7 +281,7 @@ class OpenIDConnectFrontend(FrontendModule):
 
         client_id = authn_req["client_id"]
         context.state[self.name] = {"oidc_request": request}
-        hash_type = oidc_subject_type_to_hash_type(self.provider.clients[client_id].get("subject_type", "pairwise"))
+        hash_type = self.provider.clients[client_id].get("subject_type", "pairwise")
         client_name = self.provider.clients[client_id].get("client_name")
         if client_name:
             # TODO should process client names for all languages, see OIDC Registration, Section 2.1

@@ -9,8 +9,10 @@ import responses
 from jwkest.jwk import RSAKey, rsa_load
 from jwkest.jws import JWS
 
+from saml2.saml import NAMEID_FORMAT_PERSISTENT
+
 from satosa.context import Context
-from satosa.internal_data import InternalResponse, UserIdHashType, InternalRequest, \
+from satosa.internal_data import InternalResponse, InternalRequest, \
     AuthenticationInformation
 from satosa.micro_services import consent
 from satosa.micro_services.consent import Consent, UnexpectedResponseError
@@ -49,7 +51,7 @@ class TestConsent:
 
     @pytest.fixture
     def internal_request(self):
-        req = InternalRequest(UserIdHashType.persistent, "example_requester")
+        req = InternalRequest(NAMEID_FORMAT_PERSISTENT, "example_requester")
         req.approved_attributes = FILTER + ["sn"]
         return req
 

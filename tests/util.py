@@ -19,7 +19,7 @@ from saml2.samlp import NameIDPolicy
 
 from satosa.backends.base import BackendModule
 from satosa.frontends.base import FrontendModule
-from satosa.internal_data import InternalRequest, UserIdHashType, InternalResponse, AuthenticationInformation
+from satosa.internal_data import InternalRequest, InternalResponse, AuthenticationInformation
 from satosa.micro_services.base import RequestMicroService, ResponseMicroService
 from satosa.response import Response
 
@@ -471,7 +471,7 @@ class TestFrontend(FrontendModule):
         return url_map
 
     def handle_request(self, context):
-        internal_req = InternalRequest(UserIdHashType.transient, "test_client", None)
+        internal_req = InternalRequest(NAMEID_FORMAT_TRANSIENT, "test_client", None)
         return self.auth_req_callback_func(context, internal_req)
 
     def handle_authn_response(self, context, internal_resp):
