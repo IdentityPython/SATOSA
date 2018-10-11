@@ -13,7 +13,6 @@ from satosa.micro_services import consent
 from .context import Context
 from .exception import SATOSAConfigurationError
 from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
-from .internal_data import UserIdHasher
 from .logging_util import satosa_logging
 from .micro_services.account_linking import AccountLinking
 from .micro_services.consent import Consent
@@ -119,7 +118,6 @@ class SATOSABase(object):
         satosa_logging(logger, logging.INFO,
                        "Requesting provider: {}".format(internal_request.requester), state)
 
-        UserIdHasher.save_state(internal_request, state)
         if self.request_micro_services:
             return self.request_micro_services[0].process(context, internal_request)
 
@@ -131,15 +129,6 @@ class SATOSABase(object):
         return backend.start_auth(context, internal_request)
 
     def _auth_resp_finish(self, context, internal_response):
-        # re-hash user id since e.g. account linking micro service might have changed it
-        user_id = UserIdHasher.hash_id(
-            self.config["USER_ID_HASH_SALT"],
-            internal_response.user_id,
-            internal_response.requester,
-            context.state)
-        internal_response.user_id = user_id
-        internal_response.user_id_hash_type = UserIdHasher.hash_type(
-            context.state)
         user_id_to_attr = self.config["INTERNAL_ATTRIBUTES"].get("user_id_to_attr", None)
         if user_id_to_attr:
             internal_response.attributes[user_id_to_attr] = [internal_response.user_id]
@@ -186,20 +175,6 @@ class SATOSABase(object):
                 self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"]
             ]
             internal_response.user_id = "".join(user_id)
-
-        # The authentication response may not contain a user id. For example
-        # a SAML IdP may not assert a SAML NameID in the subject and we may
-        # not be configured to construct one from asserted attributes.
-        # So only hash the user_id if it is not None.
-        if internal_response.user_id:
-            user_id = UserIdHasher.hash_id(
-                self.config["USER_ID_HASH_SALT"],
-                internal_response.user_id,
-                internal_response.requester,
-                context.state)
-            internal_response.user_id = user_id
-            internal_response.user_id_hash_type = UserIdHasher.hash_type(
-                context.state)
 
         if self.response_micro_services:
             return self.response_micro_services[0].process(

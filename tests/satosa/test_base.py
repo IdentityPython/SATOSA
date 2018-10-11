@@ -10,7 +10,7 @@ import satosa
 from satosa import util
 from satosa.base import SATOSABase
 from satosa.exception import SATOSAConfigurationError
-from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHasher, InternalRequest
+from satosa.internal_data import InternalResponse, AuthenticationInformation, InternalRequest
 from satosa.micro_services import consent
 from satosa.satosa_config import SATOSAConfig
 
@@ -49,21 +49,10 @@ class TestSATOSABase:
         internal_resp.requester = "test_requester"
         context.state[satosa.base.STATE_KEY] = {"requester": "test_requester"}
         context.state[satosa.routing.STATE_KEY] = satosa_config["FRONTEND_MODULES"][0]["name"]
-        UserIdHasher.save_state(InternalRequest(NAMEID_FORMAT_PERSISTENT, ""), context.state)
 
         base._auth_resp_callback_func(context, internal_resp)
 
         expected_user_id = "user@example.com"
-        expected_user_id = UserIdHasher.hash_id(
-                satosa_config["USER_ID_HASH_SALT"],
-                expected_user_id,
-                internal_resp.requester,
-                context.state)
-        expected_user_id = UserIdHasher.hash_id(
-                satosa_config["USER_ID_HASH_SALT"],
-                expected_user_id,
-                internal_resp.requester,
-                context.state)
         assert internal_resp.user_id == expected_user_id
 
     def test_auth_req_callback_stores_state_for_consent(self, context, satosa_config):
@@ -86,7 +75,6 @@ class TestSATOSABase:
         internal_resp = InternalResponse(AuthenticationInformation("", "", ""))
         internal_resp.attributes = copy.copy(attributes)
         internal_resp.user_id = "test_user"
-        UserIdHasher.save_state(InternalRequest(NAMEID_FORMAT_TRANSIENT, ""), context.state)
         context.state[satosa.base.STATE_KEY] = {"requester": "test_requester"}
         context.state[satosa.routing.STATE_KEY] = satosa_config["FRONTEND_MODULES"][0]["name"]
 
@@ -105,7 +93,6 @@ class TestSATOSABase:
         internal_resp.user_id = "user1234"
         context.state[satosa.base.STATE_KEY] = {"requester": "test_requester"}
         context.state[satosa.routing.STATE_KEY] = satosa_config["FRONTEND_MODULES"][0]["name"]
-        UserIdHasher.save_state(InternalRequest(NAMEID_FORMAT_TRANSIENT, ""), context.state)
 
         base._auth_resp_callback_func(context, internal_resp)
         assert internal_resp.attributes["user_id"] == [internal_resp.user_id]
