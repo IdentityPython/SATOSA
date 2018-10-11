@@ -1,3 +1,4 @@
+import datetime
 import warnings as _warnings
 from enum import Enum
 
@@ -5,6 +6,8 @@ from saml2.saml import NAMEID_FORMAT_TRANSIENT
 from saml2.saml import NAMEID_FORMAT_PERSISTENT
 from saml2.saml import NAMEID_FORMAT_EMAILADDRESS
 from saml2.saml import NAMEID_FORMAT_UNSPECIFIED
+
+from satosa import util
 
 
 _warnings.simplefilter("default")
@@ -35,6 +38,96 @@ class UserIdHashType(Enum):
             return getattr(cls, str)
         except AttributeError:
             raise ValueError("Unknown hash type '{}'".format(str))
+
+
+class UserIdHasher(object):
+    """
+    Class for creating different user id types
+    """
+
+    STATE_KEY = "IDHASHER"
+
+    @staticmethod
+    def save_state(internal_request, state):
+        """
+        Saves all necessary information needed by the UserIdHasher
+
+        :type internal_request: satosa.internal_data.InternalRequest
+
+        :param internal_request: The request
+        :param state: The current state
+        """
+        state_data = {"hash_type": internal_request.user_id_hash_type}
+        state[UserIdHasher.STATE_KEY] = state_data
+
+    @staticmethod
+    def hash_data(salt, value):
+        """
+        Hashes a value together with a salt.
+        :type salt: str
+        :type value: str
+        :param salt: hash salt
+        :param value: value to hash together with the salt
+        :return: hash value (SHA512)
+        """
+        msg = "UserIdHasher is deprecated; use satosa.util.hash_data instead."
+        _warnings.warn(msg, DeprecationWarning)
+        return util.hash_data(salt, value)
+
+    @staticmethod
+    def hash_type(state):
+        state_data = state[UserIdHasher.STATE_KEY]
+        hash_type = state_data["hash_type"]
+        return hash_type
+
+    @staticmethod
+    def hash_id(salt, user_id, requester, state):
+        """
+        Sets a user id to the internal_response,
+        in the format specified by the internal response
+
+        :type salt: str
+        :type user_id: str
+        :type requester: str
+        :type state: satosa.state.State
+        :rtype: str
+
+        :param salt: A salt string for the ID hashing
+        :param user_id: the user id
+        :param user_id_hash_type: Hashing type
+        :param state: The current state
+        :return: the internal_response containing the hashed user ID
+        """
+        hash_type_to_format = {
+            NAMEID_FORMAT_TRANSIENT: "{id}{req}{time}",
+            NAMEID_FORMAT_PERSISTENT: "{id}{req}",
+            "pairwise": "{id}{req}",
+            "public": "{id}",
+            NAMEID_FORMAT_EMAILADDRESS: "{id}",
+            NAMEID_FORMAT_UNSPECIFIED: "{id}",
+        }
+
+        format_args = {
+            "id": user_id,
+            "req": requester,
+            "time": datetime.datetime.utcnow().timestamp(),
+        }
+
+        hash_type = UserIdHasher.hash_type(state)
+        try:
+            fmt = hash_type_to_format[hash_type]
+        except KeyError as e:
+            raise ValueError("Unknown hash type: {}".format(hash_type)) from e
+        else:
+            user_id = fmt.format(**format_args)
+
+        hasher = (
+            (lambda salt, value: value)
+            if hash_type
+            in [NAMEID_FORMAT_EMAILADDRESS, NAMEID_FORMAT_UNSPECIFIED]
+            else util.hash_data
+        )
+        return hasher(salt, user_id)
 
 
 def saml_name_id_format_to_hash_type(name_format):
