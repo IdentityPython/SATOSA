@@ -18,6 +18,7 @@ from saml2.saml import NAMEID_FORMAT_TRANSIENT
 from saml2.saml import NAMEID_FORMAT_PERSISTENT
 from saml2.saml import NAMEID_FORMAT_EMAILADDRESS
 from saml2.saml import NAMEID_FORMAT_UNSPECIFIED
+from saml2.saml import NameID, Subject
 from saml2.samlp import NameIDPolicy
 
 from satosa.attribute_mapping import AttributeMapper
@@ -57,7 +58,8 @@ class TestSAMLFrontend:
         return "{parsed.scheme}://{parsed.netloc}".format(parsed=urlparse(entity_id))
 
     def setup_for_authn_req(self, context, idp_conf, sp_conf, nameid_format=None, relay_state="relay_state",
-                            internal_attributes=INTERNAL_ATTRIBUTES, extra_config={}):
+                            internal_attributes=INTERNAL_ATTRIBUTES, extra_config={},
+                            subject=None):
         config = {"idp_config": idp_conf, "endpoints": ENDPOINTS}
         config.update(extra_config)
         sp_metadata_str = create_metadata_from_config_dict(sp_conf)
@@ -72,7 +74,12 @@ class TestSAMLFrontend:
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
 
         fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
-        destination, auth_req = fakesp.make_auth_req(samlfrontend.idp_config["entityid"], nameid_format, relay_state)
+        destination, auth_req = fakesp.make_auth_req(
+            samlfrontend.idp_config["entityid"],
+            nameid_format,
+            relay_state,
+            subject=subject,
+        )
         context.request = auth_req
         tmp_dict = {}
         for val in context.request:
@@ -146,6 +153,18 @@ class TestSAMLFrontend:
                                                    BINDING_HTTP_REDIRECT)
         for key in resp.ava:
             assert USERS["testuser1"][key] == resp.ava[key]
+
+    def test_create_authn_request_with_subject(self, context, idp_conf, sp_conf, internal_response):
+        name_id_value = 'somenameid'
+        name_id = NameID(format=NAMEID_FORMAT_UNSPECIFIED, text=name_id_value)
+        subject = Subject(name_id=name_id)
+        samlfrontend = self.setup_for_authn_req(
+            context, idp_conf, sp_conf, subject=subject
+        )
+        _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
+        assert internal_req.subject_id == name_id_value
+        # XXX TODO how should type be handled?
+        # assert internal_req.subject_type == NAMEID_FORMAT_UNSPECIFIED
 
     def test_handle_authn_request_without_name_id_policy_default_to_name_id_format_from_metadata(
             self, context, idp_conf, sp_conf):

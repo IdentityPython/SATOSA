@@ -38,7 +38,8 @@ class FakeSP(Saml2Client):
         Saml2Client.__init__(self, config)
 
     def make_auth_req(self, entity_id, nameid_format=None, relay_state="relay_state",
-                      request_binding=BINDING_HTTP_REDIRECT, response_binding=BINDING_HTTP_REDIRECT):
+                      request_binding=BINDING_HTTP_REDIRECT, response_binding=BINDING_HTTP_REDIRECT,
+                      subject=None):
         """
         :type entity_id: str
         :rtype: str
@@ -52,8 +53,17 @@ class FakeSP(Saml2Client):
             [request_binding], 'idpsso',
             entity_id=entity_id)
 
-        req_id, req = self.create_authn_request(destination,
-                                                binding=response_binding, nameid_format=nameid_format)
+        kwargs = {}
+        if subject:
+            kwargs['subject'] = subject
+
+        req_id, req = self.create_authn_request(
+            destination,
+            binding=response_binding,
+            nameid_format=nameid_format,
+            **kwargs
+        )
+
         ht_args = self.apply_binding(_binding, '%s' % req, destination,
                                      relay_state=relay_state)
 

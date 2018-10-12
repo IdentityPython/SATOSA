@@ -208,11 +208,14 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             else:
                 name_format = NAMEID_FORMAT_TRANSIENT
 
-        # XXX TODO support nameid on request
-        # subject = authn_req.subject
-        # identifier = subject.text if subject else None
+        subject = authn_req.subject
+        subject_id = subject.name_id.text if subject else None
+        # XXX TODO how should type be handled in relation to name_format above?
+        # subject_type = subject.name_id.format if subject else None
+
         requester_name = self._get_sp_display_name(idp, requester)
         internal_req = InternalData(
+            subject_id=subject_id,
             subject_type=name_format,
             requester=requester,
             requester_name=requester_name,
