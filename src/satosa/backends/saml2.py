@@ -248,14 +248,17 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         info = context.request
         state = context.state
 
-        qs = parse_qs(context.path)
         try:
-            entity_id = qs["entityID"][0]
-        except Exception as err:
-            msg = "qs:\n{pa}".format(pa=json.dumps(qs, indent=4))
-            satosa_logging(logger, logging.DEBUG, msg, context.state)
-            satosa_logging(logger, logging.DEBUG, "No IDP chosen for state", state, exc_info=True)
-            raise SATOSAAuthenticationError(state, "No IDP chosen") from err
+            entity_id = info["entityID"]
+        except KeyError as err:
+            qs = parse_qs(context.path)
+            try:
+                entity_id = qs["entityID"][0]
+            except Exception as err:
+                msg = "qs:\n{pa}".format(pa=json.dumps(qs, indent=4))
+                satosa_logging(logger, logging.DEBUG, msg, context.state)
+                satosa_logging(logger, logging.DEBUG, "No IDP chosen for state", state, exc_info=True)
+                raise SATOSAAuthenticationError(state, "No IDP chosen") from err
 
         return self.authn_request(context, entity_id)
 
