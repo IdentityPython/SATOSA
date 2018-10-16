@@ -22,6 +22,8 @@ from .plugin_loader import load_request_microservices, load_response_microservic
 from .routing import ModuleRouter, SATOSANoBoundEndpointError
 from .state import cookie_to_state, SATOSAStateError, State, state_to_cookie
 
+from satosa.deprecated import hash_attributes
+
 
 _warnings.simplefilter("default")
 
@@ -47,6 +49,14 @@ class SATOSABase(object):
 
         for option in ["USER_ID_HASH_SALT"]:
             if option in self.config:
+                msg = (
+                    "'{opt}' configuration option is deprecated."
+                    " Use the hasher microservice instead."
+                ).format(opt=option)
+                _warnings.warn(msg, DeprecationWarning)
+
+        for option in ["hash"]:
+            if option in self.config["INTERNAL_ATTRIBUTES"]:
                 msg = (
                     "'{opt}' configuration option is deprecated."
                     " Use the hasher microservice instead."
@@ -145,17 +155,11 @@ class SATOSABase(object):
         if user_id_to_attr:
             internal_response.attributes[user_id_to_attr] = [internal_response.user_id]
 
-        # Hash all attributes specified in INTERNAL_ATTRIBUTES["hash"]
-        hash_attributes = self.config["INTERNAL_ATTRIBUTES"].get("hash", [])
-        internal_attributes = internal_response.attributes
-        for attribute in hash_attributes:
-            # hash all attribute values individually
-            if attribute in internal_attributes:
-                hashed_values = [
-                    util.hash_data(self.config["USER_ID_HASH_SALT"], v)
-                    for v in internal_attributes[attribute]
-                ]
-                internal_attributes[attribute] = hashed_values
+        hash_attributes(
+            self.config["INTERNAL_ATTRIBUTES"].get("hash", []),
+            internal_response.attributes,
+            self.config.get("USER_ID_HASH_SALT", ""),
+        )
 
         # remove all session state
         context.request = None
