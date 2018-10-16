@@ -81,7 +81,7 @@ class TestSATOSABase:
         base._auth_resp_callback_func(context, internal_resp)
         for attr in satosa_config["INTERNAL_ATTRIBUTES"]["hash"]:
             assert internal_resp.attributes[attr] == [
-                util.hash_data(satosa_config["USER_ID_HASH_SALT"], v)
+                util.hash_data(satosa_config.get("USER_ID_HASH_SALT", ""), v)
                 for v in attributes[attr]
             ]
 

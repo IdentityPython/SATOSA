@@ -4,6 +4,7 @@ The SATOSA main module
 import json
 import logging
 import uuid
+import warnings as _warnings
 
 from saml2.s_utils import UnknownSystemEntity
 
@@ -21,6 +22,8 @@ from .plugin_loader import load_request_microservices, load_response_microservic
 from .routing import ModuleRouter, SATOSANoBoundEndpointError
 from .state import cookie_to_state, SATOSAStateError, State, state_to_cookie
 
+
+_warnings.simplefilter("default")
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +44,15 @@ class SATOSABase(object):
         :param config: satosa proxy config
         """
         self.config = config
+
+        for option in ["USER_ID_HASH_SALT"]:
+            if option in self.config:
+                msg = (
+                    "'{opt}' configuration option is deprecated."
+                    " Use the hasher microservice instead."
+                ).format(opt=option)
+                _warnings.warn(msg, DeprecationWarning)
+
         logger.info("Loading backend modules...")
         backends = load_backends(self.config, self._auth_resp_callback_func,
                                  self.config["INTERNAL_ATTRIBUTES"])

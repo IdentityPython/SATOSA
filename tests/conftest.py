@@ -134,7 +134,6 @@ def satosa_config_dict(backend_plugin_config, frontend_plugin_config, request_mi
         "FRONTEND_MODULES": ["bar"],
         "INTERNAL_ATTRIBUTES": {"attributes": {}},
         "STATE_ENCRYPTION_KEY": "state_encryption_key",
-        "USER_ID_HASH_SALT": "user_id_hash_salt",
         "CUSTOM_PLUGIN_MODULE_PATHS": [os.path.dirname(__file__)],
         "BACKEND_MODULES": [backend_plugin_config],
         "FRONTEND_MODULES": [frontend_plugin_config],
