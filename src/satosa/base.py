@@ -117,7 +117,7 @@ class SATOSABase(object):
         processed.
 
         :type context: satosa.context.Context
-        :type internal_request: satosa.internal_data.InternalRequest
+        :type internal_request: satosa.internal.InternalData
         :rtype: satosa.response.Response
 
         :param context: The request context
@@ -134,7 +134,7 @@ class SATOSABase(object):
             state_dict = context.state[consent.STATE_KEY] = {}
         finally:
             state_dict.update({
-                "filter": internal_request.approved_attributes or [],
+                "filter": internal_request.attributes or [],
                 "requester_name": internal_request.requester_name,
             })
         satosa_logging(logger, logging.INFO,
@@ -153,7 +153,7 @@ class SATOSABase(object):
     def _auth_resp_finish(self, context, internal_response):
         user_id_to_attr = self.config["INTERNAL_ATTRIBUTES"].get("user_id_to_attr", None)
         if user_id_to_attr:
-            internal_response.attributes[user_id_to_attr] = [internal_response.user_id]
+            internal_response.attributes[user_id_to_attr] = [internal_response.subject_id]
 
         hash_attributes(
             self.config["INTERNAL_ATTRIBUTES"].get("hash", []),
@@ -173,7 +173,7 @@ class SATOSABase(object):
         complete.
 
         :type context: satosa.context.Context
-        :type internal_response: satosa.internal_data.InternalResponse
+        :type internal_response: satosa.internal.InternalData
         :rtype: satosa.response.Response
 
         :param context: The request context
@@ -186,11 +186,11 @@ class SATOSABase(object):
 
         # If configured construct the user id from attribute values.
         if "user_id_from_attrs" in self.config["INTERNAL_ATTRIBUTES"]:
-            user_id = [
+            subject_id = [
                 "".join(internal_response.attributes[attr]) for attr in
                 self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"]
             ]
-            internal_response.user_id = "".join(user_id)
+            internal_response.subject_id = "".join(subject_id)
 
         if self.response_micro_services:
             return self.response_micro_services[0].process(

@@ -23,7 +23,7 @@ class PingFrontend(satosa.frontends.base.FrontendModule):
         """
         See super class method satosa.frontends.base.FrontendModule#handle_authn_response
         :type context: satosa.context.Context
-        :type internal_response: satosa.internal_data.InternalResponse
+        :type internal_response: satosa.internal.InternalData
         :rtype oic.utils.http_util.Response
         """
         raise NotImplementedError()

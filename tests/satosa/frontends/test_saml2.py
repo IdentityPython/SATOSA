@@ -23,7 +23,8 @@ from saml2.samlp import NameIDPolicy
 from satosa.attribute_mapping import AttributeMapper
 from satosa.frontends.saml2 import SAMLFrontend, SAMLMirrorFrontend
 from satosa.frontends.saml2 import subject_type_to_saml_nameid_format
-from satosa.internal_data import InternalResponse, AuthenticationInformation, InternalRequest
+from satosa.internal import AuthenticationInformation
+from satosa.internal import InternalData
 from satosa.state import State
 from tests.users import USERS
 from tests.util import FakeSP, create_metadata_from_config_dict
@@ -48,7 +49,7 @@ class TestSAMLFrontend:
     @pytest.fixture
     def internal_response(self, idp_conf):
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", idp_conf["entityid"])
-        internal_response = InternalResponse(auth_info=auth_info)
+        internal_response = InternalData(auth_info=auth_info)
         internal_response.attributes = AttributeMapper(INTERNAL_ATTRIBUTES).to_internal("saml", USERS["testuser1"])
         return internal_response
 
@@ -150,14 +151,14 @@ class TestSAMLFrontend:
             self, context, idp_conf, sp_conf):
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, nameid_format="")
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
-        assert internal_req.user_id_hash_type == sp_conf["service"]["sp"]["name_id_format"][0]
+        assert internal_req.subject_type == sp_conf["service"]["sp"]["name_id_format"][0]
 
     def test_handle_authn_request_without_name_id_policy_and_metadata_without_name_id_format(
             self, context, idp_conf, sp_conf):
         del sp_conf["service"]["sp"]["name_id_format"]
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, nameid_format="")
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
-        assert internal_req.user_id_hash_type == NAMEID_FORMAT_TRANSIENT
+        assert internal_req.subject_type == NAMEID_FORMAT_TRANSIENT
 
     def test_handle_authn_response_without_relay_state(self, context, idp_conf, sp_conf, internal_response):
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, relay_state=None)
@@ -205,9 +206,11 @@ class TestSAMLFrontend:
         samlfrontend = SAMLFrontend(None, internal_attributes, conf, base_url, "saml_frontend")
         samlfrontend.register_endpoints(["testprovider"])
 
-        internal_req = InternalRequest(NAMEID_FORMAT_PERSISTENT,
-                                       "http://sp.example.com",
-                                       "Example SP")
+        internal_req = InternalData(
+            subject_type=NAMEID_FORMAT_PERSISTENT,
+            requester="http://sp.example.com",
+            requester_name="Example SP",
+        )
         filtered_attributes = samlfrontend._get_approved_attributes(samlfrontend.idp,
                                                                     samlfrontend.idp.config.getattr(
                                                                         "policy", "idp"),

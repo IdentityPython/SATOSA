@@ -8,7 +8,7 @@ import responses
 from saml2.saml import NAMEID_FORMAT_TRANSIENT
 
 from satosa.backends.oauth import FacebookBackend
-from satosa.internal_data import InternalRequest
+from satosa.internal import InternalData
 
 FB_RESPONSE = {
     "id": "fb_id",
@@ -112,7 +112,9 @@ class TestFacebookBackend(object):
 
     def test_start_auth(self, context):
         context.path = 'facebook/sso/redirect'
-        internal_request = InternalRequest(NAMEID_FORMAT_TRANSIENT, 'test_requester')
+        internal_request = InternalData(
+            subject_type=NAMEID_FORMAT_TRANSIENT, requester='test_requester'
+        )
 
         resp = self.fb_backend.start_auth(context, internal_request, mock_get_state)
         login_url = resp.message
@@ -152,7 +154,9 @@ class TestFacebookBackend(object):
         self.setup_facebook_response()
 
         context.path = 'facebook/sso/redirect'
-        internal_request = InternalRequest(NAMEID_FORMAT_TRANSIENT, 'test_requester')
+        internal_request = InternalData(
+            subject_type=NAMEID_FORMAT_TRANSIENT, requester='test_requester'
+        )
 
         self.fb_backend.start_auth(context, internal_request, mock_get_state)
         context.request = {

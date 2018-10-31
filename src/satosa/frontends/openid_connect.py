@@ -21,13 +21,13 @@ from pyop.userinfo import Userinfo
 from pyop.util import should_fragment_encode
 
 from .base import FrontendModule
-from ..internal_data import InternalRequest
 from ..logging_util import satosa_logging
 from ..response import BadRequest, Created
 from ..response import SeeOther, Response
 from ..response import Unauthorized
 from ..util import rndstr
 
+from satosa.internal import InternalData
 from satosa.deprecated import oidc_subject_type_to_hash_type
 
 
@@ -113,15 +113,15 @@ class OpenIDConnectFrontend(FrontendModule):
         """
         See super class method satosa.frontends.base.FrontendModule#handle_authn_response
         :type context: satosa.context.Context
-        :type internal_response: satosa.internal_data.InternalResponse
+        :type internal_response: satosa.internal.InternalData
         :rtype oic.utils.http_util.Response
         """
 
         auth_req = self._get_authn_request_from_state(context.state)
 
         attributes = self.converter.from_internal("openid", internal_resp.attributes)
-        self.user_db[internal_resp.user_id] = {k: v[0] for k, v in attributes.items()}
-        auth_resp = self.provider.authorize(auth_req, internal_resp.user_id, extra_id_token_claims)
+        self.user_db[internal_resp.subject_id] = {k: v[0] for k, v in attributes.items()}
+        auth_resp = self.provider.authorize(auth_req, internal_resp.subject_id, extra_id_token_claims)
 
         del context.state[self.name]
         http_response = auth_resp.request(auth_req["redirect_uri"], should_fragment_encode(auth_req))
@@ -258,7 +258,7 @@ class OpenIDConnectFrontend(FrontendModule):
         """
         Parse and verify the authentication request into an internal request.
         :type context: satosa.context.Context
-        :rtype: internal_data.InternalRequest
+        :rtype: satosa.internal.InternalData
 
         :param context: the current context
         :return: the internal request
@@ -281,16 +281,20 @@ class OpenIDConnectFrontend(FrontendModule):
 
         client_id = authn_req["client_id"]
         context.state[self.name] = {"oidc_request": request}
-        hash_type = self.provider.clients[client_id].get("subject_type", "pairwise")
+        subject_type = self.provider.clients[client_id].get("subject_type", "pairwise")
         client_name = self.provider.clients[client_id].get("client_name")
         if client_name:
             # TODO should process client names for all languages, see OIDC Registration, Section 2.1
             requester_name = [{"lang": "en", "text": client_name}]
         else:
             requester_name = None
-        internal_req = InternalRequest(hash_type, client_id, requester_name)
+        internal_req = InternalData(
+            subject_type=subject_type,
+            requester=client_id,
+            requester_name=requester_name,
+        )
 
-        internal_req.approved_attributes = self.converter.to_internal_filter(
+        internal_req.attributes = self.converter.to_internal_filter(
             "openid", self._get_approved_attributes(self.provider.configuration_information["claims_supported"],
                                                     authn_req))
         return internal_req
@@ -305,7 +309,7 @@ class OpenIDConnectFrontend(FrontendModule):
         :return: HTTP response to the client
         """
         internal_req = self._handle_authn_request(context)
-        if not isinstance(internal_req, InternalRequest):
+        if not isinstance(internal_req, InternalData):
             return internal_req
         return self.auth_req_callback_func(context, internal_req)
 

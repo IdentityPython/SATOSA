@@ -19,7 +19,7 @@ from saml2.s_utils import deflate_and_base64_encode
 
 from satosa.backends.saml2 import SAMLBackend
 from satosa.context import Context
-from satosa.internal_data import InternalRequest
+from satosa.internal import InternalData
 from tests.users import USERS
 from tests.util import FakeIdP, create_metadata_from_config_dict, FakeSP
 
@@ -98,7 +98,7 @@ class TestSAMLBackend:
             assert any(p.match(endp) for p in compiled_regex)
 
     def test_start_auth_defaults_to_redirecting_to_discovery_server(self, context, sp_conf):
-        resp = self.samlbackend.start_auth(context, InternalRequest(None, None))
+        resp = self.samlbackend.start_auth(context, InternalData())
         self.assert_redirect_to_discovery_server(resp, sp_conf)
 
     def test_full_flow(self, context, idp_conf, sp_conf):
@@ -109,7 +109,7 @@ class TestSAMLBackend:
         context.state[test_state_key] = "my_state"
 
         # start auth flow (redirecting to discovery server)
-        resp = self.samlbackend.start_auth(context, InternalRequest(None, None))
+        resp = self.samlbackend.start_auth(context, InternalData())
         self.assert_redirect_to_discovery_server(resp, sp_conf)
 
         # fake response from discovery server
@@ -148,7 +148,7 @@ class TestSAMLBackend:
         entityid = idp_conf["entityid"]
         context.decorate(Context.KEY_TARGET_ENTITYID, entityid)
 
-        resp = self.samlbackend.start_auth(context, InternalRequest(None, None))
+        resp = self.samlbackend.start_auth(context, InternalData())
         self.assert_redirect_to_idp(resp, idp_conf)
 
     def test_redirect_to_idp_if_only_one_idp_in_metadata(self, context, sp_conf, idp_conf):
@@ -156,7 +156,7 @@ class TestSAMLBackend:
         # instantiate new backend, without any discovery service configured
         samlbackend = SAMLBackend(None, INTERNAL_ATTRIBUTES, {"sp_config": sp_conf}, "base_url", "saml_backend")
 
-        resp = samlbackend.start_auth(context, InternalRequest(None, None))
+        resp = samlbackend.start_auth(context, InternalData())
         self.assert_redirect_to_idp(resp, idp_conf)
 
     def test_always_redirect_to_discovery_service_if_using_mdq(self, context, sp_conf, idp_conf):
@@ -165,7 +165,7 @@ class TestSAMLBackend:
         sp_conf["metadata"]["mdq"] = ["https://mdq.example.com"]
         samlbackend = SAMLBackend(None, INTERNAL_ATTRIBUTES, {"sp_config": sp_conf, "disco_srv": DISCOSRV_URL,},
                                   "base_url", "saml_backend")
-        resp = samlbackend.start_auth(context, InternalRequest(None, None))
+        resp = samlbackend.start_auth(context, InternalData())
         self.assert_redirect_to_discovery_server(resp, sp_conf)
 
     def test_authn_request(self, context, idp_conf):

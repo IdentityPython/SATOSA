@@ -4,7 +4,7 @@ import pytest
 
 from satosa.context import Context
 from satosa.exception import SATOSAError, SATOSAConfigurationError
-from satosa.internal_data import InternalRequest
+from satosa.internal import InternalData
 from satosa.micro_services.custom_routing import DecideIfRequesterIsAllowed
 
 TARGET_ENTITY = "entity1"
@@ -33,7 +33,7 @@ class TestDecideIfRequesterIsAllowed:
         }
         decide_service = self.create_decide_service(rules)
 
-        req = InternalRequest(None, "test_requester", None)
+        req = InternalData(requester="test_requester")
         assert decide_service.process(target_context, req)
 
         req.requester = "somebody else"
@@ -52,7 +52,7 @@ class TestDecideIfRequesterIsAllowed:
         }
         decide_service = self.create_decide_service(rules)
 
-        req = InternalRequest(None, requester, None)
+        req = InternalData(requester=requester)
         assert decide_service.process(target_context, req)
 
     def test_deny_one_requester(self, target_context):
@@ -63,7 +63,7 @@ class TestDecideIfRequesterIsAllowed:
         }
         decide_service = self.create_decide_service(rules)
 
-        req = InternalRequest(None, "test_requester", None)
+        req = InternalData(requester="test_requester")
         with pytest.raises(SATOSAError):
             assert decide_service.process(target_context, req)
 
@@ -79,7 +79,7 @@ class TestDecideIfRequesterIsAllowed:
         }
         decide_service = self.create_decide_service(rules)
 
-        req = InternalRequest(None, requester, None)
+        req = InternalData(requester=requester)
         with pytest.raises(SATOSAError):
             decide_service.process(target_context, req)
 
@@ -93,7 +93,7 @@ class TestDecideIfRequesterIsAllowed:
         }
         decide_service = self.create_decide_service(rules)
 
-        req = InternalRequest(None, requester, None)
+        req = InternalData(requester=requester)
 
         assert decide_service.process(target_context, req)
 
@@ -111,12 +111,12 @@ class TestDecideIfRequesterIsAllowed:
         }
         decide_service = self.create_decide_service(rules)
 
-        req = InternalRequest(None, requester, None)
+        req = InternalData(requester=requester)
 
         with pytest.raises(SATOSAError):
             decide_service.process(target_context, req)
 
-        req = InternalRequest(None, "somebody else", None)
+        req = InternalData(requester="somebody else")
         decide_service.process(target_context, req)
 
     @pytest.mark.parametrize("requester", [
@@ -141,7 +141,7 @@ class TestDecideIfRequesterIsAllowed:
         }
         decide_service = self.create_decide_service(rules)
 
-        req = InternalRequest(None, "test_requester", None)
+        req = InternalData(requester="test_requester")
         assert decide_service.process(target_context, req)
 
     def test_missing_target_entity_id_from_context(self, context):
@@ -153,6 +153,6 @@ class TestDecideIfRequesterIsAllowed:
         }
         decide_service = self.create_decide_service(rules)
 
-        req = InternalRequest(None, "test_requester", None)
+        req = InternalData(requester="test_requester")
         with pytest.raises(SATOSAError):
             decide_service.process(context, req)

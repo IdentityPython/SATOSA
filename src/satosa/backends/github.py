@@ -10,10 +10,10 @@ from oic.oauth2.consumer import stateID
 from oic.oauth2.message import AuthorizationResponse
 
 from satosa.backends.oauth import _OAuthBackend
-from ..internal_data import InternalResponse
-from ..internal_data import AuthenticationInformation
-from ..response import Redirect
-from ..util import rndstr
+from satosa.internal import AuthenticationInformation
+from satosa.internal import InternalData
+from satosa.response import Redirect
+from satosa.util import rndstr
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class GitHubBackend(_OAuthBackend):
         :param base_url: base url of the service
         :param name: name of the plugin
         :type outgoing:
-            (satosa.context.Context, satosa.internal_data.InternalResponse) ->
+            (satosa.context.Context, satosa.internal.InternalData) ->
             satosa.response.Response
         :type internal_attributes: dict[string, dict[str, str | list[str]]]
         :type config: dict[str, dict[str, str] | list[str] | str]
@@ -51,7 +51,7 @@ class GitHubBackend(_OAuthBackend):
 
         :type get_state: Callable[[str, bytes], str]
         :type context: satosa.context.Context
-        :type internal_request: satosa.internal_data.InternalRequest
+        :type internal_request: satosa.internal.InternalData
         :rtype satosa.response.Redirect
         """
         oauth_state = get_state(self.config["base_url"], rndstr().encode())
@@ -95,10 +95,10 @@ class GitHubBackend(_OAuthBackend):
 
         user_info = self.user_information(response["access_token"])
         auth_info = self.auth_info(context.request)
-        internal_response = InternalResponse(auth_info=auth_info)
+        internal_response = InternalData(auth_info=auth_info)
         internal_response.attributes = self.converter.to_internal(
             self.external_type, user_info)
-        internal_response.user_id = str(user_info[self.user_id_attr])
+        internal_response.subject_id = str(user_info[self.user_id_attr])
         del context.state[self.name]
         return self.auth_callback_func(context, internal_response)
 

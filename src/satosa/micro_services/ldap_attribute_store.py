@@ -1,5 +1,5 @@
 """
-SATOSA microservice that uses an identifier asserted by 
+SATOSA microservice that uses an identifier asserted by
 the home organization SAML IdP as a key to search an LDAP
 directory for a record and then consume attributes from
 the record and assert them to the receiving SP.
@@ -41,7 +41,7 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
         value = ""
 
         # If the identifier is a list of identifiers then loop over them
-        # calling ourself recursively and concatenate the values from 
+        # calling ourself recursively and concatenate the values from
         # the identifiers together.
         if isinstance(identifier, list):
             for i in identifier:
@@ -74,7 +74,7 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
         config = self.config
         configClean = copy.deepcopy(config)
         if 'bind_password' in configClean:
-            configClean['bind_password'] = 'XXXXXXXX'    
+            configClean['bind_password'] = 'XXXXXXXX'
 
         satosa_logging(logger, logging.DEBUG, "{} Using default configuration {}".format(logprefix, configClean), context.state)
 
@@ -92,9 +92,9 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
             config = self.config[spEntityID]
             configClean = copy.deepcopy(config)
             if 'bind_password' in configClean:
-                configClean['bind_password'] = 'XXXXXXXX'    
+                configClean['bind_password'] = 'XXXXXXXX'
             satosa_logging(logger, logging.DEBUG, "{} For SP {} using configuration {}".format(logprefix, spEntityID, configClean), context.state)
-        
+
         # Obtain configuration details from the per-SP configuration or the default configuration
         try:
             if 'ldap_url' in config:
@@ -189,7 +189,7 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                         satosa_logging(logger, logging.WARN, "{} LDAP server returned {} records using IdP asserted attribute {}".format(logprefix, len(responses), identifier), context.state)
                     record = responses[0]
                     break
-                        
+
         except Exception as err:
             satosa_logging(logger, logging.ERROR, "{} Caught exception: {0}".format(logprefix, err), None)
             return super().process(context, data)
@@ -239,8 +239,8 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                 if not userId:
                     satosa_logging(logger, logging.WARNING, "{} Input for NameID is empty so not overriding default".format(logprefix), context.state)
                 else:
-                    data.user_id = userId
-                    satosa_logging(logger, logging.DEBUG, "{} Input for NameID is {}".format(logprefix, data.user_id), context.state)
+                    data.subject_id = userId
+                    satosa_logging(logger, logging.DEBUG, "{} Input for NameID is {}".format(logprefix, data.subject_id), context.state)
 
         else:
             satosa_logging(logger, logging.WARN, "{} No record found in LDAP so no attributes will be added".format(logprefix), context.state)

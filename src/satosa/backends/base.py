@@ -13,7 +13,7 @@ class BackendModule(object):
     def __init__(self, auth_callback_func, internal_attributes, base_url, name):
         """
         :type auth_callback_func:
-        (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
+        (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
         :type internal_attributes: dict[string, dict[str, str | list[str]]]
         :type base_url: str
         :type name: str
@@ -37,7 +37,7 @@ class BackendModule(object):
         This is the start up function of the backend authorization.
 
         :type context: satosa.context.Context
-        :type internal_request: satosa.internal_data.InternalRequest
+        :type internal_request: satosa.internal.InternalData
         :rtype satosa.response.Response
 
         :param context: the request context

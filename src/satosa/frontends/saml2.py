@@ -27,13 +27,13 @@ from saml2.server import Server
 from satosa.base import SAMLBaseModule
 from satosa.context import Context
 from .base import FrontendModule
-from ..internal_data import InternalRequest
 from ..logging_util import satosa_logging
 from ..response import Response
 from ..response import ServiceError
 from ..saml_util import make_saml_response
 import satosa.util as util
 
+from satosa.internal import InternalData
 from satosa.deprecated import saml_name_id_format_to_hash_type
 from satosa.deprecated import hash_type_to_saml_name_id_format
 
@@ -78,7 +78,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         """
         See super class method satosa.frontends.base.FrontendModule#handle_authn_response
         :type context: satosa.context.Context
-        :type internal_response: satosa.internal_data.InternalResponse
+        :type internal_response: satosa.internal.InternalData
         :rtype satosa.response.Response
         """
         return self._handle_authn_response(context, internal_response, self.idp)
@@ -208,12 +208,19 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             else:
                 name_format = NAMEID_FORMAT_TRANSIENT
 
+        # XXX TODO support nameid on request
+        # subject = authn_req.subject
+        # identifier = subject.text if subject else None
         requester_name = self._get_sp_display_name(idp, requester)
-        internal_req = InternalRequest(name_format, requester, requester_name)
+        internal_req = InternalData(
+            subject_type=name_format,
+            requester=requester,
+            requester_name=requester_name,
+        )
 
         idp_policy = idp.config.getattr("policy", "idp")
         if idp_policy:
-            internal_req.approved_attributes = self._get_approved_attributes(
+            internal_req.attributes = self._get_approved_attributes(
                     idp, idp_policy, requester, context.state)
 
         return self.auth_req_callback_func(context, internal_req)
@@ -262,7 +269,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         See super class satosa.frontends.base.FrontendModule
 
         :type context: satosa.context.Context
-        :type internal_response: satosa.internal_data.InternalResponse
+        :type internal_response: satosa.internal.InternalData
         :type idp: saml.server.Server
 
         :param context: The current context
@@ -297,9 +304,9 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             for k in attributes_to_remove:
                 ava.pop(k, None)
 
-        nameid_value = internal_response.user_id
+        nameid_value = internal_response.subject_id
         nameid_format = subject_type_to_saml_nameid_format(
-            internal_response.user_id_hash_type
+            internal_response.subject_type
         )
         name_id = NameID(
             text=nameid_value,
@@ -451,7 +458,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         satosa_logging(logger, logging.DEBUG, "Common domain cookie list of IdPs is {}".format(idp_list), context.state)
 
         # Identity the current IdP just used for authentication in this flow.
-        this_flow_idp = internal_response.to_dict()['auth_info']['issuer']
+        this_flow_idp = internal_response.auth_info.issuer
 
         # Remove all occurrences of the current IdP from the list of IdPs.
         idp_list = [idp for idp in idp_list if idp != this_flow_idp]

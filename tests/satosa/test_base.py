@@ -10,7 +10,8 @@ import satosa
 from satosa import util
 from satosa.base import SATOSABase
 from satosa.exception import SATOSAConfigurationError
-from satosa.internal_data import InternalResponse, AuthenticationInformation, InternalRequest
+from satosa.internal import AuthenticationInformation
+from satosa.internal import InternalData
 from satosa.micro_services import consent
 from satosa.satosa_config import SATOSAConfig
 
@@ -44,7 +45,7 @@ class TestSATOSABase:
         satosa_config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"] = ["user_id", "domain"]
         base = SATOSABase(satosa_config)
 
-        internal_resp = InternalResponse(AuthenticationInformation("", "", ""))
+        internal_resp = InternalData(auth_info=AuthenticationInformation("", "", ""))
         internal_resp.attributes = {"user_id": ["user"], "domain": ["@example.com"]}
         internal_resp.requester = "test_requester"
         context.state[satosa.base.STATE_KEY] = {"requester": "test_requester"}
@@ -53,28 +54,30 @@ class TestSATOSABase:
         base._auth_resp_callback_func(context, internal_resp)
 
         expected_user_id = "user@example.com"
-        assert internal_resp.user_id == expected_user_id
+        assert internal_resp.subject_id == expected_user_id
 
     def test_auth_req_callback_stores_state_for_consent(self, context, satosa_config):
         base = SATOSABase(satosa_config)
 
         context.target_backend = satosa_config["BACKEND_MODULES"][0]["name"]
         requester_name = [{"lang": "en", "text": "Test EN"}, {"lang": "sv", "text": "Test SV"}]
-        internal_req = InternalRequest(NAMEID_FORMAT_TRANSIENT, None, requester_name)
-        internal_req.approved_attributes = ["attr1", "attr2"]
+        internal_req = InternalData(
+            subject_type=NAMEID_FORMAT_TRANSIENT, requester_name=requester_name,
+        )
+        internal_req.attributes = ["attr1", "attr2"]
         base._auth_req_callback_func(context, internal_req)
 
         assert context.state[consent.STATE_KEY]["requester_name"] == internal_req.requester_name
-        assert context.state[consent.STATE_KEY]["filter"] == internal_req.approved_attributes
+        assert context.state[consent.STATE_KEY]["filter"] == internal_req.attributes
 
     def test_auth_resp_callback_func_hashes_all_specified_attributes(self, context, satosa_config):
         satosa_config["INTERNAL_ATTRIBUTES"]["hash"] = ["user_id", "mail"]
         base = SATOSABase(satosa_config)
 
         attributes = {"user_id": ["user"], "mail": ["user@example.com", "user@otherdomain.com"]}
-        internal_resp = InternalResponse(AuthenticationInformation("", "", ""))
+        internal_resp = InternalData(auth_info=AuthenticationInformation("", "", ""))
         internal_resp.attributes = copy.copy(attributes)
-        internal_resp.user_id = "test_user"
+        internal_resp.subject_id = "test_user"
         context.state[satosa.base.STATE_KEY] = {"requester": "test_requester"}
         context.state[satosa.routing.STATE_KEY] = satosa_config["FRONTEND_MODULES"][0]["name"]
 
@@ -89,13 +92,13 @@ class TestSATOSABase:
         satosa_config["INTERNAL_ATTRIBUTES"]["user_id_to_attr"] = "user_id"
         base = SATOSABase(satosa_config)
 
-        internal_resp = InternalResponse(AuthenticationInformation("", "", ""))
-        internal_resp.user_id = "user1234"
+        internal_resp = InternalData(auth_info=AuthenticationInformation("", "", ""))
+        internal_resp.subject_id = "user1234"
         context.state[satosa.base.STATE_KEY] = {"requester": "test_requester"}
         context.state[satosa.routing.STATE_KEY] = satosa_config["FRONTEND_MODULES"][0]["name"]
 
         base._auth_resp_callback_func(context, internal_resp)
-        assert internal_resp.attributes["user_id"] == [internal_resp.user_id]
+        assert internal_resp.attributes["user_id"] == [internal_resp.subject_id]
 
     @pytest.mark.parametrize("micro_services", [
         [Mock()],

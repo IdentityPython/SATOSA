@@ -8,7 +8,8 @@ from jwkest.jwk import rsa_load, RSAKey
 from jwkest.jws import JWS
 
 from satosa.exception import SATOSAAuthenticationError
-from satosa.internal_data import InternalResponse, AuthenticationInformation
+from satosa.internal import AuthenticationInformation
+from satosa.internal import InternalData
 from satosa.micro_services.account_linking import AccountLinking
 from satosa.response import Redirect
 
@@ -17,8 +18,8 @@ class TestAccountLinking():
     @pytest.fixture
     def internal_response(self):
         auth_info = AuthenticationInformation("auth_class_ref", "timestamp", "issuer")
-        internal_response = InternalResponse(auth_info=auth_info)
-        internal_response.user_id = "user1"
+        internal_response = InternalData(auth_info=auth_info)
+        internal_response.subject_id = "user1"
         return internal_response
 
     @pytest.fixture
@@ -40,7 +41,7 @@ class TestAccountLinking():
         uuid = "uuid"
         data = {
             "idp": internal_response.auth_info.issuer,
-            "id": internal_response.user_id,
+            "id": internal_response.subject_id,
             "redirect_endpoint": self.account_linking.base_url + "/account_linking/handle_account_linking"
         }
         key = RSAKey(key=rsa_load(account_linking_config["sign_key"]), use="sig", alg="RS256")
@@ -55,7 +56,7 @@ class TestAccountLinking():
         )
 
         self.account_linking.process(context, internal_response)
-        assert internal_response.user_id == uuid
+        assert internal_response.subject_id == uuid
 
     def test_full_flow(self, account_linking_config, internal_response, context):
         ticket = "ticket"
@@ -73,7 +74,7 @@ class TestAccountLinking():
 
         data = {
             "idp": internal_response.auth_info.issuer,
-            "id": internal_response.user_id,
+            "id": internal_response.subject_id,
             "redirect_endpoint": self.account_linking.base_url + "/account_linking/handle_account_linking"
         }
         key = RSAKey(key=rsa_load(account_linking_config["sign_key"]), use="sig", alg="RS256")
@@ -90,7 +91,7 @@ class TestAccountLinking():
                 match_querystring=True
             )
             internal_response = self.account_linking._handle_al_response(context)
-        assert internal_response.user_id == uuid
+        assert internal_response.subject_id == uuid
 
     @responses.activate
     def test_account_linking_failed(self, account_linking_config, internal_response, context):
@@ -102,15 +103,15 @@ class TestAccountLinking():
             body=ticket,
             content_type="text/html"
         )
-        issuer_user_id = internal_response.user_id
+        issuer_user_id = internal_response.subject_id
         result = self.account_linking.process(context, internal_response)
         assert isinstance(result, Redirect)
         assert result.message.startswith(account_linking_config["redirect_url"])
 
         # account linking endpoint still does not return an id
         internal_response = self.account_linking._handle_al_response(context)
-        #Verify that we kept the user_id the issuer sent us
-        assert internal_response.user_id == issuer_user_id
+        #Verify that we kept the subject_id the issuer sent us
+        assert internal_response.subject_id == issuer_user_id
 
     @responses.activate
     def test_manage_al_handle_failed_connection(self, account_linking_config, internal_response, context):

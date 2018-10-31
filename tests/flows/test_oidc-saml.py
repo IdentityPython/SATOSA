@@ -46,14 +46,14 @@ def oidc_frontend_config(signing_key_path, mongodb_instance):
 
 class TestOIDCToSAML:
     def test_full_flow(self, satosa_config_dict, oidc_frontend_config, saml_backend_config, idp_conf):
-        user_id = "testuser1"
+        subject_id = "testuser1"
 
         # proxy config
         satosa_config_dict["FRONTEND_MODULES"] = [oidc_frontend_config]
         satosa_config_dict["BACKEND_MODULES"] = [saml_backend_config]
         satosa_config_dict["INTERNAL_ATTRIBUTES"]["attributes"] = {attr_name: {"openid": [attr_name],
                                                                                "saml": [attr_name]}
-                                                                   for attr_name in USERS[user_id]}
+                                                                   for attr_name in USERS[subject_id]}
         _, backend_metadata = create_entity_descriptors(SATOSAConfig(satosa_config_dict))
 
         # application
@@ -63,7 +63,7 @@ class TestOIDCToSAML:
         provider_config = json.loads(test_client.get("/.well-known/openid-configuration").data.decode("utf-8"))
 
         # create auth req
-        claims_request = ClaimsRequest(id_token=Claims(**{k: None for k in USERS[user_id]}))
+        claims_request = ClaimsRequest(id_token=Claims(**{k: None for k in USERS[subject_id]}))
         req_args = {"scope": "openid", "response_type": "id_token", "client_id": CLIENT_ID,
                     "redirect_uri": REDIRECT_URI, "nonce": "nonce",
                     "claims": claims_request.to_json()}
@@ -84,7 +84,7 @@ class TestOIDCToSAML:
             req_params["SAMLRequest"],
             req_params["RelayState"],
             BINDING_HTTP_REDIRECT,
-            user_id,
+            subject_id,
             response_binding=BINDING_HTTP_REDIRECT)
 
         # make auth resp to proxy
@@ -97,4 +97,4 @@ class TestOIDCToSAML:
         signing_key = RSAKey(key=rsa_load(oidc_frontend_config["config"]["signing_key_path"]),
                              use="sig", alg="RS256")
         id_token_claims = JWS().verify_compact(resp_dict["id_token"], keys=[signing_key])
-        assert all((k, v[0]) in id_token_claims.items() for k, v in USERS[user_id].items())
+        assert all((k, v[0]) in id_token_claims.items() for k, v in USERS[subject_id].items())

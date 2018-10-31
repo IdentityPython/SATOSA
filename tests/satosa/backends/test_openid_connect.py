@@ -14,7 +14,7 @@ from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
 from satosa.backends.openid_connect import OpenIDConnectBackend, _create_client, STATE_KEY, NONCE_KEY
 from satosa.context import Context
-from satosa.internal_data import InternalResponse
+from satosa.internal import InternalData
 from satosa.response import Response
 
 ISSUER = "https://provider.example.com"
@@ -155,7 +155,7 @@ class TestOpenIDConnectBackend(object):
 
     def test_translate_response_to_internal_response(self, userinfo):
         internal_response = self.oidc_backend._translate_response(userinfo, ISSUER)
-        assert internal_response.user_id == userinfo["sub"]
+        assert internal_response.subject_id == userinfo["sub"]
         self.assert_expected_attributes(internal_response.attributes)
 
     @responses.activate
@@ -169,7 +169,7 @@ class TestOpenIDConnectBackend(object):
 
         args = self.oidc_backend.auth_callback_func.call_args[0]
         assert isinstance(args[0], Context)
-        assert isinstance(args[1], InternalResponse)
+        assert isinstance(args[1], InternalData)
         self.assert_expected_attributes(args[1].attributes)
 
     def test_start_auth_redirects_to_provider_authorization_endpoint(self, context, backend_config):

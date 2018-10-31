@@ -12,10 +12,11 @@ from oic.oic.message import RegistrationRequest
 from oic.utils.authn.authn_context import UNSPECIFIED
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
+from satosa.internal import AuthenticationInformation
+from satosa.internal import InternalData
 from .base import BackendModule
 from .oauth import get_metadata_desc_for_oauth_backend
 from ..exception import SATOSAAuthenticationError, SATOSAError
-from ..internal_data import InternalResponse, AuthenticationInformation
 from ..logging_util import satosa_logging
 from ..response import Redirect
 
@@ -43,7 +44,7 @@ class OpenIDConnectBackend(BackendModule):
         :param name: name of the plugin
 
         :type auth_callback_func:
-        (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
+        (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
         :type internal_attributes: dict[string, dict[str, str | list[str]]]
         :type config: dict[str, dict[str, str] | list[str]]
         :type base_url: str
@@ -62,7 +63,7 @@ class OpenIDConnectBackend(BackendModule):
         """
         See super class method satosa.backends.base#start_auth
         :type context: satosa.context.Context
-        :type request_info: satosa.internal_data.InternalRequest
+        :type request_info: satosa.internal.InternalData
         """
         oidc_nonce = rndstr()
         oidc_state = rndstr()
@@ -209,7 +210,7 @@ class OpenIDConnectBackend(BackendModule):
         :type response: dict[str, str]
         :type issuer: str
         :type subject_type: str
-        :rtype: InternalResponse
+        :rtype: InternalData
 
         :param response: Dictioary with attribute name as key.
         :param issuer: The oidc op that gave the repsonse.
@@ -217,9 +218,9 @@ class OpenIDConnectBackend(BackendModule):
         :return: A SATOSA internal response.
         """
         auth_info = AuthenticationInformation(UNSPECIFIED, str(datetime.now()), issuer)
-        internal_resp = InternalResponse(auth_info=auth_info)
+        internal_resp = InternalData(auth_info=auth_info)
         internal_resp.attributes = self.converter.to_internal("openid", response)
-        internal_resp.user_id = response["sub"]
+        internal_resp.subject_id = response["sub"]
         return internal_resp
 
     def get_metadata_desc(self):
