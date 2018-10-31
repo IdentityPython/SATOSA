@@ -151,7 +151,7 @@ class SATOSABase(object):
             # hash all attribute values individually
             if attribute in internal_attributes:
                 hashed_values = [
-                    UserIdHasher.hash_data(self.config["USER_ID_HASH_SALT"], v)
+                    util.hash_data(self.config["USER_ID_HASH_SALT"], v)
                     for v in internal_attributes[attribute]
                 ]
                 internal_attributes[attribute] = hashed_values

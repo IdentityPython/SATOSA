@@ -3,8 +3,9 @@ The module contains internal data representation in SATOSA and general converter
 for converting from SAML/OAuth/OpenID connect to the internal representation.
 """
 import datetime
-import hashlib
 from enum import Enum
+
+import satosa.util as util
 
 
 class UserIdHashType(Enum):
@@ -57,9 +58,7 @@ class UserIdHasher(object):
         :param value: value to hash together with the salt
         :return: hash value (SHA512)
         """
-        data = '{value}{salt}'.format(value=value, salt=salt).encode()
-        hash = hashlib.sha512(data).hexdigest()
-        return hash
+        return util.hash_data(salt, value)
 
     @staticmethod
     def hash_type(state):
