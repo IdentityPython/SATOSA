@@ -11,9 +11,9 @@ from oic.oauth2.consumer import stateID
 from oic.oauth2.message import AuthorizationResponse
 
 from satosa.backends.oauth import _OAuthBackend
-from ..internal_data import InternalResponse
-from ..internal_data import AuthenticationInformation
-from ..response import Redirect
+from satosa.internal import InternalData
+from satosa.internal import AuthenticationInformation
+from satosa.response import Redirect
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class OrcidBackend(_OAuthBackend):
         :param base_url: base url of the service
         :param name: name of the plugin
         :type outgoing:
-            (satosa.context.Context, satosa.internal_data.InternalResponse) ->
+            (satosa.context.Context, satosa.internal.InternalData) ->
             satosa.response.Response
         :type internal_attributes: dict[string, dict[str, str | list[str]]]
         :type config: dict[str, dict[str, str] | list[str] | str]
@@ -51,7 +51,7 @@ class OrcidBackend(_OAuthBackend):
 
         :type get_state: Callable[[str, bytes], str]
         :type context: satosa.context.Context
-        :type internal_request: satosa.internal_data.InternalRequest
+        :type internal_request: satosa.internal.InternalData
         :rtype satosa.response.Redirect
         """
         request_args = dict(
@@ -85,10 +85,10 @@ class OrcidBackend(_OAuthBackend):
         orcid, name = response['orcid'], response['name']
         user_info = self.user_information(token, orcid, name)
         auth_info = self.auth_info(context.request)
-        internal_response = InternalResponse(auth_info=auth_info)
+        internal_response = InternalData(auth_info=auth_info)
         internal_response.attributes = self.converter.to_internal(
             self.external_type, user_info)
-        internal_response.user_id = orcid
+        internal_response.subject_id = orcid
         return self.auth_callback_func(context, internal_response)
 
     def user_information(self, access_token, orcid, name):

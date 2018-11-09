@@ -10,13 +10,17 @@ from oic.oauth2.consumer import Consumer, stateID
 from oic.oauth2.message import AuthorizationResponse
 from oic.utils.authn.authn_context import UNSPECIFIED
 
-from .base import BackendModule
-from ..exception import SATOSAAuthenticationError
-from ..internal_data import InternalResponse, AuthenticationInformation
-from ..logging_util import satosa_logging
-from ..metadata_creation.description import OrganizationDesc, UIInfoDesc, ContactPersonDesc, MetadataDescription
-from ..response import Redirect
-from ..util import rndstr
+from satosa.internal import AuthenticationInformation
+from satosa.internal import InternalData
+from satosa.exception import SATOSAAuthenticationError
+from satosa.logging_util import satosa_logging
+from satosa.response import Redirect
+from satosa.util import rndstr
+from satosa.metadata_creation.description import (
+    OrganizationDesc, UIInfoDesc, ContactPersonDesc, MetadataDescription
+)
+from satosa.backends.base import BackendModule
+
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +44,7 @@ class _OAuthBackend(BackendModule):
         :param external_type: The name for this module in the internal attributes.
 
         :type outgoing:
-        (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
+        (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
         :type internal_attributes: dict[string, dict[str, str | list[str]]]
         :type config: dict[str, dict[str, str] | list[str]]
         :type base_url: str
@@ -67,7 +71,7 @@ class _OAuthBackend(BackendModule):
 
         :type get_state: Callable[[str, bytes], str]
         :type context: satosa.context.Context
-        :type internal_request: satosa.internal_data.InternalRequest
+        :type internal_request: satosa.internal.InternalData
         :rtype satosa.response.Redirect
         """
         oauth_state = get_state(self.config["base_url"], rndstr().encode())
@@ -132,9 +136,9 @@ class _OAuthBackend(BackendModule):
             self._verify_state(atresp, state_data, context.state)
 
         user_info = self.user_information(atresp["access_token"])
-        internal_response = InternalResponse(auth_info=self.auth_info(context.request))
+        internal_response = InternalData(auth_info=self.auth_info(context.request))
         internal_response.attributes = self.converter.to_internal(self.external_type, user_info)
-        internal_response.user_id = user_info[self.user_id_attr]
+        internal_response.subject_id = user_info[self.user_id_attr]
         del context.state[self.name]
         return self.auth_callback_func(context, internal_response)
 
@@ -187,7 +191,7 @@ class FacebookBackend(_OAuthBackend):
         :param name: name of the plugin
 
         :type outgoing:
-        (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
+        (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
         :type internal_attributes: dict[string, dict[str, str | list[str]]]
         :type config: dict[str, dict[str, str] | list[str] | str]
         :type base_url: str

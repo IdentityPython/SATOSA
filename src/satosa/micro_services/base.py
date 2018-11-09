@@ -23,8 +23,8 @@ class MicroService(object):
         callable is called).
 
         :type context: satosa.context.Context
-        :type data: satosa.internal_data.InternalResponse | satosa.internal_data.InternalRequest
-        :rtype: satosa.internal_data.InternalResponse | satosa.internal_data.InternalRequest
+        :type data: satosa.internal.InternalData
+        :rtype: satosa.internal.InternalData
 
         :param context: The current context
         :param data: Data to be modified

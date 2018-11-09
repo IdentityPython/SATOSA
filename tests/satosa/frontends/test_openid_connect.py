@@ -17,8 +17,9 @@ from saml2.authn_context import PASSWORD
 
 from satosa.attribute_mapping import AttributeMapper
 from satosa.exception import SATOSAAuthenticationError
-from satosa.frontends.openid_connect import OpenIDConnectFrontend, oidc_subject_type_to_hash_type
-from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
+from satosa.frontends.openid_connect import OpenIDConnectFrontend
+from satosa.internal import AuthenticationInformation
+from satosa.internal import InternalData
 from tests.users import USERS
 
 INTERNAL_ATTRIBUTES = {
@@ -81,9 +82,9 @@ class TestOpenIDConnectFrontend(object):
         context.state[frontend.name] = {"oidc_request": auth_req.to_urlencoded()}
 
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
-        internal_response = InternalResponse(auth_info=auth_info)
+        internal_response = InternalData(auth_info=auth_info)
         internal_response.attributes = AttributeMapper(INTERNAL_ATTRIBUTES).to_internal("saml", USERS["testuser1"])
-        internal_response.user_id = USERS["testuser1"]["eduPersonTargetedID"][0]
+        internal_response.subject_id = USERS["testuser1"]["eduPersonTargetedID"][0]
 
         return internal_response
 
@@ -116,8 +117,8 @@ class TestOpenIDConnectFrontend(object):
         context, internal_req = mock_callback.call_args[0]
         assert internal_req.requester == authn_req["client_id"]
         assert internal_req.requester_name == [{"lang": "en", "text": client_name}]
-        assert internal_req.user_id_hash_type == UserIdHashType.pairwise
-        assert internal_req.approved_attributes == ["mail"]
+        assert internal_req.subject_type == 'pairwise'
+        assert internal_req.attributes == ["mail"]
 
     def test_get_approved_attributes(self, frontend):
         claims_req = ClaimsRequest(id_token=Claims(email=None), userinfo=Claims(userinfo_claim=None))
@@ -375,14 +376,3 @@ class TestOpenIDConnectFrontend(object):
         http_response = frontend.userinfo_endpoint(context)
         parsed = OpenIDSchema().deserialize(http_response.message, "json")
         assert "email" in parsed
-
-
-class TestOidcSubjectTypeToHashType:
-    def test_should_default_to_pairwise(self):
-        assert oidc_subject_type_to_hash_type("foobar") == UserIdHashType.pairwise
-
-    def test_should_map_pairwise(self):
-        assert oidc_subject_type_to_hash_type("pairwise") == UserIdHashType.pairwise
-
-    def test_should_map_pairwise(self):
-        assert oidc_subject_type_to_hash_type("public") == UserIdHashType.public

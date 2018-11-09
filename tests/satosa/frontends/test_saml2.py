@@ -18,12 +18,14 @@ from saml2.saml import NAMEID_FORMAT_TRANSIENT
 from saml2.saml import NAMEID_FORMAT_PERSISTENT
 from saml2.saml import NAMEID_FORMAT_EMAILADDRESS
 from saml2.saml import NAMEID_FORMAT_UNSPECIFIED
+from saml2.saml import NameID, Subject
 from saml2.samlp import NameIDPolicy
 
 from satosa.attribute_mapping import AttributeMapper
-from satosa.frontends.saml2 import SAMLFrontend, saml_name_id_format_to_hash_type, SAMLMirrorFrontend
-from satosa.internal_data import InternalResponse, AuthenticationInformation, InternalRequest
-from satosa.internal_data import UserIdHashType
+from satosa.frontends.saml2 import SAMLFrontend, SAMLMirrorFrontend
+from satosa.frontends.saml2 import subject_type_to_saml_nameid_format
+from satosa.internal import AuthenticationInformation
+from satosa.internal import InternalData
 from satosa.state import State
 from tests.users import USERS
 from tests.util import FakeSP, create_metadata_from_config_dict
@@ -48,7 +50,7 @@ class TestSAMLFrontend:
     @pytest.fixture
     def internal_response(self, idp_conf):
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", idp_conf["entityid"])
-        internal_response = InternalResponse(auth_info=auth_info)
+        internal_response = InternalData(auth_info=auth_info)
         internal_response.attributes = AttributeMapper(INTERNAL_ATTRIBUTES).to_internal("saml", USERS["testuser1"])
         return internal_response
 
@@ -56,7 +58,8 @@ class TestSAMLFrontend:
         return "{parsed.scheme}://{parsed.netloc}".format(parsed=urlparse(entity_id))
 
     def setup_for_authn_req(self, context, idp_conf, sp_conf, nameid_format=None, relay_state="relay_state",
-                            internal_attributes=INTERNAL_ATTRIBUTES, extra_config={}):
+                            internal_attributes=INTERNAL_ATTRIBUTES, extra_config={},
+                            subject=None):
         config = {"idp_config": idp_conf, "endpoints": ENDPOINTS}
         config.update(extra_config)
         sp_metadata_str = create_metadata_from_config_dict(sp_conf)
@@ -71,7 +74,12 @@ class TestSAMLFrontend:
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
 
         fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
-        destination, auth_req = fakesp.make_auth_req(samlfrontend.idp_config["entityid"], nameid_format, relay_state)
+        destination, auth_req = fakesp.make_auth_req(
+            samlfrontend.idp_config["entityid"],
+            nameid_format,
+            relay_state,
+            subject=subject,
+        )
         context.request = auth_req
         tmp_dict = {}
         for val in context.request:
@@ -146,19 +154,30 @@ class TestSAMLFrontend:
         for key in resp.ava:
             assert USERS["testuser1"][key] == resp.ava[key]
 
+    def test_create_authn_request_with_subject(self, context, idp_conf, sp_conf, internal_response):
+        name_id_value = 'somenameid'
+        name_id = NameID(format=NAMEID_FORMAT_UNSPECIFIED, text=name_id_value)
+        subject = Subject(name_id=name_id)
+        samlfrontend = self.setup_for_authn_req(
+            context, idp_conf, sp_conf, subject=subject
+        )
+        _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
+        assert internal_req.subject_id == name_id_value
+        # XXX TODO how should type be handled?
+        # assert internal_req.subject_type == NAMEID_FORMAT_UNSPECIFIED
+
     def test_handle_authn_request_without_name_id_policy_default_to_name_id_format_from_metadata(
             self, context, idp_conf, sp_conf):
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, nameid_format="")
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
-        assert internal_req.user_id_hash_type == saml_name_id_format_to_hash_type(
-            sp_conf["service"]["sp"]["name_id_format"][0])
+        assert internal_req.subject_type == sp_conf["service"]["sp"]["name_id_format"][0]
 
     def test_handle_authn_request_without_name_id_policy_and_metadata_without_name_id_format(
             self, context, idp_conf, sp_conf):
         del sp_conf["service"]["sp"]["name_id_format"]
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, nameid_format="")
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
-        assert internal_req.user_id_hash_type == UserIdHashType.transient
+        assert internal_req.subject_type == NAMEID_FORMAT_TRANSIENT
 
     def test_handle_authn_response_without_relay_state(self, context, idp_conf, sp_conf, internal_response):
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, relay_state=None)
@@ -206,9 +225,11 @@ class TestSAMLFrontend:
         samlfrontend = SAMLFrontend(None, internal_attributes, conf, base_url, "saml_frontend")
         samlfrontend.register_endpoints(["testprovider"])
 
-        internal_req = InternalRequest(saml_name_id_format_to_hash_type(NAMEID_FORMAT_PERSISTENT),
-                                       "http://sp.example.com",
-                                       "Example SP")
+        internal_req = InternalData(
+            subject_type=NAMEID_FORMAT_PERSISTENT,
+            requester="http://sp.example.com",
+            requester_name="Example SP",
+        )
         filtered_attributes = samlfrontend._get_approved_attributes(samlfrontend.idp,
                                                                     samlfrontend.idp.config.getattr(
                                                                         "policy", "idp"),
@@ -359,23 +380,45 @@ class TestSAMLMirrorFrontend:
         assert idp.config.entityid == "{}/{}".format(idp_conf["entityid"], self.TARGET_ENTITY_ID)
 
 
-class TestSamlNameIdFormatToHashType:
-    def test_should_default_to_transient(self):
-        assert (saml_name_id_format_to_hash_type("foobar") ==
-                UserIdHashType.transient)
-
-    def test_should_map_transient(self):
-        assert (saml_name_id_format_to_hash_type(NAMEID_FORMAT_TRANSIENT) ==
-                UserIdHashType.transient)
+class TestSubjectTypeToSamlNameIdFormat:
+    def test_should_default_to_persistent(self):
+        assert (
+            subject_type_to_saml_nameid_format("unmatched")
+            == NAMEID_FORMAT_PERSISTENT
+        )
 
     def test_should_map_persistent(self):
-        assert (saml_name_id_format_to_hash_type(NAMEID_FORMAT_PERSISTENT) ==
-                UserIdHashType.persistent)
+        assert (
+            subject_type_to_saml_nameid_format(NAMEID_FORMAT_PERSISTENT)
+            == NAMEID_FORMAT_PERSISTENT
+        )
 
-    def test_should_map_email(self):
-        assert (saml_name_id_format_to_hash_type(NAMEID_FORMAT_EMAILADDRESS) ==
-                UserIdHashType.emailaddress)
+    def test_should_map_transient(self):
+        assert (
+            subject_type_to_saml_nameid_format(NAMEID_FORMAT_TRANSIENT)
+            == NAMEID_FORMAT_TRANSIENT
+        )
+
+    def test_should_map_emailaddress(self):
+        assert (
+            subject_type_to_saml_nameid_format(NAMEID_FORMAT_EMAILADDRESS)
+            == NAMEID_FORMAT_EMAILADDRESS
+        )
 
     def test_should_map_unspecified(self):
-        assert (saml_name_id_format_to_hash_type(NAMEID_FORMAT_UNSPECIFIED) ==
-                UserIdHashType.unspecified)
+        assert (
+            subject_type_to_saml_nameid_format(NAMEID_FORMAT_UNSPECIFIED)
+            == NAMEID_FORMAT_UNSPECIFIED
+        )
+
+    def test_should_map_public(self):
+        assert (
+            subject_type_to_saml_nameid_format("public")
+            == NAMEID_FORMAT_PERSISTENT
+        )
+
+    def test_should_map_pairwise(self):
+        assert (
+            subject_type_to_saml_nameid_format("pairwise")
+            == NAMEID_FORMAT_TRANSIENT
+        )

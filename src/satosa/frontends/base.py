@@ -12,7 +12,7 @@ class FrontendModule(object):
     def __init__(self, auth_req_callback_func, internal_attributes, base_url, name):
         """
         :type auth_req_callback_func:
-        (satosa.context.Context, satosa.internal_data.InternalData) -> satosa.response.Response
+        (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
         :type internal_attributes: dict[str, dict[str, str | list[str]]]
         :type name: str
 
@@ -32,7 +32,7 @@ class FrontendModule(object):
         supposed to send an authorization response to the client.
 
         :type context: satosa.context.Context
-        :type internal_resp: satosa.internal_data.InternalResponse
+        :type internal_resp: satosa.internal.InternalData
         :rtype satosa.response.Response
 
         :param context: The request context

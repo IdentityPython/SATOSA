@@ -8,8 +8,8 @@ import requests
 from jwkest.jwk import rsa_load, RSAKey
 from jwkest.jws import JWS
 
+from satosa.internal import InternalData
 from ..exception import SATOSAAuthenticationError
-from ..internal_data import InternalResponse
 from ..logging_util import satosa_logging
 from ..micro_services.base import ResponseMicroService
 from ..response import Redirect
@@ -47,22 +47,22 @@ class AccountLinking(ResponseMicroService):
         :return: response
         """
         saved_state = context.state[self.name]
-        internal_response = InternalResponse.from_dict(saved_state)
+        internal_response = InternalData.from_dict(saved_state)
 
-        #user_id here is the linked id , not the facebook one, Figure out what to do 
+        #subject_id here is the linked id , not the facebook one, Figure out what to do
         status_code, message = self._get_uuid(context, internal_response.auth_info.issuer, internal_response.attributes['issuer_user_id'])
 
         if status_code == 200:
             satosa_logging(logger, logging.INFO, "issuer/id pair is linked in AL service",
                            context.state)
-            internal_response.user_id = message
+            internal_response.subject_id = message
             if self.id_to_attr:
                 internal_response.attributes[self.id_to_attr] = [message]
 
             del context.state[self.name]
             return super().process(context, internal_response)
         else:
-            # User selected not to link their accounts, so the internal.response.user_id is based on the 
+            # User selected not to link their accounts, so the internal.response.subject_id is based on the
             # issuers id/sub which is fine
             satosa_logging(logger, logging.INFO, "User selected to not link their identity in AL service",
                            context.state)
@@ -75,7 +75,7 @@ class AccountLinking(ResponseMicroService):
         Manage account linking and recovery
 
         :type context: satosa.context.Context
-        :type internal_response: satosa.internal_data.InternalResponse
+        :type internal_response: satosa.internal.InternalData
         :rtype: satosa.response.Response
 
         :param context:
@@ -84,19 +84,19 @@ class AccountLinking(ResponseMicroService):
         :
         """
 
-        status_code, message = self._get_uuid(context, internal_response.auth_info.issuer, internal_response.user_id)
+        status_code, message = self._get_uuid(context, internal_response.auth_info.issuer, internal_response.subject_id)
 
         data = {
             "issuer": internal_response.auth_info.issuer,
             "redirect_endpoint": "%s/account_linking%s" % (self.base_url, self.endpoint)
         }
-    
-        # Store the issuer user_id/sub because we'll need it in handle_al_response
-        internal_response.attributes['issuer_user_id'] = internal_response.user_id
+
+        # Store the issuer subject_id/sub because we'll need it in handle_al_response
+        internal_response.attributes['issuer_user_id'] = internal_response.subject_id
         if status_code == 200:
             satosa_logging(logger, logging.INFO, "issuer/id pair is linked in AL service",
                            context.state)
-            internal_response.user_id = message
+            internal_response.subject_id = message
             data['user_id'] = message
             if self.id_to_attr:
                 internal_response.attributes[self.id_to_attr] = [message]

@@ -13,7 +13,6 @@ FRONTEND_MODULES:
   - "plugins/frontends/saml2_frontend.yaml"
 MICRO_SERVICES:
   - "plugins/microservices/static_attributes.yaml"
-USER_ID_HASH_SALT: "61a89d2db0b9e1e27d490d050b478fe71f352fddd3528a44157f43e339c6c62f2362fb413179937d96172bf84233317"
 LOGGING:
   version: 1
   formatters:

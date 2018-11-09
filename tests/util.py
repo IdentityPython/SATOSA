@@ -19,7 +19,8 @@ from saml2.samlp import NameIDPolicy
 
 from satosa.backends.base import BackendModule
 from satosa.frontends.base import FrontendModule
-from satosa.internal_data import InternalRequest, UserIdHashType, InternalResponse, AuthenticationInformation
+from satosa.internal import AuthenticationInformation
+from satosa.internal import InternalData
 from satosa.micro_services.base import RequestMicroService, ResponseMicroService
 from satosa.response import Response
 
@@ -37,7 +38,8 @@ class FakeSP(Saml2Client):
         Saml2Client.__init__(self, config)
 
     def make_auth_req(self, entity_id, nameid_format=None, relay_state="relay_state",
-                      request_binding=BINDING_HTTP_REDIRECT, response_binding=BINDING_HTTP_REDIRECT):
+                      request_binding=BINDING_HTTP_REDIRECT, response_binding=BINDING_HTTP_REDIRECT,
+                      subject=None):
         """
         :type entity_id: str
         :rtype: str
@@ -51,8 +53,17 @@ class FakeSP(Saml2Client):
             [request_binding], 'idpsso',
             entity_id=entity_id)
 
-        req_id, req = self.create_authn_request(destination,
-                                                binding=response_binding, nameid_format=nameid_format)
+        kwargs = {}
+        if subject:
+            kwargs['subject'] = subject
+
+        req_id, req = self.create_authn_request(
+            destination,
+            binding=response_binding,
+            nameid_format=nameid_format,
+            **kwargs
+        )
+
         ht_args = self.apply_binding(_binding, '%s' % req, destination,
                                      relay_state=relay_state)
 
@@ -456,7 +467,7 @@ class TestBackend(BackendModule):
 
     def handle_response(self, context):
         auth_info = AuthenticationInformation("test", str(datetime.now()), "test_issuer")
-        internal_resp = InternalResponse(auth_info=auth_info)
+        internal_resp = InternalData(auth_info=auth_info)
         internal_resp.attributes = context.request
         internal_resp.user_id = "test_user"
         return self.auth_callback_func(context, internal_resp)
@@ -471,7 +482,9 @@ class TestFrontend(FrontendModule):
         return url_map
 
     def handle_request(self, context):
-        internal_req = InternalRequest(UserIdHashType.transient, "test_client", None)
+        internal_req = InternalData(
+            subject_type=NAMEID_FORMAT_TRANSIENT, requester="test_client"
+        )
         return self.auth_req_callback_func(context, internal_req)
 
     def handle_authn_response(self, context, internal_resp):

@@ -16,7 +16,7 @@ class SATOSAConfig(object):
     A configuration class for the satosa proxy. Verifies that the given config holds all the
     necessary parameters.
     """
-    sensitive_dict_keys = ["STATE_ENCRYPTION_KEY", "USER_ID_HASH_SALT"]
+    sensitive_dict_keys = ["STATE_ENCRYPTION_KEY"]
     mandatory_dict_keys = ["BASE", "BACKEND_MODULES", "FRONTEND_MODULES",
                            "INTERNAL_ATTRIBUTES", "COOKIE_STATE_NAME"]
 

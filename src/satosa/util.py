@@ -1,6 +1,7 @@
 """
 Python package file for util functions.
 """
+import hashlib
 import logging
 import random
 import string
@@ -9,6 +10,26 @@ from satosa.logging_util import satosa_logging
 
 
 logger = logging.getLogger(__name__)
+
+
+def hash_data(salt, value, hash_alg=None):
+    """
+    Hashes a value together with a salt with the given hash algorithm.
+
+    :type salt: str
+    :type hash_alg: str
+    :type value: str
+    :param salt: hash salt
+    :param hash_alg: the hash algorithm to use (default: SHA512)
+    :param value: value to hash together with the salt
+    :return: hashed value
+    """
+    hash_alg = hash_alg or 'sha512'
+    hasher = hashlib.new(hash_alg)
+    hasher.update(salt.encode('utf-8'))
+    hasher.update(value.encode('utf-8'))
+    value_hashed = hasher.hexdigest()
+    return value_hashed
 
 
 def check_set_dict_defaults(dic, spec):
@@ -38,20 +59,24 @@ def check_set_dict_defaults(dic, spec):
                     {})
     return dic
 
+
 def dict_set_nested(dic, keys, value):
     for key in keys[:-1]:
         dic = dic.setdefault(key, {})
     dic[keys[-1]] = value
+
 
 def dict_get_nested(dic, keys):
     for key in keys[:-1]:
         dic = dic.setdefault(key, {})
     return dic[keys[-1]]
 
+
 def get_dict_defaults(d, *keys):
     for key in keys:
-       d = d.get(key, d.get("", d.get("default", {})))
+        d = d.get(key, d.get("", d.get("default", {})))
     return d
+
 
 def rndstr(size=16, alphabet=""):
     """

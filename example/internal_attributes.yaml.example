@@ -40,6 +40,5 @@ attributes:
     orcid: [name.family-name.value]
     openid: [family_name]
     saml: [sn, surname]
-hash: [edupersontargetedid]
 user_id_from_attrs: [edupersontargetedid]
 user_id_to_attr: edupersontargetedid

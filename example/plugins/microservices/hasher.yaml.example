@@ -1,0 +1,39 @@
+module: satosa.micro_services.hasher.Hasher
+name: Hasher
+config:
+  # default settings that apply to every requester
+  "":
+    # default salt configuration is required
+    salt: abcdef0123456789
+
+    # the hash algorithm to use (default: sha512)
+    alg: sha256
+
+    # whether subject_id should be hashed (default: yes)
+    subject_id: yes
+
+    # a list of attributes to hash (default: [])
+    attributes:
+    - edupersontargetedid
+
+  # specific settings for requester 'some_entityid'
+  some_entityid:
+    # for this requester use sha1
+    alg: sha1
+
+    # do not hash any attributes
+    # if this is missing the defaults will be used
+    attributes: []
+
+  # specific settings for requester 'some_other_entityid'
+  some_other_entityid:
+    # for this requester only use this salt
+    salt: abcd1234
+
+    # do not hash subject_id
+    subject_id: no
+
+    # only hash the following attributes
+    attributes:
+    - gender
+    - identifier

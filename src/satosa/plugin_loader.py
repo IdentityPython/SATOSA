@@ -33,7 +33,7 @@ def load_backends(config, callback, internal_attributes):
 
     :type config: satosa.satosa_config.SATOSAConfig
     :type callback:
-    (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
+    (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
     :type internal_attributes: dict[string, dict[str, str | list[str]]]
     :rtype: Sequence[satosa.backends.base.BackendModule]
 
@@ -53,7 +53,7 @@ def load_frontends(config, callback, internal_attributes):
 
     :type config: satosa.satosa_config.SATOSAConfig
     :type callback:
-    (satosa.context.Context, satosa.internal_data.InternalRequest) -> satosa.response.Response
+    (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
     :type internal_attributes: dict[string, dict[str, str | list[str]]]
     :rtype: Sequence[satosa.frontends.base.FrontendModule]
 

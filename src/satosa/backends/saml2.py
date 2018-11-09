@@ -18,15 +18,18 @@ import satosa.util as util
 from satosa.base import SAMLBaseModule
 from satosa.base import SAMLEIDASBaseModule
 from satosa.context import Context
-from .base import BackendModule
-from ..exception import SATOSAAuthenticationError
-from ..internal_data import (InternalResponse,
-                             AuthenticationInformation)
-from ..logging_util import satosa_logging
-from ..metadata_creation.description import (MetadataDescription, OrganizationDesc,
-                                             ContactPersonDesc, UIInfoDesc)
-from ..response import SeeOther, Response
-from ..saml_util import make_saml_response
+from satosa.internal import AuthenticationInformation
+from satosa.internal import InternalData
+from satosa.exception import SATOSAAuthenticationError
+from satosa.logging_util import satosa_logging
+from satosa.response import SeeOther, Response
+from satosa.saml_util import make_saml_response
+from satosa.metadata_creation.description import (
+    MetadataDescription, OrganizationDesc, ContactPersonDesc, UIInfoDesc
+)
+from satosa.backends.base import BackendModule
+
+from satosa.deprecated import SAMLInternalResponse
 
 
 logger = logging.getLogger(__name__)
@@ -43,7 +46,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
     def __init__(self, outgoing, internal_attributes, config, base_url, name):
         """
         :type outgoing:
-        (satosa.context.Context, satosa.internal_data.InternalResponse) -> satosa.response.Response
+        (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
         :type internal_attributes: dict[str, dict[str, list[str] | str]]
         :type config: dict[str, Any]
         :type base_url: str
@@ -84,7 +87,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         """
         See super class method satosa.backends.base.BackendModule#start_auth
         :type context: satosa.context.Context
-        :type internal_req: satosa.internal_data.InternalRequest
+        :type internal_req: satosa.internal.InternalData
         :rtype: satosa.response.Response
         """
 
@@ -106,7 +109,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         Makes a request to the discovery server
 
         :type context: satosa.context.Context
-        :type internal_req: satosa.internal_data.InternalRequest
+        :type internal_req: satosa.internal.InternalData
         :rtype: satosa.response.SeeOther
 
         :param context: The current context
@@ -260,7 +263,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         Translates a saml authorization response to an internal response
 
         :type response: saml2.response.AuthnResponse
-        :rtype: satosa.internal_data.InternalResponse
+        :rtype: satosa.internal.InternalData
         :param response: The saml authorization response
         :return: A translated internal response
         """
@@ -275,19 +278,25 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         timestamp = response.assertion.authn_statement[0].authn_instant
         issuer = response.response.issuer.text
 
-        auth_info = AuthenticationInformation(auth_class_ref,
-                                              timestamp, issuer)
-        internal_resp = SAMLInternalResponse(auth_info=auth_info)
+        auth_info = AuthenticationInformation(
+            auth_class_ref, timestamp, issuer,
+        )
 
         # The SAML response may not include a NameID.
-        try:
-            internal_resp.user_id = response.get_subject().text
-            internal_resp.name_id = response.assertion.subject.name_id
-        except AttributeError:
-            pass
+        subject = response.get_subject()
+        name_id = subject.text if subject else None
+        name_id_format = subject.format if subject else None
 
-        internal_resp.attributes = self.converter.to_internal(
-                self.attribute_profile, response.ava)
+        attributes = self.converter.to_internal(
+            self.attribute_profile, response.ava,
+        )
+
+        internal_resp = InternalData(
+            auth_info=auth_info,
+            attributes=attributes,
+            subject_type=name_id_format,
+            subject_id=name_id,
+        )
 
         satosa_logging(logger, logging.DEBUG,
                        "backend received attributes:\n%s" %
@@ -421,32 +430,3 @@ class SAMLEIDASBackend(SAMLBackend, SAMLEIDASBaseModule):
         }
 
         return util.check_set_dict_defaults(config, spec_eidas_sp)
-
-
-class SAMLInternalResponse(InternalResponse):
-    """
-    Like the parent InternalResponse, holds internal representation of
-    service related data, but includes additional details relevant to
-    SAML interoperability.
-
-    :type name_id: instance of saml2.saml.NameID from pysaml2
-    """
-    def __init__(self, auth_info=None):
-        super().__init__(auth_info)
-
-        self.name_id = None
-
-    def to_dict(self):
-        """
-        Converts a SAMLInternalResponse object to a dict
-        :rtype: dict[str, dict[str, str] | str]
-        :return: A dict representation of the object
-        """
-        _dict = super().to_dict()
-
-        if self.name_id:
-            _dict['name_id'] = {self.name_id.format : self.name_id.text}
-        else:
-            _dict['name_id'] = None
-
-        return _dict
