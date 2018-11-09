@@ -52,7 +52,11 @@ class OpenIDConnectBackend(BackendModule):
         super().__init__(auth_callback_func, internal_attributes, base_url, name)
         self.auth_callback_func = auth_callback_func
         self.config = config
-        self.client = _create_client(config["provider_metadata"], config["client"]["client_metadata"])
+        self.client = _create_client(
+            config["provider_metadata"],
+            config["client"]["client_metadata"],
+            config["client"].get("verify_ssl", True),
+        )
         if "scope" not in config["client"]["auth_req_params"]:
             config["auth_req_params"]["scope"] = "openid"
         if "response_type" not in config["client"]["auth_req_params"]:
@@ -230,7 +234,7 @@ class OpenIDConnectBackend(BackendModule):
         return get_metadata_desc_for_oauth_backend(self.config["provider_metadata"]["issuer"], self.config)
 
 
-def _create_client(provider_metadata, client_metadata):
+def _create_client(provider_metadata, client_metadata, verify_ssl=True):
     """
     Create a pyoidc client instance.
     :param provider_metadata: provider configuration information
@@ -240,7 +244,9 @@ def _create_client(provider_metadata, client_metadata):
     :return: client instance to use for communicating with the configured provider
     :rtype: oic.oic.Client
     """
-    client = oic.Client(client_authn_method=CLIENT_AUTHN_METHOD)
+    client = oic.Client(
+        client_authn_method=CLIENT_AUTHN_METHOD, verify_ssl=verify_ssl
+    )
 
     # Provider configuration information
     if "authorization_endpoint" in provider_metadata:
