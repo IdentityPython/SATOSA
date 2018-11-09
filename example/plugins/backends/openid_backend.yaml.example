@@ -4,6 +4,7 @@ config:
   provider_metadata:
     issuer: https://op.example.com
   client:
+    verify_ssl: yes
     auth_req_params:
       response_type: code
       scope: [openid, profile, email, address, phone]
