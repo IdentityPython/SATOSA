@@ -39,6 +39,7 @@ config:
             text: "http://sp.logo.url/"
             width: "100"
             height: "100"
+        authn_requests_signed: true
         want_response_signed: true
         allow_unsolicited: true
         endpoints:
