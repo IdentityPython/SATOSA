@@ -2,7 +2,7 @@
 SATOSA microservice that uses a configured ordered list of
 attributes that may be asserted by a SAML IdP to construct
 a primary identifier or key for the user and assert it as
-the value for a configured attribute, for example uid. 
+the value for a configured attribute, for example uid.
 """
 
 import satosa.micro_services.base
@@ -34,7 +34,7 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
         Construct and return a primary identifier value from the
         data asserted by the IdP using the ordered list of candidates
         from the configuration.
-        """ 
+        """
         logprefix = PrimaryIdentifier.logprefix
         context = self.context
 
@@ -63,9 +63,9 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
                         if candidate['name_id_format'] in name_id:
                             nameid_value = name_id[candidate['name_id_format']]
 
-                # Only add the NameID value asserted by the IdP if it is not already 
+                # Only add the NameID value asserted by the IdP if it is not already
                 # in the list of values. This is necessary because some non-compliant IdPs
-                # have been known, for example, to assert the value of eduPersonPrincipalName 
+                # have been known, for example, to assert the value of eduPersonPrincipalName
                 # in the value for SAML2 persistent NameID as well as asserting
                 # eduPersonPrincipalName.
                 if nameid_value not in values:
@@ -85,7 +85,7 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
             # to do so.
             if 'add_scope' in candidate:
                 if candidate['add_scope'] == 'issuer_entityid':
-                    scope = data.to_dict()['auth_info']['issuer']
+                    scope = data.auth_info.issuer
                 else:
                     scope = candidate['add_scope']
                 satosa_logging(logger, logging.DEBUG, "{} Added scope {} to values".format(logprefix, scope), context.state)
@@ -118,7 +118,7 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
 
         # Find the entityID for the IdP that issued the assertion
         try:
-            idpEntityID = data.to_dict()['auth_info']['issuer']
+            idpEntityID = data.auth_info.issuer
         except KeyError as err:
             satosa_logging(logger, logging.ERROR, "{} Unable to determine the entityID for the IdP issuer".format(logprefix), context.state)
             return super().process(context, data)
@@ -133,7 +133,7 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
         if spEntityID in self.config:
             config = self.config[spEntityID]
             satosa_logging(logger, logging.DEBUG, "{} For SP {} using configuration {}".format(logprefix, spEntityID, config), context.state)
-        
+
         # Obtain configuration details from the per-SP configuration or the default configuration
         try:
             if 'ordered_identifier_candidates' in config:
@@ -179,11 +179,11 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
         if not primary_identifier_val:
             satosa_logging(logger, logging.WARN, "{} No primary identifier found".format(logprefix), context.state)
             if on_error:
-                # Redirect to the configured error handling service with 
+                # Redirect to the configured error handling service with
                 # the entityIDs for the target SP and IdP used by the user
                 # as query string parameters (URL encoded).
                 encodedSpEntityID = urllib.parse.quote_plus(spEntityID)
-                encodedIdpEntityID = urllib.parse.quote_plus(data.to_dict()['auth_info']['issuer'])
+                encodedIdpEntityID = urllib.parse.quote_plus(data.auth_info.issuer)
                 url = "{}?sp={}&idp={}".format(on_error, encodedSpEntityID, encodedIdpEntityID)
                 satosa_logging(logger, logging.INFO, "{} Redirecting to {}".format(logprefix, url), context.state)
                 return Redirect(url)
