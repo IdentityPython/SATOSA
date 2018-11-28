@@ -1,5 +1,5 @@
 """
-SATOSA microservice that uses an identifier asserted by 
+SATOSA microservice that uses an identifier asserted by
 the home organization SAML IdP as a key to search an LDAP
 directory for a record and then consume attributes from
 the record and assert them to the receiving SP.
@@ -121,9 +121,9 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
         Construct and return a LDAP directory search filter value from the
         candidate identifier.
 
-        Argument 'canidate' is a dictionary with one required key and 
+        Argument 'canidate' is a dictionary with one required key and
         two optional keys:
-            
+
         key              required   value
         ---------------  --------   ---------------------------------
         attribute_names  Y          list of identifier names
@@ -138,7 +138,7 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
         If the attribute_names list consists of more than one identifier
         name then the values of the identifiers will be concatenated together
         to create the filter value.
-        
+
         If one of the identifier names in the attribute_names is the string
         'name_id' then the NameID value with format name_id_format
         will be concatenated to the filter value.
@@ -174,9 +174,9 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                     if candidate['name_id_format'] in name_id:
                         nameid_value = name_id[candidate['name_id_format']]
 
-            # Only add the NameID value asserted by the IdP if it is not already 
+            # Only add the NameID value asserted by the IdP if it is not already
             # in the list of values. This is necessary because some non-compliant IdPs
-            # have been known, for example, to assert the value of eduPersonPrincipalName 
+            # have been known, for example, to assert the value of eduPersonPrincipalName
             # in the value for SAML2 persistent NameID as well as asserting
             # eduPersonPrincipalName.
             if nameid_value not in values:
@@ -196,7 +196,7 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
         # to do so.
         if 'add_scope' in candidate:
             if candidate['add_scope'] == 'issuer_entityid':
-                scope = data.to_dict()['auth_info']['issuer']
+                scope = data.auth_info.issuer
             else:
                 scope = candidate['add_scope']
             satosa_logging(logger, logging.DEBUG, "Added scope {} to values".format(scope), context.state)
@@ -256,9 +256,9 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
 
         try:
             connection = ldap3.Connection(
-                            server, 
-                            bind_dn, 
-                            bind_password, 
+                            server,
+                            bind_dn,
+                            bind_password,
                             auto_bind=True,
                             client_strategy=ldap3.REUSABLE,
                             pool_size=pool_size,
@@ -284,28 +284,28 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                 if record["attributes"][attr]:
                     data.attributes[search_return_attributes[attr]] = record["attributes"][attr]
                     satosa_logging(
-                        logger, 
-                        logging.DEBUG, 
+                        logger,
+                        logging.DEBUG,
                         "Setting internal attribute {} with values {}".format(
-                            search_return_attributes[attr], 
+                            search_return_attributes[attr],
                             record["attributes"][attr]
-                            ), 
+                            ),
                         context.state
                         )
                 else:
                     satosa_logging(
-                        logger, 
-                        logging.DEBUG, 
+                        logger,
+                        logging.DEBUG,
                         "Not setting internal attribute {} because value {} is null or empty".format(
-                            search_return_attributes[attr], 
+                            search_return_attributes[attr],
                             record["attributes"][attr]
-                            ), 
+                            ),
                         context.state
                         )
 
     def _populate_input_for_name_id(self, config, record, context, data):
         """
-        Use a record found in LDAP to populate input for 
+        Use a record found in LDAP to populate input for
         NameID generation.
         """
         user_id = ""
@@ -320,32 +320,32 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                     value.sort()
                     user_id += "".join(value)
                     satosa_logging(
-                        logger, 
-                        logging.DEBUG, 
-                        "Added attribute {} with values {} to input for NameID".format(attr, v), 
+                        logger,
+                        logging.DEBUG,
+                        "Added attribute {} with values {} to input for NameID".format(attr, value),
                         context.state
                         )
                 else:
                     user_id += value
                     satosa_logging(
-                        logger, 
-                        logging.DEBUG, 
-                        "Added attribute {} with value {} to input for NameID".format(attr, value), 
+                        logger,
+                        logging.DEBUG,
+                        "Added attribute {} with value {} to input for NameID".format(attr, value),
                         context.state
                         )
         if not user_id:
             satosa_logging(
-                logger, 
-                logging.WARNING, 
-                "Input for NameID is empty so not overriding default", 
+                logger,
+                logging.WARNING,
+                "Input for NameID is empty so not overriding default",
                 context.state
                 )
         else:
             data.user_id = user_id
             satosa_logging(
-                logger, 
-                logging.DEBUG, 
-                "Input for NameID is {}".format(data.user_id), 
+                logger,
+                logging.DEBUG,
+                "Input for NameID is {}".format(data.user_id),
                 context.state
                 )
 
@@ -457,7 +457,7 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                 # the entityIDs for the target SP and IdP used by the user
                 # as query string parameters (URL encoded).
                 encoded_sp_entity_id = urllib.parse.quote_plus(sp_entity_id)
-                encoded_idp_entity_id = urllib.parse.quote_plus(data.to_dict()['auth_info']['issuer'])
+                encoded_idp_entity_id = urllib.parse.quote_plus(data.auth_info.issuer)
                 url = "{}?sp={}&idp={}".format(on_ldap_search_result_empty, encoded_sp_entity_id, encoded_idp_entity_id)
                 satosa_logging(logger, logging.INFO, "Redirecting to {}".format(url), context.state)
                 return Redirect(url)
