@@ -55,24 +55,29 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
             # name_id_format add the value for the NameID of that format if it was asserted by the IdP
             # or else add the value None.
             if 'name_id' in candidate['attribute_names']:
-                nameid_value = None
-                if 'name_id' in data.to_dict():
-                    name_id = data.to_dict()['name_id']
-                    satosa_logging(logger, logging.DEBUG, "{} IdP asserted NameID {}".format(logprefix, name_id), context.state)
-                    if 'name_id_format' in candidate:
-                        if candidate['name_id_format'] in name_id:
-                            nameid_value = name_id[candidate['name_id_format']]
+                candidate_nameid_value = None
+                candidate_nameid_value = None
+                candidate_name_id_format = candidate.get('name_id_format')
+                name_id_value = data.subject_id
+                name_id_format = data.subject_type
+                if (
+                    name_id_value
+                    and candidate_name_id_format
+                    and candidate_name_id_format == name_id_format
+                ):
+                    satosa_logging(logger, logging.DEBUG, "{} IdP asserted NameID {}".format(logprefix, name_id_value), context.state)
+                    candidate_nameid_value = name_id_value
 
                 # Only add the NameID value asserted by the IdP if it is not already
                 # in the list of values. This is necessary because some non-compliant IdPs
                 # have been known, for example, to assert the value of eduPersonPrincipalName
                 # in the value for SAML2 persistent NameID as well as asserting
                 # eduPersonPrincipalName.
-                if nameid_value not in values:
-                    satosa_logging(logger, logging.DEBUG, "{} Added NameID {} to candidate values".format(logprefix, nameid_value), context.state)
-                    values.append(nameid_value)
+                if candidate_nameid_value not in values:
+                    satosa_logging(logger, logging.DEBUG, "{} Added NameID {} to candidate values".format(logprefix, candidate_nameid_value), context.state)
+                    values.append(candidate_nameid_value)
                 else:
-                    satosa_logging(logger, logging.WARN, "{} NameID {} value also asserted as attribute value".format(logprefix, nameid_value), context.state)
+                    satosa_logging(logger, logging.WARN, "{} NameID {} value also asserted as attribute value".format(logprefix, candidate_nameid_value), context.state)
 
             # If no value was asserted by the IdP for one of the configured list of attribute names
             # for this candidate then go onto the next candidate.
