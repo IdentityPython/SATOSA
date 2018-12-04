@@ -331,15 +331,15 @@ def oidc_subject_type_to_hash_type(subject_type):
 
 
 def hash_attributes(hash_attributes, internal_attributes, salt):
+    msg = (
+        "'USER_ID_HASH_SALT' configuration option is deprecated."
+        " 'hash' configuration option is deprecated."
+        " Use the hasher microservice instead."
+    )
+    _warnings.warn(msg, DeprecationWarning)
+
     # Hash all attributes specified in INTERNAL_ATTRIBUTES["hash"]
     for attribute in hash_attributes:
-        msg = (
-            "'USER_ID_HASH_SALT' configuration option is deprecated."
-            " 'hash' configuration option is deprecated."
-            " Use the hasher microservice instead."
-        )
-        _warnings.warn(msg, DeprecationWarning)
-
         # hash all attribute values individually
         if attribute in internal_attributes:
             hashed_values = [
