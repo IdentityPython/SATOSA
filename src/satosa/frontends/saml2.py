@@ -311,7 +311,13 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         nameid_format = subject_type_to_saml_nameid_format(
             internal_response.subject_type
         )
-        name_id = NameID(
+
+        # If the backend did not receive a SAML <NameID> and so
+        # name_id is set to None then do not create a NameID instance.
+        # Instead pass None as the name name_id to the IdP server
+        # instance and it will use its configured policy to construct
+        # a <NameID>, with the default to create a transient <NameID>.
+        name_id = None if not nameid_value else NameID(
             text=nameid_value,
             format=nameid_format,
             sp_name_qualifier=None,

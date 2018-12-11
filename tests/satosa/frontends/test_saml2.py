@@ -190,10 +190,33 @@ class TestSAMLFrontend:
         fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
         resp = fakesp.parse_authn_request_response(resp_dict["SAMLResponse"][0],
                                                    BINDING_HTTP_REDIRECT)
+
         for key in resp.ava:
             assert USERS["testuser1"][key] == resp.ava[key]
 
         assert samlfrontend.name not in context.state
+
+    def test_handle_authn_response_without_name_id(
+                          self, context, idp_conf, sp_conf, internal_response):
+        samlfrontend = self.setup_for_authn_req(
+                                  context, idp_conf, sp_conf, relay_state=None)
+        _, internal_req = samlfrontend.handle_authn_request(
+                                                context, BINDING_HTTP_REDIRECT)
+
+        # Make sure we are testing the equivalent of a <Response> with no
+        # <NameID> in the <Subject>.
+        assert internal_response.subject_type is None
+        assert internal_response.subject_id is None
+
+        resp = samlfrontend.handle_authn_response(context, internal_response)
+        resp_dict = parse_qs(urlparse(resp.message).query)
+
+        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
+        resp = fakesp.parse_authn_request_response(
+                           resp_dict["SAMLResponse"][0], BINDING_HTTP_REDIRECT)
+
+        # The <NameID> must not have an empty TextContent.
+        assert resp.name_id.text is not None
 
     def test_get_filter_attributes_with_sp_requested_attributes_without_friendlyname(self, idp_conf):
         sp_metadata_str = """<?xml version="1.0"?>
