@@ -308,24 +308,21 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
                 ava.pop(k, None)
 
         nameid_value = internal_response.subject_id
+        nameid_format = subject_type_to_saml_nameid_format(
+            internal_response.subject_type
+        )
 
         # If the backend did not receive a SAML <NameID> and so
         # name_id is set to None then do not create a NameID instance.
         # Instead pass None as the name name_id to the IdP server
         # instance and it will use its configured policy to construct
         # a <NameID>, with the default to create a transient <NameID>.
-        if nameid_value is None:
-            name_id = None
-        else:
-            nameid_format = subject_type_to_saml_nameid_format(
-                internal_response.subject_type
-            )
-            name_id = NameID(
-                text=nameid_value,
-                format=nameid_format,
-                sp_name_qualifier=None,
-                name_qualifier=None,
-            )
+        name_id = None if not nameid_value else NameID(
+            text=nameid_value,
+            format=nameid_format,
+            sp_name_qualifier=None,
+            name_qualifier=None,
+        )
 
         dbgmsg = "returning attributes %s" % json.dumps(ava)
         satosa_logging(logger, logging.DEBUG, dbgmsg, context.state)
