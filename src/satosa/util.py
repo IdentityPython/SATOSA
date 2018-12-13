@@ -26,8 +26,8 @@ def hash_data(salt, value, hash_alg=None):
     """
     hash_alg = hash_alg or 'sha512'
     hasher = hashlib.new(hash_alg)
-    hasher.update(salt.encode('utf-8'))
     hasher.update(value.encode('utf-8'))
+    hasher.update(salt.encode('utf-8'))
     value_hashed = hasher.hexdigest()
     return value_hashed
 
