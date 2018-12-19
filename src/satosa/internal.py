@@ -1,6 +1,12 @@
 """Internal data representation for SAML/OAuth/OpenID connect."""
 
 
+import warnings as _warnings
+
+
+_warnings.simplefilter("default")
+
+
 class AuthenticationInformation(object):
     """
     Class that holds information about the authentication
@@ -65,6 +71,10 @@ class InternalData(object):
         subject_id=None,
         subject_type=None,
         attributes=None,
+        user_id=None,
+        user_id_hash_type=None,
+        name_id=None,
+        approved_attributes=None,
     ):
         """
         :param auth_info:
@@ -86,9 +96,15 @@ class InternalData(object):
         self.requester_name = requester_name or [
             {"text": requester, "lang": "en"}
         ]
-        self.subject_id = subject_id
-        self.subject_type = subject_type
-        self.attributes = {} if attributes is None else attributes
+        self.subject_id = subject_id or user_id or name_id
+        self.subject_type = subject_type or user_id_hash_type
+        self.attributes = (
+            attributes
+            if attributes is not None
+            else approved_attributes
+            if approved_attributes is not None
+            else {}
+        )
 
     def to_dict(self):
         """
@@ -96,7 +112,7 @@ class InternalData(object):
         :rtype: dict[str, str]
         :return: A dict representation of the object
         """
-        return {
+        data = {
             "auth_info": self.auth_info.to_dict(),
             "requester": self.requester,
             "requester_name": self.requester_name,
@@ -104,6 +120,15 @@ class InternalData(object):
             "subject_id": self.subject_id,
             "subject_type": self.subject_type,
         }
+        data.update(
+            {
+                "user_id": self.subject_id,
+                "user_id_hash_type": self.subject_type,
+                "name_id": self.subject_id,
+                "approved_attributes": self.attributes,
+            }
+        )
+        return data
 
     @classmethod
     def from_dict(cls, data):
@@ -114,7 +139,7 @@ class InternalData(object):
         :return: An InternalData object
         """
         auth_info = data.get("auth_info", AuthenticationInformation())
-        return cls(
+        instance = cls(
             auth_info=AuthenticationInformation.from_dict(auth_info),
             requester=data.get("requester"),
             requester_name=data.get("requester_name"),
@@ -122,6 +147,67 @@ class InternalData(object):
             subject_type=data.get("subject_type"),
             attributes=data.get("attributes"),
         )
+
+        if instance.attributes is None:
+            approved_attributes = data.get("approved_attributes")
+            instance.attributes = (
+                approved_attributes
+                if approved_attributes is not None
+                else {}
+            )
+        if instance.subject_type is None:
+            instance.subject_type = data.get("subject_type")
+        if instance.subject_id is None:
+            instance.subject_id = data.get("user_id") or data.get("name_id")
+        return instance
+
+    @property
+    def user_id(self):
+        msg = "user_id is deprecated; use subject_id instead."
+        _warnings.warn(msg, DeprecationWarning)
+        return self.subject_id
+
+    @user_id.setter
+    def user_id(self, value):
+        msg = "user_id is deprecated; use subject_id instead."
+        _warnings.warn(msg, DeprecationWarning)
+        self.subject_id = value
+
+    @property
+    def user_id_hash_type(self):
+        msg = "user_id_hash_type is deprecated; use subject_type instead."
+        _warnings.warn(msg, DeprecationWarning)
+        return self.subject_type
+
+    @user_id_hash_type.setter
+    def user_id_hash_type(self, value):
+        msg = "user_id_hash_type is deprecated; use subject_type instead."
+        _warnings.warn(msg, DeprecationWarning)
+        self.subject_type = value
+
+    @property
+    def approved_attributes(self):
+        msg = "approved_attributes is deprecated; use attributes instead."
+        _warnings.warn(msg, DeprecationWarning)
+        return self.attributes
+
+    @approved_attributes.setter
+    def approved_attributes(self, value):
+        msg = "approved_attributes is deprecated; use attributes instead."
+        _warnings.warn(msg, DeprecationWarning)
+        self.attributes = value
+
+    @property
+    def name_id(self):
+        msg = "name_id is deprecated; use subject_id instead."
+        _warnings.warn(msg, DeprecationWarning)
+        return self.subject_id
+
+    @name_id.setter
+    def name_id(self, value):
+        msg = "name_id is deprecated; use subject_id instead."
+        _warnings.warn(msg, DeprecationWarning)
+        self.subject_id = value
 
     def __repr__(self):
         return str(self.to_dict())

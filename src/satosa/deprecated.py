@@ -14,107 +14,7 @@ from satosa import util
 _warnings.simplefilter("default")
 
 
-class _DeprecatedInternalData(InternalData):
-    def __init__(
-        self,
-        auth_info=None,
-        requester=None,
-        requester_name=None,
-        subject_id=None,
-        subject_type=None,
-        attributes=None,
-        user_id=None,
-        user_id_hash_type=None,
-        name_id=None,
-        approved_attributes=None,
-    ):
-        return super().__init__(
-            auth_info=auth_info,
-            requester=requester,
-            requester_name=requester_name,
-            subject_id=subject_id or user_id or name_id,
-            subject_type=subject_type or user_id_hash_type,
-            attributes=attributes,
-        )
-
-    def to_dict(self):
-        data = super().to_dict()
-        data.update(
-            {
-                "user_id": self.subject_id,
-                "user_id_hash_type": self.subject_type,
-                "name_id": self.subject_id,
-                "approved_attributes": self.attributes,
-            }
-        )
-        return data
-
-    @classmethod
-    def from_dict(cls, data):
-        instance = InternalData.from_dict(data)
-        instance.attributes = data.get("attributes") or data.get(
-            "approved_attributes"
-        )
-        instance.subject_type = data.get("subject_type") or data.get(
-            "user_id_hash_type"
-        )
-        instance.subject_id = (
-            data.get("subject_id")
-            or data.get("user_id")
-            or data.get("name_id")
-        )
-        return instance
-
-    @property
-    def user_id(self):
-        msg = "user_id is deprecated; use subject_id instead."
-        _warnings.warn(msg, DeprecationWarning)
-        return self.subject_id
-
-    @user_id.setter
-    def user_id(self, value):
-        msg = "user_id is deprecated; use subject_id instead."
-        _warnings.warn(msg, DeprecationWarning)
-        self.subject_id = value
-
-    @property
-    def user_id_hash_type(self):
-        msg = "user_id_hash_type is deprecated; use subject_type instead."
-        _warnings.warn(msg, DeprecationWarning)
-        return self.subject_type
-
-    @user_id_hash_type.setter
-    def user_id_hash_type(self, value):
-        msg = "user_id_hash_type is deprecated; use subject_type instead."
-        _warnings.warn(msg, DeprecationWarning)
-        self.subject_type = value
-
-    @property
-    def approved_attributes(self):
-        msg = "approved_attributes is deprecated; use attributes instead."
-        _warnings.warn(msg, DeprecationWarning)
-        return self.attributes
-
-    @approved_attributes.setter
-    def approved_attributes(self, value):
-        msg = "approved_attributes is deprecated; use attributes instead."
-        _warnings.warn(msg, DeprecationWarning)
-        self.attributes = value
-
-    @property
-    def name_id(self):
-        msg = "name_id is deprecated; use subject_id instead."
-        _warnings.warn(msg, DeprecationWarning)
-        return self.subject_id
-
-    @name_id.setter
-    def name_id(self, value):
-        msg = "name_id is deprecated; use subject_id instead."
-        _warnings.warn(msg, DeprecationWarning)
-        self.subject_id = value
-
-
-class InternalRequest(_DeprecatedInternalData):
+class InternalRequest(InternalData):
     def __init__(self, user_id_hash_type, requester, requester_name=None):
         msg = (
             "InternalRequest is deprecated."
@@ -128,7 +28,7 @@ class InternalRequest(_DeprecatedInternalData):
         )
 
 
-class InternalResponse(_DeprecatedInternalData):
+class InternalResponse(InternalData):
     def __init__(self, auth_info=None):
         msg = (
             "InternalResponse is deprecated."
