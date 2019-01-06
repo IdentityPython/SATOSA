@@ -164,27 +164,21 @@ class InternalData(object):
         :param data: A dict representation of an InternalData object
         :return: An InternalData object
         """
-        auth_info = data.get("auth_info", AuthenticationInformation())
+        auth_info = AuthenticationInformation.from_dict(
+            data.get("auth_info", {})
+        )
         instance = cls(
-            auth_info=AuthenticationInformation.from_dict(auth_info),
+            auth_info=auth_info,
             requester=data.get("requester"),
             requester_name=data.get("requester_name"),
             subject_id=data.get("subject_id"),
             subject_type=data.get("subject_type"),
             attributes=data.get("attributes"),
+            user_id=data.get("user_id"),
+            user_id_hash_type=data.get("hash_type"),
+            name_id=data.get("name_id"),
+            approved_attributes=data.get("approved_attributes"),
         )
-
-        if instance.attributes is None:
-            approved_attributes = data.get("approved_attributes")
-            instance.attributes = (
-                approved_attributes
-                if approved_attributes is not None
-                else {}
-            )
-        if instance.subject_type is None:
-            instance.subject_type = data.get("subject_type")
-        if instance.subject_id is None:
-            instance.subject_id = data.get("user_id") or data.get("name_id")
         return instance
 
     @property
