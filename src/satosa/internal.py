@@ -149,7 +149,7 @@ class InternalData(object):
         data.update(
             {
                 "user_id": self.subject_id,
-                "user_id_hash_type": self.subject_type,
+                "hash_type": self.subject_type,
                 "name_id": self.subject_id,
                 "approved_attributes": self.attributes,
             }
