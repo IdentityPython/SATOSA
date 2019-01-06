@@ -101,11 +101,29 @@ class InternalData(object):
         """
         self.auth_info = auth_info or AuthenticationInformation()
         self.requester = requester
-        self.requester_name = requester_name or [
-            {"text": requester, "lang": "en"}
-        ]
-        self.subject_id = subject_id or user_id or name_id
-        self.subject_type = subject_type or user_id_hash_type
+        self.requester_name = (
+            requester_name
+            if requester_name is not None
+            else [
+                {"text": requester, "lang": "en"}
+            ]
+        )
+        self.subject_id = (
+            subject_id
+            if subject_id is not None
+            else user_id
+            if user_id is not None
+            else name_id
+            if name_id is not None
+            else None
+        )
+        self.subject_type = (
+            subject_type
+            if subject_type is not None
+            else user_id_hash_type
+            if user_id_hash_type is not None
+            else None
+        )
         self.attributes = (
             attributes
             if attributes is not None
