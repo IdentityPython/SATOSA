@@ -7,6 +7,7 @@ from saml2.saml import NAMEID_FORMAT_PERSISTENT
 from saml2.saml import NAMEID_FORMAT_EMAILADDRESS
 from saml2.saml import NAMEID_FORMAT_UNSPECIFIED
 
+from satosa.internal import AuthenticationInformation as _AuthenticationInformation
 from satosa.internal import InternalData as _InternalData
 from satosa import util
 
@@ -27,6 +28,14 @@ class InternalRequest(_InternalData):
             requester_name=requester_name,
         )
 
+    @classmethod
+    def from_dict(cls, data):
+        instance = cls(
+            user_id_hash_type=data.get("hash_type"),
+            requester=data.get("requester"),
+            requester_name=data.get("requester_name"),
+        )
+        return instance
 
 
 class InternalResponse(_InternalData):
@@ -36,7 +45,24 @@ class InternalResponse(_InternalData):
             " Use satosa.internal.InternalData class instead."
         )
         _warnings.warn(msg, DeprecationWarning)
+        auth_info = auth_info or _AuthenticationInformation()
         super().__init__(auth_info=auth_info)
+
+    @classmethod
+    def from_dict(cls, data):
+        """
+        :type data: dict[str, dict[str, str] | str]
+        :rtype: satosa.internal_data.InternalResponse
+        :param data: A dict representation of an InternalResponse object
+        :return: An InternalResponse object
+        """
+        auth_info = _AuthenticationInformation.from_dict(data.get("auth_info"))
+        instance = cls(auth_info=auth_info)
+        instance.user_id_hash_type = data.get("hash_type")
+        instance.attributes = data.get("attributes", {})
+        instance.user_id = data.get("user_id")
+        instance.requester = data.get("requester")
+        return instance
 
 
 class SAMLInternalResponse(InternalResponse):
