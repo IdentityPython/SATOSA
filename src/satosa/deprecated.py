@@ -7,14 +7,14 @@ from saml2.saml import NAMEID_FORMAT_PERSISTENT
 from saml2.saml import NAMEID_FORMAT_EMAILADDRESS
 from saml2.saml import NAMEID_FORMAT_UNSPECIFIED
 
-from satosa.internal import InternalData
+from satosa.internal import InternalData as _InternalData
 from satosa import util
 
 
 _warnings.simplefilter("default")
 
 
-class InternalRequest(InternalData):
+class InternalRequest(_InternalData):
     def __init__(self, user_id_hash_type, requester, requester_name=None):
         msg = (
             "InternalRequest is deprecated."
@@ -28,7 +28,8 @@ class InternalRequest(InternalData):
         )
 
 
-class InternalResponse(InternalData):
+
+class InternalResponse(_InternalData):
     def __init__(self, auth_info=None):
         msg = (
             "InternalResponse is deprecated."
