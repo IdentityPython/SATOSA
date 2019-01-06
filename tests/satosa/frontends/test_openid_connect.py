@@ -43,13 +43,16 @@ class TestOpenIDConnectFrontend(object):
 
         return config
 
-    @pytest.fixture
-    def frontend(self, frontend_config):
+    def create_frontend(self, frontend_config):
         # will use in-memory storage
         instance = OpenIDConnectFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
                                          frontend_config, BASE_URL, "oidc_frontend")
         instance.register_endpoints(["foo_backend"])
         return instance
+
+    @pytest.fixture
+    def frontend(self, frontend_config):
+        return self.create_frontend(frontend_config)
 
     @pytest.fixture
     def authn_req(self):
@@ -210,7 +213,7 @@ class TestOpenIDConnectFrontend(object):
     def test_register_endpoints_token_and_userinfo_endpoint_is_not_published_if_only_implicit_flow(
             self, frontend_config, context):
         frontend_config["provider"]["response_types_supported"] = ["id_token", "id_token token"]
-        frontend = self.frontend(frontend_config)
+        frontend = self.create_frontend(frontend_config)
 
         urls = frontend.register_endpoints(["test"])
         assert ("^{}/{}".format("test", TokenEndpoint.url), frontend.token_endpoint) not in urls
@@ -227,7 +230,7 @@ class TestOpenIDConnectFrontend(object):
     def test_register_endpoints_dynamic_client_registration_is_configurable(
             self, frontend_config, client_registration_enabled):
         frontend_config["provider"]["client_registration_supported"] = client_registration_enabled
-        frontend = self.frontend(frontend_config)
+        frontend = self.create_frontend(frontend_config)
 
         urls = frontend.register_endpoints(["test"])
         assert (("^{}/{}".format(frontend.name, RegistrationEndpoint.url),
@@ -238,7 +241,7 @@ class TestOpenIDConnectFrontend(object):
     def test_token_endpoint(self, context, frontend_config, authn_req):
         token_lifetime = 60 * 60 * 24
         frontend_config["provider"]["access_token_lifetime"] = token_lifetime
-        frontend = self.frontend(frontend_config)
+        frontend = self.create_frontend(frontend_config)
 
         user_id = "test_user"
         self.insert_client_in_client_db(frontend, authn_req["redirect_uri"])
