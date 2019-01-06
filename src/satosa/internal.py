@@ -83,6 +83,10 @@ class InternalData(object):
         :param subject_id:
         :param subject_type:
         :param attributes:
+        :param user_id:
+        :param user_id_hash_type:
+        :param name_id:
+        :param approved_attributes:
 
         :type auth_info: AuthenticationInformation
         :type requester: str
@@ -90,6 +94,10 @@ class InternalData(object):
         :type subject_id: str
         :type subject_type: str
         :type attributes: dict
+        :type user_id: str
+        :type user_id_hash_type: str
+        :type name_id: str
+        :type approved_attributes: dict
         """
         self.auth_info = auth_info or AuthenticationInformation()
         self.requester = requester
