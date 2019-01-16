@@ -121,7 +121,12 @@ class OpenIDConnectFrontend(FrontendModule):
 
         attributes = self.converter.from_internal("openid", internal_resp.attributes)
         self.user_db[internal_resp.subject_id] = {k: v[0] for k, v in attributes.items()}
-        auth_resp = self.provider.authorize(auth_req, internal_resp.subject_id, extra_id_token_claims)
+        auth_resp = self.provider.authorize(
+            auth_req,
+            internal_resp.subject_id,
+            extra_id_token_claims=extra_id_token_claims,
+            extra_scopes=self.config.get("extra_scopes"),
+        )
 
         del context.state[self.name]
         http_response = auth_resp.request(auth_req["redirect_uri"], should_fragment_encode(auth_req))
@@ -352,7 +357,11 @@ class OpenIDConnectFrontend(FrontendModule):
         headers = {"Authorization": context.request_authorization}
 
         try:
-            response = self.provider.handle_userinfo_request(urlencode(context.request), headers)
+            response = self.provider.handle_userinfo_request(
+                request=urlencode(context.request),
+                http_headers=headers,
+                extra_scopes=self.config.get("extra_scopes"),
+            )
             return Response(response.to_json(), content="application/json")
         except (BearerTokenError, InvalidAccessToken) as e:
             error_resp = UserInfoErrorResponse(error='invalid_token', error_description=str(e))
