@@ -192,7 +192,11 @@ class TestOpenIDConnectBackend(object):
         auth_params = dict(parse_qsl(urlparse(auth_response.message).query))
 
         access_token = 12345
-        context.request = {"state": auth_params["state"], "access_token": access_token}
+        context.request = {
+            "state": auth_params["state"],
+            "access_token": access_token,
+            "token_type": "Bearer",
+        }
         self.oidc_backend.response_endpoint(context)
         assert self.oidc_backend.name not in context.state
         args = self.oidc_backend.auth_callback_func.call_args[0]
