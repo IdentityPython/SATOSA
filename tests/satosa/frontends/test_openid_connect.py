@@ -186,11 +186,10 @@ class TestOpenIDConnectFrontend(object):
             "claims_parameter_supported": True,
             "request_parameter_supported": False,
             "request_uri_parameter_supported": False,
-            "scopes_supported": ["openid", "email"],
             "claims_supported": ["email"],
             "grant_types_supported": ["authorization_code", "implicit"],
             "issuer": BASE_URL,
-            "require_request_uri_registration": True,
+            "require_request_uri_registration": False,
             "token_endpoint_auth_methods_supported": ["client_secret_basic"],
             "version": "3.0"
         }
@@ -198,7 +197,10 @@ class TestOpenIDConnectFrontend(object):
         http_response = frontend.provider_config(context)
         provider_config = ProviderConfigurationResponse().deserialize(http_response.message, "json")
 
-        assert provider_config.to_dict() == expected_capabilities
+        provider_config_dict = provider_config.to_dict()
+        scopes_supported = provider_config_dict.pop("scopes_supported")
+        assert all(scope in scopes_supported for scope in ["openid", "email"])
+        assert provider_config_dict == expected_capabilities
 
     def test_jwks(self, context, frontend):
         http_response = frontend.jwks(context)

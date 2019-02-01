@@ -50,6 +50,7 @@ class OpenIDConnectFrontend(FrontendModule):
         response_types_supported = self.config["provider"].get("response_types_supported", ["id_token"])
         subject_types_supported = self.config["provider"].get("subject_types_supported", ["pairwise"])
         scopes_supported = self.config["provider"].get("scopes_supported", ["openid"])
+        extra_scopes = self.config["provider"].get("extra_scopes")
         capabilities = {
             "issuer": self.base_url,
             "authorization_endpoint": "{}/{}".format(endpoint_baseurl, AuthorizationEndpoint.url),
@@ -85,7 +86,14 @@ class OpenIDConnectFrontend(FrontendModule):
         else:
             cdb = {}
         self.user_db = MongoWrapper(db_uri, "satosa", "authz_codes") if db_uri else {}
-        self.provider = Provider(self.signing_key, capabilities, authz_state, cdb, Userinfo(self.user_db))
+        self.provider = Provider(
+            self.signing_key,
+            capabilities,
+            authz_state,
+            cdb,
+            Userinfo(self.user_db),
+            extra_scopes=extra_scopes,
+        )
 
     def _init_authorization_state(self):
         sub_hash_salt = self.config.get("sub_hash_salt", rndstr(16))
@@ -125,7 +133,6 @@ class OpenIDConnectFrontend(FrontendModule):
             auth_req,
             internal_resp.subject_id,
             extra_id_token_claims=extra_id_token_claims,
-            extra_scopes=self.config.get("extra_scopes"),
         )
 
         del context.state[self.name]
@@ -360,7 +367,6 @@ class OpenIDConnectFrontend(FrontendModule):
             response = self.provider.handle_userinfo_request(
                 request=urlencode(context.request),
                 http_headers=headers,
-                extra_scopes=self.config.get("extra_scopes"),
             )
             return Response(response.to_json(), content="application/json")
         except (BearerTokenError, InvalidAccessToken) as e:
