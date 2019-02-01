@@ -125,7 +125,6 @@ class OpenIDConnectFrontend(FrontendModule):
             auth_req,
             internal_resp.subject_id,
             extra_id_token_claims=extra_id_token_claims,
-            extra_scopes=self.config.get("extra_scopes"),
         )
 
         del context.state[self.name]
@@ -360,7 +359,6 @@ class OpenIDConnectFrontend(FrontendModule):
             response = self.provider.handle_userinfo_request(
                 request=urlencode(context.request),
                 http_headers=headers,
-                extra_scopes=self.config.get("extra_scopes"),
             )
             return Response(response.to_json(), content="application/json")
         except (BearerTokenError, InvalidAccessToken) as e:
