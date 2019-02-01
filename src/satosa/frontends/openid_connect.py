@@ -50,6 +50,7 @@ class OpenIDConnectFrontend(FrontendModule):
         response_types_supported = self.config["provider"].get("response_types_supported", ["id_token"])
         subject_types_supported = self.config["provider"].get("subject_types_supported", ["pairwise"])
         scopes_supported = self.config["provider"].get("scopes_supported", ["openid"])
+        extra_scopes = self.config["provider"].get("extra_scopes")
         capabilities = {
             "issuer": self.base_url,
             "authorization_endpoint": "{}/{}".format(endpoint_baseurl, AuthorizationEndpoint.url),
@@ -85,7 +86,14 @@ class OpenIDConnectFrontend(FrontendModule):
         else:
             cdb = {}
         self.user_db = MongoWrapper(db_uri, "satosa", "authz_codes") if db_uri else {}
-        self.provider = Provider(self.signing_key, capabilities, authz_state, cdb, Userinfo(self.user_db))
+        self.provider = Provider(
+            self.signing_key,
+            capabilities,
+            authz_state,
+            cdb,
+            Userinfo(self.user_db),
+            extra_scopes=extra_scopes,
+        )
 
     def _init_authorization_state(self):
         sub_hash_salt = self.config.get("sub_hash_salt", rndstr(16))
