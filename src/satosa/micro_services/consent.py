@@ -12,10 +12,10 @@ from jwkest.jwk import rsa_load
 from jwkest.jws import JWS
 from requests.exceptions import ConnectionError
 
-from ..internal_data import InternalResponse
-from ..logging_util import satosa_logging
-from ..micro_services.base import ResponseMicroService
-from ..response import Redirect
+from satosa.internal import InternalData
+from satosa.logging_util import satosa_logging
+from satosa.micro_services.base import ResponseMicroService
+from satosa.response import Redirect
 
 logger = logging.getLogger(__name__)
 
@@ -55,9 +55,9 @@ class Consent(ResponseMicroService):
         """
         consent_state = context.state[STATE_KEY]
         saved_resp = consent_state["internal_resp"]
-        internal_response = InternalResponse.from_dict(saved_resp)
+        internal_response = InternalData.from_dict(saved_resp)
 
-        hash_id = self._get_consent_id(internal_response.requester, internal_response.user_id,
+        hash_id = self._get_consent_id(internal_response.requester, internal_response.subject_id,
                                        internal_response.attributes)
 
         try:
@@ -108,7 +108,7 @@ class Consent(ResponseMicroService):
         Manage consent and attribute filtering
 
         :type context: satosa.context.Context
-        :type internal_response: satosa.internal_data.InternalResponse
+        :type internal_response: satosa.internal.InternalData
         :rtype: satosa.response.Response
 
         :param context: response context
@@ -118,7 +118,7 @@ class Consent(ResponseMicroService):
         consent_state = context.state[STATE_KEY]
 
         internal_response.attributes = self._filter_attributes(internal_response.attributes, consent_state["filter"])
-        id_hash = self._get_consent_id(internal_response.requester, internal_response.user_id,
+        id_hash = self._get_consent_id(internal_response.requester, internal_response.subject_id,
                                        internal_response.attributes)
 
         try:
@@ -208,7 +208,7 @@ class Consent(ResponseMicroService):
         Clear the state for consent and end the consent step
 
         :type context: satosa.context.Context
-        :type internal_response: satosa.internal_data.InternalResponse
+        :type internal_response: satosa.internal.InternalData
         :rtype: satosa.response.Response
 
         :param context: response context

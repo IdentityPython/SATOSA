@@ -14,7 +14,7 @@ from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
 from satosa.backends.openid_connect import OpenIDConnectBackend, _create_client, STATE_KEY, NONCE_KEY
 from satosa.context import Context
-from satosa.internal_data import InternalResponse
+from satosa.internal import InternalData
 from satosa.response import Response
 
 ISSUER = "https://provider.example.com"
@@ -80,9 +80,7 @@ class TestOpenIDConnectBackend(object):
     def signing_key(self):
         return RSAKey(key=RSA.generate(2048), alg="RS256")
 
-    def assert_expected_attributes(self, actual_attributes):
-        user_claims = self.userinfo()
-        attr_map = self.internal_attributes()
+    def assert_expected_attributes(self, attr_map, user_claims, actual_attributes):
         expected_attributes = {}
         for out_attr, in_mapping in attr_map["attributes"].items():
             expected_attributes[out_attr] = [user_claims[in_mapping["openid"][0]]]
@@ -97,10 +95,10 @@ class TestOpenIDConnectBackend(object):
             status=200,
             content_type="application/json")
 
-    def setup_token_endpoint(self, token_endpoint_url, signing_key):
+    def setup_token_endpoint(self, token_endpoint_url, userinfo, signing_key):
         id_token_claims = {
             "iss": ISSUER,
-            "sub": self.userinfo()["sub"],
+            "sub": userinfo["sub"],
             "aud": CLIENT_ID,
             "nonce": NONCE,
             "exp": time.time() + 3600,
@@ -123,7 +121,7 @@ class TestOpenIDConnectBackend(object):
     def setup_userinfo_endpoint(self, userinfo_endpoint_url, userinfo):
         responses.add(responses.GET,
                       userinfo_endpoint_url,
-                      body=json.dumps(self.userinfo()),
+                      body=json.dumps(userinfo),
                       status=200,
                       content_type="application/json")
 
@@ -153,24 +151,24 @@ class TestOpenIDConnectBackend(object):
         assert re.search(regex, redirect_uri_path)
         assert callback == self.oidc_backend.response_endpoint
 
-    def test_translate_response_to_internal_response(self, userinfo):
+    def test_translate_response_to_internal_response(self, internal_attributes, userinfo):
         internal_response = self.oidc_backend._translate_response(userinfo, ISSUER)
-        assert internal_response.user_id == userinfo["sub"]
-        self.assert_expected_attributes(internal_response.attributes)
+        assert internal_response.subject_id == userinfo["sub"]
+        self.assert_expected_attributes(internal_attributes, userinfo, internal_response.attributes)
 
     @responses.activate
-    def test_response_endpoint(self, backend_config, signing_key, incoming_authn_response):
+    def test_response_endpoint(self, backend_config, internal_attributes, userinfo, signing_key, incoming_authn_response):
         self.setup_jwks_uri(backend_config["provider_metadata"]["jwks_uri"], signing_key)
-        self.setup_token_endpoint(backend_config["provider_metadata"]["token_endpoint"], signing_key)
-        self.setup_userinfo_endpoint(backend_config["provider_metadata"]["userinfo_endpoint"])
+        self.setup_token_endpoint(backend_config["provider_metadata"]["token_endpoint"], userinfo, signing_key)
+        self.setup_userinfo_endpoint(backend_config["provider_metadata"]["userinfo_endpoint"], userinfo)
 
         self.oidc_backend.response_endpoint(incoming_authn_response)
         assert self.oidc_backend.name not in incoming_authn_response.state
 
         args = self.oidc_backend.auth_callback_func.call_args[0]
         assert isinstance(args[0], Context)
-        assert isinstance(args[1], InternalResponse)
-        self.assert_expected_attributes(args[1].attributes)
+        assert isinstance(args[1], InternalData)
+        self.assert_expected_attributes(internal_attributes, userinfo, args[1].attributes)
 
     def test_start_auth_redirects_to_provider_authorization_endpoint(self, context, backend_config):
         auth_response = self.oidc_backend.start_auth(context, None)
@@ -188,17 +186,21 @@ class TestOpenIDConnectBackend(object):
         assert "nonce" in auth_params
 
     @responses.activate
-    def test_entire_flow(self, context, backend_config):
-        self.setup_userinfo_endpoint(backend_config["provider_metadata"]["userinfo_endpoint"])
+    def test_entire_flow(self, context, backend_config, internal_attributes, userinfo):
+        self.setup_userinfo_endpoint(backend_config["provider_metadata"]["userinfo_endpoint"], userinfo)
         auth_response = self.oidc_backend.start_auth(context, None)
         auth_params = dict(parse_qsl(urlparse(auth_response.message).query))
 
         access_token = 12345
-        context.request = {"state": auth_params["state"], "access_token": access_token}
+        context.request = {
+            "state": auth_params["state"],
+            "access_token": access_token,
+            "token_type": "Bearer",
+        }
         self.oidc_backend.response_endpoint(context)
         assert self.oidc_backend.name not in context.state
         args = self.oidc_backend.auth_callback_func.call_args[0]
-        self.assert_expected_attributes(args[1].attributes)
+        self.assert_expected_attributes(internal_attributes, userinfo, args[1].attributes)
 
 
 class TestCreateClient(object):

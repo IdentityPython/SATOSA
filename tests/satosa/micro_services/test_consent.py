@@ -9,9 +9,11 @@ import responses
 from jwkest.jwk import RSAKey, rsa_load
 from jwkest.jws import JWS
 
+from saml2.saml import NAMEID_FORMAT_PERSISTENT
+
 from satosa.context import Context
-from satosa.internal_data import InternalResponse, UserIdHashType, InternalRequest, \
-    AuthenticationInformation
+from satosa.internal import AuthenticationInformation
+from satosa.internal import InternalData
 from satosa.micro_services import consent
 from satosa.micro_services.consent import Consent, UnexpectedResponseError
 from satosa.response import Redirect
@@ -42,15 +44,18 @@ class TestConsent:
     @pytest.fixture
     def internal_response(self):
         auth_info = AuthenticationInformation("auth_class_ref", "timestamp", "issuer")
-        internal_response = InternalResponse(auth_info=auth_info)
+        internal_response = InternalData(auth_info=auth_info)
         internal_response.requester = "client"
         internal_response.attributes = ATTRIBUTES
         return internal_response
 
     @pytest.fixture
     def internal_request(self):
-        req = InternalRequest(UserIdHashType.persistent, "example_requester")
-        req.approved_attributes = FILTER + ["sn"]
+        req = InternalData(
+            subject_type=NAMEID_FORMAT_PERSISTENT,
+            requester="example_requester",
+        )
+        req.attributes = FILTER + ["sn"]
         return req
 
     @pytest.fixture(scope="session")
@@ -138,7 +143,7 @@ class TestConsent:
         responses.add(responses.GET, consent_verify_endpoint_regex, status=200,
                       body=json.dumps(FILTER))
 
-        context.state[consent.STATE_KEY] = {"filter": internal_request.approved_attributes}
+        context.state[consent.STATE_KEY] = {"filter": internal_request.attributes}
         context, internal_response = self.consent_module.process(context, internal_response)
         assert context
         assert "displayName" in internal_response.attributes
@@ -148,7 +153,7 @@ class TestConsent:
         expected_ticket = "my_ticket"
 
         requester_name = [{"lang": "en", "text": "test requester"}]
-        context.state[consent.STATE_KEY] = {"filter": internal_request.approved_attributes,
+        context.state[consent.STATE_KEY] = {"filter": internal_request.attributes,
                                             "requester_name": requester_name}
 
         with responses.RequestsMock() as rsps:
@@ -227,7 +232,7 @@ class TestConsent:
         self.consent_module.process(context, internal_response)
 
         consent_hash = urlparse(responses.calls[0].request.url).path.split("/")[2]
-        expected_hash = self.consent_module._get_consent_id(internal_response.requester, internal_response.user_id,
+        expected_hash = self.consent_module._get_consent_id(internal_response.requester, internal_response.subject_id,
                                                             {k: v for k, v in attributes.items() if
                                                              k in approved_attributes})
         assert consent_hash == expected_hash
@@ -243,6 +248,6 @@ class TestConsent:
         self.consent_module.process(context, internal_response)
 
         consent_hash = urlparse(responses.calls[0].request.url).path.split("/")[2]
-        expected_hash = self.consent_module._get_consent_id(internal_response.requester, internal_response.user_id,
+        expected_hash = self.consent_module._get_consent_id(internal_response.requester, internal_response.subject_id,
                                                             internal_response.attributes)
         assert consent_hash == expected_hash

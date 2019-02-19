@@ -14,12 +14,12 @@ from tests.util import FakeSP, FakeIdP
 
 class TestSAMLToSAML:
     def run_test(self, satosa_config_dict, sp_conf, idp_conf, saml_backend_config, frontend_config):
-        user_id = "testuser1"
+        subject_id = "testuser1"
         # proxy config
         satosa_config_dict["FRONTEND_MODULES"] = [frontend_config]
         satosa_config_dict["BACKEND_MODULES"] = [saml_backend_config]
         satosa_config_dict["INTERNAL_ATTRIBUTES"]["attributes"] = {attr_name: {"saml": [attr_name]} for attr_name in
-                                                                   USERS[user_id]}
+                                                                   USERS[subject_id]}
         frontend_metadata, backend_metadata = create_entity_descriptors(SATOSAConfig(satosa_config_dict))
 
         # application
@@ -49,7 +49,7 @@ class TestSAMLToSAML:
             req_params["SAMLRequest"],
             req_params["RelayState"],
             BINDING_HTTP_REDIRECT,
-            user_id,
+            subject_id,
             response_binding=BINDING_HTTP_REDIRECT)
 
         # make auth resp to proxy
@@ -60,7 +60,7 @@ class TestSAMLToSAML:
         # verify auth resp from proxy
         resp_dict = dict(parse_qsl(urlparse(authn_resp.data.decode("utf-8")).query))
         auth_resp = fakesp.parse_authn_request_response(resp_dict["SAMLResponse"], BINDING_HTTP_REDIRECT)
-        assert auth_resp.ava == USERS[user_id]
+        assert auth_resp.ava == USERS[subject_id]
 
     def test_full_flow(self, satosa_config_dict, sp_conf, idp_conf, saml_backend_config,
                        saml_frontend_config, saml_mirror_frontend_config):

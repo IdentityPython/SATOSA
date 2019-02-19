@@ -1,4 +1,5 @@
-from satosa.internal_data import InternalResponse, AuthenticationInformation
+from satosa.internal import AuthenticationInformation
+from satosa.internal import InternalData
 from satosa.micro_services.attribute_modifications import FilterAttributeValues
 
 
@@ -19,7 +20,7 @@ class TestFilterAttributeValues:
         }
         filter_service = self.create_filter_service(attribute_filters)
 
-        resp = InternalResponse(AuthenticationInformation(None, None, None))
+        resp = InternalData(auth_info=AuthenticationInformation())
         resp.attributes = {
             "a1": ["abc:xyz"],
             "a2": ["foo:bar", "1:foo:bar:2"],
@@ -38,7 +39,7 @@ class TestFilterAttributeValues:
         }
         filter_service = self.create_filter_service(attribute_filters)
 
-        resp = InternalResponse(AuthenticationInformation(None, None, None))
+        resp = InternalData(AuthenticationInformation())
         resp.attributes = {
             "a1": ["abc:xyz"],
             "a2": ["foo:bar", "1:foo:bar:2"],
@@ -56,7 +57,7 @@ class TestFilterAttributeValues:
         }
         filter_service = self.create_filter_service(attribute_filters)
 
-        resp = InternalResponse(AuthenticationInformation(None, None, None))
+        resp = InternalData(auth_info=AuthenticationInformation())
         resp.requester = requester
         resp.attributes = {
             "a1": ["abc:xyz", "1:foo:bar:2"],
@@ -73,7 +74,7 @@ class TestFilterAttributeValues:
         }
         filter_service = self.create_filter_service(attribute_filters)
 
-        resp = InternalResponse(AuthenticationInformation(None, None, None))
+        resp = InternalData(auth_info=AuthenticationInformation())
         resp.attributes = {
             "a1": ["abc:xyz", "1:foo:bar:2"],
         }
@@ -90,7 +91,7 @@ class TestFilterAttributeValues:
         }
         filter_service = self.create_filter_service(attribute_filters)
 
-        resp = InternalResponse(AuthenticationInformation(None, None, target_provider))
+        resp = InternalData(auth_info=AuthenticationInformation(issuer=target_provider))
         resp.attributes = {
             "a1": ["abc:xyz", "1:foo:bar:2"],
         }
@@ -108,7 +109,7 @@ class TestFilterAttributeValues:
         }
         filter_service = self.create_filter_service(attribute_filters)
 
-        resp = InternalResponse(AuthenticationInformation(None, None, target_provider))
+        resp = InternalData(auth_info=AuthenticationInformation(issuer=target_provider))
         resp.requester = requester
         resp.attributes = {
             "a1": ["abc:xyz", "1:foo:bar:2"],

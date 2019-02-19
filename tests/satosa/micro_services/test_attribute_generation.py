@@ -1,4 +1,5 @@
-from satosa.internal_data import InternalResponse, AuthenticationInformation
+from satosa.internal import AuthenticationInformation
+from satosa.internal import InternalData
 from satosa.micro_services.attribute_generation import AddSyntheticAttributes
 from satosa.exception import SATOSAAuthenticationError
 from satosa.context import Context
@@ -16,7 +17,7 @@ class TestAddSyntheticAttributes:
            "": { "default": {"a0": "value1;value2" }}
         }
         authz_service = self.create_syn_service(synthetic_attributes)
-        resp = InternalResponse(AuthenticationInformation(None, None, None))
+        resp = InternalData(auth_info=AuthenticationInformation())
         resp.attributes = {
             "a1": ["test@example.com"],
         }
@@ -32,7 +33,7 @@ class TestAddSyntheticAttributes:
            "": { "default": {"a0": "{{kaka}}#{{eppn.scope}}" }}
         }
         authz_service = self.create_syn_service(synthetic_attributes)
-        resp = InternalResponse(AuthenticationInformation(None, None, None))
+        resp = InternalData(auth_info=AuthenticationInformation())
         resp.attributes = {
             "kaka": ["kaka1"],
             "eppn": ["a@example.com","b@example.com"]
@@ -50,7 +51,7 @@ class TestAddSyntheticAttributes:
            "": { "default": {"a0": "{{kaka.first}}#{{eppn.scope}}" }}
         }
         authz_service = self.create_syn_service(synthetic_attributes)
-        resp = InternalResponse(AuthenticationInformation(None, None, None))
+        resp = InternalData(auth_info=AuthenticationInformation())
         resp.attributes = {
             "kaka": ["kaka1","kaka2"],
             "eppn": ["a@example.com","b@example.com"]

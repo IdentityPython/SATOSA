@@ -17,8 +17,9 @@ from saml2.authn_context import PASSWORD
 
 from satosa.attribute_mapping import AttributeMapper
 from satosa.exception import SATOSAAuthenticationError
-from satosa.frontends.openid_connect import OpenIDConnectFrontend, oidc_subject_type_to_hash_type
-from satosa.internal_data import InternalResponse, AuthenticationInformation, UserIdHashType
+from satosa.frontends.openid_connect import OpenIDConnectFrontend
+from satosa.internal import AuthenticationInformation
+from satosa.internal import InternalData
 from tests.users import USERS
 
 INTERNAL_ATTRIBUTES = {
@@ -42,13 +43,16 @@ class TestOpenIDConnectFrontend(object):
 
         return config
 
-    @pytest.fixture
-    def frontend(self, frontend_config):
+    def create_frontend(self, frontend_config):
         # will use in-memory storage
         instance = OpenIDConnectFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
                                          frontend_config, BASE_URL, "oidc_frontend")
         instance.register_endpoints(["foo_backend"])
         return instance
+
+    @pytest.fixture
+    def frontend(self, frontend_config):
+        return self.create_frontend(frontend_config)
 
     @pytest.fixture
     def authn_req(self):
@@ -81,9 +85,9 @@ class TestOpenIDConnectFrontend(object):
         context.state[frontend.name] = {"oidc_request": auth_req.to_urlencoded()}
 
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
-        internal_response = InternalResponse(auth_info=auth_info)
+        internal_response = InternalData(auth_info=auth_info)
         internal_response.attributes = AttributeMapper(INTERNAL_ATTRIBUTES).to_internal("saml", USERS["testuser1"])
-        internal_response.user_id = USERS["testuser1"]["eduPersonTargetedID"][0]
+        internal_response.subject_id = USERS["testuser1"]["eduPersonTargetedID"][0]
 
         return internal_response
 
@@ -116,8 +120,8 @@ class TestOpenIDConnectFrontend(object):
         context, internal_req = mock_callback.call_args[0]
         assert internal_req.requester == authn_req["client_id"]
         assert internal_req.requester_name == [{"lang": "en", "text": client_name}]
-        assert internal_req.user_id_hash_type == UserIdHashType.pairwise
-        assert internal_req.approved_attributes == ["mail"]
+        assert internal_req.subject_type == 'pairwise'
+        assert internal_req.attributes == ["mail"]
 
     def test_get_approved_attributes(self, frontend):
         claims_req = ClaimsRequest(id_token=Claims(email=None), userinfo=Claims(userinfo_claim=None))
@@ -182,11 +186,10 @@ class TestOpenIDConnectFrontend(object):
             "claims_parameter_supported": True,
             "request_parameter_supported": False,
             "request_uri_parameter_supported": False,
-            "scopes_supported": ["openid", "email"],
             "claims_supported": ["email"],
             "grant_types_supported": ["authorization_code", "implicit"],
             "issuer": BASE_URL,
-            "require_request_uri_registration": True,
+            "require_request_uri_registration": False,
             "token_endpoint_auth_methods_supported": ["client_secret_basic"],
             "version": "3.0"
         }
@@ -194,7 +197,10 @@ class TestOpenIDConnectFrontend(object):
         http_response = frontend.provider_config(context)
         provider_config = ProviderConfigurationResponse().deserialize(http_response.message, "json")
 
-        assert provider_config.to_dict() == expected_capabilities
+        provider_config_dict = provider_config.to_dict()
+        scopes_supported = provider_config_dict.pop("scopes_supported")
+        assert all(scope in scopes_supported for scope in ["openid", "email"])
+        assert provider_config_dict == expected_capabilities
 
     def test_jwks(self, context, frontend):
         http_response = frontend.jwks(context)
@@ -209,7 +215,7 @@ class TestOpenIDConnectFrontend(object):
     def test_register_endpoints_token_and_userinfo_endpoint_is_not_published_if_only_implicit_flow(
             self, frontend_config, context):
         frontend_config["provider"]["response_types_supported"] = ["id_token", "id_token token"]
-        frontend = self.frontend(frontend_config)
+        frontend = self.create_frontend(frontend_config)
 
         urls = frontend.register_endpoints(["test"])
         assert ("^{}/{}".format("test", TokenEndpoint.url), frontend.token_endpoint) not in urls
@@ -226,7 +232,7 @@ class TestOpenIDConnectFrontend(object):
     def test_register_endpoints_dynamic_client_registration_is_configurable(
             self, frontend_config, client_registration_enabled):
         frontend_config["provider"]["client_registration_supported"] = client_registration_enabled
-        frontend = self.frontend(frontend_config)
+        frontend = self.create_frontend(frontend_config)
 
         urls = frontend.register_endpoints(["test"])
         assert (("^{}/{}".format(frontend.name, RegistrationEndpoint.url),
@@ -237,7 +243,7 @@ class TestOpenIDConnectFrontend(object):
     def test_token_endpoint(self, context, frontend_config, authn_req):
         token_lifetime = 60 * 60 * 24
         frontend_config["provider"]["access_token_lifetime"] = token_lifetime
-        frontend = self.frontend(frontend_config)
+        frontend = self.create_frontend(frontend_config)
 
         user_id = "test_user"
         self.insert_client_in_client_db(frontend, authn_req["redirect_uri"])
@@ -375,14 +381,3 @@ class TestOpenIDConnectFrontend(object):
         http_response = frontend.userinfo_endpoint(context)
         parsed = OpenIDSchema().deserialize(http_response.message, "json")
         assert "email" in parsed
-
-
-class TestOidcSubjectTypeToHashType:
-    def test_should_default_to_pairwise(self):
-        assert oidc_subject_type_to_hash_type("foobar") == UserIdHashType.pairwise
-
-    def test_should_map_pairwise(self):
-        assert oidc_subject_type_to_hash_type("pairwise") == UserIdHashType.pairwise
-
-    def test_should_map_pairwise(self):
-        assert oidc_subject_type_to_hash_type("public") == UserIdHashType.public

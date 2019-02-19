@@ -1,4 +1,5 @@
-from satosa.internal_data import InternalResponse, AuthenticationInformation
+from satosa.internal import AuthenticationInformation
+from satosa.internal import InternalData
 from satosa.micro_services.attribute_authorization import AttributeAuthorization
 from satosa.exception import SATOSAAuthenticationError
 from satosa.context import Context
@@ -16,7 +17,7 @@ class TestAttributeAuthorization:
         }
         attribute_deny = {}
         authz_service = self.create_authz_service(attribute_allow, attribute_deny)
-        resp = InternalResponse(AuthenticationInformation(None, None, None))
+        resp = InternalData(auth_info=AuthenticationInformation())
         resp.attributes = {
             "a0": ["test@example.com"],
         }
@@ -33,7 +34,7 @@ class TestAttributeAuthorization:
         }
         attribute_deny = {}
         authz_service = self.create_authz_service(attribute_allow, attribute_deny)
-        resp = InternalResponse(AuthenticationInformation(None, None, None))
+        resp = InternalData(auth_info=AuthenticationInformation())
         resp.attributes = {
             "a0": ["bar"],
         }
@@ -51,7 +52,7 @@ class TestAttributeAuthorization:
         }
         attribute_deny = {}
         authz_service = self.create_authz_service(attribute_allow, attribute_deny)
-        resp = InternalResponse(AuthenticationInformation(None, None, None))
+        resp = InternalData(auth_info=AuthenticationInformation())
         resp.attributes = {
             "a0": ["foo2","kaka"],
         }
@@ -68,7 +69,7 @@ class TestAttributeAuthorization:
         }
         attribute_allow = {}
         authz_service = self.create_authz_service(attribute_allow, attribute_deny)
-        resp = InternalResponse(AuthenticationInformation(None, None, None))
+        resp = InternalData(auth_info=AuthenticationInformation())
         resp.attributes = {
             "a0": ["foo2"],
         }
@@ -86,7 +87,7 @@ class TestAttributeAuthorization:
         }
         attribute_allow = {}
         authz_service = self.create_authz_service(attribute_allow, attribute_deny)
-        resp = InternalResponse(AuthenticationInformation(None, None, None))
+        resp = InternalData(auth_info=AuthenticationInformation())
         resp.attributes = {
             "a0": ["foo3"],
         }

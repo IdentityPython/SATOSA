@@ -21,22 +21,17 @@ from pyop.userinfo import Userinfo
 from pyop.util import should_fragment_encode
 
 from .base import FrontendModule
-from ..internal_data import InternalRequest
-from ..internal_data import UserIdHashType
 from ..logging_util import satosa_logging
 from ..response import BadRequest, Created
 from ..response import SeeOther, Response
 from ..response import Unauthorized
 from ..util import rndstr
 
+from satosa.internal import InternalData
+from satosa.deprecated import oidc_subject_type_to_hash_type
+
+
 logger = logging.getLogger(__name__)
-
-
-def oidc_subject_type_to_hash_type(subject_type):
-    if subject_type == "public":
-        return UserIdHashType.public
-
-    return UserIdHashType.pairwise
 
 
 class OpenIDConnectFrontend(FrontendModule):
@@ -55,6 +50,7 @@ class OpenIDConnectFrontend(FrontendModule):
         response_types_supported = self.config["provider"].get("response_types_supported", ["id_token"])
         subject_types_supported = self.config["provider"].get("subject_types_supported", ["pairwise"])
         scopes_supported = self.config["provider"].get("scopes_supported", ["openid"])
+        extra_scopes = self.config["provider"].get("extra_scopes")
         capabilities = {
             "issuer": self.base_url,
             "authorization_endpoint": "{}/{}".format(endpoint_baseurl, AuthorizationEndpoint.url),
@@ -90,7 +86,14 @@ class OpenIDConnectFrontend(FrontendModule):
         else:
             cdb = {}
         self.user_db = MongoWrapper(db_uri, "satosa", "authz_codes") if db_uri else {}
-        self.provider = Provider(self.signing_key, capabilities, authz_state, cdb, Userinfo(self.user_db))
+        self.provider = Provider(
+            self.signing_key,
+            capabilities,
+            authz_state,
+            cdb,
+            Userinfo(self.user_db),
+            extra_scopes=extra_scopes,
+        )
 
     def _init_authorization_state(self):
         sub_hash_salt = self.config.get("sub_hash_salt", rndstr(16))
@@ -118,15 +121,19 @@ class OpenIDConnectFrontend(FrontendModule):
         """
         See super class method satosa.frontends.base.FrontendModule#handle_authn_response
         :type context: satosa.context.Context
-        :type internal_response: satosa.internal_data.InternalResponse
+        :type internal_response: satosa.internal.InternalData
         :rtype oic.utils.http_util.Response
         """
 
         auth_req = self._get_authn_request_from_state(context.state)
 
         attributes = self.converter.from_internal("openid", internal_resp.attributes)
-        self.user_db[internal_resp.user_id] = {k: v[0] for k, v in attributes.items()}
-        auth_resp = self.provider.authorize(auth_req, internal_resp.user_id, extra_id_token_claims)
+        self.user_db[internal_resp.subject_id] = {k: v[0] for k, v in attributes.items()}
+        auth_resp = self.provider.authorize(
+            auth_req,
+            internal_resp.subject_id,
+            extra_id_token_claims=extra_id_token_claims,
+        )
 
         del context.state[self.name]
         http_response = auth_resp.request(auth_req["redirect_uri"], should_fragment_encode(auth_req))
@@ -140,12 +147,12 @@ class OpenIDConnectFrontend(FrontendModule):
         """
         auth_req = self._get_authn_request_from_state(exception.state)
         # If the client sent us a state parameter, we should reflect it back according to the spec
-        if 'state' in auth_req: 
+        if 'state' in auth_req:
             error_resp = AuthorizationErrorResponse(error="access_denied",
                                                     error_description=exception.message,
                                                     state=auth_req['state'])
-        else:                                           
-            error_resp = AuthorizationErrorResponse(error="access_denied", 
+        else:
+            error_resp = AuthorizationErrorResponse(error="access_denied",
                                                     error_description=exception.message)
         satosa_logging(logger, logging.DEBUG, exception.message, exception.state)
         return SeeOther(error_resp.request(auth_req["redirect_uri"], should_fragment_encode(auth_req)))
@@ -263,7 +270,7 @@ class OpenIDConnectFrontend(FrontendModule):
         """
         Parse and verify the authentication request into an internal request.
         :type context: satosa.context.Context
-        :rtype: internal_data.InternalRequest
+        :rtype: satosa.internal.InternalData
 
         :param context: the current context
         :return: the internal request
@@ -286,16 +293,20 @@ class OpenIDConnectFrontend(FrontendModule):
 
         client_id = authn_req["client_id"]
         context.state[self.name] = {"oidc_request": request}
-        hash_type = oidc_subject_type_to_hash_type(self.provider.clients[client_id].get("subject_type", "pairwise"))
+        subject_type = self.provider.clients[client_id].get("subject_type", "pairwise")
         client_name = self.provider.clients[client_id].get("client_name")
         if client_name:
             # TODO should process client names for all languages, see OIDC Registration, Section 2.1
             requester_name = [{"lang": "en", "text": client_name}]
         else:
             requester_name = None
-        internal_req = InternalRequest(hash_type, client_id, requester_name)
+        internal_req = InternalData(
+            subject_type=subject_type,
+            requester=client_id,
+            requester_name=requester_name,
+        )
 
-        internal_req.approved_attributes = self.converter.to_internal_filter(
+        internal_req.attributes = self.converter.to_internal_filter(
             "openid", self._get_approved_attributes(self.provider.configuration_information["claims_supported"],
                                                     authn_req))
         return internal_req
@@ -310,7 +321,7 @@ class OpenIDConnectFrontend(FrontendModule):
         :return: HTTP response to the client
         """
         internal_req = self._handle_authn_request(context)
-        if not isinstance(internal_req, InternalRequest):
+        if not isinstance(internal_req, InternalData):
             return internal_req
         return self.auth_req_callback_func(context, internal_req)
 
@@ -353,7 +364,10 @@ class OpenIDConnectFrontend(FrontendModule):
         headers = {"Authorization": context.request_authorization}
 
         try:
-            response = self.provider.handle_userinfo_request(urlencode(context.request), headers)
+            response = self.provider.handle_userinfo_request(
+                request=urlencode(context.request),
+                http_headers=headers,
+            )
             return Response(response.to_json(), content="application/json")
         except (BearerTokenError, InvalidAccessToken) as e:
             error_resp = UserInfoErrorResponse(error='invalid_token', error_description=str(e))

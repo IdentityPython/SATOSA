@@ -39,6 +39,7 @@ config:
             text: "http://sp.logo.url/"
             width: "100"
             height: "100"
+        authn_requests_signed: true
         want_response_signed: true
         allow_unsolicited: true
         endpoints:
@@ -48,5 +49,6 @@ config:
           discovery_response:
           - [<base_url>/<name>/disco, 'urn:oasis:names:tc:SAML:profiles:SSO:idp-discovery-protocol']
         name_id_format: 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient'
+        name_id_format_allow_create: true
   # disco_srv must be defined if there is more than one IdP in the metadata specified above
   disco_srv: http://disco.example.com
