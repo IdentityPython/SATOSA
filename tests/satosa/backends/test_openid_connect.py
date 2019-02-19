@@ -120,8 +120,8 @@ class TestOpenIDConnectBackend(object):
                       status=200,
                       content_type="application/json")
 
-    def setup_userinfo_endpoint(self, userinfo_endpoint_url):
-        responses.add(responses.POST,
+    def setup_userinfo_endpoint(self, userinfo_endpoint_url, userinfo):
+        responses.add(responses.GET,
                       userinfo_endpoint_url,
                       body=json.dumps(self.userinfo()),
                       status=200,
