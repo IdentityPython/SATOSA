@@ -332,6 +332,16 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         sp_policy = policies.get('default', {})
         sp_policy.update(policies.get(sp_entity_id, {}))
 
+        persistent_nameid_attr = sp_policy.get('persistent_nameid_from_attribute', {})
+        if persistent_nameid_attr:
+            satosa_logging(logger, logging.DEBUG, "Constructing persistent NameID for " + ava[persistent_nameid_attr], context.state)
+            name_id = NameID(
+                text=ava[persistent_nameid_attr],
+                format=NAMEID_FORMAT_PERSISTENT,
+                sp_name_qualifier=None,
+                name_qualifier=None,
+            )
+
         sign_assertion = sp_policy.get('sign_assertion', False)
         sign_response = sp_policy.get('sign_response', True)
         sign_alg = sp_policy.get('sign_alg', 'SIG_RSA_SHA256')
