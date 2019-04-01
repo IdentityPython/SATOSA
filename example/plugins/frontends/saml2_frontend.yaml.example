@@ -61,5 +61,5 @@ config:
   # cookie. If the value is a dictionary with key 'domain' then the domain for the cookie
   # will be set to the value for the 'domain' key. If no 'domain' is set then the domain
   # from the BASE defined for the proxy will be used.
-  common_domain_cookie:
-    domain: .example.com
+  #common_domain_cookie:
+  #  domain: .example.com
