@@ -224,7 +224,8 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         idp_policy = idp.config.getattr("policy", "idp")
         if idp_policy:
             internal_req.attributes = self._get_approved_attributes(
-                    idp, idp_policy, requester, context.state)
+                idp, idp_policy, requester, context.state
+            )
 
         return self.auth_req_callback_func(context, internal_req)
 
@@ -376,9 +377,8 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             request_state["relay_state"], response=True)
 
         # Set the common domain cookie _saml_idp if so configured.
-        if 'common_domain_cookie' in self.config:
-            if self.config['common_domain_cookie']:
-                self._set_common_domain_cookie(internal_response, http_args, context)
+        if self.config.get('common_domain_cookie'):
+            self._set_common_domain_cookie(internal_response, http_args, context)
 
         del context.state[self.name]
         return make_saml_response(resp_args["binding"], http_args)
