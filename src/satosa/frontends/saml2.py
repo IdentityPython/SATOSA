@@ -198,25 +198,36 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         context.state[self.name] = self._create_state_data(context, idp.response_args(authn_req),
                                                            context.request.get("RelayState"))
 
-        if authn_req.name_id_policy and authn_req.name_id_policy.format:
-            name_format = authn_req.name_id_policy.format
-        else:
-            # default to name id format from metadata, or just transient name id
-            name_format_from_metadata = idp.metadata[requester]["spsso_descriptor"][0].get("name_id_format")
-            if name_format_from_metadata:
-                name_format = name_format_from_metadata[0]["text"]
-            else:
-                name_format = NAMEID_FORMAT_TRANSIENT
-
         subject = authn_req.subject
-        subject_id = subject.name_id.text if subject else None
-        # XXX should subject.name_id.format overwrite name_id_policy.format?
-        subject_type = subject.name_id.format if subject else name_format
+        name_id_value = subject.name_id.text if subject else None
+
+        nameid_formats = {
+            "from_policy": authn_req.name_id_policy and authn_req.name_id_policy.format,
+            "from_response": subject and subject.name_id and subject.name_id.format,
+            "from_metadata": (
+                idp.metadata[requester]
+                .get("spsso_descriptor", [{}])[0]
+                .get("name_id_format", [{}])[0]
+                .get("text")
+            ),
+            "default": NAMEID_FORMAT_TRANSIENT,
+        }
+
+        name_id_format = (
+            nameid_formats["from_policy"]
+            or (
+                nameid_formats["from_response"] != NAMEID_FORMAT_UNSPECIFIED
+                and nameid_formats["from_response"]
+            )
+            or nameid_formats["from_metadata"]
+            or nameid_formats["from_response"]
+            or nameid_formats["default"]
+        )
 
         requester_name = self._get_sp_display_name(idp, requester)
         internal_req = InternalData(
-            subject_id=subject_id,
-            subject_type=subject_type,
+            subject_id=name_id_value,
+            subject_type=name_id_format,
             requester=requester,
             requester_name=requester_name,
         )
