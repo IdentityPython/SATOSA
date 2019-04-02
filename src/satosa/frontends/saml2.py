@@ -5,6 +5,7 @@ import copy
 import functools
 import json
 import logging
+import datetime
 from base64 import urlsafe_b64decode
 from base64 import urlsafe_b64encode
 from urllib.parse import quote
@@ -348,6 +349,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         sign_response = sp_policy.get('sign_response', True)
         sign_alg = sp_policy.get('sign_alg', 'SIG_RSA_SHA256')
         digest_alg = sp_policy.get('digest_alg', 'DIGEST_SHA256')
+        session_not_on_or_after_minutes = sp_policy.get('session_not_on_or_after_minutes', {})
 
         # Construct arguments for method create_authn_response
         # on IdP Server instance
@@ -358,6 +360,11 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             'sign_response' : sign_response,
             'sign_assertion': sign_assertion,
         }
+
+        if session_not_on_or_after_minutes:
+            sessexp_utc = datetime.datetime.utcnow() + datetime.timedelta(minutes=session_not_on_or_after_minutes)
+            session_not_on_or_after = sessexp_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+            args['session_not_on_or_after'] = session_not_on_or_after
 
         # Add the SP details
         args.update(**resp_args)
@@ -684,3 +691,4 @@ class SAMLMirrorFrontend(SAMLFrontend):
                                 functools.partial(self.handle_authn_request, binding_in=binding)))
 
         return url_map
+
