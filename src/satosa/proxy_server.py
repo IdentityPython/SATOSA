@@ -12,6 +12,7 @@ from .context import Context
 from .response import ServiceError, NotFound
 from .routing import SATOSANoBoundEndpointError
 from saml2.s_utils import UnknownSystemEntity
+from .util import repr_saml
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,11 @@ def unpack_post(environ, content_length):
         data = json.loads(post_body)
 
     logger.debug("unpack_post:: %s", data)
+
+    # fancy saml representation
+    saml_data = data.get('SAMLRequest') or data.get('SAMLResponse') or ''
+    logger.debug("read unpackacked post: {}".format(repr_saml(saml_data.encode(), b64=True)))
+
     return data
 
 
@@ -58,6 +64,10 @@ def unpack_request(environ, content_length=0):
         data = unpack_post(environ, content_length)
 
     logger.debug("read request data: %s", data)
+
+    # fancy saml representation
+    saml_data = data.get('SAMLRequest') or data.get('SAMLResponse') or ''
+    logger.debug("saml request data: %s", repr_saml(saml_data.encode(), b64=True))
     return data
 
 
@@ -108,7 +118,6 @@ class WsgiApplication(SATOSABase):
 
         context.cookie = environ.get("HTTP_COOKIE", "")
         context.request_authorization = environ.get("HTTP_AUTHORIZATION", "")
-
         try:
             resp = self.run(context)
             if isinstance(resp, Exception):
@@ -116,7 +125,7 @@ class WsgiApplication(SATOSABase):
             return resp(environ, start_response)
         except SATOSANoBoundEndpointError:
             resp = NotFound(
-                    "The Service or Identity Provider"
+                    "The Service or Identity Provider "
                     "you requested could not be found.")
             return resp(environ, start_response)
         except Exception as err:

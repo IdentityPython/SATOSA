@@ -37,6 +37,7 @@ from satosa.internal import InternalData
 from satosa.deprecated import saml_name_id_format_to_hash_type
 from satosa.deprecated import hash_type_to_saml_name_id_format
 
+import satosa.util as util
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +187,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         """
         req_info = idp.parse_authn_request(context.request["SAMLRequest"], binding_in)
         authn_req = req_info.message
-        satosa_logging(logger, logging.DEBUG, "%s" % authn_req, context.state)
+        satosa_logging(logger, logging.DEBUG, "%s" % util.repr_saml(str(authn_req)), context.state)
 
         try:
             resp_args = idp.response_args(authn_req)
