@@ -50,9 +50,16 @@ if [ -f "$https_key" -a -f "$https_crt" ]
 then https_opts="--keyfile ${https_key} --certfile ${https_crt}"
 fi
 
+# if a chain is available, use it
+chain_pem="${DATA_DIR}/chain.pem"
+if [ -f "$chain_pem" ]
+then chain_opts="--ca-certs chain.pem"
+fi
+
 # start the proxy
 exec gunicorn $conf_opt        \
 	-b 0.0.0.0:"${PROXY_PORT}" \
 	satosa.wsgi:app            \
 	$https_opts                \
+	$chain_opts                \
 	;
