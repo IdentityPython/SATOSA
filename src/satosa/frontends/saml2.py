@@ -363,7 +363,8 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         args.update(**resp_args)
 
         try:
-            args['sign_alg'] = getattr(xmldsig, sign_alg)
+            args['sign_alg'] = getattr(xmldsig,
+                                       util.xmldsig_validate_w3c_format(sign_alg))
         except AttributeError as e:
             errmsg = "Unsupported sign algorithm %s" % sign_alg
             satosa_logging(logger, logging.ERROR, errmsg, context.state)
@@ -373,7 +374,8 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             satosa_logging(logger, logging.DEBUG, dbgmsg, context.state)
 
         try:
-            args['digest_alg'] = getattr(xmldsig, digest_alg)
+            args['digest_alg'] = getattr(xmldsig,
+                                         util.xmldsig_validate_w3c_format(digest_alg))
         except AttributeError as e:
             errmsg = "Unsupported digest algorithm %s" % digest_alg
             satosa_logging(logger, logging.ERROR, errmsg, context.state)

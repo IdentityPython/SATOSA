@@ -5,11 +5,29 @@ import hashlib
 import logging
 import random
 import string
+import saml2.xmldsig
 
 from satosa.logging_util import satosa_logging
 
 
 logger = logging.getLogger(__name__)
+
+
+def xmldsig_validate_w3c_format(alg_value):
+    """
+    Map a w3c alg format to a xmldsig attribute name
+    this function could be also used to implement other validations
+    on matching
+
+    :type value: str
+    :type allowed_alg_list: list
+    """
+    for allowed_list in (saml2.xmldsig.SIG_ALLOWED_ALG,
+                         saml2.xmldsig.DIGEST_ALLOWED_ALG):
+        for alg_tuple in allowed_list:
+            if alg_value == alg_tuple[1]:
+                return alg_tuple[0]
+    return alg_value
 
 
 def hash_data(salt, value, hash_alg=None):
