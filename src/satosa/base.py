@@ -299,7 +299,7 @@ class SATOSABase(object):
         except Exception as err:
             satosa_logging(logger, logging.ERROR, "Uncaught exception", context.state,
                            exc_info=True)
-            raise SATOSAUnknownError("Unknown error") from err
+            raise SATOSAUnknownError("Unknown error: {}".format(err)) from err
         return resp
 
 
