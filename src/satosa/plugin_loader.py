@@ -190,6 +190,7 @@ def _load_endpoint_module(plugin_config, plugin_filter):
 
 
 def _load_plugin_module(plugin_config, plugin_filter):
+    sys.path.append('.') # permits to load plugins from PWD
     module_class = locate(plugin_config["module"])
     if not module_class:
         raise ValueError("Can't find module '%s'" % plugin_config["module"])
