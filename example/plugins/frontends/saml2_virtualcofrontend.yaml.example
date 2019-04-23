@@ -1,0 +1,94 @@
+module: satosa.frontends.saml2.SAMLVirtualCoFrontend
+name: Saml2IDP
+config:
+  collaborative_organizations:
+    # The encodeable name for the CO will be URL encoded and used 
+    # both for the entityID and the SSO endpoints of the virtual IdP.
+    # The entityID has the form
+    #
+    # {base_entity_id}/{co_name}
+    #
+    # The endpoint URLs have the form
+    #
+    # {base}/{backend}/{co_name}/{path}
+    #
+    - encodedable_name: MESS
+      # If organization and contact_person details appear they
+      # will override the same from the base configuration in
+      # the generated metadata for the CO IdP.
+      organization:
+        display_name: MESS
+        name: Medium Energy Synchrotron Source
+        url: https://messproject.org
+      contact_person:
+        - contact_type: technical
+          email_address: help@messproject.org
+          given_name MESS Technical Support
+    - encodeable_name: MTS
+      organization:
+        display_name: Milwaukee Theological Seminary
+        name: Milwaukee Theological Seminary
+        url: https://milwaukeetheologicalseminary.org
+    - encodeable_name: IBNS Staff
+  idp_config:
+    organization: {display_name: Example Identities, name: Example Identities Org., url: 'http://www.example.com'}
+    contact_person:
+    - {contact_type: technical, email_address: technical@example.com, given_name: Technical}
+    - {contact_type: support, email_address: support@example.com, given_name: Support}
+    key_file: frontend.key
+    cert_file: frontend.crt
+    metadata:
+      local: [sp.xml]
+
+    entityid: <base_url>/<name>/proxy.xml
+    accepted_time_diff: 60
+    service:
+      idp:
+        endpoints:
+          single_sign_on_service: []
+        name: Proxy IdP
+        ui_info:
+          display_name:
+            - lang: en
+              text: "IdP Display Name"
+          description:
+            - lang: en
+              text: "IdP Description"
+          information_url:
+            - lang: en
+              text: "http://idp.information.url/"
+          privacy_statement_url:
+            - lang: en
+              text: "http://idp.privacy.url/"
+          keywords:
+            - lang: se
+              text: ["Satosa", "IdP-SE"]
+            - lang: en
+              text: ["Satosa", "IdP-EN"]
+          logo:
+            text: "http://idp.logo.url/"
+            width: "100"
+            height: "100"
+        name_id_format: ['urn:oasis:names:tc:SAML:2.0:nameid-format:persistent', 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient']
+        policy:
+          default:
+            attribute_restrictions: null
+            fail_on_missing_requested: false
+            lifetime: {minutes: 15}
+            name_form: urn:oasis:names:tc:SAML:2.0:attrname-format:uri
+  acr_mapping:
+    "": default-LoA
+    "https://accounts.google.com": LoA1
+
+  endpoints:
+    single_sign_on_service:
+      'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST': sso/post
+      'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect': sso/redirect
+
+  # If configured and not false or empty the common domain cookie _saml_idp will be set
+  # with or have appended the IdP used for authentication. The default is not to set the
+  # cookie. If the value is a dictionary with key 'domain' then the domain for the cookie
+  # will be set to the value for the 'domain' key. If no 'domain' is set then the domain
+  # from the BASE defined for the proxy will be used.
+  common_domain_cookie:
+    domain: .example.com
