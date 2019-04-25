@@ -40,6 +40,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
     A saml2 backend module (acting as a SP).
     """
     KEY_DISCO_SRV = 'disco_srv'
+    KEY_SAML_DISCOVERY_SERVICE_URL = 'saml_discovery_service_url'
     KEY_SP_CONFIG = 'sp_config'
     VALUE_ACR_COMPARISON_DEFAULT = 'exact'
 
@@ -102,9 +103,9 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             entity_id = idps[0]
             return self.authn_request(context, entity_id)
 
-        return self.disco_query()
+        return self.disco_query(context)
 
-    def disco_query(self):
+    def disco_query(self, context):
         """
         Makes a request to the discovery server
 
@@ -116,8 +117,17 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :param internal_req: The request
         :return: Response
         """
-        return_url = self.sp.config.getattr("endpoints", "sp")["discovery_response"][0][0]
-        loc = self.sp.create_discovery_service_request(self.discosrv, self.sp.config.entityid, **{"return": return_url})
+        endpoints = self.sp.config.getattr("endpoints", "sp")
+        return_url = endpoints["discovery_response"][0][0]
+
+        disco_url = context.get_decoration(self.KEY_SAML_DISCOVERY_SERVICE_URL)
+        if not disco_url:
+            disco_url = self.discosrv
+
+        loc = self.sp.create_discovery_service_request(
+                    disco_url,
+                    self.sp.config.entityid, **{"return": return_url})
+
         return SeeOther(loc)
 
     def construct_requested_authn_context(self, entity_id):
