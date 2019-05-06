@@ -1028,12 +1028,17 @@ class SAMLUnsolicitedFrontend(SAMLFrontend):
     SAML standard.
     """
     KEY_ENDPOINT = "endpoint"
-    KEY_DISCO_WHITE = "discovery_service_whitelist"
+    KEY_DISCO_URL_WHITE = "discovery_service_url_whitelist"
+    KEY_DISCO_POLICY_WHITE = "discovery_service_policy_whitelist"
     KEY_QUERY_SP = "providerId"
     KEY_QUERY_ACS = "shire"
     KEY_QUERY_RELAY = "target"
-    KEY_QUERY_DISCO = "discoveryURL"
+    KEY_QUERY_DISCO_URL = "discoveryURL"
+    KEY_QUERY_DISCO_POLICY = "discoveryPolicy"
     KEY_SAML_DISCOVERY_SERVICE_URL = SAMLBackend.KEY_SAML_DISCOVERY_SERVICE_URL
+    KEY_SAML_DISCOVERY_SERVICE_POLICY = (
+            SAMLBackend.KEY_SAML_DISCOVERY_SERVICE_POLICY
+            )
     KEY_UNSOLICITED = "unsolicited"
 
     def __init__(self, auth_req_callback_func, internal_attributes, config,
@@ -1082,7 +1087,8 @@ class SAMLUnsolicitedFrontend(SAMLFrontend):
         target_sp_entity_id = request.get(self.KEY_QUERY_SP, None)
         target_sp_acs_url = request.get(self.KEY_QUERY_ACS, None)
         target_sp_relay_state_url = request.get(self.KEY_QUERY_RELAY, None)
-        requested_disco_url = request.get(self.KEY_QUERY_DISCO, None)
+        requested_disco_url = request.get(self.KEY_QUERY_DISCO_URL, None)
+        requested_disco_policy = request.get(self.KEY_QUERY_DISCO_POLICY, None)
 
         logger.debug("Unsolicited target SP is {}".format(target_sp_entity_id))
         logger.debug("Unsolicited ACS URL is {}".format(target_sp_acs_url))
@@ -1090,6 +1096,8 @@ class SAMLUnsolicitedFrontend(SAMLFrontend):
                      target_sp_relay_state_url))
         logger.debug("Unsolicted discovery URL is {}".format(
                      requested_disco_url))
+        logger.debug("Unsolicted discovery policy is {}".format(
+                     requested_disco_policy))
 
         # We only proceed with known federated SPs.
         try:
@@ -1194,15 +1202,28 @@ class SAMLUnsolicitedFrontend(SAMLFrontend):
         # If provided and is whitelisted set the discovery service to use.
         if requested_disco_url:
             allowed = (self.config[self.KEY_UNSOLICITED]
-                       .get(self.KEY_DISCO_WHITE))
+                       .get(self.KEY_DISCO_URL_WHITE))
             if requested_disco_url not in allowed:
-                msg = "Discovery service {} not allowed"
+                msg = "Discovery service URL {} not allowed"
                 msg = msg.format(requested_disco_url)
                 satosa_logging(logger, logging.ERROR, msg, context.state)
                 raise SATOSAError(msg)
 
             context.decorate(self.KEY_SAML_DISCOVERY_SERVICE_URL,
                              requested_disco_url)
+
+        # If provided and is whitelisted set the discovery policy to use.
+        if requested_disco_policy:
+            allowed = (self.config[self.KEY_UNSOLICITED]
+                       .get(self.KEY_DISCO_POLICY_WHITE))
+            if requested_disco_policy not in allowed:
+                msg = "Discovery service policy {} not allowed"
+                msg = msg.format(requested_disco_policy)
+                satosa_logging(logger, logging.ERROR, msg, context.state)
+                raise SATOSAError(msg)
+
+            context.decorate(self.KEY_SAML_DISCOVERY_SERVICE_POLICY,
+                             requested_disco_policy)
 
         # Handle the authn request use the base class.
         return self._handle_authn_request(context, BINDING_HTTP_POST, self.idp)
