@@ -41,6 +41,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
     """
     KEY_DISCO_SRV = 'disco_srv'
     KEY_SAML_DISCOVERY_SERVICE_URL = 'saml_discovery_service_url'
+    KEY_SAML_DISCOVERY_SERVICE_POLICY = 'saml_discovery_service_policy'
     KEY_SP_CONFIG = 'sp_config'
     VALUE_ACR_COMPARISON_DEFAULT = 'exact'
 
@@ -121,12 +122,19 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         return_url = endpoints["discovery_response"][0][0]
 
         disco_url = context.get_decoration(self.KEY_SAML_DISCOVERY_SERVICE_URL)
+        disco_policy = (
+                context.get_decoration(self.KEY_SAML_DISCOVERY_SERVICE_POLICY)
+                )
+
         if not disco_url:
             disco_url = self.discosrv
 
+        args = {"return" : return_url}
+        if disco_policy:
+            args["policy"] = disco_policy
+
         loc = self.sp.create_discovery_service_request(
-                    disco_url,
-                    self.sp.config.entityid, **{"return": return_url})
+                    disco_url, self.sp.config.entityid, **args)
 
         return SeeOther(loc)
 
