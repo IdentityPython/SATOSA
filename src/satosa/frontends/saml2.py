@@ -1030,6 +1030,7 @@ class SAMLUnsolicitedFrontend(SAMLFrontend):
     KEY_ENDPOINT = "endpoint"
     KEY_DISCO_URL_WHITE = "discovery_service_url_whitelist"
     KEY_DISCO_POLICY_WHITE = "discovery_service_policy_whitelist"
+    KEY_QUERY_IDP = "authId"
     KEY_QUERY_SP = "providerId"
     KEY_QUERY_ACS = "shire"
     KEY_QUERY_RELAY = "target"
@@ -1084,12 +1085,15 @@ class SAMLUnsolicitedFrontend(SAMLFrontend):
         """
         request = context.request
 
+        target_idp_entity_id = request.get(self.KEY_QUERY_IDP, None)
         target_sp_entity_id = request.get(self.KEY_QUERY_SP, None)
         target_sp_acs_url = request.get(self.KEY_QUERY_ACS, None)
         target_sp_relay_state_url = request.get(self.KEY_QUERY_RELAY, None)
         requested_disco_url = request.get(self.KEY_QUERY_DISCO_URL, None)
         requested_disco_policy = request.get(self.KEY_QUERY_DISCO_POLICY, None)
 
+        logger.debug("Unsolicited target authenticating IdP is {}".format(
+                     target_idp_entity_id))
         logger.debug("Unsolicited target SP is {}".format(target_sp_entity_id))
         logger.debug("Unsolicited ACS URL is {}".format(target_sp_acs_url))
         logger.debug("Unsolicited relay state is {}".format(
@@ -1224,6 +1228,19 @@ class SAMLUnsolicitedFrontend(SAMLFrontend):
 
             context.decorate(self.KEY_SAML_DISCOVERY_SERVICE_POLICY,
                              requested_disco_policy)
+
+        # If provided and known in the SAML metadata set the entityID for
+        # the IdP to use for authentication.
+        if target_idp_entity_id:
+            try:
+                target_idp_metadata = self.idp.metadata[target_idp_entity_id]
+            except KeyError:
+                msg = "Target IdP with entityID {} is unknown in metadata"
+                msg = msg.format(target_idp_entity_id)
+                satosa_logging(logger, logging.ERROR, msg, context.state)
+                raise SATOSAError(msg)
+
+            context.decorate(Context.KEY_TARGET_ENTITYID, target_idp_entity_id)
 
         # Handle the authn request use the base class.
         return self._handle_authn_request(context, BINDING_HTTP_POST, self.idp)
