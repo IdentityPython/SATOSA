@@ -1227,15 +1227,13 @@ class SAMLUnsolicitedFrontend(SAMLFrontend):
         # If provided and known in the SAML metadata set the entityID for
         # the IdP to use for authentication.
         if target_idp_entity_id:
-            try:
-                target_idp_metadata = self.idp.metadata[target_idp_entity_id]
-            except KeyError:
+            if target_idp_entity_id in self.idp.metadata:
+                context.decorate(Context.KEY_TARGET_ENTITYID, target_idp_entity_id)
+            else:
                 msg = "Target IdP with entityID {} is unknown in metadata"
                 msg = msg.format(target_idp_entity_id)
                 satosa_logging(logger, logging.ERROR, msg, context.state)
                 raise SATOSAError(msg)
-
-            context.decorate(Context.KEY_TARGET_ENTITYID, target_idp_entity_id)
 
         # Handle the authn request use the base class.
         return self._handle_authn_request(context, BINDING_HTTP_POST, self.idp)
