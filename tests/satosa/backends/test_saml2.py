@@ -48,10 +48,8 @@ class TestSAMLBackend:
         assert "SAMLRequest" in parse_qs(parsed.query)
 
     def assert_redirect_to_discovery_server(
-                                            self,
-                                            redirect_response,
-                                            sp_conf,
-                                            expected_discosrv_url):
+        self, redirect_response, sp_conf, expected_discosrv_url
+    ):
         assert redirect_response.status == "303 See Other"
         parsed = urlparse(redirect_response.message)
         redirect_location = "{parsed.scheme}://{parsed.netloc}{parsed.path}".format(parsed=parsed)
@@ -108,8 +106,8 @@ class TestSAMLBackend:
     def test_discovery_server_set_in_context(self, context, sp_conf):
         discosrv_url = 'https://my.org/saml_discovery_service'
         context.decorate(
-            SAMLBackend.KEY_SAML_DISCOVERY_SERVICE_URL,
-            discosrv_url)
+            SAMLBackend.KEY_SAML_DISCOVERY_SERVICE_URL, discosrv_url
+        )
         resp = self.samlbackend.start_auth(context, InternalData())
         self.assert_redirect_to_discovery_server(resp, sp_conf, discosrv_url)
 

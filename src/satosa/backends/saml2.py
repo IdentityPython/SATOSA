@@ -121,21 +121,18 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         endpoints = self.sp.config.getattr("endpoints", "sp")
         return_url = endpoints["discovery_response"][0][0]
 
-        disco_url = context.get_decoration(self.KEY_SAML_DISCOVERY_SERVICE_URL)
-        disco_policy = (
-                context.get_decoration(self.KEY_SAML_DISCOVERY_SERVICE_POLICY)
-                )
+        disco_url = (
+            context.get_decoration(self.KEY_SAML_DISCOVERY_SERVICE_URL) or self.discosrv
+        )
+        disco_policy = context.get_decoration(self.KEY_SAML_DISCOVERY_SERVICE_POLICY)
 
-        if not disco_url:
-            disco_url = self.discosrv
-
-        args = {"return" : return_url}
+        args = {"return": return_url}
         if disco_policy:
             args["policy"] = disco_policy
 
         loc = self.sp.create_discovery_service_request(
-                    disco_url, self.sp.config.entityid, **args)
-
+            disco_url, self.sp.config.entityid, **args
+        )
         return SeeOther(loc)
 
     def construct_requested_authn_context(self, entity_id):
