@@ -47,11 +47,13 @@ class TestSAMLBackend:
         assert redirect_location == idp_conf["service"]["idp"]["endpoints"]["single_sign_on_service"][0][0]
         assert "SAMLRequest" in parse_qs(parsed.query)
 
-    def assert_redirect_to_discovery_server(self, redirect_response, sp_conf):
+    def assert_redirect_to_discovery_server(
+        self, redirect_response, sp_conf, expected_discosrv_url
+    ):
         assert redirect_response.status == "303 See Other"
         parsed = urlparse(redirect_response.message)
         redirect_location = "{parsed.scheme}://{parsed.netloc}{parsed.path}".format(parsed=parsed)
-        assert redirect_location == DISCOSRV_URL
+        assert redirect_location == expected_discosrv_url
 
         request_params = dict(parse_qsl(parsed.query))
         assert request_params["return"] == sp_conf["service"]["sp"]["endpoints"]["discovery_response"][0][0]
@@ -99,7 +101,15 @@ class TestSAMLBackend:
 
     def test_start_auth_defaults_to_redirecting_to_discovery_server(self, context, sp_conf):
         resp = self.samlbackend.start_auth(context, InternalData())
-        self.assert_redirect_to_discovery_server(resp, sp_conf)
+        self.assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
+
+    def test_discovery_server_set_in_context(self, context, sp_conf):
+        discosrv_url = 'https://my.org/saml_discovery_service'
+        context.decorate(
+            SAMLBackend.KEY_SAML_DISCOVERY_SERVICE_URL, discosrv_url
+        )
+        resp = self.samlbackend.start_auth(context, InternalData())
+        self.assert_redirect_to_discovery_server(resp, sp_conf, discosrv_url)
 
     def test_full_flow(self, context, idp_conf, sp_conf):
         test_state_key = "test_state_key_456afgrh"
@@ -110,7 +120,7 @@ class TestSAMLBackend:
 
         # start auth flow (redirecting to discovery server)
         resp = self.samlbackend.start_auth(context, InternalData())
-        self.assert_redirect_to_discovery_server(resp, sp_conf)
+        self.assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
 
         # fake response from discovery server
         disco_resp = parse_qs(urlparse(resp.message).query)
@@ -166,7 +176,7 @@ class TestSAMLBackend:
         samlbackend = SAMLBackend(None, INTERNAL_ATTRIBUTES, {"sp_config": sp_conf, "disco_srv": DISCOSRV_URL,},
                                   "base_url", "saml_backend")
         resp = samlbackend.start_auth(context, InternalData())
-        self.assert_redirect_to_discovery_server(resp, sp_conf)
+        self.assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
 
     def test_authn_request(self, context, idp_conf):
         resp = self.samlbackend.authn_request(context, idp_conf["entityid"])
