@@ -35,6 +35,31 @@ from satosa.deprecated import SAMLInternalResponse
 logger = logging.getLogger(__name__)
 
 
+def get_memorized_idp(context, config, force_authn):
+    memorized_idp = (
+        config.get(SAMLBackend.KEY_MEMORIZE_DISCO_IDP)
+        and context.state.get(Context.KEY_MEMORIZED_DISCO_IDP)
+    )
+    use_when_force_authn = config.get(
+        SAMLBackend.KEY_USE_MEMORIZED_DISCO_IDP_WHEN_FORCE_AUTHN
+    )
+    value = (not force_authn or use_when_force_authn) and memorized_idp
+    return value
+
+
+# XXX check KEY_FORCE_AUTHN value type (boolean vs str)
+def get_force_authn(context, config, sp_config):
+    value = (
+        config.get(SAMLBackend.KEY_MIRROR_SAML_FORCE_AUTHN)
+        and (
+            context.state.get(Context.KEY_FORCE_AUTHN)
+            or context.get_decoration(Context.KEY_FORCE_AUTHN)
+        )
+        or sp_config.getattr("force_authn", "sp")
+    )
+    return value
+
+
 class SAMLBackend(BackendModule, SAMLBaseModule):
     """
     A saml2 backend module (acting as a SP).
@@ -102,45 +127,24 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         idps = self.sp.metadata.identity_providers()
         only_one_idp_in_metadata = (
-            len(idps) == 1 and "mdq" not in self.config["sp_config"]["metadata"]
+            "mdq" not in self.config["sp_config"]["metadata"]
+            and len(idps) == 1
         )
 
+        only_idp = only_one_idp_in_metadata and idps[0]
         target_entity_id = context.get_decoration(Context.KEY_TARGET_ENTITYID)
-
-        force_authn = context.get_decoration(Context.KEY_FORCE_AUTHN)
-        memorized_disco_idp = (
-            self.config.get(SAMLBackend.KEY_MEMORIZE_DISCO_IDP)
-            and context.state.get(Context.KEY_MEMORIZED_DISCO_IDP)
-        )
-        use_memorized_disco_idp_when_force_authn = self.config.get(
-            SAMLBackend.KEY_USE_MEMORIZED_DISCO_IDP_WHEN_FORCE_AUTHN
-        )
-        use_memorized_disco_idp = memorized_disco_idp and (
-            not force_authn or use_memorized_disco_idp_when_force_authn
-        )
-
-        if only_one_idp_in_metadata:
-            entity_id = idps[0]
-        elif use_memorized_disco_idp:
-            entity_id = memorized_disco_idp
-        elif target_entity_id:
-            entity_id = target_entity_id
-        else:
-            entity_id = None
+        force_authn = get_force_authn(context, self.config, self.sp.config)
+        memorized_idp = get_memorized_idp(context, self.config, force_authn)
+        entity_id = only_idp or target_entity_id or memorized_idp or None
 
         satosa_logging(
             logger, logging.INFO,
             {
-                "message": "Selected IdP entity ID",
-                "idps": idps,
-                "only_one_idp_in_metadata": only_one_idp_in_metadata,
-                "force_authn": force_authn,
-                "memorized_disco_idp": memorized_disco_idp,
-                "use_memorized_disco_idp_when_force_authn": (
-                    use_memorized_disco_idp_when_force_authn
-                ),
-                "use_memorized_disco_idp": use_memorized_disco_idp,
+                "message": "Selected IdP",
+                "only_one": only_idp,
                 "target_entity_id": target_entity_id,
+                "force_authn": force_authn,
+                "memorized_idp": memorized_idp,
                 "entity_id": entity_id,
             },
             context.state,
@@ -160,8 +164,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         if entity_id is None:
             # since context is not passed to disco_query
             # keep the information in the state cookie
-            context.state[Context.KEY_FORCE_AUTHN] = context.get_decoration(
-                Context.KEY_FORCE_AUTHN
+            context.state[Context.KEY_FORCE_AUTHN] = get_force_authn(
+                context, self.config, self.sp.config
             )
             return self.disco_query(context)
 
@@ -247,9 +251,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         if authn_context:
             kwargs["requested_authn_context"] = authn_context
         if self.config.get(SAMLBackend.KEY_MIRROR_SAML_FORCE_AUTHN):
-            kwargs["force_authn"] = (
-                context.state.get(Context.KEY_FORCE_AUTHN)
-                or context.get_decoration(Context.KEY_FORCE_AUTHN)
+            kwargs["force_authn"] = get_force_authn(
+                context, self.config, self.sp.config
             )
 
         try:

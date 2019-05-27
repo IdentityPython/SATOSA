@@ -222,6 +222,7 @@ class TestSAMLBackend:
             SAMLBackend.KEY_SP_CONFIG: sp_conf,
             SAMLBackend.KEY_DISCO_SRV: DISCOSRV_URL,
             SAMLBackend.KEY_MEMORIZE_DISCO_IDP: True,
+            SAMLBackend.KEY_MIRROR_FORCE_AUTHN: True,
         }
         samlbackend = SAMLBackend(
             None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
