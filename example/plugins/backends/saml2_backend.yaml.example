@@ -3,9 +3,9 @@ name: Saml2
 config:
   idp_blacklist_file: /path/to/blacklist.json
 
-  mirror_saml_force_authn: no
-  memorize_disco_idp: no
-  use_memorized_disco_idp_when_force_authn: no
+  mirror_force_authn: no
+  memorize_idp: no
+  use_memorized_idp_when_force_authn: no
 
   sp_config:
     key_file: backend.key

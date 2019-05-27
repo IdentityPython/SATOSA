@@ -18,7 +18,7 @@ class Context(object):
     KEY_BACKEND_METADATA_STORE = 'metadata_store'
     KEY_TARGET_ENTITYID = 'target_entity_id'
     KEY_FORCE_AUTHN = 'force_authn'
-    KEY_MEMORIZED_DISCO_IDP = 'memorized_disco_idp'
+    KEY_MEMORIZED_IDP = 'memorized_idp'
 
     def __init__(self):
         self._path = None

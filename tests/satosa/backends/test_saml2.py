@@ -187,7 +187,7 @@ class TestSAMLBackend:
         backend_conf = {
             SAMLBackend.KEY_SP_CONFIG: sp_conf,
             SAMLBackend.KEY_DISCO_SRV: DISCOSRV_URL,
-            SAMLBackend.KEY_MEMORIZE_DISCO_IDP: True,
+            SAMLBackend.KEY_MEMORIZE_IDP: True,
         }
         samlbackend = SAMLBackend(
             None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
@@ -195,14 +195,14 @@ class TestSAMLBackend:
         resp = samlbackend.start_auth(context, InternalData())
         self.assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
 
-        context.state[Context.KEY_MEMORIZED_DISCO_IDP] = idp_conf["entityid"]
+        context.state[Context.KEY_MEMORIZED_IDP] = idp_conf["entityid"]
         samlbackend = SAMLBackend(
             None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
         )
         resp = samlbackend.start_auth(context, InternalData())
         self.assert_redirect_to_idp(resp, idp_conf)
 
-        backend_conf[SAMLBackend.KEY_MEMORIZE_DISCO_IDP] = False
+        backend_conf[SAMLBackend.KEY_MEMORIZE_IDP] = False
         samlbackend = SAMLBackend(
             None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
         )
@@ -216,12 +216,12 @@ class TestSAMLBackend:
         sp_conf["metadata"]["mdq"] = ["https://mdq.example.com"]
 
         context.decorate(Context.KEY_FORCE_AUTHN, "true")
-        context.state[Context.KEY_MEMORIZED_DISCO_IDP] = idp_conf["entityid"]
+        context.state[Context.KEY_MEMORIZED_IDP] = idp_conf["entityid"]
 
         backend_conf = {
             SAMLBackend.KEY_SP_CONFIG: sp_conf,
             SAMLBackend.KEY_DISCO_SRV: DISCOSRV_URL,
-            SAMLBackend.KEY_MEMORIZE_DISCO_IDP: True,
+            SAMLBackend.KEY_MEMORIZE_IDP: True,
             SAMLBackend.KEY_MIRROR_FORCE_AUTHN: True,
         }
         samlbackend = SAMLBackend(
@@ -230,7 +230,7 @@ class TestSAMLBackend:
         resp = samlbackend.start_auth(context, InternalData())
         self.assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
 
-        backend_conf[SAMLBackend.KEY_USE_MEMORIZED_DISCO_IDP_WHEN_FORCE_AUTHN] = True
+        backend_conf[SAMLBackend.KEY_USE_MEMORIZED_IDP_WHEN_FORCE_AUTHN] = True
         samlbackend = SAMLBackend(
             None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
         )

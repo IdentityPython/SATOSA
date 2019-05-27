@@ -37,11 +37,11 @@ logger = logging.getLogger(__name__)
 
 def get_memorized_idp(context, config, force_authn):
     memorized_idp = (
-        config.get(SAMLBackend.KEY_MEMORIZE_DISCO_IDP)
-        and context.state.get(Context.KEY_MEMORIZED_DISCO_IDP)
+        config.get(SAMLBackend.KEY_MEMORIZE_IDP)
+        and context.state.get(Context.KEY_MEMORIZED_IDP)
     )
     use_when_force_authn = config.get(
-        SAMLBackend.KEY_USE_MEMORIZED_DISCO_IDP_WHEN_FORCE_AUTHN
+        SAMLBackend.KEY_USE_MEMORIZED_IDP_WHEN_FORCE_AUTHN
     )
     value = (not force_authn or use_when_force_authn) and memorized_idp
     return value
@@ -50,7 +50,7 @@ def get_memorized_idp(context, config, force_authn):
 # XXX check KEY_FORCE_AUTHN value type (boolean vs str)
 def get_force_authn(context, config, sp_config):
     value = (
-        config.get(SAMLBackend.KEY_MIRROR_SAML_FORCE_AUTHN)
+        config.get(SAMLBackend.KEY_MIRROR_FORCE_AUTHN)
         and (
             context.state.get(Context.KEY_FORCE_AUTHN)
             or context.get_decoration(Context.KEY_FORCE_AUTHN)
@@ -68,9 +68,9 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
     KEY_SAML_DISCOVERY_SERVICE_URL = 'saml_discovery_service_url'
     KEY_SAML_DISCOVERY_SERVICE_POLICY = 'saml_discovery_service_policy'
     KEY_SP_CONFIG = 'sp_config'
-    KEY_MIRROR_SAML_FORCE_AUTHN = 'mirror_saml_force_authn'
-    KEY_MEMORIZE_DISCO_IDP = 'memorize_disco_idp'
-    KEY_USE_MEMORIZED_DISCO_IDP_WHEN_FORCE_AUTHN = 'use_memorized_disco_idp_when_force_authn'
+    KEY_MIRROR_FORCE_AUTHN = 'mirror_force_authn'
+    KEY_MEMORIZE_IDP = 'memorize_idp'
+    KEY_USE_MEMORIZED_IDP_WHEN_FORCE_AUTHN = 'use_memorized_idp_when_force_authn'
 
     VALUE_ACR_COMPARISON_DEFAULT = 'exact'
 
@@ -250,7 +250,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         authn_context = self.construct_requested_authn_context(entity_id)
         if authn_context:
             kwargs["requested_authn_context"] = authn_context
-        if self.config.get(SAMLBackend.KEY_MIRROR_SAML_FORCE_AUTHN):
+        if self.config.get(SAMLBackend.KEY_MIRROR_FORCE_AUTHN):
             kwargs["force_authn"] = get_force_authn(
                 context, self.config, self.sp.config
             )
@@ -320,9 +320,9 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             raise SATOSAAuthenticationError(context.state, "State did not match relay state")
 
         context.decorate(Context.KEY_BACKEND_METADATA_STORE, self.sp.metadata)
-        if self.config.get(SAMLBackend.KEY_MEMORIZE_DISCO_IDP):
+        if self.config.get(SAMLBackend.KEY_MEMORIZE_IDP):
             issuer = authn_response.response.issuer.text.strip()
-            context.state[Context.KEY_MEMORIZED_DISCO_IDP] = issuer
+            context.state[Context.KEY_MEMORIZED_IDP] = issuer
         context.state.pop(self.name, None)
         context.state.pop(Context.KEY_FORCE_AUTHN, None)
         return self.auth_callback_func(context, self._translate_response(authn_response, context.state))
