@@ -317,7 +317,9 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             raise SATOSAAuthenticationError(context.state, "State did not match relay state")
 
         context.decorate(Context.KEY_BACKEND_METADATA_STORE, self.sp.metadata)
-
+        if self.config.get(SAMLBackend.KEY_MEMORIZE_DISCO_IDP):
+            issuer = authn_response.response.issuer.text.strip()
+            context.state[Context.KEY_MEMORIZED_DISCO_IDP] = issuer
         context.state.pop(self.name, None)
         context.state.pop(Context.KEY_FORCE_AUTHN, None)
         return self.auth_callback_func(context, self._translate_response(authn_response, context.state))
@@ -340,9 +342,6 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         except KeyError as err:
             satosa_logging(logger, logging.DEBUG, "No IDP chosen for state", state, exc_info=True)
             raise SATOSAAuthenticationError(state, "No IDP chosen") from err
-
-        if self.config.get(SAMLBackend.KEY_MEMORIZE_DISCO_IDP):
-            context.state[Context.KEY_MEMORIZED_DISCO_IDP] = entity_id
 
         return self.authn_request(context, entity_id)
 
