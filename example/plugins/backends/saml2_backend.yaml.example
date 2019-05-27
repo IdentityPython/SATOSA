@@ -2,8 +2,12 @@ module: satosa.backends.saml2.SAMLBackend
 name: Saml2
 config:
   idp_blacklist_file: /path/to/blacklist.json
+
+  mirror_saml_force_authn: no
+  memorize_disco_idp: no
+  use_memorized_disco_idp_when_force_authn: no
+
   sp_config:
-    remember_selected_idp_from_disco: False
     key_file: backend.key
     cert_file: backend.crt
     organization: {display_name: Example Identities, name: Example Identities Org., url: 'http://www.example.com'}
