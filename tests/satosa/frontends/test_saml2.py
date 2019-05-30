@@ -413,9 +413,9 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
     CO_CO = "friendlycountryname"
     CO_NOREDUORGACRONYM = "noreduorgacronym"
     CO_STATIC_SAML_ATTRIBUTES = {
-        CO_O: "Medium Energy Synchrotron Source",
-        CO_C: "US",
-        CO_CO: "United States",
+        CO_O: ["Medium Energy Synchrotron Source"],
+        CO_C: ["US"],
+        CO_CO: ["United States"],
         CO_NOREDUORGACRONYM: ["MESS"]
         }
     KEY_SSO = "single_sign_on_service"

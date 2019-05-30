@@ -14,6 +14,7 @@ from urllib.parse import unquote
 from urllib.parse import unquote_plus
 from urllib.parse import urlparse
 from http.cookies import SimpleCookie
+from typing import Iterable
 
 from saml2 import SAMLError, xmldsig
 from saml2.config import IdPConfig
@@ -742,7 +743,12 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         if self.KEY_CO_ATTRIBUTES in co_config:
             attributes = internal_response.attributes
             for attribute, value in co_config[self.KEY_CO_ATTRIBUTES].items():
-                attributes[attribute] = value
+                attributes[attribute] = (
+                    value                           # keep the value as is
+                    if isinstance(value, Iterable)  # if it is already a list
+                    and not isinstance(value, str)  # and not a string
+                    else [value]                    # otherwise wrap in a list
+                )
 
         # Handle the authentication response.
         return super()._handle_authn_response(context, internal_response, idp)
