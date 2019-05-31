@@ -742,8 +742,8 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         if self.KEY_CO_ATTRIBUTES in co_config:
             attributes = internal_response.attributes
             for attribute, value in co_config[self.KEY_CO_ATTRIBUTES].items():
-                # This should be refactored when Python 3.4 support is
-                # no longer required to use isinstance(value, Iterable).
+                # XXX This should be refactored when Python 3.4 support is
+                # XXX no longer required to use isinstance(value, Iterable).
                 try:
                     if iter(value) and not isinstance(value, str):
                         attributes[attribute] = value
