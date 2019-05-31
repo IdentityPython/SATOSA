@@ -405,46 +405,98 @@ class TestSAMLMirrorFrontend:
         assert idp.config.entityid == "{}/{}".format(idp_conf["entityid"], self.TARGET_ENTITY_ID)
 
 
-class TestSAMLVirtualCoFrontend:
+class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
     BACKEND = "test_backend"
     CO = "MESS"
+    CO_O = "organization"
+    CO_C = "countryname"
+    CO_CO = "friendlycountryname"
+    CO_NOREDUORGACRONYM = "noreduorgacronym"
+    CO_STATIC_SAML_ATTRIBUTES = {
+        CO_O: ["Medium Energy Synchrotron Source"],
+        CO_C: ["US"],
+        CO_CO: ["United States"],
+        CO_NOREDUORGACRONYM: ["MESS"]
+        }
     KEY_SSO = "single_sign_on_service"
 
-    @pytest.fixture(autouse=True)
-    def create_frontend(self, idp_conf):
-        collab_orgs = [{"encodeable_name": self.CO}]
+    @pytest.fixture
+    def frontend(self, idp_conf, sp_conf):
+        """
+        This fixture is an instance of the SAMLVirtualCoFrontend with an IdP
+        configuration that includes SAML metadata for the test SP configured
+        by the sp_conf fixture so that we can test a SAML Response sent
+        from the IdP.
+        """
+        # Use a utility function to serialize the sp_conf fixture as
+        # a string and then dynamically add it as the metadata available
+        # as part of the idp_conf fixture.
+        sp_metadata_str = create_metadata_from_config_dict(sp_conf)
+        idp_conf["metadata"]["inline"] = [sp_metadata_str]
+
+        # Dynamically add configuration details for the CO including static
+        # SAML attributes so their presence in a SAML Response can be tested.
+        collab_org = {
+            "encodeable_name": self.CO,
+            "co_static_saml_attributes": self.CO_STATIC_SAML_ATTRIBUTES
+        }
+
+        # Use the dynamically updated idp_conf fixture, the configured
+        # endpoints, and the collaborative organization configuration to
+        # create the configuration for the frontend.
         conf = {
                 "idp_config": idp_conf,
                 "endpoints": ENDPOINTS,
-                "collaborative_organizations": collab_orgs
+                "collaborative_organizations": [collab_org]
                }
-        self.frontend = SAMLVirtualCoFrontend(lambda ctx, req: None,
-                                              INTERNAL_ATTRIBUTES,
-                                              conf,
-                                              BASE_URL,
-                                              "saml_virtual_co_frontend")
-        self.frontend.register_endpoints([self.BACKEND])
 
-    @pytest.fixture(autouse=True)
-    def create_context(self, context):
+        # Use a richer set of internal attributes than what is provided
+        # for the parent class so that we can test for the static SAML
+        # attributes about the CO being asserted.
+        internal_attributes = INTERNAL_ATTRIBUTES
+        internal_attributes["attributes"][self.CO_O] = {"saml": ["o"]}
+        internal_attributes["attributes"][self.CO_C] = {"saml": ["c"]}
+        internal_attributes["attributes"][self.CO_CO] = {"saml": ["co"]}
+        internal_attributes["attributes"][self.CO_NOREDUORGACRONYM] = (
+            {"saml": ["norEduOrgAcronym"]})
+
+        # Create, register the endpoints, and then return the frontend
+        # instance.
+        frontend = SAMLVirtualCoFrontend(lambda ctx, req: None,
+                                         internal_attributes,
+                                         conf,
+                                         BASE_URL,
+                                         "saml_virtual_co_frontend")
+        frontend.register_endpoints([self.BACKEND])
+
+        return frontend
+
+    @pytest.fixture
+    def context(self, context):
+        """
+        This fixture is an instance of the context that mocks up the context
+        that would be available during a SAML flow and that would include
+        a path and target_backend that indicates the CO.
+        """
         context.path = "{}/{}/sso/redirect".format(self.BACKEND, self.CO)
         context.target_backend = self.BACKEND
-        self.context = context
 
-    def test_create_state_data(self):
-        self.context.decorate(self.frontend.KEY_CO_NAME, self.CO)
-        state = self.frontend._create_state_data(self.context, {}, "")
-        assert state[self.frontend.KEY_CO_NAME] == self.CO
+        return context
 
-    def test_get_co_name(self):
-        co_name = self.frontend._get_co_name(self.context)
+    def test_create_state_data(self, frontend, context):
+        context.decorate(frontend.KEY_CO_NAME, self.CO)
+        state = frontend._create_state_data(context, {}, "")
+        assert state[frontend.KEY_CO_NAME] == self.CO
+
+    def test_get_co_name(self, frontend, context):
+        co_name = frontend._get_co_name(context)
         assert co_name == self.CO
 
-        self.frontend._create_state_data(self.context, {}, "")
-        co_name = self.frontend._get_co_name(self.context)
+        frontend._create_state_data(context, {}, "")
+        co_name = frontend._get_co_name(context)
         assert co_name == self.CO
 
-    def test_create_co_virtual_idp(self, idp_conf):
+    def test_create_co_virtual_idp(self, frontend, context, idp_conf):
         expected_entityid = "{}/{}".format(idp_conf['entityid'], self.CO)
 
         endpoint_base_url = "{}/{}/{}".format(BASE_URL, self.BACKEND, self.CO)
@@ -453,15 +505,15 @@ class TestSAMLVirtualCoFrontend:
             endp = "{}/{}".format(endpoint_base_url, endpoint)
             expected_endpoints.append((endp, binding))
 
-        idp_server = self.frontend._create_co_virtual_idp(self.context)
+        idp_server = frontend._create_co_virtual_idp(context)
         sso_endpoints = idp_server.config._idp_endpoints[self.KEY_SSO]
 
         assert idp_server.config.entityid == expected_entityid
         assert all(sso in sso_endpoints for sso in expected_endpoints)
 
-    def test_register_endpoints(self):
-        idp_server = self.frontend._create_co_virtual_idp(self.context)
-        url_map = self.frontend.register_endpoints([self.BACKEND])
+    def test_register_endpoints(self, frontend, context):
+        idp_server = frontend._create_co_virtual_idp(context)
+        url_map = frontend.register_endpoints([self.BACKEND])
         all_idp_endpoints = [urlparse(endpoint[0]).path[1:] for
                              endpoint in
                              idp_server.config._idp_endpoints[self.KEY_SSO]]
@@ -469,6 +521,65 @@ class TestSAMLVirtualCoFrontend:
 
         for endpoint in all_idp_endpoints:
             assert any(pat.match(endpoint) for pat in compiled_regex)
+
+    def test_co_static_attributes(self, frontend, context, internal_response,
+                                  idp_conf, sp_conf):
+        # Use the frontend and context fixtures to dynamically create the
+        # proxy IdP server that would be created during a flow.
+        idp_server = frontend._create_co_virtual_idp(context)
+
+        # Use the context fixture to find the CO name and the backend name
+        # and then use those to dynamically update the ipd_conf fixture.
+        co_name = frontend._get_co_name(context)
+        backend_name = context.target_backend
+        idp_conf = frontend._add_endpoints_to_config(idp_conf, co_name,
+                                                     backend_name)
+        idp_conf = frontend._add_entity_id(idp_conf, co_name)
+
+        # Use a utility function to serialize the idp_conf IdP configuration
+        # fixture to a string and then dynamically update the sp_conf
+        # SP configuration fixture with the metadata.
+        idp_metadata_str = create_metadata_from_config_dict(idp_conf)
+        sp_conf["metadata"]["inline"].append(idp_metadata_str)
+        sp_config = SPConfig().load(sp_conf, metadata_construction=False)
+
+        # Use the updated sp_config fixture to generate a fake SP and then
+        # use the fake SP to generate an authentication request aimed at the
+        # proxy CO virtual IdP.
+        fakesp = FakeSP(sp_config)
+        destination, auth_req = fakesp.make_auth_req(
+            idp_server.config.entityid,
+            nameid_format=None,
+            relay_state="relay_state",
+            subject=None,
+        )
+
+        # Update the context with the authentication request.
+        context.request = auth_req
+
+        # Create the response arguments necessary for the IdP to respond to
+        # the authentication request, update the request state and with it
+        # the context, and then use the frontend fixture and the
+        # internal_response fixture to handle the authentication response
+        # and generate a response from the proxy IdP to the SP.
+        resp_args = {
+            "name_id_policy": NameIDPolicy(format=NAMEID_FORMAT_TRANSIENT),
+            "in_response_to": None,
+            "destination": sp_config.endpoint(
+                            "assertion_consumer_service",
+                            binding=BINDING_HTTP_REDIRECT
+                            )[0],
+            "sp_entity_id": sp_conf["entityid"],
+            "binding": BINDING_HTTP_REDIRECT
+        }
+        request_state = frontend._create_state_data(context, resp_args, "")
+        context.state[frontend.name] = request_state
+        frontend.handle_authn_response(context, internal_response)
+
+        # Verify that the frontend added the CO static SAML attributes to the
+        # internal response.
+        for attr, value in self.CO_STATIC_SAML_ATTRIBUTES.items():
+            assert internal_response.attributes[attr] == value
 
 
 class TestSubjectTypeToSamlNameIdFormat:

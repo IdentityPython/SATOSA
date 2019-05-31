@@ -697,6 +697,7 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
     """
     KEY_CO = 'collaborative_organizations'
     KEY_CO_NAME = 'co_name'
+    KEY_CO_ATTRIBUTES = 'co_static_saml_attributes'
     KEY_CONTACT_PERSON = 'contact_person'
     KEY_ENCODEABLE_NAME = 'encodeable_name'
     KEY_ORGANIZATION = 'organization'
@@ -726,11 +727,33 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         :return:
         """
 
+        return self._handle_authn_response(context, internal_response)
+
+    def _handle_authn_response(self, context, internal_response):
+        """
+        """
         # Using the context of the current request and saved state from the
-        # authentication request dynamically create an IdP instance and then
-        # use it to handle the authentication response.
+        # authentication request dynamically create an IdP instance.
         idp = self._create_co_virtual_idp(context)
-        return self._handle_authn_response(context, internal_response, idp)
+
+        # Add any static attributes for the CO.
+        co_config = self._get_co_config(context)
+
+        if self.KEY_CO_ATTRIBUTES in co_config:
+            attributes = internal_response.attributes
+            for attribute, value in co_config[self.KEY_CO_ATTRIBUTES].items():
+                # XXX This should be refactored when Python 3.4 support is
+                # XXX no longer required to use isinstance(value, Iterable).
+                try:
+                    if iter(value) and not isinstance(value, str):
+                        attributes[attribute] = value
+                    else:
+                        attributes[attribute] = [value]
+                except TypeError:
+                        attributes[attribute] = [value]
+
+        # Handle the authentication response.
+        return super()._handle_authn_response(context, internal_response, idp)
 
     def _create_state_data(self, context, resp_args, relay_state):
         """
@@ -746,6 +769,22 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         state[self.KEY_CO_NAME] = context.get_decoration(self.KEY_CO_NAME)
 
         return state
+
+    def _get_co_config(self, context):
+        """
+        Obtain the configuration for the CO.
+
+        :type context: The current context
+        :rtype: dict
+
+        :param context: The current context
+        :return: CO configuration
+
+        """
+        co_name = self._get_co_name(context)
+        for co in self.config[self.KEY_CO]:
+            if co[self.KEY_ENCODEABLE_NAME] == co_name:
+                return co
 
     def _get_co_name_from_path(self, context):
         """
@@ -866,21 +905,19 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
 
         :return: config with updated details for SAML metadata
         """
-        for co in self.config[self.KEY_CO]:
-            if co[self.KEY_ENCODEABLE_NAME] == co_name:
-                break
+        co_config = self._get_co_config(co_name)
 
         key = self.KEY_ORGANIZATION
-        if key in co:
+        if key in co_config:
             if key not in config:
                 config[key] = {}
             for org_key in self.KEY_ORGANIZATION_KEYS:
-                if org_key in co[key]:
-                    config[key][org_key] = co[key][org_key]
+                if org_key in co_config[key]:
+                    config[key][org_key] = co_config[key][org_key]
 
         key = self.KEY_CONTACT_PERSON
-        if key in co:
-            config[key] = co[key]
+        if key in co_config:
+            config[key] = co_config[key]
 
         return config
 
