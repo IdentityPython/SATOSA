@@ -116,8 +116,8 @@ class WsgiApplication(SATOSABase):
             return resp(environ, start_response)
         except SATOSANoBoundEndpointError:
             resp = NotFound(
-                    "The Service or Identity Provider"
-                    "you requested could not be found.")
+                "The Service or Identity Provider"
+                "you requested could not be found.")
             return resp(environ, start_response)
         except Exception as err:
             if type(err) != UnknownSystemEntity:
@@ -142,7 +142,7 @@ def make_app(satosa_config):
             root_logger.setLevel(logging.DEBUG)
 
         try:
-            pkg = pkg_resources.get_distribution(module.__name__)
+            _ = pkg_resources.get_distribution(module.__name__)
             logger.info("Running SATOSA version %s",
                         pkg_resources.get_distribution("SATOSA").version)
         except (NameError, pkg_resources.DistributionNotFound):

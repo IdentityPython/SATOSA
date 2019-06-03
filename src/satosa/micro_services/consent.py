@@ -62,7 +62,7 @@ class Consent(ResponseMicroService):
 
         try:
             consent_attributes = self._verify_consent(hash_id)
-        except ConnectionError as e:
+        except ConnectionError:
             satosa_logging(logger, logging.ERROR,
                            "Consent service is not reachable, no consent given.", context.state)
             # Send an internal_response without any attributes
@@ -90,7 +90,7 @@ class Consent(ResponseMicroService):
         if self.locked_attr:
             consent_args["locked_attrs"] = [self.locked_attr]
         if 'requester_logo' in context.state[STATE_KEY]:
-             consent_args["requester_logo"] = context.state[STATE_KEY]['requester_logo']
+            consent_args["requester_logo"] = context.state[STATE_KEY]['requester_logo']
         try:
             ticket = self._consent_registration(consent_args)
         except (ConnectionError, UnexpectedResponseError) as e:
@@ -124,7 +124,7 @@ class Consent(ResponseMicroService):
         try:
             # Check if consent is already given
             consent_attributes = self._verify_consent(id_hash)
-        except requests.exceptions.ConnectionError as e:
+        except requests.exceptions.ConnectionError:
             satosa_logging(logger, logging.ERROR,
                            "Consent service is not reachable, no consent given.", context.state)
             # Send an internal_response without any attributes

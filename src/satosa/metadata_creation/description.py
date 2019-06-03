@@ -91,7 +91,7 @@ class UIInfoDesc(object):
         :param lang: language
         """
 
-        logo_entry ={"text": text, "width": width, "height": height}
+        logo_entry = {"text": text, "width": width, "height": height}
         if lang:
             logo_entry["lang"] = lang
         self._logos.append(logo_entry)

@@ -75,13 +75,11 @@ def _create_frontend_metadata(frontend_modules, backend_modules):
                     logger.info("Creating metadata for CO {}".format(co_name))
                     idp_config = copy.deepcopy(frontend.config["idp_config"])
                     idp_config = frontend._add_endpoints_to_config(
-                                     idp_config,
-                                     co_name,
-                                     backend.name)
+                        idp_config,
+                        co_name,
+                        backend.name)
                     idp_config = frontend._add_entity_id(idp_config, co_name)
-                    idp_config = frontend._overlay_for_saml_metadata(
-                                     idp_config,
-                                     co_name)
+                    idp_config = frontend._overlay_for_saml_metadata(idp_config, co_name)
                     entity_desc = _create_entity_descriptor(idp_config)
                     frontend_metadata[frontend.name].append(entity_desc)
 

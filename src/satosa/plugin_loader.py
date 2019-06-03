@@ -41,8 +41,9 @@ def load_backends(config, callback, internal_attributes):
     :param callback: Function that will be called by the backend after the authentication is done.
     :return: A list of backend modules
     """
-    backend_modules = _load_plugins(config.get("CUSTOM_PLUGIN_MODULE_PATHS"), config["BACKEND_MODULES"], backend_filter,
-                                    config["BASE"], internal_attributes, callback)
+    backend_modules = _load_plugins(
+        config.get("CUSTOM_PLUGIN_MODULE_PATHS"), config["BACKEND_MODULES"], backend_filter,
+        config["BASE"], internal_attributes, callback)
     logger.info("Setup backends: %s" % [backend.name for backend in backend_modules])
     return backend_modules
 
@@ -184,7 +185,9 @@ def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attri
 def _load_endpoint_module(plugin_config, plugin_filter):
     _mandatory_params = ("name", "module", "config")
     if not all(k in plugin_config for k in _mandatory_params):
-        raise SATOSAConfigurationError("Missing mandatory plugin configuration parameter: {}".format(_mandatory_params))
+        raise SATOSAConfigurationError(
+            "Missing mandatory plugin configuration parameter: {}".format(_mandatory_params)
+        )
 
     return _load_plugin_module(plugin_config, plugin_filter)
 
@@ -202,7 +205,9 @@ def _load_plugin_module(plugin_config, plugin_filter):
 def _load_microservice(plugin_config, plugin_filter):
     _mandatory_params = ("name", "module")
     if not all(k in plugin_config for k in _mandatory_params):
-        raise SATOSAConfigurationError("Missing mandatory plugin configuration parameter: {}".format(_mandatory_params))
+        raise SATOSAConfigurationError(
+            "Missing mandatory plugin configuration parameter: {}".format(_mandatory_params)
+        )
 
     return _load_plugin_module(plugin_config, plugin_filter)
 

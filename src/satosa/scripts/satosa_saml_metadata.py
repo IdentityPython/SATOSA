@@ -5,7 +5,6 @@ from saml2.config import Config
 from saml2.sigver import security_context
 
 from ..metadata_creation.saml_metadata import create_entity_descriptors
-from ..metadata_creation.saml_metadata import create_signed_entities_descriptor
 from ..metadata_creation.saml_metadata import create_signed_entity_descriptor
 from ..satosa_config import SATOSAConfig
 
