@@ -50,7 +50,7 @@ class ModuleRouter(object):
         module
         """
 
-        if not frontends and not backends:
+        if not frontends or not backends:
             raise ValueError("Need at least one frontend and one backend")
 
         backend_names = [backend.name for backend in backends]
