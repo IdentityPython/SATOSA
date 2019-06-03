@@ -2,7 +2,7 @@
 
 pip3 install --upgrade virtualenv
 
-virtualenv -p python3 /opt/satosa
-/opt/satosa/bin/pip install --upgrade pip setuptools
-/opt/satosa/bin/pip install /src/satosa/
+virtualenv -p python3 /opt/venv
+/opt/venv/bin/pip install --upgrade pip setuptools
+/opt/venv/bin/pip install /src/satosa/
 
