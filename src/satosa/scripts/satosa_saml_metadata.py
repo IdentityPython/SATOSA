@@ -1,4 +1,5 @@
 import os
+import sys
 
 import click
 from saml2.config import Config
@@ -7,6 +8,7 @@ from saml2.sigver import security_context
 from ..metadata_creation.saml_metadata import create_entity_descriptors
 from ..metadata_creation.saml_metadata import create_signed_entity_descriptor
 from ..satosa_config import SATOSAConfig
+from ..exception import SATOSAErrorNoTraceback
 
 
 def _get_security_context(key, cert):
@@ -76,4 +78,8 @@ def create_and_write_saml_metadata(proxy_conf, key, cert, dir, valid, split_fron
 @click.option("--split-backend", is_flag=True, type=click.BOOL, default=False,
               help="Create one entity descriptor per file for the backend metadata")
 def construct_saml_metadata(proxy_conf, key, cert, dir, valid, split_frontend, split_backend):
-    create_and_write_saml_metadata(proxy_conf, key, cert, dir, valid, split_frontend, split_backend)
+    try:
+        create_and_write_saml_metadata(proxy_conf, key, cert, dir, valid, split_frontend, split_backend)
+    except SATOSAErrorNoTraceback as e:
+        print('ERROR: ' + str(e), file=sys.stderr)
+        sys.exit(1)

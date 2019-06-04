@@ -9,6 +9,7 @@ import pkg_resources
 
 from .base import SATOSABase
 from .context import Context
+from .exception import SATOSAErrorNoTraceback
 from .response import ServiceError, NotFound
 from .routing import SATOSANoBoundEndpointError
 from saml2.s_utils import UnknownSystemEntity
@@ -119,12 +120,14 @@ class WsgiApplication(SATOSABase):
                 "The Service or Identity Provider"
                 "you requested could not be found.")
             return resp(environ, start_response)
+        except UnknownSystemEntity:
+            pass
+        except SATOSAErrorNoTraceback as err:
+            logger.error(str(err))
         except Exception as err:
-            if type(err) != UnknownSystemEntity:
-                logger.exception("%s" % err)
+            logger.exception("%s" % err)
             if debug:
                 raise
-
             resp = ServiceError("%s" % err)
             return resp(environ, start_response)
 
