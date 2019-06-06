@@ -40,3 +40,21 @@ LOGGING:
   root:
     level: INFO
     handlers: [info_file_handler]
+
+# see succinct_log_filter.py
+SUCCINCT_LOG_SATOSA = {
+    'satosa.state:satosa_logging': False,
+    'satosa.proxy_server:unpack_request': 100,
+    'satosa.proxy_server:unpack_post:unpack_post': 100,
+    'satosa.state:satosa_logging:': 100,
+    'satosa.frontends.saml2:satosa_logging': 100,
+    'satosa.backends.saml2:satosa_logging': 100,
+}
+#SUCCINCT_LOG_PYSAML2 = {
+#    'saml2.request:_loads': 100,
+#    'saml2.response:_loads': 100,
+#    'saml2.response:_loads': 100,
+#    'saml2.entity:_parse_response ': 100,
+#    'saml2.response:get_identity': 100,
+#    'saml2.response:read_attribute_statement ': 100,
+#}
