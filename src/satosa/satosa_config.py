@@ -35,6 +35,8 @@ class SATOSAConfig(object):
             self._config = parser(config)
             if self._config is not None:
                 break
+        else:   # no break
+            raise SATOSAConfigurationError('Failed to load proxy config')
 
         # Load sensitive config from environment variables
         for key in SATOSAConfig.sensitive_dict_keys:

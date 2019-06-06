@@ -137,6 +137,11 @@ def make_app(satosa_config):
         if "LOGGING" in satosa_config:
             logging.config.dictConfig(satosa_config["LOGGING"])
             logging.getLogger().addFilter(logfilter)
+        elif "TRACING" in satosa_config:
+            import autologging
+            logging.basicConfig(level=autologging.TRACE, stream=sys.stdout,
+                                format="%(levelname)s:%(name)s:%(funcName)s:%(message)s")
+            logging.getLogger().addFilter(logfilter)
         else:
             stderr_handler = logging.StreamHandler(sys.stderr)
             stderr_handler.setLevel(logging.DEBUG)

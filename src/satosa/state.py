@@ -13,10 +13,12 @@ from lzma import LZMADecompressor, LZMACompressor
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 
+import satosa.logging_util
 from .exception import SATOSAStateError
-from .logging_util import satosa_logging
+from .satosa_log_filter import add_satosa_log_filter
 
 logger = logging.getLogger(__name__)
+add_satosa_log_filter(logger)
 
 # TODO MOVE TO CONFIG
 STATE_COOKIE_MAX_AGE = 1200
@@ -43,9 +45,9 @@ def state_to_cookie(state, name, path, encryption_key):
     cookie_data = "" if state.delete else state.urlstate(encryption_key)
     max_age = 0 if state.delete else STATE_COOKIE_MAX_AGE
 
-    satosa_logging(logger, logging.DEBUG,
-                   "Saving state as cookie, secure: %s, max-age: %s, path: %s" %
-                   (STATE_COOKIE_SECURE, STATE_COOKIE_MAX_AGE, path), state)
+    # satosa.logging_util.satosa_logging(logger, logging.DEBUG,
+    m = "Saving state as cookie, secure: %s, max-age: %s, path: %s" %(STATE_COOKIE_SECURE, STATE_COOKIE_MAX_AGE, path)
+    logger.debug(m, extra={'state': state})
     cookie = SimpleCookie()
     cookie[name] = cookie_data
     cookie[name]["secure"] = STATE_COOKIE_SECURE
@@ -84,7 +86,8 @@ def cookie_to_state(cookie_str, name, encryption_key):
     else:
         msg_tmpl = 'Loading state from cookie {data}'
         msg = msg_tmpl.format(data=cookie_str)
-        satosa_logging(logger, logging.DEBUG, msg, state)
+        #satosa.logging_util.satosa_logging(logger, logging.DEBUG, msg, state)
+        logger.debug(msg, extra={'state': state})
         return state
 
 
