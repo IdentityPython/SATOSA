@@ -13,7 +13,7 @@ from lzma import LZMADecompressor, LZMACompressor
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 
-import satosa.logging_util
+import satosa
 from .exception import SATOSAStateError
 from .satosa_log_filter import add_satosa_log_filter
 
@@ -25,51 +25,23 @@ STATE_COOKIE_MAX_AGE = 1200
 STATE_COOKIE_SECURE = True
 
 
-def state_to_cookie(state, name, path, encryption_key):
-    """
-    Saves a state to a cookie
-
-    :type state: satosa.state.State
-    :type name: str
-    :type path: str
-    :type encryption_key: str
-    :rtype: http.cookies.SimpleCookie
-
-    :param state: The state to save
-    :param name: Name identifier of the cookie
-    :param path: Endpoint path the cookie will be associated to
-    :param encryption_key: Key to encrypt the state information
-    :return: A cookie
-    """
+def state_to_cookie(state: satosa.state.State, name: str, cookiepath: str, encryption_key: str) -> SimpleCookie:
 
     cookie_data = "" if state.delete else state.urlstate(encryption_key)
     max_age = 0 if state.delete else STATE_COOKIE_MAX_AGE
 
-    # satosa.logging_util.satosa_logging(logger, logging.DEBUG,
-    m = "Saving state as cookie, secure: %s, max-age: %s, path: %s" %(STATE_COOKIE_SECURE, STATE_COOKIE_MAX_AGE, path)
+    m = "Saving state as cookie, secure: %s, max-age: %s, cookiepath: %s" %\
+        (STATE_COOKIE_SECURE, STATE_COOKIE_MAX_AGE, cookiepath)
     logger.debug(m, extra={'state': state})
     cookie = SimpleCookie()
     cookie[name] = cookie_data
     cookie[name]["secure"] = STATE_COOKIE_SECURE
-    cookie[name]["path"] = path
+    cookie[name]["cookiepath"] = cookiepath
     cookie[name]["max-age"] = max_age
     return cookie
 
 
-def cookie_to_state(cookie_str, name, encryption_key):
-    """
-    Loads a state from a cookie
-
-    :type cookie_str: str
-    :type name: str
-    :type encryption_key: str
-    :rtype: satosa.state.State
-
-    :param cookie_str: string representation of cookie/s
-    :param name: Name identifier of the cookie
-    :param encryption_key: Key to encrypt the state information
-    :return: A state
-    """
+def cookie_to_state(cookie_str: str, name: str, encryption_key: str) -> satosa.state.State:
     try:
         cookie = SimpleCookie(cookie_str)
         state = State(cookie[name].value, encryption_key)
@@ -86,7 +58,6 @@ def cookie_to_state(cookie_str, name, encryption_key):
     else:
         msg_tmpl = 'Loading state from cookie {data}'
         msg = msg_tmpl.format(data=cookie_str)
-        #satosa.logging_util.satosa_logging(logger, logging.DEBUG, msg, state)
         logger.debug(msg, extra={'state': state})
         return state
 

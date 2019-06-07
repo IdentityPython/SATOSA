@@ -3,6 +3,7 @@ import collections
 import logging
 import os
 import sys
+from uuid import uuid4
 
 from satosa.exception import SATOSAConfigurationError
 from satosa.satosa_config import SATOSAConfig

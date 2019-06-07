@@ -11,10 +11,11 @@ from .base import SATOSABase
 from .context import Context
 from .response import ServiceError, NotFound
 from .routing import SATOSANoBoundEndpointError
-from .succinct_log_filter import SuccinctLogFilter
+from .satosa_log_filter import add_satosa_log_filter, SATOSALogFilter
 from saml2.s_utils import UnknownSystemEntity
 
 logger = logging.getLogger(__name__)
+add_satosa_log_filter(logger)
 
 
 def unpack_get(environ):
@@ -25,7 +26,6 @@ def unpack_get(environ):
     """
     if "QUERY_STRING" in environ:
         return dict(parse_qsl(environ["QUERY_STRING"]))
-
     return None
 
 
@@ -42,7 +42,7 @@ def unpack_post(environ, content_length):
     elif "application/json" in environ["CONTENT_TYPE"]:
         data = json.loads(post_body)
 
-    logger.debug("unpack_post:: %s", data)
+    logger.debug("unpack_post: " + json.dumps(data))
     return data
 
 
@@ -58,7 +58,7 @@ def unpack_request(environ, content_length=0):
     elif environ["REQUEST_METHOD"] == "POST":
         data = unpack_post(environ, content_length)
 
-    logger.debug("read request data: %s", data)
+    logger.debug("read request data: " + json.dumps(data))
     return data
 
 
@@ -133,7 +133,7 @@ class WsgiApplication(SATOSABase):
 def make_app(satosa_config):
     try:
         if "SUCCINCT_LOG_SATOSA"  in satosa_config:
-            logfilter = SuccinctLogFilter(satosa_config["SUCCINCT_LOG_SATOSA"])
+            logfilter = SatosaLogFilter(satosa_config["SUCCINCT_LOG_SATOSA"])
         if "LOGGING" in satosa_config:
             logging.config.dictConfig(satosa_config["LOGGING"])
             logging.getLogger().addFilter(logfilter)
