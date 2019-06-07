@@ -41,22 +41,20 @@ LOGGING:
     level: INFO
     handlers: [info_file_handler]
 
-# see succinct_log_filter.py
+# configuration options: see satosa_log_filter.py
 SUCCINCT_LOG_SATOSA:
-    'state:cookie_to_state': 80
-    'state:state_to_cookie': 80
-    'satosa.proxy_server:unpack_request': 100
-    'satosa.proxy_server:unpack_post:unpack_post': 100
-    'satosa.state:satosa_logging:': 100
-    'satosa.frontends.saml2:satosa_logging': 100
-    'satosa.backends.saml2:satosa_logging': 100
-
-
-#SUCCINCT_LOG_PYSAML2:
-#    'saml2.request:_loads': 100
-#    'saml2.response:_loads': 100
-#    'saml2.response:_loads': 100
-#    'saml2.entity:_parse_response ': 100
-#    'saml2.response:get_identity': 100
-#    'saml2.response:read_attribute_statement ': 100
-#}
+    'attribute_converter:list_to_local': 120
+    'state:cookie_to_state': 120
+    'state:state_to_cookie': 120
+    'satosa.proxy_server:unpack_request': 120
+    'satosa.proxy_server:unpack_post:unpack_post': 120
+    'satosa.state:satosa_logging:': 120
+    'satosa.frontends.saml2:satosa_logging': 120
+    'saml2:authn_request': 120
+    'saml2:_handle_authn_request': 120
+    'saml2:_handle_authn_response': 120
+    'saml2:_get_approved_attributes': 120
+    'saml2:_translate_response': 120
+    'proxy_server:unpack_get': 120
+    'proxy_server:unpack_post': 120
+    'proxy_server:unpack_request': 120

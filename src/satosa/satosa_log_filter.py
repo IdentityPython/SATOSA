@@ -41,12 +41,12 @@ class SATOSALogFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         """ extra dict: if the 'state' key is found the session_id is prepended to the message """
         def _prepend_sessionid():
-            if getattr(record, 'state'):
+            if getattr(record, 'state', None):
                 record.msg = "[{id}] {msg}".format(id=_get_sessionid(record.state), msg=record.msg)
 
         def _format_msgtext():
             if isinstance(conf_opt, int):
-                record.msg = record.msg[:conf_opt]
+                record.msg = str(record.msg[:conf_opt]) + ' [..]'
             elif isinstance(conf_opt, str):
                 record.msg = conf_opt + record.msg
             elif isinstance(conf_opt, collections.Callable):

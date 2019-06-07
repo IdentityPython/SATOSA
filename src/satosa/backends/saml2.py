@@ -21,7 +21,7 @@ from satosa.context import Context
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from satosa.exception import SATOSAAuthenticationError
-from satosa.logging_util import satosa_logging
+from satosa.satosa_log_filter import add_satosa_log_filter
 from satosa.response import SeeOther, Response
 from satosa.saml_util import make_saml_response
 from satosa.metadata_creation.description import (
@@ -33,7 +33,7 @@ from satosa.deprecated import SAMLInternalResponse
 
 
 logger = logging.getLogger(__name__)
-
+add_satosa_log_filter(logger)
 
 class SAMLBackend(BackendModule, SAMLBaseModule):
     """
@@ -175,7 +175,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             with open(self.idp_blacklist_file) as blacklist_file:
                 blacklist_array = json.load(blacklist_file)['blacklist']
                 if entity_id in blacklist_array:
-                    satosa_logging(logger, logging.DEBUG, "IdP with EntityID {} is blacklisted".format(entity_id), context.state, exc_info=False)
+                    logger.debug("IdP with entityID {} is blacklisted".format(entity_id), extra={'state': context.state})
                     raise SATOSAAuthenticationError(context.state, "Selected IdP is blacklisted for this backend")
 
         kwargs = {}
@@ -186,30 +186,28 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         try:
             binding, destination = self.sp.pick_binding(
                 "single_sign_on_service", None, "idpsso", entity_id=entity_id)
-            satosa_logging(logger, logging.DEBUG, "binding: %s, destination: %s" % (binding, destination),
-                           context.state)
+            logger.debug("binding: %s, destination: %s" % (binding, destination), extra={'state': context.state})
             acs_endp, response_binding = self.sp.config.getattr("endpoints", "sp")["assertion_consumer_service"][0]
             req_id, req = self.sp.create_authn_request(
                 destination, binding=response_binding, **kwargs)
             relay_state = util.rndstr()
             ht_args = self.sp.apply_binding(binding, "%s" % req, destination, relay_state=relay_state)
-            satosa_logging(logger, logging.DEBUG, "ht_args: %s" % ht_args, context.state)
+            logger.debug("ht_args: %s" % ht_args, extra={'state': context.state})
         except Exception as exc:
-            satosa_logging(logger, logging.DEBUG, "Failed to construct the AuthnRequest for state", context.state,
-                           exc_info=True)
+            logger.debug("Failed to construct the AuthnRequest for state", extra={'state': context.state}, exc_info=True)
             raise SATOSAAuthenticationError(context.state, "Failed to construct the AuthnRequest") from exc
 
         if self.sp.config.getattr('allow_unsolicited', 'sp') is False:
             if req_id in self.outstanding_queries:
                 errmsg = "Request with duplicate id {}".format(req_id)
-                satosa_logging(logger, logging.DEBUG, errmsg, context.state)
+                logger.debug(errmsg, extra={'state': context.state})
                 raise SATOSAAuthenticationError(context.state, errmsg)
             self.outstanding_queries[req_id] = req
 
         context.state[self.name] = {"relay_state": relay_state}
         return make_saml_response(binding, ht_args)
 
-    def authn_response(self, context, binding):
+    def authn_response(self, context, binding, **kwargs):
         """
         Endpoint for the idp response
         :type context: satosa.context,Context
@@ -221,7 +219,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :return: response
         """
         if not context.request["SAMLResponse"]:
-            satosa_logging(logger, logging.DEBUG, "Missing Response for state", context.state)
+            logger.debug("Missing Response for state", extra={'state': context.state})
             raise SATOSAAuthenticationError(context.state, "Missing Response")
 
         try:
@@ -229,22 +227,20 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                 context.request["SAMLResponse"],
                 binding, outstanding=self.outstanding_queries)
         except Exception as err:
-            satosa_logging(logger, logging.DEBUG, "Failed to parse authn request for state", context.state,
-                           exc_info=True)
+            logger.debug("Failed to parse authn request for state", extra={'state': context.state}, exc_info=True)
             raise SATOSAAuthenticationError(context.state, "Failed to parse authn request") from err
 
         if self.sp.config.getattr('allow_unsolicited', 'sp') is False:
             req_id = authn_response.in_response_to
             if req_id not in self.outstanding_queries:
                 errmsg = "No request with id: {}".format(req_id),
-                satosa_logging(logger, logging.DEBUG, errmsg, context.state)
+                logger.debug(errmsg, extra={'state': context.state})
                 raise SATOSAAuthenticationError(context.state, errmsg)
             del self.outstanding_queries[req_id]
 
         # check if the relay_state matches the cookie state
         if context.state[self.name]["relay_state"] != context.request["RelayState"]:
-            satosa_logging(logger, logging.DEBUG,
-                           "State did not match relay state for state", context.state)
+            logger.debug("State did not match relay state for state", extra={'state': context.state})
             raise SATOSAAuthenticationError(context.state, "State did not match relay state")
 
         context.decorate(Context.KEY_BACKEND_METADATA_STORE, self.sp.metadata)
@@ -262,13 +258,10 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :param context: The current context
         :return: response
         """
-        info = context.request
-        state = context.state
-
         try:
-            entity_id = info["entityID"]
+            entity_id = context.request["entityID"]
         except KeyError as err:
-            satosa_logging(logger, logging.DEBUG, "No IDP chosen for state", state, exc_info=True)
+            logger.debug("No IDP chosen for state", extra={'state': context.state}, exc_info=True)
             raise SATOSAAuthenticationError(state, "No IDP chosen") from err
 
         return self.authn_request(context, entity_id)
@@ -313,9 +306,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             subject_id=name_id,
         )
 
-        satosa_logging(logger, logging.DEBUG,
-                       "backend received attributes:\n%s" %
-                       json.dumps(response.ava, indent=4), state)
+        logger.debug("backend received attributes:\n%s" % json.dumps(response.ava, indent=4), extra={'state': state})
         return internal_resp
 
     def _metadata_endpoint(self, context):
@@ -327,7 +318,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :param context: The current context
         :return: response with metadata
         """
-        satosa_logging(logger, logging.DEBUG, "Sending metadata response", context.state)
+        logger.debug("Sending metadata response", extra={'state': context.state})
 
         metadata_string = create_metadata_string(None, self.sp.config, 4, None, None, None, None,
                                                  None).decode("utf-8")
