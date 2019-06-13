@@ -24,6 +24,15 @@ config:
         - contact_type: technical
           email_address: help@messproject.org
           given_name MESS Technical Support
+      # SAML attributes and static values about the CO to be asserted for each user.
+      # The key is the SATOSA internal attribute name.
+      co_static_saml_attributes:
+        organization: Medium Engergy Synchrotron Source
+        countryname: US
+        friendlycountryname: United States
+        noreduorgacronym:
+          - MESS
+          - MeSyncS
     - encodeable_name: MTS
       organization:
         display_name: Milwaukee Theological Seminary
