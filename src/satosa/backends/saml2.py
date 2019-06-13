@@ -47,16 +47,25 @@ def get_memorized_idp(context, config, force_authn):
     return value
 
 
-# XXX check KEY_FORCE_AUTHN value type (boolean vs str)
 def get_force_authn(context, config, sp_config):
-    value = (
-        config.get(SAMLBackend.KEY_MIRROR_FORCE_AUTHN)
-        and (
-            context.state.get(Context.KEY_FORCE_AUTHN)
-            or context.get_decoration(Context.KEY_FORCE_AUTHN)
-        )
-        or sp_config.getattr("force_authn", "sp")
-    )
+    """
+    Return the force_authn value.
+
+    The value comes from one of three place:
+    - the configuration of the backend
+    - the context, as it came through in the AuthnRequest handled by the frontend.
+      note: the frontend should have been set to mirror the force_authn value.
+    - the cookie, as it has been stored by the proxy on a redirect to the DS
+      note: the frontend should have been set to mirror the force_authn value.
+
+    The value is either "true" or False
+    """
+    mirror = config.get(SAMLBackend.KEY_MIRROR_FORCE_AUTHN)
+    from_state = mirror and context.state.get(Context.KEY_FORCE_AUTHN)
+    from_context = mirror and context.get_decoration(Context.KEY_FORCE_AUTHN)
+    from_config = sp_config.getattr("force_authn", "sp")
+    is_set = str(from_state or from_context or from_config).lower() == "true"
+    value = is_set and "true"
     return value
 
 
