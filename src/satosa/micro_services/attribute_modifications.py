@@ -10,7 +10,9 @@ class AddStaticAttributes(ResponseMicroService):
 
     def __init__(self, config, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.static_attributes = config["static_attributes"]
+        self.static_attributes = dict()
+        for k,v in config["static_attributes"].items():
+            self.static_attributes[k] = [i.strip() for i in v.split(',')]
 
     def process(self, context, data):
         data.attributes.update(self.static_attributes)
