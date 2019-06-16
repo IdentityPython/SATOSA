@@ -1,25 +1,28 @@
-language: python
 dist: xenial
 sudo: required
+
 services:
   - docker
   - mongodb
+
+language: python
+python:
+  - 3.5
+  - 3.6
+  - 3.7
+  - pypy3
+
 addons:
   apt:
     packages:
       - xmlsec1
 install:
-  - pip install -U tox
-matrix:
-  include:
-    - python: 3.5
-      env: TOXENV=py35
-    - python: 3.6
-      env: TOXENV=py36
-    - python: 3.7
-      env: TOXENV=py37
+  - pip install tox
+  - pip install tox-travis
+
 script:
   - tox
+
 deploy:
   - provider: pypi
     distributions: sdist bdist_wheel
