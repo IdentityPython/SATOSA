@@ -3,6 +3,7 @@ dist: xenial
 sudo: required
 services:
   - docker
+  - mongodb
 addons:
   apt:
     packages:
