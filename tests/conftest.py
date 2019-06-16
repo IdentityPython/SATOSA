@@ -392,7 +392,7 @@ class MongoTemporaryInstance(object):
 
     def __init__(self):
         self._tmpdir = tempfile.mkdtemp()
-        self._port = random.randint(40000, 50000)
+        self._port = 27017
         self._process = subprocess.Popen(['mongod', '--bind_ip', 'localhost',
                                           '--port', str(self._port),
                                           '--dbpath', self._tmpdir,
