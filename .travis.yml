@@ -1,22 +1,28 @@
-language: python
-dist: trusty
+dist: xenial
 sudo: required
+
 services:
-    - docker
+  - docker
+  - mongodb
+
+language: python
+python:
+  - 3.5
+  - 3.6
+  - 3.7
+  - pypy3
+
 addons:
   apt:
     packages:
-    - xmlsec1
+      - xmlsec1
 install:
-- pip install -U tox
-matrix:
-  include:
-  - python: 3.4.4
-    env: TOXENV=py34
-  - python: 3.5
-    env: TOXENV=py35
+  - pip install tox
+  - pip install tox-travis
+
 script:
-- tox
+  - tox
+
 deploy:
   - provider: pypi
     distributions: sdist bdist_wheel
@@ -38,5 +44,5 @@ deploy:
       tags: true
 env:
   global:
-  - secure: ymdbaVVKJFq193xn+pr7sRyjkcOBtpm6eu+A9QsdtzO6vhaj+MhFfsjWAJbGiaSvX691bLd+9kFqH76HViN1LbmkCujBm2+4k0DBSakb70T/81UNNpYGy4iIYzCKaWPPSwvFGfRjNY14RILEpOI8NCkJuDMuO7CiGkwOtmlOdP/tYdV9T3p36Hgpwa/0U5kIahqwnbBKiwjGGhI8YA4Ik01P4biEv3Fr++jS4dhzMe+hYjWDXW+bksf9OikbtJkPzHlZxCDgFH4yNY1TH6P3X/B8NLTrvpNZOj2GgQoZBDrTEM+RLdaLQ8EYcrJaEaOZs65Jicpw5Ycz8DHUuBXwlSiG1g/VJlzxYchGxnLguVyEELEm7p7vhDFYNOROL3J4PpY8E1+L834xzmhCqbHM2kHB2WeiIob0j1Hq7U1802tFuM+tu8P4gdEyGxstQaIehiTI/VQEJm+sKB1W5xtDQokrnMyiQfJy4K7T4ZrONV/gVhb85ayS6eF/Xu1vr/5s/fWyQOxNKvoeEiO6VVoLTWNPEysTewLFc8o7HcE/Qnv/67IwuK/vx0ZlESbNCRgTfqyWpn5vybyWmgo9aUC51hDiVQtZfVeaoF/Xtg2yxVn/4C1aPybpA2Oacll8LjyYwyoCeH3naD0j9Msy4izny2PF7MTT4iNbtwhRoAAqXic=
-  - secure: loJ+Bfind3tbEVrWqEalZT5bMqGFrMewo3jDwH9iJEw28tl+PasTCvCOJRsOomtdMp2QZh8e5wwnL1m7mkHWZaBDMxAg2mXlEv2W817SyAKkgFVnjXr8FJK4kjGAA5l2WXWKo7HKs2lOygZaDxj67i4htvg6cIxVf3dnI+MHpN5CONBfF6cXkFGMZoW+uc2diApyvIVCzte0JZkp6ZepWiyjelPl38pgWlD9elJEUaut0qKGZHtsRnLgTOzbBl49FV4lzCqt7wBnnwwQpTtvEyRW47O/VMYORAFFXpgUDPejE37+bf1wS6hlr0vSHFSUKILQWUH0l09+BPrxpoRj5SYkFD18xvqlWDNrNoANSMgRm/8cL1ucd7T5N03lKtNpaKT2ejHPj6Hu86mXFvcxcZnIcH7ppmXjZU2xfI2ytmmqxXysYeiCc6RgClmFBf3lnZz7iaHVrL8tU1x+eDzEQKvDbYHQnO9+4xXY37PH4ViJJEDoLq3NGhKxbDJ4oMgtz0mrjdWm8a1nWXIm8QTs2+oIhf+HrCpdqE8FfKnI7OyM8C+cwraApY77cZ9xfBqJGDQIgX3c+syB1ufVxY/DPDOXTysRUUHyWVgJeaL8EJEiMVnZMoGliY7QtnBznOglxynekIIaaZ5FMfh8hwA0pQ5idruqrtzVkBQoq8CdHfk=
+    - secure: ymdbaVVKJFq193xn+pr7sRyjkcOBtpm6eu+A9QsdtzO6vhaj+MhFfsjWAJbGiaSvX691bLd+9kFqH76HViN1LbmkCujBm2+4k0DBSakb70T/81UNNpYGy4iIYzCKaWPPSwvFGfRjNY14RILEpOI8NCkJuDMuO7CiGkwOtmlOdP/tYdV9T3p36Hgpwa/0U5kIahqwnbBKiwjGGhI8YA4Ik01P4biEv3Fr++jS4dhzMe+hYjWDXW+bksf9OikbtJkPzHlZxCDgFH4yNY1TH6P3X/B8NLTrvpNZOj2GgQoZBDrTEM+RLdaLQ8EYcrJaEaOZs65Jicpw5Ycz8DHUuBXwlSiG1g/VJlzxYchGxnLguVyEELEm7p7vhDFYNOROL3J4PpY8E1+L834xzmhCqbHM2kHB2WeiIob0j1Hq7U1802tFuM+tu8P4gdEyGxstQaIehiTI/VQEJm+sKB1W5xtDQokrnMyiQfJy4K7T4ZrONV/gVhb85ayS6eF/Xu1vr/5s/fWyQOxNKvoeEiO6VVoLTWNPEysTewLFc8o7HcE/Qnv/67IwuK/vx0ZlESbNCRgTfqyWpn5vybyWmgo9aUC51hDiVQtZfVeaoF/Xtg2yxVn/4C1aPybpA2Oacll8LjyYwyoCeH3naD0j9Msy4izny2PF7MTT4iNbtwhRoAAqXic=
+    - secure: loJ+Bfind3tbEVrWqEalZT5bMqGFrMewo3jDwH9iJEw28tl+PasTCvCOJRsOomtdMp2QZh8e5wwnL1m7mkHWZaBDMxAg2mXlEv2W817SyAKkgFVnjXr8FJK4kjGAA5l2WXWKo7HKs2lOygZaDxj67i4htvg6cIxVf3dnI+MHpN5CONBfF6cXkFGMZoW+uc2diApyvIVCzte0JZkp6ZepWiyjelPl38pgWlD9elJEUaut0qKGZHtsRnLgTOzbBl49FV4lzCqt7wBnnwwQpTtvEyRW47O/VMYORAFFXpgUDPejE37+bf1wS6hlr0vSHFSUKILQWUH0l09+BPrxpoRj5SYkFD18xvqlWDNrNoANSMgRm/8cL1ucd7T5N03lKtNpaKT2ejHPj6Hu86mXFvcxcZnIcH7ppmXjZU2xfI2ytmmqxXysYeiCc6RgClmFBf3lnZz7iaHVrL8tU1x+eDzEQKvDbYHQnO9+4xXY37PH4ViJJEDoLq3NGhKxbDJ4oMgtz0mrjdWm8a1nWXIm8QTs2+oIhf+HrCpdqE8FfKnI7OyM8C+cwraApY77cZ9xfBqJGDQIgX3c+syB1ufVxY/DPDOXTysRUUHyWVgJeaL8EJEiMVnZMoGliY7QtnBznOglxynekIIaaZ5FMfh8hwA0pQ5idruqrtzVkBQoq8CdHfk=
