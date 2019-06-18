@@ -908,7 +908,10 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
 
         :return: config with updated details for SAML metadata
         """
-        co_config = self._get_co_config(co_name)
+        all_co_configs = self.config[self.KEY_CO]
+        co_config = next(
+            item for item in all_co_configs if item[self.KEY_ENCODEABLE_NAME] == co_name
+        )
 
         key = self.KEY_ORGANIZATION
         if key in co_config:
