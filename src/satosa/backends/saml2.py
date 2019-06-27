@@ -62,7 +62,9 @@ def get_force_authn(context, config, sp_config):
     """
     mirror = config.get(SAMLBackend.KEY_MIRROR_FORCE_AUTHN)
     from_state = mirror and context.state.get(Context.KEY_FORCE_AUTHN)
-    from_context = mirror and context.get_decoration(Context.KEY_FORCE_AUTHN)
+    from_context = (
+        mirror and context.get_decoration(Context.KEY_FORCE_AUTHN) in ["true", "1"]
+    )
     from_config = sp_config.getattr("force_authn", "sp")
     is_set = str(from_state or from_context or from_config).lower() == "true"
     value = is_set and "true"
