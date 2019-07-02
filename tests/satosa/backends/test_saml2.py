@@ -39,47 +39,51 @@ INTERNAL_ATTRIBUTES = {
 DISCOSRV_URL = "https://my.dicso.com/role/idp.ds"
 
 
+def assert_redirect_to_discovery_server(
+    redirect_response, sp_conf, expected_discosrv_url
+):
+    assert redirect_response.status == "303 See Other"
+    parsed = urlparse(redirect_response.message)
+    redirect_location = "{parsed.scheme}://{parsed.netloc}{parsed.path}".format(parsed=parsed)
+    assert redirect_location == expected_discosrv_url
+
+    request_params = dict(parse_qsl(parsed.query))
+    assert request_params["return"] == sp_conf["service"]["sp"]["endpoints"]["discovery_response"][0][0]
+    assert request_params["entityID"] == sp_conf["entityid"]
+
+
+def assert_redirect_to_idp(redirect_response, idp_conf):
+    assert redirect_response.status == "303 See Other"
+    parsed = urlparse(redirect_response.message)
+    redirect_location = "{parsed.scheme}://{parsed.netloc}{parsed.path}".format(parsed=parsed)
+    assert redirect_location == idp_conf["service"]["idp"]["endpoints"]["single_sign_on_service"][0][0]
+    assert "SAMLRequest" in parse_qs(parsed.query)
+
+
+def assert_authn_response(internal_resp):
+    assert internal_resp.auth_info.auth_class_ref == PASSWORD
+    expected_data = {'surname': ['Testsson 1'], 'mail': ['test@example.com'],
+                     'displayname': ['Test Testsson'], 'givenname': ['Test 1'],
+                     'edupersontargetedid': ['one!for!all']}
+    assert expected_data == internal_resp.attributes
+
+
+def setup_test_config(sp_conf, idp_conf):
+    idp_metadata_str = create_metadata_from_config_dict(idp_conf)
+    sp_conf["metadata"]["inline"].append(idp_metadata_str)
+    idp2_config = idp_conf.copy()
+    idp2_config["entityid"] = "just_an_extra_idp"
+    idp_metadata_str2 = create_metadata_from_config_dict(idp2_config)
+    sp_conf["metadata"]["inline"].append(idp_metadata_str2)
+
+    sp_metadata_str = create_metadata_from_config_dict(sp_conf)
+    idp_conf["metadata"]["inline"] = [sp_metadata_str]
+
+
 class TestSAMLBackend:
-    def assert_redirect_to_idp(self, redirect_response, idp_conf):
-        assert redirect_response.status == "303 See Other"
-        parsed = urlparse(redirect_response.message)
-        redirect_location = "{parsed.scheme}://{parsed.netloc}{parsed.path}".format(parsed=parsed)
-        assert redirect_location == idp_conf["service"]["idp"]["endpoints"]["single_sign_on_service"][0][0]
-        assert "SAMLRequest" in parse_qs(parsed.query)
-
-    def assert_redirect_to_discovery_server(
-        self, redirect_response, sp_conf, expected_discosrv_url
-    ):
-        assert redirect_response.status == "303 See Other"
-        parsed = urlparse(redirect_response.message)
-        redirect_location = "{parsed.scheme}://{parsed.netloc}{parsed.path}".format(parsed=parsed)
-        assert redirect_location == expected_discosrv_url
-
-        request_params = dict(parse_qsl(parsed.query))
-        assert request_params["return"] == sp_conf["service"]["sp"]["endpoints"]["discovery_response"][0][0]
-        assert request_params["entityID"] == sp_conf["entityid"]
-
-    def assert_authn_response(self, internal_resp):
-        assert internal_resp.auth_info.auth_class_ref == PASSWORD
-        expected_data = {'surname': ['Testsson 1'], 'mail': ['test@example.com'],
-                         'displayname': ['Test Testsson'], 'givenname': ['Test 1'],
-                         'edupersontargetedid': ['one!for!all']}
-        assert expected_data == internal_resp.attributes
-
-    def setup_test_config(self, sp_conf, idp_conf):
-        idp_metadata_str = create_metadata_from_config_dict(idp_conf)
-        sp_conf["metadata"]["inline"].append(idp_metadata_str)
-        idp2_config = idp_conf.copy()
-        idp2_config["entityid"] = "just_an_extra_idp"
-        idp_metadata_str2 = create_metadata_from_config_dict(idp2_config)
-        sp_conf["metadata"]["inline"].append(idp_metadata_str2)
-
-        sp_metadata_str = create_metadata_from_config_dict(sp_conf)
-        idp_conf["metadata"]["inline"] = [sp_metadata_str]
-
     @pytest.fixture(autouse=True)
     def create_backend(self, sp_conf, idp_conf):
-        self.setup_test_config(sp_conf, idp_conf)
+        setup_test_config(sp_conf, idp_conf)
         self.samlbackend = SAMLBackend(Mock(), INTERNAL_ATTRIBUTES, {"sp_config": sp_conf,
                                                                      "disco_srv": DISCOSRV_URL},
                                        "base_url",
@@ -101,7 +105,7 @@ class TestSAMLBackend:
 
     def test_start_auth_defaults_to_redirecting_to_discovery_server(self, context, sp_conf):
         resp = self.samlbackend.start_auth(context, InternalData())
-        self.assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
+        assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
 
     def test_discovery_server_set_in_context(self, context, sp_conf):
         discosrv_url = 'https://my.org/saml_discovery_service'
@@ -109,7 +113,7 @@ class TestSAMLBackend:
             SAMLBackend.KEY_SAML_DISCOVERY_SERVICE_URL, discosrv_url
         )
         resp = self.samlbackend.start_auth(context, InternalData())
-        self.assert_redirect_to_discovery_server(resp, sp_conf, discosrv_url)
+        assert_redirect_to_discovery_server(resp, sp_conf, discosrv_url)
 
     def test_full_flow(self, context, idp_conf, sp_conf):
         test_state_key = "test_state_key_456afgrh"
@@ -120,7 +124,7 @@ class TestSAMLBackend:
 
         # start auth flow (redirecting to discovery server)
         resp = self.samlbackend.start_auth(context, InternalData())
-        self.assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
+        assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
 
         # fake response from discovery server
         disco_resp = parse_qs(urlparse(resp.message).query)
@@ -132,7 +136,7 @@ class TestSAMLBackend:
 
         # pass discovery response to backend and check that it redirects to the selected IdP
         resp = self.samlbackend.disco_response(request_context)
-        self.assert_redirect_to_idp(resp, idp_conf)
+        assert_redirect_to_idp(resp, idp_conf)
 
         # fake auth response to the auth request
         req_params = dict(parse_qsl(urlparse(resp.message).query))
@@ -151,7 +155,7 @@ class TestSAMLBackend:
         context, internal_resp = self.samlbackend.auth_callback_func.call_args[0]
         assert self.samlbackend.name not in context.state
         assert context.state[test_state_key] == "my_state"
-        self.assert_authn_response(internal_resp)
+        assert_authn_response(internal_resp)
 
     def test_start_auth_redirects_directly_to_mirrored_idp(
             self, context, idp_conf):
@@ -159,7 +163,7 @@ class TestSAMLBackend:
         context.decorate(Context.KEY_TARGET_ENTITYID, entityid)
 
         resp = self.samlbackend.start_auth(context, InternalData())
-        self.assert_redirect_to_idp(resp, idp_conf)
+        assert_redirect_to_idp(resp, idp_conf)
 
     def test_redirect_to_idp_if_only_one_idp_in_metadata(self, context, sp_conf, idp_conf):
         sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
@@ -167,79 +171,11 @@ class TestSAMLBackend:
         samlbackend = SAMLBackend(None, INTERNAL_ATTRIBUTES, {"sp_config": sp_conf}, "base_url", "saml_backend")
 
         resp = samlbackend.start_auth(context, InternalData())
-        self.assert_redirect_to_idp(resp, idp_conf)
-
-    def test_default_redirect_to_discovery_service_if_using_mdq(self, context, sp_conf, idp_conf):
-        # one IdP in the metadata, but MDQ also configured so should always redirect to the discovery service
-        sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
-        sp_conf["metadata"]["mdq"] = ["https://mdq.example.com"]
-        samlbackend = SAMLBackend(None, INTERNAL_ATTRIBUTES, {"sp_config": sp_conf, "disco_srv": DISCOSRV_URL,},
-                                  "base_url", "saml_backend")
-        resp = samlbackend.start_auth(context, InternalData())
-        self.assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
-
-    def test_use_of_disco_or_redirect_to_idp_when_using_mdq_and_forceauthn_is_not_set(
-        self, context, sp_conf, idp_conf
-    ):
-        sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
-        sp_conf["metadata"]["mdq"] = ["https://mdq.example.com"]
-
-        backend_conf = {
-            SAMLBackend.KEY_SP_CONFIG: sp_conf,
-            SAMLBackend.KEY_DISCO_SRV: DISCOSRV_URL,
-            SAMLBackend.KEY_MEMORIZE_IDP: True,
-        }
-        samlbackend = SAMLBackend(
-            None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
-        )
-        resp = samlbackend.start_auth(context, InternalData())
-        self.assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
-
-        context.state[Context.KEY_MEMORIZED_IDP] = idp_conf["entityid"]
-        samlbackend = SAMLBackend(
-            None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
-        )
-        resp = samlbackend.start_auth(context, InternalData())
-        self.assert_redirect_to_idp(resp, idp_conf)
-
-        backend_conf[SAMLBackend.KEY_MEMORIZE_IDP] = False
-        samlbackend = SAMLBackend(
-            None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
-        )
-        resp = samlbackend.start_auth(context, InternalData())
-        self.assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
-
-    def test_use_of_disco_or_redirect_to_idp_when_using_mdq_and_forceauthn_is_set(
-        self, context, sp_conf, idp_conf
-    ):
-        sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
-        sp_conf["metadata"]["mdq"] = ["https://mdq.example.com"]
-
-        context.decorate(Context.KEY_FORCE_AUTHN, "true")
-        context.state[Context.KEY_MEMORIZED_IDP] = idp_conf["entityid"]
-
-        backend_conf = {
-            SAMLBackend.KEY_SP_CONFIG: sp_conf,
-            SAMLBackend.KEY_DISCO_SRV: DISCOSRV_URL,
-            SAMLBackend.KEY_MEMORIZE_IDP: True,
-            SAMLBackend.KEY_MIRROR_FORCE_AUTHN: True,
-        }
-        samlbackend = SAMLBackend(
-            None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
-        )
-        resp = samlbackend.start_auth(context, InternalData())
-        self.assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
-
-        backend_conf[SAMLBackend.KEY_USE_MEMORIZED_IDP_WHEN_FORCE_AUTHN] = True
-        samlbackend = SAMLBackend(
-            None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
-        )
-        resp = samlbackend.start_auth(context, InternalData())
-        self.assert_redirect_to_idp(resp, idp_conf)
+        assert_redirect_to_idp(resp, idp_conf)
 
     def test_authn_request(self, context, idp_conf):
         resp = self.samlbackend.authn_request(context, idp_conf["entityid"])
-        self.assert_redirect_to_idp(resp, idp_conf)
+        assert_redirect_to_idp(resp, idp_conf)
         req_params = dict(parse_qsl(urlparse(resp.message).query))
         assert context.state[self.samlbackend.name]["relay_state"] == req_params["RelayState"]
 
@@ -257,7 +193,7 @@ class TestSAMLBackend:
         self.samlbackend.authn_response(context, response_binding)
 
         context, internal_resp = self.samlbackend.auth_callback_func.call_args[0]
-        self.assert_authn_response(internal_resp)
+        assert_authn_response(internal_resp)
         assert self.samlbackend.name not in context.state
 
     @pytest.mark.skipif(
@@ -293,7 +229,7 @@ class TestSAMLBackend:
         backend.authn_response(context, response_binding)
 
         context, internal_resp = backend.auth_callback_func.call_args[0]
-        self.assert_authn_response(internal_resp)
+        assert_authn_response(internal_resp)
         assert backend.name not in context.state
 
     def test_authn_response_with_encrypted_assertion(self, sp_conf, context):
@@ -396,3 +332,112 @@ class TestSAMLBackend:
         assert ui_info["display_name"] == expected_ui_info["display_name"]
         assert ui_info["description"] == expected_ui_info["description"]
         assert ui_info["logo"] == expected_ui_info["logo"]
+
+
+class TestSAMLBackendRedirects:
+    def test_default_redirect_to_discovery_service_if_using_mdq(
+        self, context, sp_conf, idp_conf
+    ):
+        # one IdP in the metadata, but MDQ also configured so should always redirect to the discovery service
+        sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
+        sp_conf["metadata"]["mdq"] = ["https://mdq.example.com"]
+        samlbackend = SAMLBackend(None, INTERNAL_ATTRIBUTES, {"sp_config": sp_conf, "disco_srv": DISCOSRV_URL,},
+                                  "base_url", "saml_backend")
+        resp = samlbackend.start_auth(context, InternalData())
+        assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
+
+    def test_use_of_disco_or_redirect_to_idp_when_using_mdq_and_forceauthn_is_not_set(
+        self, context, sp_conf, idp_conf
+    ):
+        sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
+        sp_conf["metadata"]["mdq"] = ["https://mdq.example.com"]
+
+        backend_conf = {
+            SAMLBackend.KEY_SP_CONFIG: sp_conf,
+            SAMLBackend.KEY_DISCO_SRV: DISCOSRV_URL,
+            SAMLBackend.KEY_MEMORIZE_IDP: True,
+        }
+        samlbackend = SAMLBackend(
+            None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
+        )
+        resp = samlbackend.start_auth(context, InternalData())
+        assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
+
+        context.state[Context.KEY_MEMORIZED_IDP] = idp_conf["entityid"]
+        samlbackend = SAMLBackend(
+            None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
+        )
+        resp = samlbackend.start_auth(context, InternalData())
+        assert_redirect_to_idp(resp, idp_conf)
+
+        backend_conf[SAMLBackend.KEY_MEMORIZE_IDP] = False
+        samlbackend = SAMLBackend(
+            None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
+        )
+        resp = samlbackend.start_auth(context, InternalData())
+        assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
+
+        context.decorate(Context.KEY_FORCE_AUTHN, "0")
+        context.state[Context.KEY_MEMORIZED_IDP] = idp_conf["entityid"]
+        backend_conf[SAMLBackend.KEY_USE_MEMORIZED_IDP_WHEN_FORCE_AUTHN] = True
+        samlbackend = SAMLBackend(
+            None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
+        )
+        resp = samlbackend.start_auth(context, InternalData())
+        assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
+
+    def test_use_of_disco_or_redirect_to_idp_when_using_mdq_and_forceauthn_is_set_true(
+        self, context, sp_conf, idp_conf
+    ):
+        sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
+        sp_conf["metadata"]["mdq"] = ["https://mdq.example.com"]
+
+        context.decorate(Context.KEY_FORCE_AUTHN, "true")
+        context.state[Context.KEY_MEMORIZED_IDP] = idp_conf["entityid"]
+
+        backend_conf = {
+            SAMLBackend.KEY_SP_CONFIG: sp_conf,
+            SAMLBackend.KEY_DISCO_SRV: DISCOSRV_URL,
+            SAMLBackend.KEY_MEMORIZE_IDP: True,
+            SAMLBackend.KEY_MIRROR_FORCE_AUTHN: True,
+        }
+        samlbackend = SAMLBackend(
+            None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
+        )
+        resp = samlbackend.start_auth(context, InternalData())
+        assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
+
+        backend_conf[SAMLBackend.KEY_USE_MEMORIZED_IDP_WHEN_FORCE_AUTHN] = True
+        samlbackend = SAMLBackend(
+            None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
+        )
+        resp = samlbackend.start_auth(context, InternalData())
+        assert_redirect_to_idp(resp, idp_conf)
+
+    def test_use_of_disco_or_redirect_to_idp_when_using_mdq_and_forceauthn_is_set_1(
+        self, context, sp_conf, idp_conf
+    ):
+        sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
+        sp_conf["metadata"]["mdq"] = ["https://mdq.example.com"]
+
+        context.decorate(Context.KEY_FORCE_AUTHN, "1")
+        context.state[Context.KEY_MEMORIZED_IDP] = idp_conf["entityid"]
+
+        backend_conf = {
+            SAMLBackend.KEY_SP_CONFIG: sp_conf,
+            SAMLBackend.KEY_DISCO_SRV: DISCOSRV_URL,
+            SAMLBackend.KEY_MEMORIZE_IDP: True,
+            SAMLBackend.KEY_MIRROR_FORCE_AUTHN: True,
+        }
+        samlbackend = SAMLBackend(
+            None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
+        )
+        resp = samlbackend.start_auth(context, InternalData())
+        assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
+
+        backend_conf[SAMLBackend.KEY_USE_MEMORIZED_IDP_WHEN_FORCE_AUTHN] = True
+        samlbackend = SAMLBackend(
+            None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
+        )
+        resp = samlbackend.start_auth(context, InternalData())
+        assert_redirect_to_idp(resp, idp_conf)

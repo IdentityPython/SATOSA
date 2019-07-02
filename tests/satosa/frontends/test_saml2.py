@@ -483,10 +483,13 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
 
         return context
 
-    def test_create_state_data(self, frontend, context):
-        context.decorate(frontend.KEY_CO_NAME, self.CO)
+    def test_create_state_data(self, frontend, context, idp_conf):
+        frontend._create_co_virtual_idp(context)
         state = frontend._create_state_data(context, {}, "")
         assert state[frontend.KEY_CO_NAME] == self.CO
+
+        expected_entityid = "{}/{}".format(idp_conf['entityid'], self.CO)
+        assert state[frontend.KEY_CO_ENTITY_ID] == expected_entityid
 
     def test_get_co_name(self, frontend, context):
         co_name = frontend._get_co_name(context)
@@ -534,7 +537,7 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
         backend_name = context.target_backend
         idp_conf = frontend._add_endpoints_to_config(idp_conf, co_name,
                                                      backend_name)
-        idp_conf = frontend._add_entity_id(idp_conf, co_name)
+        idp_conf = frontend._add_entity_id(context, idp_conf, co_name)
 
         # Use a utility function to serialize the idp_conf IdP configuration
         # fixture to a string and then dynamically update the sp_conf

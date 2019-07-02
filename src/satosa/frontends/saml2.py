@@ -700,6 +700,7 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
     """
     KEY_CO = 'collaborative_organizations'
     KEY_CO_NAME = 'co_name'
+    KEY_CO_ENTITY_ID = 'co_entity_id'
     KEY_CO_ATTRIBUTES = 'co_static_saml_attributes'
     KEY_CONTACT_PERSON = 'contact_person'
     KEY_ENCODEABLE_NAME = 'encodeable_name'
@@ -770,6 +771,8 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         """
         state = super()._create_state_data(context, resp_args, relay_state)
         state[self.KEY_CO_NAME] = context.get_decoration(self.KEY_CO_NAME)
+        state[self.KEY_CO_ENTITY_ID] = context.get_decoration(
+                                                         self.KEY_CO_ENTITY_ID)
 
         return state
 
@@ -869,19 +872,22 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
 
         return config
 
-    def _add_entity_id(self, config, co_name):
+    def _add_entity_id(self, context, config, co_name):
         """
         Use the CO name to construct the entity ID for the virtual IdP
-        for the CO.
+        for the CO and add it to the config. Also add it to the
+        context.
 
         The entity ID has the form
 
         {base_entity_id}/{co_name}
 
+        :type context: The current context
         :type config: satosa.satosa_config.SATOSAConfig
         :type co_name: str
         :rtype: satosa.satosa_config.SATOSAConfig
 
+        :param context:
         :param config: satosa proxy config
         :param co_name: CO name
 
@@ -890,6 +896,7 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         base_entity_id = config['entityid']
         co_entity_id = "{}/{}".format(base_entity_id, quote_plus(co_name))
         config['entityid'] = co_entity_id
+        context.decorate(self.KEY_CO_ENTITY_ID, co_entity_id)
 
         return config
 
@@ -908,7 +915,11 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
 
         :return: config with updated details for SAML metadata
         """
-        co_config = self._get_co_config(co_name)
+        all_co_configs = self.config[self.KEY_CO]
+        co_config = next(
+            item for item in all_co_configs
+            if item[self.KEY_ENCODEABLE_NAME] == co_name
+        )
 
         key = self.KEY_ORGANIZATION
         if key in co_config:
@@ -971,7 +982,7 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         idp_config = self._add_endpoints_to_config(idp_config,
                                                    co_name,
                                                    backend_name)
-        idp_config = self._add_entity_id(idp_config, co_name)
+        idp_config = self._add_entity_id(context, idp_config, co_name)
 
         # Use the overwritten IdP config to generate a pysaml2 config object
         # and from it a server object.
