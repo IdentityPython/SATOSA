@@ -58,7 +58,7 @@ def get_force_authn(context, config, sp_config):
     - the cookie, as it has been stored by the proxy on a redirect to the DS
       note: the frontend should have been set to mirror the force_authn value.
 
-    The value is either "true" or False
+    The value is either "true" or None
     """
     mirror = config.get(SAMLBackend.KEY_MIRROR_FORCE_AUTHN)
     from_state = mirror and context.state.get(Context.KEY_FORCE_AUTHN)
@@ -67,7 +67,7 @@ def get_force_authn(context, config, sp_config):
     )
     from_config = sp_config.getattr("force_authn", "sp")
     is_set = str(from_state or from_context or from_config).lower() == "true"
-    value = is_set and "true"
+    value = "true" if is_set else None
     return value
 
 
