@@ -21,16 +21,23 @@ def _create_split_entity_descriptors(entities, secc, valid):
     output = []
     for module_name, eds in entities.items():
         for i, ed in enumerate(eds):
-            output.append((create_signed_entity_descriptor(ed, secc, valid), "{}_{}.xml".format(module_name, i)))
+            output.append(
+                (
+                    create_signed_entity_descriptor(ed, secc, valid),
+                    "{}_{}.xml".format(module_name, i),
+                )
+            )
 
     return output
 
 
 def _create_merged_entities_descriptors(entities, secc, valid, name):
     output = []
-    frontend_entity_descriptors = [e for sublist in entities.values() for e in sublist]
-    for frontend in frontend_entity_descriptors:
-        output.append((create_signed_entity_descriptor(frontend, secc, valid), name))
+    entity_descriptors = [e for sublist in entities.values() for e in sublist]
+    for entity_descr in entity_descriptors:
+        output.append(
+            (create_signed_entity_descriptor(entity_descr, secc, valid), name)
+        )
 
     return output
 
