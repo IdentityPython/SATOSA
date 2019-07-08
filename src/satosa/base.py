@@ -25,8 +25,6 @@ from .state import cookie_to_state, SATOSAStateError, State, state_to_cookie
 from satosa.deprecated import hash_attributes
 
 
-_warnings.simplefilter("default")
-
 logger = logging.getLogger(__name__)
 
 STATE_KEY = "SATOSA_BASE"
