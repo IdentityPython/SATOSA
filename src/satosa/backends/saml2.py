@@ -5,9 +5,11 @@ import copy
 import functools
 import json
 import logging
+import warnings as _warnings
 from base64 import urlsafe_b64encode
 from urllib.parse import urlparse
 
+from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client_base import Base
 from saml2.config import SPConfig
 from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
@@ -429,6 +431,20 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         for endp, binding in sp_endpoints["assertion_consumer_service"]:
             parsed_endp = urlparse(endp)
             url_map.append(("^%s$" % parsed_endp.path[1:], functools.partial(self.authn_response, binding=binding)))
+            if binding == BINDING_HTTP_REDIRECT:
+                msg = " ".join(
+                    [
+                        "AssertionConsumerService endpoint with binding",
+                        BINDING_HTTP_REDIRECT,
+                        "is not recommended.",
+                        "Quoting section 4.1.2 of",
+                        "'Profiles for the OASIS Security Assertion Markup Language (SAML) V2.0':",
+                        "The HTTP Redirect binding MUST NOT be used,",
+                        "as the response will typically exceed the URL length",
+                        "permitted by most user agents.",
+                    ]
+                )
+                _warnings.warn(msg, DeprecationWarning)
 
         if self.discosrv:
             for endp, binding in sp_endpoints["discovery_response"]:
