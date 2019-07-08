@@ -444,7 +444,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                         "permitted by most user agents.",
                     ]
                 )
-                _warnings.warn(msg, DeprecationWarning)
+                _warnings.warn(msg, UserWarning)
 
         if self.discosrv:
             for endp, binding in sp_endpoints["discovery_response"]:
