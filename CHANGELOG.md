@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.1.0 (2019-07-09)
+
+Trigger new version build to automatically upload to PyPI and docker hub.
+
+- Add release instructions
+
+
 ## 4.0.0 (2019-07-09)
 
 - Remove the warning filter; users must set the filter themselves
