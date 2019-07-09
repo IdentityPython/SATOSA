@@ -32,7 +32,7 @@ jobs:
             repo: IdentityPython/SATOSA
             branch: master
 
-    - stage: Deploy new version
+    - stage: Deploy new release
       script: skip
       deploy:
         - provider: releases
