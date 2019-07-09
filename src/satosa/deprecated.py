@@ -12,9 +12,6 @@ from satosa.internal import InternalData as _InternalData
 from satosa import util
 
 
-_warnings.simplefilter("default")
-
-
 class InternalRequest(_InternalData):
     def __init__(self, user_id_hash_type, requester, requester_name=None):
         msg = (

@@ -4,9 +4,6 @@
 import warnings as _warnings
 
 
-_warnings.simplefilter("default")
-
-
 class AuthenticationInformation(object):
     """
     Class that holds information about the authentication
