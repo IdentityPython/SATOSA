@@ -35,6 +35,13 @@ jobs:
     - stage: Deploy new version
       script: skip
       deploy:
+        - provider: releases
+          api_key: $GITHUB_OAUTH_TOKEN
+          skip_cleanup: true
+          on:
+            repo: IdentityPython/SATOSA
+            branch: master
+            tags: true
         - provider: pypi
           distributions: sdist bdist_wheel
           user: Lundberg
