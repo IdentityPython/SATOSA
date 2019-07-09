@@ -432,18 +432,13 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             parsed_endp = urlparse(endp)
             url_map.append(("^%s$" % parsed_endp.path[1:], functools.partial(self.authn_response, binding=binding)))
             if binding == BINDING_HTTP_REDIRECT:
-                msg = " ".join(
-                    [
-                        "AssertionConsumerService endpoint with binding",
-                        BINDING_HTTP_REDIRECT,
-                        "is not recommended.",
-                        "Quoting section 4.1.2 of",
-                        "'Profiles for the OASIS Security Assertion Markup Language (SAML) V2.0':",
-                        "The HTTP Redirect binding MUST NOT be used,",
-                        "as the response will typically exceed the URL length",
-                        "permitted by most user agents.",
-                    ]
-                )
+                msg = ("AssertionConsumerService endpoint with binding {} "
+                       "is not recommended. "
+                       "Quoting section 4.1.2 of "
+                       "'Profiles for the OASIS Security Assertion Markup Language (SAML) V2.0': "
+                       "The HTTP Redirect binding MUST NOT be used, "
+                       "as the response will typically exceed the URL length "
+                       "permitted by most user agents.").format(BINDING_HTTP_REDIRECT)
                 _warnings.warn(msg, UserWarning)
 
         if self.discosrv:
