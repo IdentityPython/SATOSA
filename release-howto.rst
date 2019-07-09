@@ -47,7 +47,7 @@ PyPI package.
 
 
 .. _docutils: http://docutils.sourceforge.net/
-.. _bumpversion.cfg: https://github.com/IdentityPython/SATOSA/blob/master/.bumpversion.cfg
+.. _.bumpversion.cfg: https://github.com/IdentityPython/SATOSA/blob/master/.bumpversion.cfg
 .. _CHANGELOG.md: https://github.com/IdentityPython/SATOSA/blob/master/CHANGELOG.md
 .. _branch: https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell
 .. _tag: https://git-scm.com/book/en/v2/Git-Basics-Tagging#_annotated_tags
