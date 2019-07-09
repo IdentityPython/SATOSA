@@ -69,8 +69,11 @@ def cookie_to_state(cookie_str, name, encryption_key):
     :param encryption_key: Key to encrypt the state information
     :return: A state
     """
+    cookie = SimpleCookie(cookie_str)
+    if not cookie or not cookie.get(name):
+        return State('', encryption_key)
+
     try:
-        cookie = SimpleCookie(cookie_str)
         state = State(cookie[name].value, encryption_key)
     except KeyError as e:
         msg_tmpl = 'No cookie named {name} in {data}'
