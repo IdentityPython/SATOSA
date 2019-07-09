@@ -40,7 +40,6 @@ jobs:
           skip_cleanup: true
           on:
             repo: IdentityPython/SATOSA
-            branch: master
             tags: true
         - provider: pypi
           distributions: sdist bdist_wheel
@@ -49,15 +48,13 @@ jobs:
             secure: NwkpOakaeJjErjTF4Y5MWeHzMvkxYZqrBFdRkzfenVfkWsomuyy553A691d3lc1+oREsh1fJJLjpZQYxTLUFIHOUmt/9zr02rFfguzj7hEYfWF8wHBXG6YSWv6T3aCA4RTMXvvzv9cHf1zfxh0fS7kgc+NRMAnd01diVLfYpBciLgmQ31J4mlwShp8yBQUoRBIvzSdzrgjr0TzCQZXB9xM6R2t/oJgXLo6Zz8dTzqq3De9nOU/1P2ZHLxodDikuFdu2/0CjoDgFXB0KnGKGKmJ6G1WMCVvi7abY7smmGA3s4a4NVL7Cirx6VwIj79PsAcgupr2iBAQk/GsPffzdpLtIrBek9u//p84hxrj/IaJWgPOeKeD7+r2Kc2g0r2dQjaM+9MqBx9/lC57xJRX/JHLQWirXfCucB9YyPun5I13Sf3hArkssQy/Jvd2aLFZ885BTfow6TAwl1ud+UPeauvEj6myKO98sko/3Y521EGXRofLGaPokLyPjI/3I4N4jCvw8m86eZAjjIhPFL7JKHf8OVc5gQCYQy3kxiF5wyvbfOeMBp0sk9UvJOrWvBEXFrimAZPu8o8T5WtlQAV02q7rxUwhMd+fpnbGewsl7Ob6eE4rGVrfWQIb86wOHbbJk3lCwPytjEFEI2bdUfRUFcrWxhC040hRP0gzVKLa+nBHM=
           on:
             repo: IdentityPython/SATOSA
-            branch: master
             tags: true
         - provider: script
           script: scripts/travis_create_docker_image_tag.sh
           on:
             repo: IdentityPython/SATOSA
-            branch: master
             tags: true
-      if: branch = "master" AND tag IS present
+      if: tag IS present
 
 env:
   global:
