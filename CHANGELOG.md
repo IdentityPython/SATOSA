@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.3.0 (2019-07-09)
+
+Trigger new version build to automatically upload to PyPI and docker hub.
+
+- Fix travis CI/CD configuration
+
+
 ## 4.2.0 (2019-07-09)
 
 Trigger new version build to automatically upload to PyPI and docker hub.
