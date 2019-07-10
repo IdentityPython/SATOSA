@@ -16,6 +16,7 @@ class SATOSAConfig(object):
     A configuration class for the satosa proxy. Verifies that the given config holds all the
     necessary parameters.
     """
+
     sensitive_dict_keys = ["STATE_ENCRYPTION_KEY"]
     mandatory_dict_keys = ["BASE", "BACKEND_MODULES", "FRONTEND_MODULES",
                            "INTERNAL_ATTRIBUTES", "COOKIE_STATE_NAME"]
@@ -30,11 +31,12 @@ class SATOSAConfig(object):
         :param config: Can be a file path or a dictionary
         :return: A verified SATOSAConfig
         """
-        parsers = [self._load_dict, self._load_yaml]
-        for parser in parsers:
-            self._config = parser(config)
-            if self._config is not None:
-                break
+        self._config = self._parse_config(config)
+
+        if not self._config:
+            raise SATOSAConfigurationError(
+                "Missing configuration or unknown format"
+            )
 
         # Load sensitive config from environment variables
         for key in SATOSAConfig.sensitive_dict_keys:
@@ -44,26 +46,49 @@ class SATOSAConfig(object):
 
         self._verify_dict(self._config)
 
+        self._load_plugins()
+        self._load_internal_attributes()
+
+    def _parse_config(self, config):
+        return next(
+            filter(
+                lambda conf: conf is not None,
+                map(
+                    lambda parser: parser(config),
+                    (self._load_dict, self._load_yaml),
+                ),
+            ),
+            None,
+        )
+
+    def _load_plugins(self):
+        def load_plugin_config(config):
+            plugin_config = self._parse_config(config)
+            if not plugin_config:
+                raise SATOSAConfigurationError(
+                    "Failed to load plugin config '{}'".format(config)
+                )
+            else:
+                return plugin_config
+
         # Read plugin configs from dict or file path
         for key in ["BACKEND_MODULES", "FRONTEND_MODULES", "MICRO_SERVICES"]:
-            plugin_configs = []
-            for config in self._config.get(key, []):
-                for parser in parsers:
-                    plugin_config = parser(config)
-                    if plugin_config:
-                        plugin_configs.append(plugin_config)
-                        break
-                else:
-                    raise SATOSAConfigurationError('Failed to load plugin config \'{}\''.format(config))
-            self._config[key] = plugin_configs
+            self._config[key] = list(
+                map(
+                    lambda x: load_plugin_config(x),
+                    self._config.get(key, []) or [],
+                )
+            )
 
-        for parser in parsers:
-            _internal_attributes = parser(self._config["INTERNAL_ATTRIBUTES"])
-            if _internal_attributes is not None:
-                self._config["INTERNAL_ATTRIBUTES"] = _internal_attributes
-                break
+    def _load_internal_attributes(self):
+        self._config["INTERNAL_ATTRIBUTES"] = self._parse_config(
+            self._config["INTERNAL_ATTRIBUTES"]
+        )
+
         if not self._config["INTERNAL_ATTRIBUTES"]:
-            raise SATOSAConfigurationError("Could not load attribute mapping from 'INTERNAL_ATTRIBUTES.")
+            raise SATOSAConfigurationError(
+                "Could not load attribute mapping from 'INTERNAL_ATTRIBUTES."
+            )
 
     def _verify_dict(self, conf):
         """
@@ -76,8 +101,6 @@ class SATOSAConfig(object):
         :param conf: config to verify
         :return: None
         """
-        if not conf:
-            raise SATOSAConfigurationError("Missing configuration or unknown format")
 
         for key in SATOSAConfig.mandatory_dict_keys:
             if not conf.get(key, None):

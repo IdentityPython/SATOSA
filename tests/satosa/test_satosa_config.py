@@ -86,3 +86,20 @@ class TestSATOSAConfig:
             patched_dict[key] = None
             with pytest.raises(SATOSAConfigurationError):
                 SATOSAConfig(satosa_config_dict)
+
+    def test_can_skip_unset_microservices(self, satosa_config_dict):
+        satosa_config_dict["MICRO_SERVICES"] = None
+        config = SATOSAConfig(satosa_config_dict)
+        assert config["MICRO_SERVICES"] == []
+
+    def test_invalid_internal_attributes_raises_exception(self, satosa_config_dict):
+        satosa_config_dict["INTERNAL_ATTRIBUTES"] = ["dummy.yaml"]
+        expected_config = {}
+
+        with patch("builtins.open", mock_open(read_data=json.dumps(expected_config))), \
+             pytest.raises(SATOSAConfigurationError):
+            SATOSAConfig(satosa_config_dict)
+
+    def test_invalid_conf_raises_exception(self):
+        with pytest.raises(SATOSAConfigurationError) as e:
+            SATOSAConfig({})
