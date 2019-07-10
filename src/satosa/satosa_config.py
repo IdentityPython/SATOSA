@@ -80,8 +80,12 @@ class SATOSAConfig(object):
             raise SATOSAConfigurationError("Missing configuration or unknown format")
 
         for key in SATOSAConfig.mandatory_dict_keys:
-            if key not in conf:
-                raise SATOSAConfigurationError("Missing key '%s' in config" % key)
+            if not conf.get(key, None):
+                raise SATOSAConfigurationError(
+                    "Missing key {key} or value for {key} in config".format(
+                        key=key
+                    )
+                )
 
         for key in SATOSAConfig.sensitive_dict_keys:
             if key not in conf and "SATOSA_{key}".format(key=key) not in os.environ:
