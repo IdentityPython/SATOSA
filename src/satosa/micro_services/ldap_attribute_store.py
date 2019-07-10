@@ -441,7 +441,7 @@ class LdapAttributeStore(ResponseMicroService):
                 return super().process(context, data)
 
             if not results:
-                satosa_logging(logger, logging.DEBUG, "Querying LDAP server: Nop results for {}.".format(filter_val), context.state)
+                satosa_logging(logger, logging.DEBUG, "Querying LDAP server: No results for {}.".format(filter_val), context.state)
                 continue
 
             if isinstance(results, bool):
@@ -450,7 +450,7 @@ class LdapAttributeStore(ResponseMicroService):
                 responses = connection.get_response(results)[0]
 
             satosa_logging(logger, logging.DEBUG, "Done querying LDAP server", context.state)
-            satosa_logging(logger, logging.DEBUG, "LDAP server returned {} records".format(len(responses)), context.state)
+            satosa_logging(logger, logging.INFO, "LDAP server returned {} records".format(len(responses)), context.state)
 
             # for now consider only the first record found (if any)
             if len(responses) > 0:
