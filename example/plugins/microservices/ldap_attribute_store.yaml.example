@@ -9,11 +9,14 @@ config:
       read_only : true
       version : 3
 
-      # See ldap3 client_strategies.
+      # See ldap3 client_strategies. The default
+      # is REUSABLE.
       client_strategy : RESTARTABLE
       auto_bind : true
-      pool_size : 10
-      pool_keepalive : 10
+      # Specify pool size and keepalive when using
+      # REUSABLE client strategy. Defaults are 10 and 10.
+      #pool_size : 10
+      #pool_keepalive : 10
 
       # Attributes to return from LDAP query.
       query_return_attributes:

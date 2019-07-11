@@ -54,7 +54,7 @@ class LdapAttributeStore(ResponseMicroService):
         'read_only':                     True,
         'version':                       3,
         'auto_bind':                     False,
-        'client_strategy':               ldap3.RESTARTABLE,
+        'client_strategy':               'REUSABLE',
         'pool_size':                     10,
         'pool_keepalive':                10,
         }
@@ -287,17 +287,25 @@ class LdapAttributeStore(ResponseMicroService):
         msg = "Using bind DN {}".format(bind_dn)
         satosa_logging(logger, logging.DEBUG, msg, None)
 
-        pool_size = config['pool_size']
-        pool_keepalive = config['pool_keepalive']
-        msg = "Using pool size {}".format(pool_size)
-        satosa_logging(logger, logging.DEBUG, msg, None)
-        msg = "Using pool keep alive {}".format(pool_keepalive)
-        satosa_logging(logger, logging.DEBUG, msg, None)
-
         auto_bind = config['auto_bind']
-        client_strategy = config['client_strategy']
         read_only = config['read_only']
         version = config['version']
+
+        client_strategy_string = config['client_strategy']
+        client_strategy_map = {'SYNC':        ldap3.SYNC,
+                               'ASYNC':       ldap3.ASYNC,
+                               'LDIF':        ldap3.LDIF,
+                               'RESTARTABLE': ldap3.RESTARTABLE,
+                               'REUSABLE':    ldap3.REUSABLE}
+        client_strategy = client_strategy_map[client_strategy_string]
+
+        pool_size = config['pool_size']
+        pool_keepalive = config['pool_keepalive']
+        if client_strategy == ldap3.REUSABLE:
+            msg = "Using pool size {}".format(pool_size)
+            satosa_logging(logger, logging.DEBUG, msg, None)
+            msg = "Using pool keep alive {}".format(pool_keepalive)
+            satosa_logging(logger, logging.DEBUG, msg, None)
 
         try:
             connection = ldap3.Connection(
