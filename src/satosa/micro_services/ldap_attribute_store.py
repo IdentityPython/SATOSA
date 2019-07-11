@@ -42,9 +42,11 @@ class LdapAttributeStore(ResponseMicroService):
         'ignore':                        False,
         'ldap_identifier_attribute':     None,
         'ldap_url':                      None,
+        'ldap_to_internal_map':          None,
         'on_ldap_search_result_empty':   None,
         'ordered_identifier_candidates': None,
         'search_base':                   None,
+        'query_return_attributes':       None,
         'search_return_attributes':      None,
         'user_id_from_attrs':            [],
         'read_only':                     True,
@@ -328,11 +330,15 @@ class LdapAttributeStore(ResponseMicroService):
         state = context.state
         attributes = data.attributes
 
-        search_return_attributes = config['search_return_attributes']
-        for attr in search_return_attributes.keys():
+        if config['ldap_to_internal_map']:
+            ldap_to_internal_map = config['ldap_to_internal_map']
+        else:
+            # Deprecated configuration. Will be removed in future.
+            ldap_to_internal_map = config['search_return_attributes']
+        for attr in ldap_to_internal_map.keys():
             if attr in record["attributes"]:
                 if record["attributes"][attr]:
-                    internal_attr = search_return_attributes[attr]
+                    internal_attr = ldap_to_internal_map[attr]
                     value = record["attributes"][attr]
                     attributes[internal_attr] = value
                     msg = "Setting internal attribute {} with values {}"
@@ -450,7 +456,11 @@ class LdapAttributeStore(ResponseMicroService):
 
             try:
                 # message_id only works in REUSABLE async connection strategy.
-                attributes = config['search_return_attributes'].keys()
+                if config['query_return_attributes']:
+                    attributes = config['query_return_attributes']
+                else:
+                    # Deprecated configuration. Will be removed in future.
+                    attributes = config['search_return_attributes'].keys()
                 results = connection.search(config['search_base'],
                                             search_filter,
                                             attributes=attributes

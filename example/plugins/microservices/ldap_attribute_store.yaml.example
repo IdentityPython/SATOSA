@@ -9,12 +9,30 @@ config:
       read_only : true
       version : 3
 
-      # see ldap3 client_strategies
+      # See ldap3 client_strategies.
       client_strategy : RESTARTABLE
       auto_bind : true
       pool_size : 10
       pool_keepalive : 10
 
+      # Attributes to return from LDAP query.
+      query_return_attributes:
+        - sn
+        - givenName
+        - mail
+        - employeeNumber
+        - isMemberOf
+
+      # LDAP attribute to internal attribute mapping.
+      ldap_to_internal_map:
+        sn: surname
+        givenName: givenname
+        mail: mail
+        employeeNumber: employeenumber
+        isMemberOf: ismemberof
+
+      # Deprecated. Use query_return_attributes and
+      # ldap_to_internal_map instead.
       search_return_attributes:
         # Format is LDAP attribute name : internal attribute name
         sn: surname
