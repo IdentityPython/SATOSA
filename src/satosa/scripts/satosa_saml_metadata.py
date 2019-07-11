@@ -1,4 +1,5 @@
 import os
+import sys
 
 import click
 from saml2.config import Config
@@ -77,4 +78,8 @@ def create_and_write_saml_metadata(proxy_conf, key, cert, dir, valid, split_fron
 @click.option("--split-backend", is_flag=True, type=click.BOOL, default=False,
               help="Create one entity descriptor per file for the backend metadata")
 def construct_saml_metadata(proxy_conf, key, cert, dir, valid, split_frontend, split_backend):
-    create_and_write_saml_metadata(proxy_conf, key, cert, dir, valid, split_frontend, split_backend)
+    try:
+        create_and_write_saml_metadata(proxy_conf, key, cert, dir, valid, split_frontend, split_backend)
+    except Exception as e:
+        print('ERROR: ' + str(e), file=sys.stderr)
+        sys.exit(1)
