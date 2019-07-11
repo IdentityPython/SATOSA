@@ -20,6 +20,8 @@ from ldap3.core.exceptions import LDAPException
 
 logger = logging.getLogger(__name__)
 
+KEY_FOUND_LDAP_RECORD = 'ldap_attribute_store_found_record'
+
 
 class LdapAttributeStoreError(SATOSAError):
     """
@@ -539,6 +541,11 @@ class LdapAttributeStore(ResponseMicroService):
             # hashing of input to create a persistent NameID.
             self._populate_input_for_name_id(config, record, context, data)
 
+            # Add the record to the context so that later microservices
+            # may use it if required.
+            context.decorate(KEY_FOUND_LDAP_RECORD, record)
+            msg = "Added record {} to context".format(record)
+            satosa_logging(logger, logging.DEBUG, msg, state)
         else:
             msg = "No record found in LDAP so no attributes will be added"
             satosa_logging(logger, logging.WARN, msg, state)
