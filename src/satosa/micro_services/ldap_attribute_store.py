@@ -5,7 +5,7 @@ directory for a record and then consume attributes from
 the record and assert them to the receiving SP.
 """
 
-import satosa.micro_services.base
+from satosa.micro_services.base import ResponseMicroService
 from satosa.logging_util import satosa_logging
 from satosa.response import Redirect
 from satosa.exception import SATOSAError
@@ -17,7 +17,9 @@ import urllib
 
 from ldap3.core.exceptions import LDAPException
 
+
 logger = logging.getLogger(__name__)
+
 
 class LdapAttributeStoreError(SATOSAError):
     """
@@ -25,7 +27,8 @@ class LdapAttributeStoreError(SATOSAError):
     """
     pass
 
-class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
+
+class LdapAttributeStore(ResponseMicroService):
     """
     Use identifier provided by the backend authentication service
     to lookup a person record in LDAP and obtain attributes
@@ -41,11 +44,15 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
         'ldap_url'                      : None,
         'on_ldap_search_result_empty'   : None,
         'ordered_identifier_candidates' : None,
-        'pool_size'                     : 10,
-        'pool_keepalive'                : 10,
         'search_base'                   : None,
         'search_return_attributes'      : None,
-        'user_id_from_attrs'            : []
+        'user_id_from_attrs'            : [],
+        'read_only'                     : True,
+        'version'                       : 3,
+        'auto_bind'                     : False,
+        'client_strategy'               : ldap3.RESTARTABLE,
+        'pool_size'                     : 10,
+        'pool_keepalive'                : 10,
         }
 
     def __init__(self, config, *args, **kwargs):
@@ -80,7 +87,8 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
 
             # Initialize configuration using module defaults then update
             # with configuration defaults and then per-SP overrides.
-            sp_config = copy.deepcopy(LdapAttributeStore.config_defaults)
+            # sp_config = copy.deepcopy(LdapAttributeStore.config_defaults)
+            sp_config = copy.deepcopy(self.config_defaults)
             if 'default' in self.config:
                 sp_config.update(self.config['default'])
             sp_config.update(config[sp])
@@ -247,27 +255,35 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
         if not bind_password:
             raise LdapAttributeStoreError("bind_password is not configured")
 
-        pool_size = config['pool_size']
-        pool_keepalive = config['pool_keepalive']
-
         server = ldap3.Server(config['ldap_url'])
 
         satosa_logging(logger, logging.DEBUG, "Creating a new LDAP connection", None)
         satosa_logging(logger, logging.DEBUG, "Using LDAP URL {}".format(ldap_url), None)
         satosa_logging(logger, logging.DEBUG, "Using bind DN {}".format(bind_dn), None)
+
+        pool_size = config['pool_size']
+        pool_keepalive = config['pool_keepalive']
         satosa_logging(logger, logging.DEBUG, "Using pool size {}".format(pool_size), None)
         satosa_logging(logger, logging.DEBUG, "Using pool keep alive {}".format(pool_keepalive), None)
+
+        auto_bind = config['auto_bind']
+        client_strategy = config['client_strategy']
+        read_only = config['read_only']
+        version = config['version']
 
         try:
             connection = ldap3.Connection(
                             server,
                             bind_dn,
                             bind_password,
-                            auto_bind=True,
-                            client_strategy=ldap3.REUSABLE,
+                            auto_bind=auto_bind,
+                            client_strategy=client_strategy,
+                            read_only=read_only,
+                            version=version,
                             pool_size=pool_size,
                             pool_keepalive=pool_keepalive
-                            )
+                )
+            satosa_logging(logger, logging.DEBUG, "Successfully connected to LDAP server", None)
 
         except LDAPException as e:
             msg = "Caught exception when connecting to LDAP server: {}".format(e)
@@ -400,45 +416,62 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
         # Initialize an empty LDAP record. The first LDAP record found using the ordered
         # list of search filter values will be the record used.
         record = None
-        err_msg = None
+        results = None
+        exp_msg = None
 
-        try:
+        for filter_val in filter_values:
             connection = config['connection']
-            for filter_val in filter_values:
-                if record:
-                    break
+            search_filter = '({0}={1})'.format(config['ldap_identifier_attribute'], filter_val)
+            # show ldap filter
+            satosa_logging(logger, logging.INFO, "LDAP query for {}".format(search_filter), context.state)
+            satosa_logging(logger, logging.DEBUG, "Constructed search filter {}".format(search_filter), context.state)
 
-                search_filter = '({0}={1})'.format(config['ldap_identifier_attribute'], filter_val)
-                satosa_logging(logger, logging.DEBUG, "Constructed search filter {}".format(search_filter), context.state)
+            try:
+                # message_id only works in REUSABLE async connection strategy
+                results = connection.search(config['search_base'], search_filter, attributes=config['search_return_attributes'].keys())
+            except LDAPException as err:
+                exp_msg = "Caught LDAP exception: {}".format(err)
+            except LdapAttributeStoreError as err:
+                exp_msg = "Caught LDAP Attribute Store exception: {}".format(err)
+            except Exception as err:
+                exp_msg = "Caught unhandled exception: {}".format(err)
 
-                satosa_logging(logger, logging.DEBUG, "Querying LDAP server...", context.state)
-                message_id = connection.search(config['search_base'], search_filter, attributes=config['search_return_attributes'].keys())
-                responses = connection.get_response(message_id)[0]
-                satosa_logging(logger, logging.DEBUG, "Done querying LDAP server", context.state)
-                satosa_logging(logger, logging.DEBUG, "LDAP server returned {} records".format(len(responses)), context.state)
+            if exp_msg:
+                satosa_logging(logger, logging.ERROR, exp_msg, context.state)
+                return super().process(context, data)
 
-                # for now consider only the first record found (if any)
-                if len(responses) > 0:
-                    if len(responses) > 1:
-                        satosa_logging(logger, logging.WARN, "LDAP server returned {} records using search filter value {}".format(len(responses), filter_val), context.state)
-                    record = responses[0]
-                    break
-        except LDAPException as e:
-            err_msg = "Caught LDAP exception: {}".format(e)
-        except LdapAttributeStoreError as e:
-            err_msg = "Caught LDAP Attribute Store exception: {}".format(e)
-        except Exception as e:
-            err_msg = "Caught unhandled exception: {}".format(e)
+            if not results:
+                satosa_logging(logger, logging.DEBUG, "Querying LDAP server: No results for {}.".format(filter_val), context.state)
+                continue
 
-        if err_msg:
-            satosa_logging(logger, logging.ERROR, err_msg, context.state)
-            return super().process(context, data)
+            if isinstance(results, bool):
+                responses = connection.entries
+            else:
+                responses = connection.get_response(results)[0]
+
+            satosa_logging(logger, logging.DEBUG, "Done querying LDAP server", context.state)
+            satosa_logging(logger, logging.INFO, "LDAP server returned {} records".format(len(responses)), context.state)
+
+            # for now consider only the first record found (if any)
+            if len(responses) > 0:
+                if len(responses) > 1:
+                    satosa_logging(logger, logging.WARN, "LDAP server returned {} records using search filter value {}".format(len(responses), filter_val), context.state)
+                record = responses[0]
+                break
 
         # Before using a found record, if any, to populate attributes
         # clear any attributes incoming to this microservice if so configured.
         if config['clear_input_attributes']:
             satosa_logging(logger, logging.DEBUG, "Clearing values for these input attributes: {}".format(data.attributes), context.state)
             data.attributes = {}
+
+        # this adapts records with different search and connection strategy (sync without pool), it should be tested with anonimous bind with message_id
+        if isinstance(results, bool):
+            drec = dict()
+            drec['dn'] = record.entry_dn if hasattr(record, 'entry_dn') else ''
+            drec['attributes'] = record.entry_attributes_as_dict if hasattr(record, 'entry_attributes_as_dict') else {}
+            record = drec
+        # ends adaptation
 
         # Use a found record, if any, to populate attributes and input for NameID
         if record:
@@ -466,4 +499,4 @@ class LdapAttributeStore(satosa.micro_services.base.ResponseMicroService):
                 return Redirect(url)
 
         satosa_logging(logger, logging.DEBUG, "Returning data.attributes {}".format(str(data.attributes)), context.state)
-        return super().process(context, data)
+        return ResponseMicroService.process(self, context, data)
