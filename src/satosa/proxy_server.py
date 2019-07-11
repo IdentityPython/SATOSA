@@ -9,6 +9,7 @@ import pkg_resources
 
 from .base import SATOSABase
 from .context import Context
+from .exception import SATOSAErrorNoTraceback
 from .response import ServiceError, NotFound
 from .routing import SATOSANoBoundEndpointError
 from .satosa_log_filter import add_satosa_log_filter, SATOSALogFilter
@@ -116,16 +117,15 @@ class WsgiApplication(SATOSABase):
                 raise resp
             return resp(environ, start_response)
         except SATOSANoBoundEndpointError:
-            resp = NotFound(
-                    "The Service or Identity Provider"
-                    "you requested could not be found.")
+            resp = NotFound("The Service or Identity Provider you requested could not be found.")
             return resp(environ, start_response)
-        except Exception as err:
-            if type(err) != UnknownSystemEntity:
-                logger.exception("%s" % err)
+        except UnknownSystemEntity:
             if debug:
                 raise
-
+        except SATOSAErrorNoTraceback as err:
+            logger.error(str(err))
+        except Exception as err:
+            logger.exception("%s" % err)
             resp = ServiceError("%s" % err)
             return resp(environ, start_response)
 
