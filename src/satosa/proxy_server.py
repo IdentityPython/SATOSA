@@ -132,24 +132,21 @@ class WsgiApplication(SATOSABase):
 
 def make_app(satosa_config):
     try:
-        if "SUCCINCT_LOG_SATOSA"  in satosa_config:
-            logfilter = SatosaLogFilter(satosa_config["SUCCINCT_LOG_SATOSA"])
+        if "SATOSA_LOG_FILTER"  in satosa_config:
+            logfilter = SATOSALogFilter(satosa_config["SUCCINCT_LOG_SATOSA"])
+            logging.getLogger().addFilter(logfilter)
         if "LOGGING" in satosa_config:
             logging.config.dictConfig(satosa_config["LOGGING"])
-            logging.getLogger().addFilter(logfilter)
         elif "TRACING" in satosa_config:
             import autologging
             logging.basicConfig(level=autologging.TRACE, stream=sys.stdout,
                                 format="%(levelname)s:%(name)s:%(funcName)s:%(message)s")
-            logging.getLogger().addFilter(logfilter)
         else:
             stderr_handler = logging.StreamHandler(sys.stderr)
             stderr_handler.setLevel(logging.DEBUG)
-
-            root_logger = logging.getLogger("")
+            root_logger = logging.getLogger()
             root_logger.addHandler(stderr_handler)
             root_logger.setLevel(logging.DEBUG)
-            root_logger.addFilter(logfilter)
 
         try:
             pkg = pkg_resources.get_distribution(module.__name__)

@@ -114,8 +114,8 @@ satosa_config = SATOSAConfig(config_file)
 
 # this is a pointer to the module object instance itself:
 this = sys.modules[__name__]
-if 'SUCCINCT_LOG_SATOSA' in satosa_config:
-    this.satosa_log_filter = SATOSALogFilter(satosa_config['SUCCINCT_LOG_SATOSA'])
+if 'SATOSA_LOG_FILTER' in satosa_config:
+    this.satosa_log_filter = SATOSALogFilter(satosa_config['SATOSA_LOG_FILTER'])
 else:
     this.satosa_log_filter = None
 

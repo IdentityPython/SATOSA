@@ -42,7 +42,7 @@ LOGGING:
     handlers: [info_file_handler]
 
 # configuration options: see satosa_log_filter.py
-SUCCINCT_LOG_SATOSA:
+SATOSA_LOG_FILTER:
     'attribute_converter:list_to_local': 120
     'state:cookie_to_state': 120
     'state:state_to_cookie': 120
