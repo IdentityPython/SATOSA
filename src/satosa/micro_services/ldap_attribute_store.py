@@ -36,23 +36,23 @@ class LdapAttributeStore(ResponseMicroService):
     """
 
     config_defaults = {
-        'bind_dn'                       : None,
-        'bind_password'                 : None,
-        'clear_input_attributes'        : False,
-        'ignore'                        : False,
-        'ldap_identifier_attribute'     : None,
-        'ldap_url'                      : None,
-        'on_ldap_search_result_empty'   : None,
-        'ordered_identifier_candidates' : None,
-        'search_base'                   : None,
-        'search_return_attributes'      : None,
-        'user_id_from_attrs'            : [],
-        'read_only'                     : True,
-        'version'                       : 3,
-        'auto_bind'                     : False,
-        'client_strategy'               : ldap3.RESTARTABLE,
-        'pool_size'                     : 10,
-        'pool_keepalive'                : 10,
+        'bind_dn':                       None,
+        'bind_password':                 None,
+        'clear_input_attributes':        False,
+        'ignore':                        False,
+        'ldap_identifier_attribute':     None,
+        'ldap_url':                      None,
+        'on_ldap_search_result_empty':   None,
+        'ordered_identifier_candidates': None,
+        'search_base':                   None,
+        'search_return_attributes':      None,
+        'user_id_from_attrs':            [],
+        'read_only':                     True,
+        'version':                       3,
+        'auto_bind':                     False,
+        'client_strategy':               ldap3.RESTARTABLE,
+        'pool_size':                     10,
+        'pool_keepalive':                10,
         }
 
     def __init__(self, config, *args, **kwargs):
@@ -75,7 +75,7 @@ class LdapAttributeStore(ResponseMicroService):
 
         # Process the default configuration first then any per-SP overrides.
         sp_list = ['default']
-        sp_list.extend([ key for key in config.keys() if key != 'default' ])
+        sp_list.extend([key for key in config.keys() if key != 'default'])
 
         connections = {}
 
@@ -104,25 +104,29 @@ class LdapAttributeStore(ResponseMicroService):
 
             if connection_params in connections:
                 sp_config['connection'] = connections[connection_params]
-                satosa_logging(logger, logging.DEBUG, "Reusing LDAP connection for SP {}".format(sp), None)
+                msg = "Reusing LDAP connection for SP {}".format(sp)
+                satosa_logging(logger, logging.DEBUG, msg, None)
             else:
                 try:
                     connection = self._ldap_connection_factory(sp_config)
                     connections[connection_params] = connection
                     sp_config['connection'] = connection
-                    satosa_logging(logger, logging.DEBUG, "Created new LDAP connection for SP {}".format(sp), None)
-                except LdapAttributeStoreError as e:
+                    msg = "Created new LDAP connection for SP {}".format(sp)
+                    satosa_logging(logger, logging.DEBUG, msg, None)
+                except LdapAttributeStoreError:
                     # It is acceptable to not have a default LDAP connection
                     # but all SP overrides must have a connection, either
                     # inherited from the default or directly configured.
                     if sp != 'default':
-                        msg = "No LDAP connection can be initialized for SP {}".format(sp)
+                        msg = "No LDAP connection can be initialized for SP {}"
+                        msg = msg.format(sp)
                         satosa_logging(logger, logging.ERROR, msg, None)
                         raise LdapAttributeStoreError(msg)
 
             self.config[sp] = sp_config
 
-        satosa_logging(logger, logging.INFO, "LDAP Attribute Store microservice initialized", None)
+        msg = "LDAP Attribute Store microservice initialized"
+        satosa_logging(logger, logging.INFO, msg, None)
 
     def _construct_filter_value(self, candidate, data):
         """
@@ -156,23 +160,27 @@ class LdapAttributeStore(ResponseMicroService):
         string is any other value it will be directly concatenated.
         """
         context = self.context
+        state = context.state
 
         attributes = data.attributes
-        satosa_logging(logger, logging.DEBUG, "Input attributes {}".format(attributes), context.state)
+        msg = "Input attributes {}".format(attributes)
+        satosa_logging(logger, logging.DEBUG, msg, state)
 
         # Get the values configured list of identifier names for this candidate
-        # and substitute None if there are no values for a configured identifier.
+        # and substitute None if there are no values for a configured
+        # identifier.
         values = []
         for identifier_name in candidate['attribute_names']:
             v = attributes.get(identifier_name, None)
             if isinstance(v, list):
                 v = v[0]
             values.append(v)
-        satosa_logging(logger, logging.DEBUG, "Found candidate values {}".format(values), context.state)
+        msg = "Found candidate values {}".format(values)
+        satosa_logging(logger, logging.DEBUG, msg, state)
 
-        # If one of the configured identifier names is name_id then if there is also a configured
-        # name_id_format add the value for the NameID of that format if it was asserted by the IdP
-        # or else add the value None.
+        # If one of the configured identifier names is name_id then if there is
+        # also a configured name_id_format add the value for the NameID of that
+        # format if it was asserted by the IdP or else add the value None.
         if 'name_id' in candidate['attribute_names']:
             candidate_nameid_value = None
             candidate_name_id_format = candidate.get('name_id_format')
@@ -183,24 +191,30 @@ class LdapAttributeStore(ResponseMicroService):
                 and candidate_name_id_format
                 and candidate_name_id_format == name_id_format
             ):
-                satosa_logging(logger, logging.DEBUG, "IdP asserted NameID {}".format(name_id_value), context.state)
+                msg = "IdP asserted NameID {}".format(name_id_value)
+                satosa_logging(logger, logging.DEBUG, msg, state)
                 candidate_nameid_value = name_id_value
 
-            # Only add the NameID value asserted by the IdP if it is not already
-            # in the list of values. This is necessary because some non-compliant IdPs
-            # have been known, for example, to assert the value of eduPersonPrincipalName
-            # in the value for SAML2 persistent NameID as well as asserting
-            # eduPersonPrincipalName.
+            # Only add the NameID value asserted by the IdP if it is not
+            # already in the list of values. This is necessary because some
+            # non-compliant IdPs have been known, for example, to assert the
+            # value of eduPersonPrincipalName in the value for SAML2 persistent
+            # NameID as well as asserting eduPersonPrincipalName.
             if candidate_nameid_value not in values:
-                satosa_logging(logger, logging.DEBUG, "Added NameID {} to candidate values".format(candidate_nameid_value), context.state)
+                msg = "Added NameID {} to candidate values"
+                msg = msg.format(candidate_nameid_value)
+                satosa_logging(logger, logging.DEBUG, msg, state)
                 values.append(candidate_nameid_value)
             else:
-                satosa_logging(logger, logging.WARN, "NameID {} value also asserted as attribute value".format(candidate_nameid_value), context.state)
+                msg = "NameID {} value also asserted as attribute value"
+                msg = msg.format(candidate_nameid_value)
+                satosa_logging(logger, logging.WARN, msg, state)
 
-        # If no value was asserted by the IdP for one of the configured list of identifier names
-        # for this candidate then go onto the next candidate.
+        # If no value was asserted by the IdP for one of the configured list of
+        # identifier names for this candidate then go onto the next candidate.
         if None in values:
-            satosa_logging(logger, logging.DEBUG, "Candidate is missing value so skipping", context.state)
+            msg = "Candidate is missing value so skipping"
+            satosa_logging(logger, logging.DEBUG, msg, state)
             return None
 
         # All values for the configured list of attribute names are present
@@ -211,13 +225,15 @@ class LdapAttributeStore(ResponseMicroService):
                 scope = data.auth_info.issuer
             else:
                 scope = candidate['add_scope']
-            satosa_logging(logger, logging.DEBUG, "Added scope {} to values".format(scope), context.state)
+            msg = "Added scope {} to values".format(scope)
+            satosa_logging(logger, logging.DEBUG, msg, state)
             values.append(scope)
 
         # Concatenate all values to create the filter value.
         value = ''.join(values)
 
-        satosa_logging(logger, logging.DEBUG, "Constructed filter value {}".format(value), context.state)
+        msg = "Constructed filter value {}".format(value)
+        satosa_logging(logger, logging.DEBUG, msg, state)
 
         return value
 
@@ -234,7 +250,8 @@ class LdapAttributeStore(ResponseMicroService):
         filter_fields = fields or filter_fields_default
         return dict(
             map(
-                lambda key: (key, '<hidden>' if key in filter_fields else config[key]),
+                lambda key: (key, '<hidden>' if key in filter_fields
+                             else config[key]),
                 config.keys()
                 )
             )
@@ -257,14 +274,21 @@ class LdapAttributeStore(ResponseMicroService):
 
         server = ldap3.Server(config['ldap_url'])
 
-        satosa_logging(logger, logging.DEBUG, "Creating a new LDAP connection", None)
-        satosa_logging(logger, logging.DEBUG, "Using LDAP URL {}".format(ldap_url), None)
-        satosa_logging(logger, logging.DEBUG, "Using bind DN {}".format(bind_dn), None)
+        msg = "Creating a new LDAP connection"
+        satosa_logging(logger, logging.DEBUG, msg, None)
+
+        msg = "Using LDAP URL {}".format(ldap_url)
+        satosa_logging(logger, logging.DEBUG, msg, None)
+
+        msg = "Using bind DN {}".format(bind_dn)
+        satosa_logging(logger, logging.DEBUG, msg, None)
 
         pool_size = config['pool_size']
         pool_keepalive = config['pool_keepalive']
-        satosa_logging(logger, logging.DEBUG, "Using pool size {}".format(pool_size), None)
-        satosa_logging(logger, logging.DEBUG, "Using pool keep alive {}".format(pool_keepalive), None)
+        msg = "Using pool size {}".format(pool_size)
+        satosa_logging(logger, logging.DEBUG, msg, None)
+        msg = "Using pool keep alive {}".format(pool_keepalive)
+        satosa_logging(logger, logging.DEBUG, msg, None)
 
         auto_bind = config['auto_bind']
         client_strategy = config['client_strategy']
@@ -283,14 +307,17 @@ class LdapAttributeStore(ResponseMicroService):
                             pool_size=pool_size,
                             pool_keepalive=pool_keepalive
                 )
-            satosa_logging(logger, logging.DEBUG, "Successfully connected to LDAP server", None)
+            msg = "Successfully connected to LDAP server"
+            satosa_logging(logger, logging.DEBUG, msg, None)
 
         except LDAPException as e:
-            msg = "Caught exception when connecting to LDAP server: {}".format(e)
+            msg = "Caught exception when connecting to LDAP server: {}"
+            msg = msg.format(e)
             satosa_logging(logger, logging.ERROR, msg, None)
             raise LdapAttributeStoreError(msg)
 
-        satosa_logging(logger, logging.DEBUG, "Successfully connected to LDAP server", None)
+        msg = "Successfully connected to LDAP server"
+        satosa_logging(logger, logging.DEBUG, msg, None)
 
         return connection
 
@@ -298,76 +325,60 @@ class LdapAttributeStore(ResponseMicroService):
         """
         Use a record found in LDAP to populate attributes.
         """
+        state = context.state
+        attributes = data.attributes
+
         search_return_attributes = config['search_return_attributes']
         for attr in search_return_attributes.keys():
             if attr in record["attributes"]:
                 if record["attributes"][attr]:
-                    data.attributes[search_return_attributes[attr]] = record["attributes"][attr]
-                    satosa_logging(
-                        logger,
-                        logging.DEBUG,
-                        "Setting internal attribute {} with values {}".format(
-                            search_return_attributes[attr],
-                            record["attributes"][attr]
-                            ),
-                        context.state
-                        )
+                    internal_attr = search_return_attributes[attr]
+                    value = record["attributes"][attr]
+                    attributes[internal_attr] = value
+                    msg = "Setting internal attribute {} with values {}"
+                    msg = msg.format(internal_attr, value)
+                    satosa_logging(logger, logging.DEBUG, msg, state)
                 else:
-                    satosa_logging(
-                        logger,
-                        logging.DEBUG,
-                        "Not setting internal attribute {} because value {} is null or empty".format(
-                            search_return_attributes[attr],
-                            record["attributes"][attr]
-                            ),
-                        context.state
-                        )
+                    msg = "Not setting internal attribute {} because value {}"
+                    msg = msg + " is null or empty"
+                    msg = msg.format(internal_attr, value)
+                    satosa_logging(logger, logging.DEBUG, msg, state)
 
     def _populate_input_for_name_id(self, config, record, context, data):
         """
         Use a record found in LDAP to populate input for
         NameID generation.
         """
+        state = context.state
+
         user_id = ""
         user_id_from_attrs = config['user_id_from_attrs']
         for attr in user_id_from_attrs:
             if attr in record["attributes"]:
                 value = record["attributes"][attr]
                 if isinstance(value, list):
-                    # Use a default sort to ensure some predictability since the
-                    # LDAP directory server may return multi-valued attributes
-                    # in any order.
+                    # Use a default sort to ensure some predictability since
+                    # the # LDAP directory server may return multi-valued
+                    # attributes in any order.
                     value.sort()
                     user_id += "".join(value)
-                    satosa_logging(
-                        logger,
-                        logging.DEBUG,
-                        "Added attribute {} with values {} to input for NameID".format(attr, value),
-                        context.state
-                        )
+                    msg = "Added attribute {} with values {} "
+                    msg = msg + "to input for NameID"
+                    msg = msg.format(attr, value)
+                    satosa_logging(logger, logging.DEBUG, msg, state)
                 else:
                     user_id += value
-                    satosa_logging(
-                        logger,
-                        logging.DEBUG,
-                        "Added attribute {} with value {} to input for NameID".format(attr, value),
-                        context.state
-                        )
+                    msg = "Added attribute {} with value {} to input "
+                    msg = msg + "for NameID"
+                    msg = msg.format(attr, value)
+                    satosa_logging(logger, logging.DEBUG, msg, state)
         if not user_id:
-            satosa_logging(
-                logger,
-                logging.WARNING,
-                "Input for NameID is empty so not overriding default",
-                context.state
-                )
+            msg = "Input for NameID is empty so not overriding default"
+            satosa_logging(logger, logging.WARNING, msg, state)
         else:
             data.subject_id = user_id
-            satosa_logging(
-                logger,
-                logging.DEBUG,
-                "Input for NameID is {}".format(data.subject_id),
-                context.state
-                )
+            msg = "Input for NameID is {}".format(data.subject_id)
+            satosa_logging(logger, logging.DEBUG, msg, state)
 
     def process(self, context, data):
         """
@@ -375,15 +386,18 @@ class LdapAttributeStore(ResponseMicroService):
         the input context.
         """
         self.context = context
+        state = context.state
 
         # Find the entityID for the SP that initiated the flow.
         try:
             sp_entity_id = context.state.state_dict['SATOSA_BASE']['requester']
         except KeyError as err:
-            satosa_logging(logger, logging.ERROR, "Unable to determine the entityID for the SP requester", context.state)
+            msg = "Unable to determine the entityID for the SP requester"
+            satosa_logging(logger, logging.ERROR, msg, state)
             return super().process(context, data)
 
-        satosa_logging(logger, logging.DEBUG, "entityID for the SP requester is {}".format(sp_entity_id), context.state)
+        msg = "entityID for the SP requester is {}".format(sp_entity_id)
+        satosa_logging(logger, logging.DEBUG, msg, state)
 
         # Get the configuration for the SP.
         if sp_entity_id in self.config.keys():
@@ -391,48 +405,61 @@ class LdapAttributeStore(ResponseMicroService):
         else:
             config = self.config['default']
 
-        satosa_logging(logger, logging.DEBUG, "Using config {}".format(self._filter_config(config)), context.state)
+        msg = "Using config {}".format(self._filter_config(config))
+        satosa_logging(logger, logging.DEBUG, msg, state)
 
         # Ignore this SP entirely if so configured.
         if config['ignore']:
-            satosa_logging(logger, logging.INFO, "Ignoring SP {}".format(sp_entity_id), None)
+            msg = "Ignoring SP {}".format(sp_entity_id)
+            satosa_logging(logger, logging.INFO, msg, state)
             return super().process(context, data)
 
-        # The list of values for the LDAP search filters that will be tried in order to find the
-        # LDAP directory record for the user.
+        # The list of values for the LDAP search filters that will be tried in
+        # order to find the LDAP directory record for the user.
         filter_values = []
 
-        # Loop over the configured list of identifiers from the IdP to consider and find
-        # asserted values to construct the ordered list of values for the LDAP search filters.
+        # Loop over the configured list of identifiers from the IdP to consider
+        # and find asserted values to construct the ordered list of values for
+        # the LDAP search filters.
         for candidate in config['ordered_identifier_candidates']:
             value = self._construct_filter_value(candidate, data)
 
-            # If we have constructed a non empty value then add it as the next filter value
-            # to use when searching for the user record.
+            # If we have constructed a non empty value then add it as the next
+            # filter value to use when searching for the user record.
             if value:
                 filter_values.append(value)
-                satosa_logging(logger, logging.DEBUG, "Added search filter value {} to list of search filters".format(value), context.state)
+                msg = "Added search filter value {} to list of search filters"
+                msg = msg.format(value)
+                satosa_logging(logger, logging.DEBUG, msg, state)
 
-        # Initialize an empty LDAP record. The first LDAP record found using the ordered
-        # list of search filter values will be the record used.
+        # Initialize an empty LDAP record. The first LDAP record found using
+        # the ordered # list of search filter values will be the record used.
         record = None
         results = None
         exp_msg = None
 
         for filter_val in filter_values:
             connection = config['connection']
-            search_filter = '({0}={1})'.format(config['ldap_identifier_attribute'], filter_val)
-            # show ldap filter
-            satosa_logging(logger, logging.INFO, "LDAP query for {}".format(search_filter), context.state)
-            satosa_logging(logger, logging.DEBUG, "Constructed search filter {}".format(search_filter), context.state)
+            ldap_ident_attr = config['ldap_identifier_attribute']
+            search_filter = '({0}={1})'.format(ldap_ident_attr, filter_val)
+            # Show ldap filter.
+            msg = "LDAP query for {}".format(search_filter)
+            satosa_logging(logger, logging.INFO, msg, state)
+            msg = "Constructed search filter {}".format(search_filter)
+            satosa_logging(logger, logging.DEBUG, msg, state)
 
             try:
-                # message_id only works in REUSABLE async connection strategy
-                results = connection.search(config['search_base'], search_filter, attributes=config['search_return_attributes'].keys())
+                # message_id only works in REUSABLE async connection strategy.
+                attributes = config['search_return_attributes'].keys()
+                results = connection.search(config['search_base'],
+                                            search_filter,
+                                            attributes=attributes
+                                            )
             except LDAPException as err:
                 exp_msg = "Caught LDAP exception: {}".format(err)
             except LdapAttributeStoreError as err:
-                exp_msg = "Caught LDAP Attribute Store exception: {}".format(err)
+                exp_msg = "Caught LDAP Attribute Store exception: {}"
+                exp_msg = exp_msg.format(err)
             except Exception as err:
                 exp_msg = "Caught unhandled exception: {}".format(err)
 
@@ -441,7 +468,9 @@ class LdapAttributeStore(ResponseMicroService):
                 return super().process(context, data)
 
             if not results:
-                satosa_logging(logger, logging.DEBUG, "Querying LDAP server: No results for {}.".format(filter_val), context.state)
+                msg = "Querying LDAP server: No results for {}."
+                msg = msg.format(filter_val)
+                satosa_logging(logger, logging.DEBUG, msg, state)
                 continue
 
             if isinstance(results, bool):
@@ -449,54 +478,75 @@ class LdapAttributeStore(ResponseMicroService):
             else:
                 responses = connection.get_response(results)[0]
 
-            satosa_logging(logger, logging.DEBUG, "Done querying LDAP server", context.state)
-            satosa_logging(logger, logging.INFO, "LDAP server returned {} records".format(len(responses)), context.state)
+            msg = "Done querying LDAP server"
+            satosa_logging(logger, logging.DEBUG, msg, state)
+            msg = "LDAP server returned {} records".format(len(responses))
+            satosa_logging(logger, logging.INFO, msg, state)
 
-            # for now consider only the first record found (if any)
+            # For now consider only the first record found (if any).
             if len(responses) > 0:
                 if len(responses) > 1:
-                    satosa_logging(logger, logging.WARN, "LDAP server returned {} records using search filter value {}".format(len(responses), filter_val), context.state)
+                    msg = "LDAP server returned {} records using search filter"
+                    msg = msg + " value {}"
+                    msg = msg.format(len(responses), filter_val)
+                    satosa_logging(logger, logging.WARN, msg, state)
                 record = responses[0]
                 break
 
         # Before using a found record, if any, to populate attributes
         # clear any attributes incoming to this microservice if so configured.
         if config['clear_input_attributes']:
-            satosa_logging(logger, logging.DEBUG, "Clearing values for these input attributes: {}".format(data.attributes), context.state)
+            msg = "Clearing values for these input attributes: {}"
+            msg = msg.format(data.attributes)
+            satosa_logging(logger, logging.DEBUG, msg, state)
             data.attributes = {}
 
-        # this adapts records with different search and connection strategy (sync without pool), it should be tested with anonimous bind with message_id
+        # This adapts records with different search and connection strategy
+        # (sync without pool), it should be tested with anonimous bind with
+        # message_id.
         if isinstance(results, bool):
             drec = dict()
             drec['dn'] = record.entry_dn if hasattr(record, 'entry_dn') else ''
-            drec['attributes'] = record.entry_attributes_as_dict if hasattr(record, 'entry_attributes_as_dict') else {}
+            drec['attributes'] = (record.entry_attributes_as_dict if
+                                  hasattr(record, 'entry_attributes_as_dict')
+                                  else {})
             record = drec
-        # ends adaptation
+        # Ends adaptation.
 
-        # Use a found record, if any, to populate attributes and input for NameID
+        # Use a found record, if any, to populate attributes and input for
+        # NameID
         if record:
-            satosa_logging(logger, logging.DEBUG, "Using record with DN {}".format(record["dn"]), context.state)
-            satosa_logging(logger, logging.DEBUG, "Record with DN {} has attributes {}".format(record["dn"], record["attributes"]), context.state)
+            msg = "Using record with DN {}".format(record["dn"])
+            satosa_logging(logger, logging.DEBUG, msg, state)
+            msg = "Record with DN {} has attributes {}"
+            msg = msg.format(record["dn"], record["attributes"])
+            satosa_logging(logger, logging.DEBUG, msg, state)
 
             # Populate attributes as configured.
             self._populate_attributes(config, record, context, data)
 
-            # Populate input for NameID if configured. SATOSA core does the hashing of input
-            # to create a persistent NameID.
+            # Populate input for NameID if configured. SATOSA core does the
+            # hashing of input to create a persistent NameID.
             self._populate_input_for_name_id(config, record, context, data)
 
         else:
-            satosa_logging(logger, logging.WARN, "No record found in LDAP so no attributes will be added", context.state)
+            msg = "No record found in LDAP so no attributes will be added"
+            satosa_logging(logger, logging.WARN, msg, state)
             on_ldap_search_result_empty = config['on_ldap_search_result_empty']
             if on_ldap_search_result_empty:
                 # Redirect to the configured URL with
                 # the entityIDs for the target SP and IdP used by the user
                 # as query string parameters (URL encoded).
                 encoded_sp_entity_id = urllib.parse.quote_plus(sp_entity_id)
-                encoded_idp_entity_id = urllib.parse.quote_plus(data.auth_info.issuer)
-                url = "{}?sp={}&idp={}".format(on_ldap_search_result_empty, encoded_sp_entity_id, encoded_idp_entity_id)
-                satosa_logging(logger, logging.INFO, "Redirecting to {}".format(url), context.state)
+                issuer = data.auth_info.issuer
+                encoded_idp_entity_id = urllib.parse.quote_plus(issuer)
+                url = "{}?sp={}&idp={}".format(on_ldap_search_result_empty,
+                                               encoded_sp_entity_id,
+                                               encoded_idp_entity_id)
+                msg = "Redirecting to {}".format(url)
+                satosa_logging(logger, logging.INFO, msg, state)
                 return Redirect(url)
 
-        satosa_logging(logger, logging.DEBUG, "Returning data.attributes {}".format(str(data.attributes)), context.state)
+        msg = "Returning data.attributes {}".format(str(data.attributes))
+        satosa_logging(logger, logging.DEBUG, msg, state)
         return ResponseMicroService.process(self, context, data)
