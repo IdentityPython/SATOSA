@@ -279,26 +279,10 @@ class SATOSABase(object):
         :param context: The request context
         :return: response
         """
-        try:
-            self._load_state(context)
-            spec = self.module_router.endpoint_routing(context)
-            resp = self._run_bound_endpoint(context, spec)
-            self._save_state(resp, context)
-        except SATOSANoBoundEndpointError:
-            raise
-        except SATOSAError:
-            satosa_logging(logger, logging.ERROR, "Uncaught SATOSA error ", context.state,
-                           exc_info=True)
-            raise
-        except UnknownSystemEntity as err:
-            satosa_logging(logger, logging.ERROR,
-                           "configuration error: unknown system entity " + str(err),
-                           context.state, exc_info=False)
-            raise
-        except Exception as err:
-            satosa_logging(logger, logging.ERROR, "Uncaught exception", context.state,
-                           exc_info=True)
-            raise SATOSAUnknownError("Unknown error") from err
+        self._load_state(context)
+        spec = self.module_router.endpoint_routing(context)
+        resp = self._run_bound_endpoint(context, spec)
+        self._save_state(resp, context)
         return resp
 
 
