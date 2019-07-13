@@ -93,7 +93,7 @@ class UserIdHashType(Enum):
     unspecified = 6
 
     def __getattr__(self, name):
-        if name is not "_value_":
+        if name != "_value_":
             msg = "UserIdHashType is deprecated and will be removed."
             _warnings.warn(msg, DeprecationWarning)
         return self.__getattribute__(name)

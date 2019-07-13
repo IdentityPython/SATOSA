@@ -72,10 +72,11 @@ class SATOSABase(object):
         self.request_micro_services = []
         logger.info("Loading micro services...")
         if "MICRO_SERVICES" in self.config:
-            self.request_micro_services.extend(load_request_microservices(self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
-                                                                          self.config["MICRO_SERVICES"],
-                                                                          self.config["INTERNAL_ATTRIBUTES"],
-                                                                          self.config["BASE"]))
+            self.request_micro_services.extend(load_request_microservices(
+                self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
+                self.config["MICRO_SERVICES"],
+                self.config["INTERNAL_ATTRIBUTES"],
+                self.config["BASE"]))
             self._link_micro_services(self.request_micro_services, self._auth_req_finish)
 
             self.response_micro_services.extend(
