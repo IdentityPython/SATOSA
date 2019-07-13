@@ -1,0 +1,32 @@
+# Render with https://www.websequencediagrams.com
+
+title SATOSA SAML Authn Response (focus on SATOSA_STATE)
+# v3.4.8
+
+note right of Gunicorn: GET \nsaml2/acs/post
+Gunicorn->*SATOSA_STATE: preceding\nAuthnRequest
+Gunicorn->+WsgiApplication\n(SATOSABase): __call__
+WsgiApplication\n(SATOSABase)->*Context:
+WsgiApplication\n(SATOSABase)->WsgiApplication\n(SATOSABase): unpack_request()
+WsgiApplication\n(SATOSABase)->+WsgiApplication\n(SATOSABase): run(Context)
+WsgiApplication\n(SATOSABase)->+WsgiApplication\n(SATOSABase): _load_state(Context)
+  SATOSA_STATE-->WsgiApplication\n(SATOSABase):
+WsgiApplication\n(SATOSABase)-->-WsgiApplication\n(SATOSABase):
+
+WsgiApplication\n(SATOSABase)->+SAMLBackend\n(Backendmodule): authn_response
+SAMLBackend\n(Backendmodule)-->-WsgiApplication\n(SATOSABase):
+WsgiApplication\n(SATOSABase)->+WsgiApplication\n(SATOSABase): _save_state(Context)
+  note over WsgiApplication\n(SATOSABase), WsgiApplication\n(SATOSABase)
+    PR #234 proposes to keep STATOS_STATE \nif CONTEXT_STATE_DELETE
+  end note
+  destroy SATOSA_STATE
+WsgiApplication\n(SATOSABase)-->WsgiApplication\n(SATOSABase):
+WsgiApplication\n(SATOSABase)-->-Gunicorn:
+
+
+note over A,B: text1
+note left of A: text2
+note right of A
+    multiline
+    text
+end note

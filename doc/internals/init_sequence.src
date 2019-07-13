@@ -1,0 +1,20 @@
+# Render with https://www.websequencediagrams.com
+
+title SATOSA Initialization Sequence
+# v3.4.8
+
+wsgi.py->*SATOSAConfig:
+wsgi.py->*WsgiApplication\n(SATOSABase): proxy_server.\nmake_app(SATOSAConfig)
+WsgiApplication\n(SATOSABase)->+plugin_loader: load_backends(SATOSAConfig, \n_auth_resp_callback_func, internal_attributes)
+plugin_loader->*SAMLBackend:
+plugin_loader-->-WsgiApplication\n(SATOSABase):
+WsgiApplication\n(SATOSABase)->+plugin_loader: load_frontends()
+plugin_loader->*SAMLFrontend:
+plugin_loader-->-WsgiApplication\n(SATOSABase):
+WsgiApplication\n(SATOSABase)->+plugin_loader: load_request_microservices()
+plugin_loader->*RequestMicroservice:
+plugin_loader-->-WsgiApplication\n(SATOSABase):
+WsgiApplication\n(SATOSABase)->+plugin_loader: load_response_microservices()
+plugin_loader->*ResponseMicroservice:
+plugin_loader-->-WsgiApplication\n(SATOSABase):
+WsgiApplication\n(SATOSABase)->*ModuleRouter:
