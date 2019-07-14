@@ -88,6 +88,6 @@ class DecideIfRequesterIsAllowed(RequestMicroService):
                           data.requester, target_entity_id, allow_rules)
             return super().process(context, data)
 
-        logging.debug("Requester '%s' is not allowed by target entity '%s' due to no deny all rule in '%s'",
+        logger.debug("Requester '%s' is not allowed by target entity '%s' due to final deny all rule in '%s'",
                       data.requester, target_entity_id, deny_rules)
         raise SATOSAError("Requester is not allowed by target provider")
