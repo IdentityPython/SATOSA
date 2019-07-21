@@ -7,7 +7,8 @@ from urllib.parse import urlparse
 
 from oic import oic
 from oic import rndstr
-from oic.oic import ProviderConfigurationResponse, AuthorizationResponse
+from oic.oic.message import AuthorizationResponse
+from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import RegistrationRequest
 from oic.utils.authn.authn_context import UNSPECIFIED
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD

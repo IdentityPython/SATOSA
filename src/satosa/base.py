@@ -25,8 +25,6 @@ from .state import cookie_to_state, SATOSAStateError, State, state_to_cookie
 from satosa.deprecated import hash_attributes
 
 
-_warnings.simplefilter("default")
-
 logger = logging.getLogger(__name__)
 
 STATE_KEY = "SATOSA_BASE"
@@ -161,9 +159,10 @@ class SATOSABase(object):
             self.config.get("USER_ID_HASH_SALT", ""),
         )
 
-        # remove all session state
+        # remove all session state unless CONTEXT_STATE_DELETE is False
+        context.state.delete = self.config.get("CONTEXT_STATE_DELETE", True)
         context.request = None
-        context.state.delete = True
+
         frontend = self.module_router.frontend_routing(context)
         return frontend.handle_authn_response(context, internal_response)
 

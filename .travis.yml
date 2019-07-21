@@ -1,42 +1,63 @@
-language: python
-dist: trusty
-sudo: required
-services:
-    - docker
+dist: xenial
 addons:
   apt:
     packages:
-    - xmlsec1
+      - xmlsec1
+
+services:
+  - docker
+  - mongodb
+
+language: python
 install:
-- pip install -U tox
-matrix:
-  include:
-  - python: 3.4.4
-    env: TOXENV=py34
-  - python: 3.5
-    env: TOXENV=py35
+  - pip install tox
+  - pip install tox-travis
+
 script:
-- tox
-deploy:
-  - provider: pypi
-    distributions: sdist bdist_wheel
-    user: Lundberg
-    password:
-      secure: NwkpOakaeJjErjTF4Y5MWeHzMvkxYZqrBFdRkzfenVfkWsomuyy553A691d3lc1+oREsh1fJJLjpZQYxTLUFIHOUmt/9zr02rFfguzj7hEYfWF8wHBXG6YSWv6T3aCA4RTMXvvzv9cHf1zfxh0fS7kgc+NRMAnd01diVLfYpBciLgmQ31J4mlwShp8yBQUoRBIvzSdzrgjr0TzCQZXB9xM6R2t/oJgXLo6Zz8dTzqq3De9nOU/1P2ZHLxodDikuFdu2/0CjoDgFXB0KnGKGKmJ6G1WMCVvi7abY7smmGA3s4a4NVL7Cirx6VwIj79PsAcgupr2iBAQk/GsPffzdpLtIrBek9u//p84hxrj/IaJWgPOeKeD7+r2Kc2g0r2dQjaM+9MqBx9/lC57xJRX/JHLQWirXfCucB9YyPun5I13Sf3hArkssQy/Jvd2aLFZ885BTfow6TAwl1ud+UPeauvEj6myKO98sko/3Y521EGXRofLGaPokLyPjI/3I4N4jCvw8m86eZAjjIhPFL7JKHf8OVc5gQCYQy3kxiF5wyvbfOeMBp0sk9UvJOrWvBEXFrimAZPu8o8T5WtlQAV02q7rxUwhMd+fpnbGewsl7Ob6eE4rGVrfWQIb86wOHbbJk3lCwPytjEFEI2bdUfRUFcrWxhC040hRP0gzVKLa+nBHM=
-    on:
-      repo: IdentityPython/SATOSA
-      tags: true
-  - provider: script
-    script: scripts/travis_create_docker_image_branch.sh
-    on:
-      repo: IdentityPython/SATOSA
-      branch: master
-  - provider: script
-    script: scripts/travis_create_docker_image_tag.sh
-    on:
-      repo: IdentityPython/SATOSA
-      tags: true
+  - tox
+
+jobs:
+  include:
+    - python: 3.5
+    - python: 3.6
+    - python: 3.7
+    - python: pypy3
+
+    - stage: Deploy latest version
+      script: skip
+      deploy:
+        - provider: script
+          script: scripts/travis_create_docker_image_branch.sh
+          on:
+            repo: IdentityPython/SATOSA
+            branch: master
+
+    - stage: Deploy new release
+      script: skip
+      deploy:
+        - provider: releases
+          api_key:
+            secure: EOM9qDlyGQrD6NXs8KKMNr2htFXU/H47tO051aA3RKWQrEk7paLXYTDSbQiEq3W9yLg+fifDb0qVqAcFhnV4OWf5ArP++khjaiKQCHYoTaoKIRrTch+12Unq22FEgNj0SYd3HX+CKkG2WpyMoBQAiChgaouDnYIPOvCoqfCxiJzj5e/l5Qomt31smUgZSYhqeDPvX0lN6LP47OLrzsEGDvVxz/fb+EMK3mkCppgPwsB2zy849dER7ofHD6uJiYhY3jP4oCHDBv6GdzqxgMIyDD4zJYh9qCfy1kAwOwc7CYInrELk8GK+YwLFRKMXdTMHu4nYUTgTAJeiXgX6n7oEUfvj4ip+UJ2MfsLdaX7MmgRb2sVStlYjqLWgVR1sZThKmDTH1SzztmZFcNjXBg5Yvs8zPKe+955AoL/EG+pu0ZapFTIrsW7Wq7dCSiXhUkdJ3E/3RZqawqDhTHmrQEiG2j4N2B90SeK7TcXncr7TxaQMwjRpUpkDHmNQPMW3TEHyjEVlTKjzeCmvJEzu/n2oDR12kD6FL5oh4lkMIzIIQqVtp09cB9IJXEO0ww3elIbjZPhMASOocwvoFWM/m9ZTH8i2NjulWuIsnPj9AMmQ8hryR+nqSmkK942D+/9W0/ZHX4rzZ4/6hpEwAi+2+BNnS9yPk1zP4LNMy5FA4NwCV14=
+          skip_cleanup: true
+          on:
+            repo: IdentityPython/SATOSA
+            tags: true
+        - provider: pypi
+          distributions: sdist bdist_wheel
+          user: Lundberg
+          password:
+            secure: NwkpOakaeJjErjTF4Y5MWeHzMvkxYZqrBFdRkzfenVfkWsomuyy553A691d3lc1+oREsh1fJJLjpZQYxTLUFIHOUmt/9zr02rFfguzj7hEYfWF8wHBXG6YSWv6T3aCA4RTMXvvzv9cHf1zfxh0fS7kgc+NRMAnd01diVLfYpBciLgmQ31J4mlwShp8yBQUoRBIvzSdzrgjr0TzCQZXB9xM6R2t/oJgXLo6Zz8dTzqq3De9nOU/1P2ZHLxodDikuFdu2/0CjoDgFXB0KnGKGKmJ6G1WMCVvi7abY7smmGA3s4a4NVL7Cirx6VwIj79PsAcgupr2iBAQk/GsPffzdpLtIrBek9u//p84hxrj/IaJWgPOeKeD7+r2Kc2g0r2dQjaM+9MqBx9/lC57xJRX/JHLQWirXfCucB9YyPun5I13Sf3hArkssQy/Jvd2aLFZ885BTfow6TAwl1ud+UPeauvEj6myKO98sko/3Y521EGXRofLGaPokLyPjI/3I4N4jCvw8m86eZAjjIhPFL7JKHf8OVc5gQCYQy3kxiF5wyvbfOeMBp0sk9UvJOrWvBEXFrimAZPu8o8T5WtlQAV02q7rxUwhMd+fpnbGewsl7Ob6eE4rGVrfWQIb86wOHbbJk3lCwPytjEFEI2bdUfRUFcrWxhC040hRP0gzVKLa+nBHM=
+          on:
+            repo: IdentityPython/SATOSA
+            tags: true
+        - provider: script
+          script: scripts/travis_create_docker_image_tag.sh
+          on:
+            repo: IdentityPython/SATOSA
+            tags: true
+      if: tag IS present
+
 env:
   global:
-  - secure: ymdbaVVKJFq193xn+pr7sRyjkcOBtpm6eu+A9QsdtzO6vhaj+MhFfsjWAJbGiaSvX691bLd+9kFqH76HViN1LbmkCujBm2+4k0DBSakb70T/81UNNpYGy4iIYzCKaWPPSwvFGfRjNY14RILEpOI8NCkJuDMuO7CiGkwOtmlOdP/tYdV9T3p36Hgpwa/0U5kIahqwnbBKiwjGGhI8YA4Ik01P4biEv3Fr++jS4dhzMe+hYjWDXW+bksf9OikbtJkPzHlZxCDgFH4yNY1TH6P3X/B8NLTrvpNZOj2GgQoZBDrTEM+RLdaLQ8EYcrJaEaOZs65Jicpw5Ycz8DHUuBXwlSiG1g/VJlzxYchGxnLguVyEELEm7p7vhDFYNOROL3J4PpY8E1+L834xzmhCqbHM2kHB2WeiIob0j1Hq7U1802tFuM+tu8P4gdEyGxstQaIehiTI/VQEJm+sKB1W5xtDQokrnMyiQfJy4K7T4ZrONV/gVhb85ayS6eF/Xu1vr/5s/fWyQOxNKvoeEiO6VVoLTWNPEysTewLFc8o7HcE/Qnv/67IwuK/vx0ZlESbNCRgTfqyWpn5vybyWmgo9aUC51hDiVQtZfVeaoF/Xtg2yxVn/4C1aPybpA2Oacll8LjyYwyoCeH3naD0j9Msy4izny2PF7MTT4iNbtwhRoAAqXic=
-  - secure: loJ+Bfind3tbEVrWqEalZT5bMqGFrMewo3jDwH9iJEw28tl+PasTCvCOJRsOomtdMp2QZh8e5wwnL1m7mkHWZaBDMxAg2mXlEv2W817SyAKkgFVnjXr8FJK4kjGAA5l2WXWKo7HKs2lOygZaDxj67i4htvg6cIxVf3dnI+MHpN5CONBfF6cXkFGMZoW+uc2diApyvIVCzte0JZkp6ZepWiyjelPl38pgWlD9elJEUaut0qKGZHtsRnLgTOzbBl49FV4lzCqt7wBnnwwQpTtvEyRW47O/VMYORAFFXpgUDPejE37+bf1wS6hlr0vSHFSUKILQWUH0l09+BPrxpoRj5SYkFD18xvqlWDNrNoANSMgRm/8cL1ucd7T5N03lKtNpaKT2ejHPj6Hu86mXFvcxcZnIcH7ppmXjZU2xfI2ytmmqxXysYeiCc6RgClmFBf3lnZz7iaHVrL8tU1x+eDzEQKvDbYHQnO9+4xXY37PH4ViJJEDoLq3NGhKxbDJ4oMgtz0mrjdWm8a1nWXIm8QTs2+oIhf+HrCpdqE8FfKnI7OyM8C+cwraApY77cZ9xfBqJGDQIgX3c+syB1ufVxY/DPDOXTysRUUHyWVgJeaL8EJEiMVnZMoGliY7QtnBznOglxynekIIaaZ5FMfh8hwA0pQ5idruqrtzVkBQoq8CdHfk=
+    - secure: ymdbaVVKJFq193xn+pr7sRyjkcOBtpm6eu+A9QsdtzO6vhaj+MhFfsjWAJbGiaSvX691bLd+9kFqH76HViN1LbmkCujBm2+4k0DBSakb70T/81UNNpYGy4iIYzCKaWPPSwvFGfRjNY14RILEpOI8NCkJuDMuO7CiGkwOtmlOdP/tYdV9T3p36Hgpwa/0U5kIahqwnbBKiwjGGhI8YA4Ik01P4biEv3Fr++jS4dhzMe+hYjWDXW+bksf9OikbtJkPzHlZxCDgFH4yNY1TH6P3X/B8NLTrvpNZOj2GgQoZBDrTEM+RLdaLQ8EYcrJaEaOZs65Jicpw5Ycz8DHUuBXwlSiG1g/VJlzxYchGxnLguVyEELEm7p7vhDFYNOROL3J4PpY8E1+L834xzmhCqbHM2kHB2WeiIob0j1Hq7U1802tFuM+tu8P4gdEyGxstQaIehiTI/VQEJm+sKB1W5xtDQokrnMyiQfJy4K7T4ZrONV/gVhb85ayS6eF/Xu1vr/5s/fWyQOxNKvoeEiO6VVoLTWNPEysTewLFc8o7HcE/Qnv/67IwuK/vx0ZlESbNCRgTfqyWpn5vybyWmgo9aUC51hDiVQtZfVeaoF/Xtg2yxVn/4C1aPybpA2Oacll8LjyYwyoCeH3naD0j9Msy4izny2PF7MTT4iNbtwhRoAAqXic=
+    - secure: loJ+Bfind3tbEVrWqEalZT5bMqGFrMewo3jDwH9iJEw28tl+PasTCvCOJRsOomtdMp2QZh8e5wwnL1m7mkHWZaBDMxAg2mXlEv2W817SyAKkgFVnjXr8FJK4kjGAA5l2WXWKo7HKs2lOygZaDxj67i4htvg6cIxVf3dnI+MHpN5CONBfF6cXkFGMZoW+uc2diApyvIVCzte0JZkp6ZepWiyjelPl38pgWlD9elJEUaut0qKGZHtsRnLgTOzbBl49FV4lzCqt7wBnnwwQpTtvEyRW47O/VMYORAFFXpgUDPejE37+bf1wS6hlr0vSHFSUKILQWUH0l09+BPrxpoRj5SYkFD18xvqlWDNrNoANSMgRm/8cL1ucd7T5N03lKtNpaKT2ejHPj6Hu86mXFvcxcZnIcH7ppmXjZU2xfI2ytmmqxXysYeiCc6RgClmFBf3lnZz7iaHVrL8tU1x+eDzEQKvDbYHQnO9+4xXY37PH4ViJJEDoLq3NGhKxbDJ4oMgtz0mrjdWm8a1nWXIm8QTs2+oIhf+HrCpdqE8FfKnI7OyM8C+cwraApY77cZ9xfBqJGDQIgX3c+syB1ufVxY/DPDOXTysRUUHyWVgJeaL8EJEiMVnZMoGliY7QtnBznOglxynekIIaaZ5FMfh8hwA0pQ5idruqrtzVkBQoq8CdHfk=

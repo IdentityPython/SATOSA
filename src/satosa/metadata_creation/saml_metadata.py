@@ -10,6 +10,7 @@ from saml2.validate import valid_instance
 from ..backends.saml2 import SAMLBackend
 from ..frontends.saml2 import SAMLFrontend
 from ..frontends.saml2 import SAMLMirrorFrontend
+from ..frontends.saml2 import SAMLVirtualCoFrontend
 from ..plugin_loader import load_frontends, load_backends
 
 logger = logging.getLogger(__name__)
@@ -65,8 +66,28 @@ def _create_frontend_metadata(frontend_modules, backend_modules):
                     entity_desc = _create_entity_descriptor(
                         _create_mirrored_entity_config(frontend, desc.to_dict(), backend.name))
                     frontend_metadata[frontend.name].append(entity_desc)
+
+        elif isinstance(frontend, SAMLVirtualCoFrontend):
+            for backend in backend_modules:
+                co_names = frontend._co_names_from_config()
+
+                for co_name in co_names:
+                    logger.info("Creating metadata for CO {}".format(co_name))
+                    idp_config = copy.deepcopy(frontend.config["idp_config"])
+                    idp_config = frontend._add_endpoints_to_config(
+                                     idp_config,
+                                     co_name,
+                                     backend.name)
+                    idp_config = frontend._add_entity_id(idp_config, co_name)
+                    idp_config = frontend._overlay_for_saml_metadata(
+                                     idp_config,
+                                     co_name)
+                    entity_desc = _create_entity_descriptor(idp_config)
+                    frontend_metadata[frontend.name].append(entity_desc)
+
         elif isinstance(frontend, SAMLFrontend):
-            frontend.register_endpoints([backend.name for backend in backend_modules])
+            frontend.register_endpoints([backend.name for
+                                         backend in backend_modules])
             entity_desc = _create_entity_descriptor(frontend.idp_config)
             frontend_metadata[frontend.name].append(entity_desc)
 

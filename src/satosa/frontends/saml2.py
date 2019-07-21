@@ -5,10 +5,13 @@ import copy
 import functools
 import json
 import logging
+import re
 from base64 import urlsafe_b64decode
 from base64 import urlsafe_b64encode
 from urllib.parse import quote
+from urllib.parse import quote_plus
 from urllib.parse import unquote
+from urllib.parse import unquote_plus
 from urllib.parse import urlparse
 from http.cookies import SimpleCookie
 
@@ -31,6 +34,7 @@ from ..logging_util import satosa_logging
 from ..response import Response
 from ..response import ServiceError
 from ..saml_util import make_saml_response
+from satosa.exception import SATOSAError
 import satosa.util as util
 
 from satosa.internal import InternalData
@@ -187,6 +191,9 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         req_info = idp.parse_authn_request(context.request["SAMLRequest"], binding_in)
         authn_req = req_info.message
         satosa_logging(logger, logging.DEBUG, "%s" % authn_req, context.state)
+
+        # keep the ForceAuthn value to be used by plugins
+        context.decorate(Context.KEY_FORCE_AUTHN, authn_req.force_authn)
 
         try:
             resp_args = idp.response_args(authn_req)
@@ -684,3 +691,377 @@ class SAMLMirrorFrontend(SAMLFrontend):
                                 functools.partial(self.handle_authn_request, binding_in=binding)))
 
         return url_map
+
+
+class SAMLVirtualCoFrontend(SAMLFrontend):
+    """
+    Frontend module that exposes multiple virtual SAML identity providers,
+    each representing a collaborative organization or CO.
+    """
+    KEY_CO = 'collaborative_organizations'
+    KEY_CO_NAME = 'co_name'
+    KEY_CO_ENTITY_ID = 'co_entity_id'
+    KEY_CO_ATTRIBUTES = 'co_static_saml_attributes'
+    KEY_CONTACT_PERSON = 'contact_person'
+    KEY_ENCODEABLE_NAME = 'encodeable_name'
+    KEY_ORGANIZATION = 'organization'
+    KEY_ORGANIZATION_KEYS = ['display_name', 'name', 'url']
+
+    def handle_authn_request(self, context, binding_in):
+        """
+        See super class
+        satosa.frontends.saml2.SAMLFrontend#handle_authn_request
+
+        :type context: satosa.context.Context
+        :type binding_in: str
+        :rtype: satosa.response.Response
+        """
+
+        # Using the context of the current request dynamically create an
+        # IdP instance and then use it to handle the authentication request.
+        idp = self._create_co_virtual_idp(context)
+        return self._handle_authn_request(context, binding_in, idp)
+
+    def handle_authn_response(self, context, internal_response):
+        """
+        See super class satosa.frontends.base.
+                        FrontendModule#handle_authn_response
+        :param context:
+        :param internal_response:
+        :return:
+        """
+
+        return self._handle_authn_response(context, internal_response)
+
+    def _handle_authn_response(self, context, internal_response):
+        """
+        """
+        # Using the context of the current request and saved state from the
+        # authentication request dynamically create an IdP instance.
+        idp = self._create_co_virtual_idp(context)
+
+        # Add any static attributes for the CO.
+        co_config = self._get_co_config(context)
+
+        if self.KEY_CO_ATTRIBUTES in co_config:
+            attributes = internal_response.attributes
+            for attribute, value in co_config[self.KEY_CO_ATTRIBUTES].items():
+                # XXX This should be refactored when Python 3.4 support is
+                # XXX no longer required to use isinstance(value, Iterable).
+                try:
+                    if iter(value) and not isinstance(value, str):
+                        attributes[attribute] = value
+                    else:
+                        attributes[attribute] = [value]
+                except TypeError:
+                        attributes[attribute] = [value]
+
+        # Handle the authentication response.
+        return super()._handle_authn_response(context, internal_response, idp)
+
+    def _create_state_data(self, context, resp_args, relay_state):
+        """
+        Adds the CO name to state
+        See super class satosa.frontends.saml2.SAMLFrontend#save_state
+
+        :type context: satosa.context.Context
+        :type resp_args: dict[str, str | saml2.samlp.NameIDPolicy]
+        :type relay_state: str
+        :rtype: dict[str, dict[str, str] | str]
+        """
+        state = super()._create_state_data(context, resp_args, relay_state)
+        state[self.KEY_CO_NAME] = context.get_decoration(self.KEY_CO_NAME)
+        state[self.KEY_CO_ENTITY_ID] = context.get_decoration(
+                                                         self.KEY_CO_ENTITY_ID)
+
+        return state
+
+    def _get_co_config(self, context):
+        """
+        Obtain the configuration for the CO.
+
+        :type context: The current context
+        :rtype: dict
+
+        :param context: The current context
+        :return: CO configuration
+
+        """
+        co_name = self._get_co_name(context)
+        for co in self.config[self.KEY_CO]:
+            if co[self.KEY_ENCODEABLE_NAME] == co_name:
+                return co
+
+    def _get_co_name_from_path(self, context):
+        """
+        The CO name is URL encoded and obtained from the request path
+        for a request coming into one of the standard binding endpoints.
+        For example the HTTP-Redirect binding request path will have the
+        format
+
+        {base}/{backend}/{co_name}/sso/redirect
+
+        :type context: satosa.context.Context
+        :rtype: str
+
+        :param context:
+
+        """
+        url_encoded_co_name = context.path.split("/")[1]
+        co_name = unquote_plus(url_encoded_co_name)
+
+        return co_name
+
+    def _get_co_name(self, context):
+        """
+        Obtain the CO name previously saved in the request state, or if not set
+        use the request path obtained from the current context to determine
+        the target CO.
+
+        :type context: The current context
+        :rtype: string
+
+        :param context: The current context
+        :return: CO name
+        """
+        try:
+            co_name = context.state[self.name][self.KEY_CO_NAME]
+            logger.debug("Found CO {} from state".format(co_name))
+        except KeyError:
+            co_name = self._get_co_name_from_path(context)
+            logger.debug("Found CO {} from request path".format(co_name))
+
+        return co_name
+
+    def _add_endpoints_to_config(self, config, co_name, backend_name):
+        """
+        Use the request path from the context to determine the target backend,
+        then construct mappings from bindings to endpoints for the virtual
+        IdP for the CO.
+
+        The endpoint URLs have the form
+
+        {base}/{backend}/{co_name}/{path}
+
+        :type config: satosa.satosa_config.SATOSAConfig
+        :type co_name: str
+        :type backend_name: str
+        :rtype: satosa.satosa_config.SATOSAConfig
+
+        :param config: satosa proxy config
+        :param co_name: CO name
+        :param backend_name: The target backend name
+
+        :return: config with mappings for CO IdP
+        """
+
+        for service, endpoint in self.endpoints.items():
+            idp_endpoints = []
+            for binding, path in endpoint.items():
+                url = "{base}/{backend}/{co_name}/{path}".format(
+                      base=self.base_url,
+                      backend=backend_name,
+                      co_name=quote_plus(co_name),
+                      path=path)
+                mapping = (url, binding)
+                idp_endpoints.append(mapping)
+
+            # Overwrite the IdP config with the CO specific mappings between
+            # SAML binding and URL endpoints.
+            config["service"]["idp"]["endpoints"][service] = idp_endpoints
+
+        return config
+
+    def _add_entity_id(self, context, config, co_name):
+        """
+        Use the CO name to construct the entity ID for the virtual IdP
+        for the CO and add it to the config. Also add it to the
+        context.
+
+        The entity ID has the form
+
+        {base_entity_id}/{co_name}
+
+        :type context: The current context
+        :type config: satosa.satosa_config.SATOSAConfig
+        :type co_name: str
+        :rtype: satosa.satosa_config.SATOSAConfig
+
+        :param context:
+        :param config: satosa proxy config
+        :param co_name: CO name
+
+        :return: config with updated entity ID
+        """
+        base_entity_id = config['entityid']
+        co_entity_id = "{}/{}".format(base_entity_id, quote_plus(co_name))
+        config['entityid'] = co_entity_id
+        context.decorate(self.KEY_CO_ENTITY_ID, co_entity_id)
+
+        return config
+
+    def _overlay_for_saml_metadata(self, config, co_name):
+        """
+        Overlay configuration details like organization and contact person
+        from the front end configuration onto the IdP configuration to
+        support SAML metadata generation.
+
+        :type config: satosa.satosa_config.SATOSAConfig
+        :type co_name: str
+        :rtype: satosa.satosa_config.SATOSAConfig
+
+        :param config: satosa proxy config
+        :param co_name: CO name
+
+        :return: config with updated details for SAML metadata
+        """
+        all_co_configs = self.config[self.KEY_CO]
+        co_config = next(
+            item for item in all_co_configs
+            if item[self.KEY_ENCODEABLE_NAME] == co_name
+        )
+
+        key = self.KEY_ORGANIZATION
+        if key in co_config:
+            if key not in config:
+                config[key] = {}
+            for org_key in self.KEY_ORGANIZATION_KEYS:
+                if org_key in co_config[key]:
+                    config[key][org_key] = co_config[key][org_key]
+
+        key = self.KEY_CONTACT_PERSON
+        if key in co_config:
+            config[key] = co_config[key]
+
+        return config
+
+    def _co_names_from_config(self):
+        """
+        Parse the configuration for the names of the COs for which to
+        construct virtual IdPs.
+
+        :rtype: [str]
+
+        :return: list of CO names
+        """
+        co_names = [co[self.KEY_ENCODEABLE_NAME] for
+                    co in self.config[self.KEY_CO]]
+
+        return co_names
+
+    def _create_co_virtual_idp(self, context):
+        """
+        Create a virtual IdP to represent the CO.
+
+        :type context: The current context
+        :rtype: saml.server.Server
+
+        :param context:
+        :return: An idp server
+        """
+        co_name = self._get_co_name(context)
+        context.decorate(self.KEY_CO_NAME, co_name)
+
+        # Verify that we are configured for this CO. If the CO was not
+        # configured most likely the endpoint used was not registered and
+        # SATOSA core code threw an exception before getting here, but we
+        # include this check in case later the regex used to register the
+        # endpoints is relaxed.
+        co_names = self._co_names_from_config()
+        if co_name not in co_names:
+            msg = "CO {} not in configured list of COs {}".format(co_name,
+                                                                  co_names)
+            satosa_logging(logger, logging.WARN, msg, context.state)
+            raise SATOSAError(msg)
+
+        # Make a copy of the general IdP config that we will then overwrite
+        # with mappings between SAML bindings and CO specific URL endpoints,
+        # and the entityID for the CO virtual IdP.
+        backend_name = context.target_backend
+        idp_config = copy.deepcopy(self.idp_config)
+        idp_config = self._add_endpoints_to_config(idp_config,
+                                                   co_name,
+                                                   backend_name)
+        idp_config = self._add_entity_id(context, idp_config, co_name)
+
+        # Use the overwritten IdP config to generate a pysaml2 config object
+        # and from it a server object.
+        pysaml2_idp_config = IdPConfig().load(idp_config,
+                                              metadata_construction=False)
+
+        server = Server(config=pysaml2_idp_config)
+
+        return server
+
+    def _register_endpoints(self, backend_names):
+        """
+        See super class satosa.frontends.base.FrontendModule#register_endpoints
+
+        Endpoints have the format
+
+        {base}/{backend}/{co_name}/{binding path}
+
+        For example the HTTP-Redirect binding request path will have the
+        format
+
+        {base}/{backend}/{co_name}/sso/redirect
+
+        :type providers: list[str]
+        :rtype list[(str, ((satosa.context.Context, Any) ->
+                    satosa.response.Response, Any))] |
+               list[(str, (satosa.context.Context) ->
+                    satosa.response.Response)]
+        :param backend_names: A list of backend names
+        :return: A list of url and endpoint function pairs
+        """
+        # Create a regex pattern that will match any of the CO names. We
+        # escape special characters like '+' and '.' that are valid
+        # characters in an URL encoded string.
+        co_names = self._co_names_from_config()
+        url_encoded_co_names = [re.escape(quote_plus(name)) for name in
+                                co_names]
+        co_name_pattern = "|".join(url_encoded_co_names)
+
+        # Create a regex pattern that will match any of the backend names.
+        backend_url_pattern = "|^".join(backend_names)
+        logger.debug("Input backend names are {}".format(backend_names))
+        logger.debug("Created backend regex '{}'".format(backend_url_pattern))
+
+        # Hold a list of tuples containing URL regex patterns and the callables
+        # that handle them.
+        url_to_callable_mappings = []
+
+        # Loop over IdP endpoint categories, e.g., single_sign_on_service.
+        for endpoint_category in self.endpoints:
+            logger.debug("Examining endpoint category {}".format(
+                                    endpoint_category))
+
+            # For each endpoint category loop of the bindings and their
+            # assigned endpoints.
+            for binding, endpoint in self.endpoints[endpoint_category].items():
+                logger.debug("Found binding {} and endpoint {}".format(binding,
+                             endpoint))
+
+                # Parse out the path from the endpoint.
+                endpoint_path = urlparse(endpoint).path
+                logger.debug("Using path {}".format(endpoint_path))
+
+                # Use the backend URL pattern and the endpoint path to create
+                # a regex that will match and that includes a pattern for
+                # matching the URL encoded CO name.
+                regex_pattern = "(^{})/({})/{}".format(
+                                backend_url_pattern,
+                                co_name_pattern,
+                                endpoint_path)
+                logger.debug("Created URL regex {}".format(regex_pattern))
+
+                # Map the regex pattern to a callable.
+                the_callable = functools.partial(self.handle_authn_request,
+                                                 binding_in=binding)
+                logger.debug("Created callable {}".format(the_callable))
+
+                mapping = (regex_pattern, the_callable)
+                url_to_callable_mappings.append(mapping)
+                logger.debug("Adding mapping {}".format(mapping))
+
+        return url_to_callable_mappings
