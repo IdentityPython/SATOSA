@@ -8,7 +8,6 @@ from satosa.deprecated import InternalRequest
 from satosa.deprecated import InternalResponse
 
 
-_warnings.simplefilter("default")
 _warnings.warn(
     "internal_data is deprecated; use satosa.internal instead.",
     DeprecationWarning,

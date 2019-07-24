@@ -7,6 +7,7 @@ import copy
 import hashlib
 import json
 import logging
+from collections import UserDict
 from http.cookies import SimpleCookie
 from lzma import LZMADecompressor, LZMACompressor
 
@@ -157,7 +158,7 @@ class _AESCipher(object):
         return b[:-ord(b[len(b) - 1:])]
 
 
-class State(object):
+class State(UserDict):
     """
     This class holds a state attribute object. A state object must be able to be converted to
     a json string, otherwise will an exception be raised.
@@ -177,13 +178,12 @@ class State(object):
         :param urlstate_data: A string created by the method urlstate in this class.
         :return: An instance of this class.
         """
-        self._state_dict = {}
         self.delete = False
 
         if urlstate_data and not encryption_key:
             raise ValueError("If an 'urlstate_data' is supplied 'encrypt_key' must be specified.")
 
-        if urlstate_data is not None:
+        if urlstate_data:
             urlstate_data = urlstate_data.encode("utf-8")
             urlstate_data = base64.urlsafe_b64decode(urlstate_data)
             lzma = LZMADecompressor()
@@ -192,45 +192,9 @@ class State(object):
             lzma = LZMADecompressor()
             urlstate_data = lzma.decompress(urlstate_data)
             urlstate_data = urlstate_data.decode("UTF-8")
-            self._state_dict = json.loads(urlstate_data)
+            urlstate_data = json.loads(urlstate_data)
 
-    def __setitem__(self, key, data):
-        """
-        Will set session data (which must be JSON serializable) associated with a unique key.
-
-        :type key: str
-        :type data: Mapping[str, Any]
-
-        :param key: unique key to associate the data with
-        :param data: state data to keep
-        :raise ValueError: if the data is not JSON serializable
-        """
-        json.dumps(data)  # verify the data is JSON serializable by trying to serialize it
-        self._state_dict[key] = data
-
-    def __delitem__(self, key):
-        """
-        Removes state value
-        :type key: str
-        :param key: Key for value
-        """
-        del self._state_dict[key]
-
-    def __getitem__(self, key):
-        """
-        Will retrieve the state data for a specific key.
-
-
-        :type key: str
-        :rtype: Mapping[str, Any]
-
-        :param key: the unique for which the data is associated
-        :return: the state data associated with the key
-        """
-        return self._state_dict[key]
-
-    def __contains__(self, key):
-        return key in self._state_dict
+        super().__init__(urlstate_data or {})
 
     def urlstate(self, encryption_key):
         """
@@ -242,7 +206,7 @@ class State(object):
         :return: Url representation av of the state.
         """
         lzma = LZMACompressor()
-        urlstate_data = json.dumps(self._state_dict)
+        urlstate_data = json.dumps(self.data)
         urlstate_data = lzma.compress(urlstate_data.encode("UTF-8"))
         urlstate_data += lzma.flush()
         urlstate_data = _AESCipher(encryption_key).encrypt(urlstate_data)
@@ -261,15 +225,8 @@ class State(object):
         :return: A copy of the state
         """
         state_copy = State()
-        state_copy._state_dict = copy.deepcopy(self._state_dict)
+        state_copy.data = copy.deepcopy(self.data)
         return state_copy
-
-    def __repr__(self):
-        from pprint import pformat
-        return pformat(vars(self))
-
-    def __str__(self):
-        return str(self._state_dict)
 
     @property
     def state_dict(self):
@@ -277,4 +234,4 @@ class State(object):
         :rtype: dict[str, any]
         :return: A copy of the state as dictionary.
         """
-        return copy.deepcopy(self._state_dict)
+        return copy.deepcopy(self.data)
