@@ -172,11 +172,16 @@ class _OAuthBackend(BackendModule):
         return get_metadata_desc_for_oauth_backend(
             self.config["server_info"]["authorization_endpoint"], self.config)
 
-
 class FacebookBackend(_OAuthBackend):
     """
     Backend module for facebook.
     """
+
+    """
+    The default graph endpoint is for backward compatibility with previous versions of the
+    Facebook backend in which the graph endpoint was hardcoded in the code.
+    """
+    DEFAULT_GRAPH_ENDPOINT = 'https://graph.facebook.com/v2.5/me'
 
     def __init__(self, outgoing, internal_attributes, config, base_url, name):
         """
@@ -200,6 +205,34 @@ class FacebookBackend(_OAuthBackend):
         config.setdefault("response_type", "code")
         config["verify_accesstoken_state"] = False
         super().__init__(outgoing, internal_attributes, config, base_url, name, "facebook", "id")
+
+    def start_auth(self, context, internal_request, get_state=stateID):
+        """
+        :param get_state: Generates a state to be used in authentication call
+        :type get_state: Callable[[str, bytes], str]
+        :type context: satosa.context.Context
+        :type internal_request: satosa.internal.InternalData
+        :rtype satosa.response.Redirect
+        """
+        oauth_state = get_state(self.config["base_url"], rndstr().encode())
+        context.state[self.name] = dict(state=oauth_state)
+
+        request_args = dict(
+            client_id=self.config['client_config']['client_id'],
+            redirect_uri=self.redirect_url,
+            state=oauth_state)
+
+        auth_type = ','.join(self.config.get('auth_type', []))
+        if auth_type:
+            request_args['auth_type'] = auth_type
+
+        scope = ','.join(self.config.get('scope', []))
+        if scope:
+            request_args['scope'] = scope
+
+        cis = self.consumer.construct_AuthorizationRequest(
+            request_args=request_args)
+        return Redirect(cis.request(self.consumer.authorization_endpoint))
 
     def auth_info(self, request):
         """
@@ -225,7 +258,7 @@ class FacebookBackend(_OAuthBackend):
         :return: Dictionary with attribute name as key and attribute value as value.
         """
         payload = {'access_token': access_token}
-        url = "https://graph.facebook.com/v2.5/me"
+        url = self.config["server_info"].get("graph_endpoint", self.DEFAULT_GRAPH_ENDPOINT)
         if self.config["fields"]:
             payload["fields"] = ",".join(self.config["fields"])
         resp = requests.get(url, params=payload)
@@ -236,7 +269,6 @@ class FacebookBackend(_OAuthBackend):
         except KeyError as e:
             pass
         return data
-
 
 def get_metadata_desc_for_oauth_backend(entity_id, config):
     """
