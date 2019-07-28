@@ -186,7 +186,7 @@ class FacebookBackend(_OAuthBackend):
     The default graph endpoint is for backward compatibility with previous versions of the
     Facebook backend in which the graph endpoint was hardcoded in the code.
     """
-    DEFAULT_GRAPH_ENDPOINT = 'https://graph.facebook.com/v2.5/me'
+    DEFAULT_GRAPH_ENDPOINT = "https://graph.facebook.com/v2.5/me"
 
     def __init__(self, outgoing, internal_attributes, config, base_url, name):
         """
@@ -248,7 +248,7 @@ class FacebookBackend(_OAuthBackend):
         :param access_token: The access token to be used to retrieve the data.
         :return: Dictionary with attribute name as key and attribute value as value.
         """
-        payload = {'access_token': access_token}
+        payload = {"access_token": access_token}
         url = self.config["server_info"].get("graph_endpoint", self.DEFAULT_GRAPH_ENDPOINT)
         if self.config["fields"]:
             payload["fields"] = ",".join(self.config["fields"])
@@ -282,14 +282,14 @@ def get_metadata_desc_for_oauth_backend(entity_id, config):
         # Add contact person information
         for contact_person in entity_info.get("contact_person", []):
             person = ContactPersonDesc()
-            if 'contact_type' in contact_person:
-                person.contact_type = contact_person['contact_type']
-            for address in contact_person.get('email_address', []):
+            if "contact_type" in contact_person:
+                person.contact_type = contact_person["contact_type"]
+            for address in contact_person.get("email_address", []):
                 person.add_email_address(address)
-            if 'given_name' in contact_person:
-                person.given_name = contact_person['given_name']
-            if 'sur_name' in contact_person:
-                person.sur_name = contact_person['sur_name']
+            if "given_name" in contact_person:
+                person.given_name = contact_person["given_name"]
+            if "sur_name" in contact_person:
+                person.sur_name = contact_person["sur_name"]
 
             description.add_contact_person(person)
 
