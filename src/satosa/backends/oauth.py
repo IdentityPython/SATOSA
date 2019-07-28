@@ -74,14 +74,18 @@ class _OAuthBackend(BackendModule):
         :type internal_request: satosa.internal.InternalData
         :rtype satosa.response.Redirect
         """
-        oauth_state = get_state(self.config["base_url"], rndstr().encode())
-
-        state_data = dict(state=oauth_state)
-        context.state[self.name] = state_data
-
-        request_args = {"redirect_uri": self.redirect_url, "state": oauth_state}
+        request_args = self.get_request_args(get_state=get_state)
+        context.state[self.name] = {"state": request_args["state"]}
         cis = self.consumer.construct_AuthorizationRequest(request_args=request_args)
         return Redirect(cis.request(self.consumer.authorization_endpoint))
+
+    def get_request_args(self, get_state=stateID):
+        oauth_state = get_state(self.config["base_url"], rndstr().encode())
+        request_args = {
+            "redirect_uri": self.redirect_url,
+            "state": oauth_state,
+        }
+        return request_args
 
     def register_endpoints(self):
         """
@@ -172,6 +176,7 @@ class _OAuthBackend(BackendModule):
         return get_metadata_desc_for_oauth_backend(
             self.config["server_info"]["authorization_endpoint"], self.config)
 
+
 class FacebookBackend(_OAuthBackend):
     """
     Backend module for facebook.
@@ -206,33 +211,19 @@ class FacebookBackend(_OAuthBackend):
         config["verify_accesstoken_state"] = False
         super().__init__(outgoing, internal_attributes, config, base_url, name, "facebook", "id")
 
-    def start_auth(self, context, internal_request, get_state=stateID):
-        """
-        :param get_state: Generates a state to be used in authentication call
-        :type get_state: Callable[[str, bytes], str]
-        :type context: satosa.context.Context
-        :type internal_request: satosa.internal.InternalData
-        :rtype satosa.response.Redirect
-        """
-        oauth_state = get_state(self.config["base_url"], rndstr().encode())
-        context.state[self.name] = dict(state=oauth_state)
+    def get_request_args(self, get_state=stateID):
+        request_args = super().get_request_args(get_state=get_state)
 
-        request_args = dict(
-            client_id=self.config['client_config']['client_id'],
-            redirect_uri=self.redirect_url,
-            state=oauth_state)
-
-        auth_type = ','.join(self.config.get('auth_type', []))
-        if auth_type:
-            request_args['auth_type'] = auth_type
-
-        scope = ','.join(self.config.get('scope', []))
-        if scope:
-            request_args['scope'] = scope
-
-        cis = self.consumer.construct_AuthorizationRequest(
-            request_args=request_args)
-        return Redirect(cis.request(self.consumer.authorization_endpoint))
+        client_id = self.config["client_config"]["client_id"]
+        extra_args = {
+            arg_name: arg_val
+            for arg_name in ["auth_type", "scope"]
+            for arg_val in [self.config.get(arg_name, [])]
+            if arg_val
+        }
+        extra_args.update({"client_id": client_id})
+        request_args.update(extra_args)
+        return request_args
 
     def auth_info(self, request):
         """
@@ -269,6 +260,7 @@ class FacebookBackend(_OAuthBackend):
         except KeyError as e:
             pass
         return data
+
 
 def get_metadata_desc_for_oauth_backend(entity_id, config):
     """
