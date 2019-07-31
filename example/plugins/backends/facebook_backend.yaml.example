@@ -15,6 +15,7 @@ config:
     authorization_endpoint: 'https://www.facebook.com/dialog/oauth'
     token_endpoint: 'https://graph.facebook.com/v3.3/oauth/access_token'
     graph_endpoint: 'https://graph.facebook.com/v3.3/me'
+  client_secret: <client_secret>
   entity_info:
     organization:
       display_name:
