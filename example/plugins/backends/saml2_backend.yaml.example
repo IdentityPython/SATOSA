@@ -19,6 +19,7 @@ config:
       local: [idp.xml]
 
     entityid: <base_url>/<name>/proxy_saml2_backend.xml
+    attribute_map_dir: attributemaps
     accepted_time_diff: 60
     service:
       sp:

@@ -12,6 +12,7 @@ config:
       local: [sp.xml]
 
     entityid: <base_url>/<name>/proxy.xml
+    attribute_map_dir: attributemaps
     accepted_time_diff: 60
     service:
       idp:
