@@ -61,8 +61,8 @@ module: satosa.micro_services.attribute_generation.AddSyntheticAttributes
 name: AddSyntheticAttributes
 config:
     synthetic_attributes:
-        target_provider1:
-            requester1:
+        requester1:
+            target_provider1:
                 eduPersonAffiliation: member;employee
         default:
             default:
@@ -72,8 +72,8 @@ config:
 ```
 
 The use of "" and 'default' is synonymous. Attribute rules are not
-overloaded or inherited. For instance a response from "target_provider1"
-and requester1 in the above config will generate a (static) attribute
+overloaded or inherited. For instance a response for "requester1"
+from target_provider1 in the above config will generate a (static) attribute
 set of 'member' and 'employee' for the eduPersonAffiliation attribute
 and nothing else. Note that synthetic attributes override existing
 attributes if present.

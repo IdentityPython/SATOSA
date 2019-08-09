@@ -6,6 +6,15 @@ config:
       bind_dn: cn=admin,dc=example,dc=org
       bind_password: xxxxxxxx
       search_base: ou=People,dc=example,dc=org
+      read_only : true
+      version : 3
+
+      # see ldap3 client_strategies
+      client_strategy : RESTARTABLE
+      auto_bind : true
+      pool_size : 10
+      pool_keepalive : 10
+
       search_return_attributes:
         # Format is LDAP attribute name : internal attribute name
         sn: surname
@@ -20,10 +29,10 @@ config:
       pool_keepalive: 10
       ordered_identifier_candidates:
         # Ordered list of identifiers to use when constructing the
-        # search filter  to find the user record in LDAP directory. 
+        # search filter  to find the user record in LDAP directory.
         # This example searches in order for eduPersonUniqueId, eduPersonPrincipalName
         # combined with SAML persistent NameID, eduPersonPrincipalName
-        # combined with eduPersonTargetedId, eduPersonPrincipalName, 
+        # combined with eduPersonTargetedId, eduPersonPrincipalName,
         # SAML persistent NameID, and eduPersonTargetedId.
         - attribute_names: [epuid]
         - attribute_names: [eppn, name_id]
@@ -62,4 +71,3 @@ config:
   # The microservice may be configured to ignore a particular SP.
   https://another.sp.myserver.edu:
     ignore: true
-  
