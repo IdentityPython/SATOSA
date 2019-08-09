@@ -12,8 +12,9 @@ from satosa import util
 from satosa.micro_services import consent
 
 from .context import Context
-from .exception import SATOSAConfigurationError
-from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
+from .exception import (SATOSAConfigurationError, SATOSAError,
+                        SATOSAAuthenticationError, SATOSAUnknownError,
+                        SATOSAStateError)
 from .logging_util import satosa_logging
 from .micro_services.account_linking import AccountLinking
 from .micro_services.consent import Consent
@@ -181,6 +182,9 @@ class SATOSABase(object):
         """
 
         context.request = None
+        if not context.state.get(STATE_KEY):
+            msg = 'Error: Missed {}'
+            raise SATOSAStateError(msg.format('context.state[STATE_KEY]["requester"]'))
         internal_response.requester = context.state[STATE_KEY]["requester"]
 
         # If configured construct the user id from attribute values.

@@ -99,8 +99,7 @@ class LdapAttributeStore(ResponseMicroService):
                 sp_config['bind_dn'],
                 sp_config['bind_password'],
                 sp_config['ldap_url'],
-                sp_config['search_base']
-                )
+                sp_config['search_base'])
 
             if connection_params in connections:
                 sp_config['connection'] = connections[connection_params]
