@@ -5,7 +5,7 @@ import logging
 import re
 
 from .context import SATOSABadContextError
-from .exception import SATOSAError
+from .exception import SATOSAError, SATOSAStateError
 from .logging_util import satosa_logging
 
 logger = logging.getLogger(__name__)
@@ -95,8 +95,16 @@ class ModuleRouter(object):
         :param context: The response context
         :return: frontend
         """
-
+        if not context.state.get(STATE_KEY):
+            msg = ('Error: {} is missing. '
+                   'Probably your session must be initialized '
+                   'from a Service Provider instead that '
+                   'Discovery Service only. '
+                   'If the authentication session is not inizialized '
+                   'by proxy\'s frontend this error will always throw up')
+            raise SATOSAStateError(msg.format('context.state[{}]["requester"]'.format(STATE_KEY)))
         target_frontend = context.state[STATE_KEY]
+
         satosa_logging(logger, logging.DEBUG, "Routing to frontend: %s " % target_frontend, context.state)
         context.target_frontend = target_frontend
         frontend = self.frontends[context.target_frontend]["instance"]
