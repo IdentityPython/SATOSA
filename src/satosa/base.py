@@ -183,8 +183,13 @@ class SATOSABase(object):
 
         context.request = None
         if not context.state.get(STATE_KEY):
-            msg = 'Error: Missed {}'
-            raise SATOSAStateError(msg.format('context.state[STATE_KEY]["requester"]'))
+            msg = ('Error: {} is missing. '
+                   'Probably your session must be initialized '
+                   'from a Service Provider instead that '
+                   'Discovery Service only. '
+                   'If the authentication session is not inizialized '
+                   'by proxy\'s frontend this error will always throw up')
+            raise SATOSAStateError(msg.format('context.state[{}]["requester"]'.format(STATE_KEY)))
         internal_response.requester = context.state[STATE_KEY]["requester"]
 
         # If configured construct the user id from attribute values.
