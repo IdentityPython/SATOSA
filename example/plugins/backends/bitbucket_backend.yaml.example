@@ -1,0 +1,30 @@
+module: satosa.backends.bitbucket.BitBucketBackend
+name: bitbucket
+config:
+  authz_page: bitbucket/auth/callback
+  base_url:  <base_url>
+  client_config:
+    client_id: 
+  client_secret:
+  scope: ["account", "email"]
+  response_type: code
+  allow_signup: false
+  server_info: {
+    authorization_endpoint: 'https://bitbucket.org/site/oauth2/authorize',
+    token_endpoint: 'https://bitbucket.org/site/oauth2/access_token',
+    user_endpoint: 'https://api.bitbucket.org/2.0/user'
+  }
+  entity_info:
+    organization:
+      display_name:
+      - ["BitBucket", "en"]
+      name:
+      - ["BitBucket", "en"]
+      url:
+      - ["https://www.bitbucket.com/", "en"]
+    ui_info:
+      description:
+      - ["Login to a service using your BitBucket credentials", "en"]
+      display_name:
+      - ["BitBucket", "en"]
+
