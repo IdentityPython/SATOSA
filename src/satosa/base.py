@@ -251,6 +251,9 @@ class SATOSABase(object):
             state = State()
         finally:
             context.state = state
+            msg_tmpl = 'Loaded state {state} from cookie {cookie}'
+            msg = msg_tmpl.format(state=state, cookie=context.cookie)
+            logger.info(msg)
 
     def _save_state(self, resp, context):
         """
