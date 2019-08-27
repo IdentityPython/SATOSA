@@ -239,6 +239,7 @@ class TestSAMLBackend:
         )) as idp_metadata_file:
             sp_conf["metadata"]["inline"] = [idp_metadata_file.read()]
 
+        sp_conf["entityid"] = "https://federation-dev-1.scienceforum.sc/Saml2/proxy_saml2_backend.xml"
         samlbackend = SAMLBackend(
             Mock(),
             INTERNAL_ATTRIBUTES,
