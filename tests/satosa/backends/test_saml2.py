@@ -233,30 +233,44 @@ class TestSAMLBackend:
         assert backend.name not in context.state
 
     def test_authn_response_with_encrypted_assertion(self, sp_conf, context):
-        with open(os.path.join(TEST_RESOURCE_BASE_PATH,
-                               "idp_metadata_for_encrypted_signed_auth_response.xml")) as idp_metadata_file:
+        with open(os.path.join(
+            TEST_RESOURCE_BASE_PATH,
+            "idp_metadata_for_encrypted_signed_auth_response.xml"
+        )) as idp_metadata_file:
             sp_conf["metadata"]["inline"] = [idp_metadata_file.read()]
-        samlbackend = SAMLBackend(Mock(), INTERNAL_ATTRIBUTES, {"sp_config": sp_conf,
-                                                                "disco_srv": DISCOSRV_URL},
-                                  "base_url", "samlbackend")
+
+        samlbackend = SAMLBackend(
+            Mock(),
+            INTERNAL_ATTRIBUTES,
+            {"sp_config": sp_conf, "disco_srv": DISCOSRV_URL},
+            "base_url",
+            "samlbackend",
+        )
         response_binding = BINDING_HTTP_REDIRECT
         relay_state = "test relay state"
 
-        with open(os.path.join(TEST_RESOURCE_BASE_PATH,
-                               "auth_response_with_encrypted_signed_assertion.xml")) as auth_response_file:
+        with open(os.path.join(
+            TEST_RESOURCE_BASE_PATH,
+            "auth_response_with_encrypted_signed_assertion.xml"
+        )) as auth_response_file:
             auth_response = auth_response_file.read()
+
         context.request = {"SAMLResponse": deflate_and_base64_encode(auth_response), "RelayState": relay_state}
 
         context.state[self.samlbackend.name] = {"relay_state": relay_state}
-        with open(os.path.join(TEST_RESOURCE_BASE_PATH, "encryption_key.pem")) as encryption_key_file:
+        with open(
+            os.path.join(TEST_RESOURCE_BASE_PATH, "encryption_key.pem")
+        ) as encryption_key_file:
             samlbackend.encryption_keys = [encryption_key_file.read()]
 
         assertion_issued_at = 1479315212
         with patch('saml2.validate.time_util.shift_time') as mock_shift_time, \
                 patch('saml2.validate.time_util.utc_now') as mock_utc_now:
             mock_utc_now.return_value = assertion_issued_at + 1
-            mock_shift_time.side_effect = [datetime.utcfromtimestamp(assertion_issued_at + 1),
-                                     datetime.utcfromtimestamp(assertion_issued_at - 1)]
+            mock_shift_time.side_effect = [
+                datetime.utcfromtimestamp(assertion_issued_at + 1),
+                datetime.utcfromtimestamp(assertion_issued_at - 1),
+            ]
             samlbackend.authn_response(context, response_binding)
 
         context, internal_resp = samlbackend.auth_callback_func.call_args[0]

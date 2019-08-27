@@ -227,10 +227,10 @@ class SATOSABase(object):
             return spec(context)
         except SATOSAAuthenticationError as error:
             error.error_id = uuid.uuid4().urn
-            msg = "ERROR_ID [{err_id}]\nSTATE:\n{state}".format(err_id=error.error_id,
-                                                                state=json.dumps(
-                                                                    error.state.state_dict,
-                                                                    indent=4))
+            state = json.dumps(error.state.state_dict, indent=4)
+            msg = "ERROR_ID [{err_id}]\nSTATE:\n{state}".format(
+                err_id=error.error_id, state=state
+            )
             satosa_logging(logger, logging.ERROR, msg, error.state, exc_info=True)
             return self._handle_satosa_authentication_error(error)
 
@@ -243,9 +243,10 @@ class SATOSABase(object):
         """
         try:
             state = cookie_to_state(
-                    context.cookie,
-                    self.config["COOKIE_STATE_NAME"],
-                    self.config["STATE_ENCRYPTION_KEY"])
+                context.cookie,
+                self.config["COOKIE_STATE_NAME"],
+                self.config["STATE_ENCRYPTION_KEY"],
+            )
         except SATOSAStateError as e:
             msg_tmpl = 'Failed to decrypt state {state} with {error}'
             msg = msg_tmpl.format(state=context.cookie, error=str(e))
