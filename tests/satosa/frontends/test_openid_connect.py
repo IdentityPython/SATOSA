@@ -1,6 +1,7 @@
 """
 Tests for the SAML frontend module src/frontends/saml2.py.
 """
+import copy
 import json
 from base64 import urlsafe_b64encode
 from collections import Counter
@@ -28,7 +29,19 @@ INTERNAL_ATTRIBUTES = {
 BASE_URL = "https://op.example.com"
 CLIENT_ID = "client1"
 CLIENT_SECRET = "client_secret"
-
+EXTRA_CLAIMS = {
+    "eduPersonScopedAffiliation": {
+        "saml": ["eduPersonScopedAffiliation"],
+        "openid": ["eduperson_scoped_affiliation"],
+    },
+    "eduPersonPrincipalName": {
+        "saml": ["eduPersonPrincipalName"],
+        "openid": ["eduperson_principal_name"],
+    },
+}
+EXTRA_SCOPES = {
+    "eduperson": ["eduperson_scoped_affiliation", "eduperson_principal_name"]
+}
 
 class TestOpenIDConnectFrontend(object):
     @pytest.fixture
@@ -43,6 +56,19 @@ class TestOpenIDConnectFrontend(object):
 
         return config
 
+    @pytest.fixture
+    def frontend_config_with_extra_scopes(self, signing_key_path):
+        config = {
+            "signing_key_path": signing_key_path,
+            "provider": {
+                "response_types_supported": ["code", "id_token", "code id_token token"],
+                "scopes_supported": ["openid", "email"],
+                "extra_scopes": EXTRA_SCOPES,
+            },
+        }
+
+        return config
+
     def create_frontend(self, frontend_config):
         # will use in-memory storage
         instance = OpenIDConnectFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
@@ -50,9 +76,27 @@ class TestOpenIDConnectFrontend(object):
         instance.register_endpoints(["foo_backend"])
         return instance
 
+    def create_frontend_with_extra_scopes(self, frontend_config_with_extra_scopes):
+        # will use in-memory storage
+        internal_attributes_with_extra_scopes = copy.deepcopy(INTERNAL_ATTRIBUTES)
+        internal_attributes_with_extra_scopes["attributes"].update(EXTRA_CLAIMS)
+        instance = OpenIDConnectFrontend(
+            lambda ctx, req: None,
+            internal_attributes_with_extra_scopes,
+            frontend_config_with_extra_scopes,
+            BASE_URL,
+            "oidc_frontend_with_extra_scopes",
+        )
+        instance.register_endpoints(["foo_backend"])
+        return instance
+
     @pytest.fixture
     def frontend(self, frontend_config):
         return self.create_frontend(frontend_config)
+
+    @pytest.fixture
+    def frontend_with_extra_scopes(self, frontend_config_with_extra_scopes):
+        return self.create_frontend_with_extra_scopes(frontend_config_with_extra_scopes)
 
     @pytest.fixture
     def authn_req(self):
@@ -65,6 +109,23 @@ class TestOpenIDConnectFrontend(object):
                                    nonce=nonce, claims=claims_req)
         return req
 
+    @pytest.fixture
+    def authn_req_with_extra_scopes(self):
+        state = "my_state"
+        nonce = "nonce"
+        redirect_uri = "https://client.example.com"
+        claims_req = ClaimsRequest(id_token=Claims(email=None))
+        req = AuthorizationRequest(
+            client_id=CLIENT_ID,
+            state=state,
+            scope="openid email eduperson",
+            response_type="id_token",
+            redirect_uri=redirect_uri,
+            nonce=nonce,
+            claims=claims_req,
+        )
+        return req
+
     def insert_client_in_client_db(self, frontend, redirect_uri, extra_metadata={}):
         frontend.provider.clients = {
             CLIENT_ID: {"response_types": ["code", "id_token"],
@@ -73,7 +134,12 @@ class TestOpenIDConnectFrontend(object):
         frontend.provider.clients[CLIENT_ID].update(extra_metadata)
 
     def insert_user_in_user_db(self, frontend, user_id):
-        frontend.user_db[user_id] = {"email": "tester@example.com"}
+        user_attributes = AttributeMapper(frontend.internal_attributes).to_internal(
+            "saml", USERS["testuser1"]
+        )
+        frontend.user_db[user_id] = frontend.converter.from_internal(
+            "openid", user_attributes
+        )
 
     def create_access_token(self, frontend, user_id, auth_req):
         sub = frontend.provider.authz_state.get_subject_identifier('pairwise', user_id, 'client1.example.com')
@@ -84,9 +150,13 @@ class TestOpenIDConnectFrontend(object):
     def setup_for_authn_response(self, context, frontend, auth_req):
         context.state[frontend.name] = {"oidc_request": auth_req.to_urlencoded()}
 
-        auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml")
+        auth_info = AuthenticationInformation(
+            PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml"
+        )
         internal_response = InternalData(auth_info=auth_info)
-        internal_response.attributes = AttributeMapper(INTERNAL_ATTRIBUTES).to_internal("saml", USERS["testuser1"])
+        internal_response.attributes = AttributeMapper(
+            frontend.internal_attributes
+        ).to_internal("saml", USERS["testuser1"])
         internal_response.subject_id = USERS["testuser1"]["eduPersonTargetedID"][0]
 
         return internal_response
@@ -122,6 +192,28 @@ class TestOpenIDConnectFrontend(object):
         assert internal_req.requester_name == [{"lang": "en", "text": client_name}]
         assert internal_req.subject_type == 'pairwise'
         assert internal_req.attributes == ["mail"]
+
+    def test_handle_authn_request_with_extra_scopes(
+        self, context, frontend_with_extra_scopes, authn_req_with_extra_scopes
+    ):
+        client_name = "test client"
+        self.insert_client_in_client_db(
+            frontend_with_extra_scopes,
+            authn_req_with_extra_scopes["redirect_uri"],
+            {"client_name": client_name},
+        )
+
+        context.request = dict(parse_qsl(authn_req_with_extra_scopes.to_urlencoded()))
+        frontend_with_extra_scopes.handle_authn_request(context)
+        internal_req = frontend_with_extra_scopes._handle_authn_request(context)
+        assert internal_req.requester == authn_req_with_extra_scopes["client_id"]
+        assert internal_req.requester_name == [{"lang": "en", "text": client_name}]
+        assert internal_req.subject_type == "pairwise"
+        assert sorted(internal_req.attributes) == [
+            "eduPersonPrincipalName",
+            "eduPersonScopedAffiliation",
+            "mail",
+        ]
 
     def test_get_approved_attributes(self, frontend):
         claims_req = ClaimsRequest(id_token=Claims(email=None), userinfo=Claims(userinfo_claim=None))
@@ -199,7 +291,62 @@ class TestOpenIDConnectFrontend(object):
 
         provider_config_dict = provider_config.to_dict()
         scopes_supported = provider_config_dict.pop("scopes_supported")
+        assert "eduperson" not in scopes_supported
         assert all(scope in scopes_supported for scope in ["openid", "email"])
+        assert provider_config_dict == expected_capabilities
+
+    def test_provider_configuration_endpoint_with_extra_scopes(
+        self, context, frontend_with_extra_scopes
+    ):
+        expected_capabilities = {
+            "response_types_supported": ["code", "id_token", "code id_token token"],
+            "jwks_uri": "{}/{}/jwks".format(BASE_URL, frontend_with_extra_scopes.name),
+            "authorization_endpoint": "{}/foo_backend/{}/authorization".format(
+                BASE_URL, frontend_with_extra_scopes.name
+            ),
+            "token_endpoint": "{}/{}/token".format(
+                BASE_URL, frontend_with_extra_scopes.name
+            ),
+            "userinfo_endpoint": "{}/{}/userinfo".format(
+                BASE_URL, frontend_with_extra_scopes.name
+            ),
+            "id_token_signing_alg_values_supported": ["RS256"],
+            "response_modes_supported": ["fragment", "query"],
+            "subject_types_supported": ["pairwise"],
+            "claim_types_supported": ["normal"],
+            "claims_parameter_supported": True,
+            "request_parameter_supported": False,
+            "request_uri_parameter_supported": False,
+            "claims_supported": [
+                "email",
+                "eduperson_scoped_affiliation",
+                "eduperson_principal_name",
+            ],
+            "grant_types_supported": ["authorization_code", "implicit"],
+            "issuer": BASE_URL,
+            "require_request_uri_registration": False,
+            "token_endpoint_auth_methods_supported": ["client_secret_basic"],
+            "version": "3.0",
+        }
+
+        http_response = frontend_with_extra_scopes.provider_config(context)
+        provider_config = ProviderConfigurationResponse().deserialize(
+            http_response.message, "json"
+        )
+
+        provider_config_dict = provider_config.to_dict()
+        scopes_supported = provider_config_dict.pop("scopes_supported")
+        assert all(
+            scope in scopes_supported for scope in ["openid", "email", "eduperson"]
+        )
+
+        # FIXME why is this needed?
+        expected_capabilities["claims_supported"] = set(
+            expected_capabilities["claims_supported"]
+        )
+        provider_config_dict["claims_supported"] = set(
+            provider_config_dict["claims_supported"]
+        )
         assert provider_config_dict == expected_capabilities
 
     def test_jwks(self, context, frontend):
@@ -307,7 +454,7 @@ class TestOpenIDConnectFrontend(object):
         assert parsed_message["error"] == "invalid_grant"
 
     def test_userinfo_endpoint(self, context, frontend, authn_req):
-        user_id = "user1"
+        user_id = USERS["testuser1"]["eduPersonTargetedID"][0]
         self.insert_client_in_client_db(frontend, authn_req["redirect_uri"])
         self.insert_user_in_user_db(frontend, user_id)
 
@@ -317,14 +464,28 @@ class TestOpenIDConnectFrontend(object):
         context.request_authorization = "Bearer {}".format(token)
         response = frontend.userinfo_endpoint(context)
         parsed = OpenIDSchema().deserialize(response.message, "json")
-        assert parsed["email"] == "tester@example.com"
+        assert parsed["email"] == "test@example.com"
 
-    def test_userinfo_without_token(self, context, frontend):
+    def test_userinfo_endpoint_with_extra_scopes(
+        self, context, frontend_with_extra_scopes, authn_req_with_extra_scopes
+    ):
+        user_id = USERS["testuser1"]["eduPersonTargetedID"][0]
+        self.insert_client_in_client_db(
+            frontend_with_extra_scopes, authn_req_with_extra_scopes["redirect_uri"]
+        )
+        self.insert_user_in_user_db(frontend_with_extra_scopes, user_id)
+
+        token = self.create_access_token(
+            frontend_with_extra_scopes, user_id, authn_req_with_extra_scopes
+        )
         context.request = {}
-        context.request_authorization = ""
-
-        response = frontend.userinfo_endpoint(context)
-        assert response.status == "401 Unauthorized"
+        context.request_authorization = "Bearer {}".format(token)
+        response = frontend_with_extra_scopes.userinfo_endpoint(context)
+        parsed = OpenIDSchema().deserialize(response.message, "json")
+        assert parsed["email"] == "test@example.com"
+        # TODO
+        assert parsed["eduperson_scoped_affiliation"] == ["student@example.com"]
+        assert parsed["eduperson_principal_name"] == ["test@example.com"]
 
     def test_userinfo_with_invalid_token(self, context, frontend):
         context.request = {}
@@ -333,32 +494,41 @@ class TestOpenIDConnectFrontend(object):
         response = frontend.userinfo_endpoint(context)
         assert response.status == "401 Unauthorized"
 
-    def test_full_flow(self, context, frontend):
+    def test_full_flow(self, context, frontend_with_extra_scopes):
         redirect_uri = "https://client.example.com/redirect"
         response_type = "code id_token token"
         mock_callback = Mock()
-        frontend.auth_req_callback_func = mock_callback
+        frontend_with_extra_scopes.auth_req_callback_func = mock_callback
         # discovery
-        http_response = frontend.provider_config(context)
+        http_response = frontend_with_extra_scopes.provider_config(context)
         provider_config = ProviderConfigurationResponse().deserialize(http_response.message, "json")
 
         # client registration
         registration_request = RegistrationRequest(redirect_uris=[redirect_uri], response_types=[response_type])
         context.request = registration_request.to_dict()
-        http_response = frontend.client_registration(context)
+        http_response = frontend_with_extra_scopes.client_registration(context)
         registration_response = RegistrationResponse().deserialize(http_response.message, "json")
 
         # authentication request
-        authn_req = AuthorizationRequest(redirect_uri=redirect_uri, client_id=registration_response["client_id"],
-                                         response_type=response_type, scope="openid email", state="state",
-                                         nonce="nonce")
+        authn_req = AuthorizationRequest(
+            redirect_uri=redirect_uri,
+            client_id=registration_response["client_id"],
+            response_type=response_type,
+            scope="openid email eduperson",
+            state="state",
+            nonce="nonce",
+        )
         context.request = dict(parse_qsl(authn_req.to_urlencoded()))
-        frontend.handle_authn_request(context)
+        frontend_with_extra_scopes.handle_authn_request(context)
         assert mock_callback.call_count == 1
 
         # fake authentication response from backend
-        internal_response = self.setup_for_authn_response(context, frontend, authn_req)
-        http_response = frontend.handle_authn_response(context, internal_response)
+        internal_response = self.setup_for_authn_response(
+            context, frontend_with_extra_scopes, authn_req
+        )
+        http_response = frontend_with_extra_scopes.handle_authn_response(
+            context, internal_response
+        )
         authn_resp = AuthorizationResponse().deserialize(urlparse(http_response.message).fragment, "urlencoded")
         assert "code" in authn_resp
         assert "access_token" in authn_resp
@@ -370,7 +540,7 @@ class TestOpenIDConnectFrontend(object):
         basic_auth = urlsafe_b64encode(credentials.encode("utf-8")).decode("utf-8")
         context.request_authorization = "Basic {}".format(basic_auth)
 
-        http_response = frontend.token_endpoint(context)
+        http_response = frontend_with_extra_scopes.token_endpoint(context)
         parsed = AccessTokenResponse().deserialize(http_response.message, "json")
         assert "access_token" in parsed
         assert "id_token" in parsed
@@ -378,6 +548,8 @@ class TestOpenIDConnectFrontend(object):
         # userinfo request
         context.request = {}
         context.request_authorization = "Bearer {}".format(parsed["access_token"])
-        http_response = frontend.userinfo_endpoint(context)
+        http_response = frontend_with_extra_scopes.userinfo_endpoint(context)
         parsed = OpenIDSchema().deserialize(http_response.message, "json")
         assert "email" in parsed
+        assert "eduperson_principal_name" in parsed
+        assert "eduperson_scoped_affiliation" in parsed
