@@ -259,7 +259,11 @@ class OpenIDConnectFrontend(FrontendModule):
         return Response(self.provider.provider_configuration.to_json(), content="application/json")
 
     def _get_approved_attributes(self, provider_supported_claims, authn_req):
-        requested_claims = list(scope2claims(authn_req["scope"]).keys())
+        requested_claims = list(
+            scope2claims(
+                authn_req["scope"], self.config["provider"].get("extra_scopes")
+            ).keys()
+        )
         if "claims" in authn_req:
             for k in ["id_token", "userinfo"]:
                 if k in authn_req["claims"]:
