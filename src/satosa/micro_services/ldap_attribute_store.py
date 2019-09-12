@@ -17,7 +17,6 @@ import urllib
 
 from ldap3.core.exceptions import LDAPException
 
-
 logger = logging.getLogger(__name__)
 
 KEY_FOUND_LDAP_RECORD = 'ldap_attribute_store_found_record'
@@ -53,7 +52,7 @@ class LdapAttributeStore(ResponseMicroService):
         'user_id_from_attrs':            [],
         'read_only':                     True,
         'version':                       3,
-        'auto_bind':                     False,
+        'auto_bind':                     'AUTO_BIND_TLS_BEFORE_BIND',
         'client_strategy':               'REUSABLE',
         'pool_size':                     10,
         'pool_keepalive':                10,
@@ -287,7 +286,15 @@ class LdapAttributeStore(ResponseMicroService):
         msg = "Using bind DN {}".format(bind_dn)
         satosa_logging(logger, logging.DEBUG, msg, None)
 
-        auto_bind = config['auto_bind']
+        auto_bind_string = config['auto_bind']
+        auto_bind_map = {
+             'AUTO_BIND_NONE': ldap3.AUTO_BIND_NONE,
+             'AUTO_BIND_NO_TLS': ldap3.AUTO_BIND_NO_TLS,
+             'AUTO_BIND_TLS_AFTER_BIND': ldap3.AUTO_BIND_TLS_AFTER_BIND,
+             'AUTO_BIND_TLS_BEFORE_BIND': ldap3.AUTO_BIND_TLS_BEFORE_BIND
+             }
+        auto_bind = auto_bind_map[auto_bind_string]
+
         read_only = config['read_only']
         version = config['version']
 
