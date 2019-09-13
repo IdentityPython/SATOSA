@@ -329,32 +329,24 @@ class LdapAttributeStore(ResponseMicroService):
 
         return connection
 
-    def _populate_attributes(self, config, record, context, data):
+    def _populate_attributes(self, config, record):
         """
         Use a record found in LDAP to populate attributes.
         """
-        state = context.state
-        attributes = data.attributes
-
-        if config["ldap_to_internal_map"]:
-            ldap_to_internal_map = config["ldap_to_internal_map"]
-        else:
+        ldap_to_internal_map = (
+            config["ldap_to_internal_map"]
+            if config["ldap_to_internal_map"]
             # Deprecated configuration. Will be removed in future.
-            ldap_to_internal_map = config["search_return_attributes"]
-        for attr in ldap_to_internal_map.keys():
-            if attr in record["attributes"]:
-                if record["attributes"][attr]:
-                    internal_attr = ldap_to_internal_map[attr]
-                    value = record["attributes"][attr]
-                    attributes[internal_attr] = value
-                    msg = "Setting internal attribute {} with values {}"
-                    msg = msg.format(internal_attr, value)
-                    satosa_logging(logger, logging.DEBUG, msg, state)
-                else:
-                    msg = "Not setting internal attribute {} because value {}"
-                    msg = msg + " is null or empty"
-                    msg = msg.format(internal_attr, value)
-                    satosa_logging(logger, logging.DEBUG, msg, state)
+            else config["search_return_attributes"]
+        )
+
+        new_attr_values = {
+            internal_attr: value
+            for attr, internal_attr in ldap_to_internal_map.items()
+            for value in [record["attributes"].get(attr)]
+            if value
+        }
+        return new_attr_values
 
     def _populate_input_for_name_id(self, config, record, context, data):
         """
@@ -546,7 +538,9 @@ class LdapAttributeStore(ResponseMicroService):
             satosa_logging(logger, logging.DEBUG, msg, state)
 
             # Populate attributes as configured.
-            self._populate_attributes(config, record, context, data)
+            new_attrs = self._populate_attributes(config, record)
+            msg = "Updating internal attributes with new values {}".format(new_attrs)
+            satosa_logging(logger, logging.DEBUG, msg, None)
 
             # Populate input for NameID if configured. SATOSA core does the
             # hashing of input to create a persistent NameID.
