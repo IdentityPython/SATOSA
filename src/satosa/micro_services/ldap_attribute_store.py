@@ -12,6 +12,8 @@ import urllib
 import ldap3
 from ldap3.core.exceptions import LDAPException
 
+from collections import defaultdict
+
 from satosa.exception import SATOSAError
 from satosa.logging_util import satosa_logging
 from satosa.micro_services.base import ResponseMicroService
@@ -46,6 +48,7 @@ class LdapAttributeStore(ResponseMicroService):
         "ldap_to_internal_map": None,
         "on_ldap_search_result_empty": None,
         "ordered_identifier_candidates": None,
+        "overwrite_existing_attributes": True,
         "search_base": None,
         "query_return_attributes": None,
         "search_return_attributes": None,
@@ -333,6 +336,13 @@ class LdapAttributeStore(ResponseMicroService):
         """
         Use a record found in LDAP to populate attributes.
         """
+
+        ldap_attributes = record.get("attributes", None)
+        if not ldap_attributes:
+            msg = "No attributes returned with LDAP record"
+            satosa_logging(logger, logging.DEBUG, msg, None)
+            return
+
         ldap_to_internal_map = (
             config["ldap_to_internal_map"]
             if config["ldap_to_internal_map"]
@@ -340,13 +350,21 @@ class LdapAttributeStore(ResponseMicroService):
             else config["search_return_attributes"]
         )
 
-        new_attr_values = {
-            internal_attr: value
-            for attr, internal_attr in ldap_to_internal_map.items()
-            for value in [record["attributes"].get(attr)]
-            if value
-        }
-        return new_attr_values
+        attributes = defaultdict(list)
+
+        for attr, values in ldap_attributes.items():
+            internal_attr = ldap_to_internal_map.get(attr, None)
+            if not internal_attr and ';' in attr:
+                internal_attr = ldap_to_internal_map.get(attr.split(';')[0],
+                                                         None)
+
+            if internal_attr and values:
+                attributes[internal_attr].extend(values)
+                msg = "Recording internal attribute {} with values {}"
+                msg = msg.format(internal_attr, attributes[internal_attr])
+                satosa_logging(logger, logging.DEBUG, msg, None)
+
+        return attributes
 
     def _populate_input_for_name_id(self, config, record, data):
         """
@@ -399,7 +417,7 @@ class LdapAttributeStore(ResponseMicroService):
                     data.subject_id,
                     data.subject_type,
                     issuer,
-                    data.attriutes,
+                    data.attributes,
                 )
             ]
             # If we have constructed a non empty value then add it as the next
@@ -506,8 +524,12 @@ class LdapAttributeStore(ResponseMicroService):
 
             # Populate attributes as configured.
             new_attrs = self._populate_attributes(config, record)
-            msg = "Updating internal attributes with new values {}".format(new_attrs)
-            satosa_logging(logger, logging.DEBUG, msg, None)
+
+            overwrite = config["overwrite_existing_attributes"]
+            for attr, values in new_attrs.items():
+                if not overwrite:
+                    values = list(set(data.attributes.get(attr, []) + values))
+                data.attributes[attr] = values
 
             # Populate input for NameID if configured. SATOSA core does the
             # hashing of input to create a persistent NameID.
