@@ -5,17 +5,18 @@ directory for a record and then consume attributes from
 the record and assert them to the receiving SP.
 """
 
-from satosa.micro_services.base import ResponseMicroService
-from satosa.logging_util import satosa_logging
-from satosa.response import Redirect
-from satosa.exception import SATOSAError
-
 import copy
 import logging
-import ldap3
 import urllib
 
+import ldap3
 from ldap3.core.exceptions import LDAPException
+
+from satosa.exception import SATOSAError
+from satosa.logging_util import satosa_logging
+from satosa.micro_services.base import ResponseMicroService
+from satosa.response import Redirect
+
 
 logger = logging.getLogger(__name__)
 
