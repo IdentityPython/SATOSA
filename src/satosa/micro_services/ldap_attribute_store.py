@@ -348,41 +348,21 @@ class LdapAttributeStore(ResponseMicroService):
         }
         return new_attr_values
 
-    def _populate_input_for_name_id(self, config, record, context, data):
+    def _populate_input_for_name_id(self, config, record, data):
         """
         Use a record found in LDAP to populate input for
         NameID generation.
         """
-        state = context.state
-
-        user_id = ""
         user_id_from_attrs = config["user_id_from_attrs"]
-        for attr in user_id_from_attrs:
-            if attr in record["attributes"]:
-                value = record["attributes"][attr]
-                if isinstance(value, list):
-                    # Use a default sort to ensure some predictability since
-                    # the # LDAP directory server may return multi-valued
-                    # attributes in any order.
-                    value.sort()
-                    user_id += "".join(value)
-                    msg = "Added attribute {} with values {} "
-                    msg = msg + "to input for NameID"
-                    msg = msg.format(attr, value)
-                    satosa_logging(logger, logging.DEBUG, msg, state)
-                else:
-                    user_id += value
-                    msg = "Added attribute {} with value {} to input "
-                    msg = msg + "for NameID"
-                    msg = msg.format(attr, value)
-                    satosa_logging(logger, logging.DEBUG, msg, state)
-        if not user_id:
-            msg = "Input for NameID is empty so not overriding default"
-            satosa_logging(logger, logging.WARNING, msg, state)
-        else:
-            data.subject_id = user_id
-            msg = "Input for NameID is {}".format(data.subject_id)
-            satosa_logging(logger, logging.DEBUG, msg, state)
+        user_ids = [
+            sorted_list_value
+            for attr in user_id_from_attrs
+            for value in [record["attributes"].get(attr)]
+            if value
+            for list_value in [value if type(value) is list else [value]]
+            for sorted_list_value in sorted(list_value)
+        ]
+        return user_ids
 
     def process(self, context, data):
         """
@@ -544,7 +524,11 @@ class LdapAttributeStore(ResponseMicroService):
 
             # Populate input for NameID if configured. SATOSA core does the
             # hashing of input to create a persistent NameID.
-            self._populate_input_for_name_id(config, record, context, data)
+            user_ids = self._populate_input_for_name_id(config, record, data)
+            if user_ids:
+                data.subject_id = "".join(user_ids)
+            msg = "NameID value is {}".format(data.subject_id)
+            satosa_logging(logger, logging.DEBUG, msg, None)
 
             # Add the record to the context so that later microservices
             # may use it if required.
