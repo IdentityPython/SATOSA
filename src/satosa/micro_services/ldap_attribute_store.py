@@ -28,8 +28,6 @@ class LdapAttributeStoreError(SATOSAError):
     LDAP attribute store error
     """
 
-    pass
-
 
 class LdapAttributeStore(ResponseMicroService):
     """
