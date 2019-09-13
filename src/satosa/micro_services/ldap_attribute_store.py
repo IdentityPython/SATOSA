@@ -239,14 +239,12 @@ class LdapAttributeStore(ResponseMicroService):
         dictionary.
         """
         filter_fields_default = ["bind_password", "connection"]
-
         filter_fields = fields or filter_fields_default
-        return dict(
-            map(
-                lambda key: (key, "<hidden>" if key in filter_fields else config[key]),
-                config.keys(),
-            )
-        )
+        result = {
+            field: "<hidden>" if field in filter_fields else value
+            for field, value in config.items()
+        }
+        return result
 
     def _ldap_connection_factory(self, config):
         """
