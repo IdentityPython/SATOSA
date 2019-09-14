@@ -702,6 +702,7 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
     KEY_CO_NAME = 'co_name'
     KEY_CO_ENTITY_ID = 'co_entity_id'
     KEY_CO_ATTRIBUTES = 'co_static_saml_attributes'
+    KEY_CO_ATTRIBUTE_SCOPE = 'co_attribute_scope'
     KEY_CONTACT_PERSON = 'contact_person'
     KEY_ENCODEABLE_NAME = 'encodeable_name'
     KEY_ORGANIZATION = 'organization'
@@ -773,6 +774,11 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         state[self.KEY_CO_NAME] = context.get_decoration(self.KEY_CO_NAME)
         state[self.KEY_CO_ENTITY_ID] = context.get_decoration(
                                                          self.KEY_CO_ENTITY_ID)
+
+        co_config = self._get_co_config(context)
+        state[self.KEY_CO_ATTRIBUTE_SCOPE] = co_config.get(
+                                                self.KEY_CO_ATTRIBUTE_SCOPE,
+                                                None)
 
         return state
 
