@@ -65,9 +65,9 @@ class ModuleRouter(object):
         else:
             self.micro_services = {}
 
-        logger.debug("Loaded backends with endpoints: %s" % backends)
-        logger.debug("Loaded frontends with endpoints: %s" % frontends)
-        logger.debug("Loaded micro services with endpoints: %s" % micro_services)
+        logger.debug("Loaded backends with endpoints: {}".format(backends))
+        logger.debug("Loaded frontends with endpoints: {}".format(frontends))
+        logger.debug("Loaded micro services with endpoints: {}".format(micro_services))
 
     def backend_routing(self, context):
         """
@@ -79,7 +79,9 @@ class ModuleRouter(object):
         :param context: The request context
         :return: backend
         """
-        logger.debug("Routing to backend: %s " % context.target_backend)        
+        msg =  "Routing to backend: {backend}".format(backend=context.target_backend)
+        logline = "[{id}] {message}".format(id=context.state, message=msg)
+        logger.debug(logline)        
         backend = self.backends[context.target_backend]["instance"]
         context.state[STATE_KEY] = context.target_frontend
         return backend
@@ -96,7 +98,9 @@ class ModuleRouter(object):
         """
 
         target_frontend = context.state[STATE_KEY]
-        logger.debug("Routing to frontend: %s " % target_frontend)        
+        msg = "Routing to frontend: {frontend} ".format (frontend=target_frontend)
+        logline = "[{id}] {message}".format(id=context.state, message=msg)
+        logger.debug(logline)        
         context.target_frontend = target_frontend
         frontend = self.frontends[context.target_frontend]["instance"]
         return frontend
@@ -138,14 +142,17 @@ class ModuleRouter(object):
             logger.debug("Context did not contain a path!")         
             raise SATOSABadContextError("Context did not contain any path")
 
-        logger.debug("Routing path: %s" % context.path)        
+        msg = "Routing path: {path}".format(path=context.path)
+        logline = "[{id}] {message}".format(id=context.state, message=msg)
+        logger.debug(logline)        
         path_split = context.path.split("/")
         backend = path_split[0]
 
         if backend in self.backends:
             context.target_backend = backend
         else:
-            logger.debug("Unknown backend %s" % backend)            
+            msg = "Unknown backend {}".format(backend)
+            logger.debug(msg)
 
         try:
             name, frontend_endpoint = self._find_registered_endpoint(context, self.frontends)
