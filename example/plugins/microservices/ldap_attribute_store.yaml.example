@@ -1,73 +1,110 @@
 module: LdapAttributeStore
 name: LdapAttributeStore
 config:
+
+  # The microservice may be configured per SP.
+  # The configuration key is the entityID of the SP.
+  # The empty key ("") specifies the default configuration
   "":
       ldap_url: ldaps://ldap.example.org
       bind_dn: cn=admin,dc=example,dc=org
       bind_password: xxxxxxxx
       search_base: ou=People,dc=example,dc=org
-      read_only : true
-      version : 3
+      read_only: true
+      auto_bind: true
+      version: 3
 
-      # see ldap3 client_strategies
-      client_strategy : RESTARTABLE
-      auto_bind : true
-      pool_size : 10
-      pool_keepalive : 10
+      ## See ldap3 client_strategies. The default is REUSABLE.
+      client_strategy: RESTARTABLE
+      ## Specify pool settings when using REUSABLE client strategy.
+      # pool_size: number of open connection; default: 10
+      pool_size: 10
+      # pool_keepalive: seconds to wait between calls to server to keep the
+      # connection alive; default: 10
+      pool_keepalive: 10
 
-      search_return_attributes:
-        # Format is LDAP attribute name : internal attribute name
+      # Attributes to return from LDAP query.
+      query_return_attributes:
+        - sn
+        - givenName
+        - mail
+        - employeeNumber
+        - isMemberOf
+
+      # LDAP attribute to internal attribute mapping.
+      ldap_to_internal_map:
         sn: surname
         givenName: givenname
         mail: mail
         employeeNumber: employeenumber
         isMemberOf: ismemberof
-      # LDAP connection pool size
-      pool_size: 10
-      # LDAP connection pool seconds to wait between calls out to server
-      # to keep the connection alive (uses harmless Abandon(0) call)
-      pool_keepalive: 10
+
+      # Deprecated.
+      # Use query_return_attributes and ldap_to_internal_map instead.
+      # Format is LDAP attribute name: internal attribute name
+      search_return_attributes:
+        sn: surname
+        givenName: givenname
+        mail: mail
+        employeeNumber: employeenumber
+        isMemberOf: ismemberof
+
+      # Ordered list of identifiers to use when constructing the search filter
+      # to find the user record in LDAP directory.
+      #
+      # This example searches in order for eduPersonUniqueId,
+      # eduPersonPrincipalName combined with SAML persistent NameID,
+      # eduPersonPrincipalName combined with eduPersonTargetedId,
+      # eduPersonPrincipalName, SAML persistent NameID, and
+      # eduPersonTargetedId.
       ordered_identifier_candidates:
-        # Ordered list of identifiers to use when constructing the
-        # search filter  to find the user record in LDAP directory.
-        # This example searches in order for eduPersonUniqueId, eduPersonPrincipalName
-        # combined with SAML persistent NameID, eduPersonPrincipalName
-        # combined with eduPersonTargetedId, eduPersonPrincipalName,
-        # SAML persistent NameID, and eduPersonTargetedId.
-        - attribute_names: [epuid]
-        - attribute_names: [eppn, name_id]
+        - attribute_names:
+            - epuid
+        - attribute_names:
+            - eppn
+            - name_id
           name_id_format: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
-        - attribute_names: [eppn, edupersontargetedid]
-        - attribute_names: [eppn]
-        - attribute_names: [name_id]
+        - attribute_names:
+            - eppn
+            - edupersontargetedid
+        - attribute_names:
+            - eppn
+        - attribute_names:
+            - name_id
           name_id_format: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
           add_scope: issuer_entityid
-        - attribute_names: [edupersontargetedid]
+        - attribute_names:
+            - edupersontargetedid
           add_scope: issuer_entityid
+
       ldap_identifier_attribute: uid
+
       # Whether to clear values for attributes incoming
       # to this microservice. Default is no or false.
       clear_input_attributes: no
+
       # List of LDAP attributes to use as input to hashing to create
       # NameID.
       user_id_from_attrs:
         - employeeNumber
+
       # Where to redirect the browser if no record is returned
       # from LDAP. The default is not to redirect.
       on_ldap_search_result_empty: https://my.vo.org/please/go/enroll
-  # Configuration may also be done per-SP with any
-  # missing parameters taken from the default if any.
+
+  # The microservice may be configured per SP.
   # The configuration key is the entityID of the SP.
-  #
-  # For example:
+  # Αny missing parameters are looked up from the default configuration.
   https://sp.myserver.edu/shibboleth-sp:
     search_base: ou=People,o=MyVO,dc=example,dc=org
     search_return_attributes:
         employeeNumber: employeenumber
     ordered_identifier_candidates:
-      - attribute_names: [eppn]
+      - attribute_names:
+          - eppn
     user_id_from_attrs:
       - uid
+
   # The microservice may be configured to ignore a particular SP.
   https://another.sp.myserver.edu:
     ignore: true
