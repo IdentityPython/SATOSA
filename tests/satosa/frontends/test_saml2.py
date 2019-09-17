@@ -412,6 +412,7 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
     CO_C = "countryname"
     CO_CO = "friendlycountryname"
     CO_NOREDUORGACRONYM = "noreduorgacronym"
+    CO_SCOPE = "messproject.org"
     CO_STATIC_SAML_ATTRIBUTES = {
         CO_O: ["Medium Energy Synchrotron Source"],
         CO_C: ["US"],
@@ -438,7 +439,8 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
         # SAML attributes so their presence in a SAML Response can be tested.
         collab_org = {
             "encodeable_name": self.CO,
-            "co_static_saml_attributes": self.CO_STATIC_SAML_ATTRIBUTES
+            "co_static_saml_attributes": self.CO_STATIC_SAML_ATTRIBUTES,
+            "co_attribute_scope": self.CO_SCOPE
         }
 
         # Use the dynamically updated idp_conf fixture, the configured
@@ -490,6 +492,8 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
 
         expected_entityid = "{}/{}".format(idp_conf['entityid'], self.CO)
         assert state[frontend.KEY_CO_ENTITY_ID] == expected_entityid
+
+        assert state[frontend.KEY_CO_ATTRIBUTE_SCOPE] == self.CO_SCOPE
 
     def test_get_co_name(self, frontend, context):
         co_name = frontend._get_co_name(context)
