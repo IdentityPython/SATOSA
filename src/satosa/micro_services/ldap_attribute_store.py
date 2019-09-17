@@ -354,9 +354,8 @@ class LdapAttributeStore(ResponseMicroService):
 
         for attr, values in ldap_attributes.items():
             internal_attr = ldap_to_internal_map.get(attr, None)
-            if not internal_attr and ';' in attr:
-                internal_attr = ldap_to_internal_map.get(attr.split(';')[0],
-                                                         None)
+            if not internal_attr and ";" in attr:
+                internal_attr = ldap_to_internal_map.get(attr.split(";")[0], None)
 
             if internal_attr and values:
                 attributes[internal_attr].extend(values)
