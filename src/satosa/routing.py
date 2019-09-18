@@ -79,9 +79,9 @@ class ModuleRouter(object):
         :param context: The request context
         :return: backend
         """
-        msg =  "Routing to backend: {backend}".format(backend=context.target_backend)
-        logline = "[{id}] {message}".format(id=context.state, message=msg)
-        logger.debug(logline)        
+        msg = "Routing to backend: {backend}".format(backend=context.target_backend)
+        logline = "[{id}] {message}".format(id=context.state.get("SESSION_ID"), message=msg)
+        logger.debug(logline)
         backend = self.backends[context.target_backend]["instance"]
         context.state[STATE_KEY] = context.target_frontend
         return backend
@@ -98,9 +98,9 @@ class ModuleRouter(object):
         """
 
         target_frontend = context.state[STATE_KEY]
-        msg = "Routing to frontend: {frontend} ".format (frontend=target_frontend)
-        logline = "[{id}] {message}".format(id=context.state, message=msg)
-        logger.debug(logline)        
+        msg = "Routing to frontend: {frontend}".format(frontend=target_frontend)
+        logline = "[{id}] {message}".format(id=context.state.get("SESSION_ID"), message=msg)
+        logger.debug(logline)
         context.target_frontend = target_frontend
         frontend = self.frontends[context.target_frontend]["instance"]
         return frontend
@@ -112,7 +112,9 @@ class ModuleRouter(object):
                 msg = "Found registered endpoint: module name:'{name}', endpoint: {endpoint}".format(
                     name=module["instance"].name,
                     endpoint=context.path)
-                logger.debug(msg)
+                logline = "[{id}] {message}".format(
+                        id=context.state.get("SESSION_ID"), message=msg)
+                logger.debug(logline)
                 return spec
 
         return None
@@ -139,12 +141,15 @@ class ModuleRouter(object):
         :return: registered endpoint and bound parameters
         """
         if context.path is None:
-            logger.debug("Context did not contain a path!")         
+            msg = "Context did not contain a path!"
+            logline = "[{id}] {message}".format(
+                    id=context.state.get("SESSION_ID"), message=msg)
+            logger.debug(logline)
             raise SATOSABadContextError("Context did not contain any path")
 
         msg = "Routing path: {path}".format(path=context.path)
-        logline = "[{id}] {message}".format(id=context.state, message=msg)
-        logger.debug(logline)        
+        logline = "[{id}] {message}".format(id=context.state.get("SESSION_ID"), message=msg)
+        logger.debug(logline)
         path_split = context.path.split("/")
         backend = path_split[0]
 
@@ -152,7 +157,8 @@ class ModuleRouter(object):
             context.target_backend = backend
         else:
             msg = "Unknown backend {}".format(backend)
-            logger.debug(msg)
+            logline = "[{id} {message}".format(id=context.state.get("SESSION_ID"), message=msg)
+            logger.debug(logline)
 
         try:
             name, frontend_endpoint = self._find_registered_endpoint(context, self.frontends)
