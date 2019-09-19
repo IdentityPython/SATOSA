@@ -38,15 +38,21 @@ satosa-saml-metadata              \
 	"${DATA_DIR}/metadata.crt"    \
 	--dir "${METADATA_DIR}"
 
+# if the user provided a gunicorn configuration, use it
 if [ -f "$GUNICORN_CONF" ]
 then conf_opt="--config ${GUNICORN_CONF}"
 fi
 
-# start the proxy
 # if HTTPS cert is available, use it
 https_key="${DATA_DIR}/https.key"
 https_crt="${DATA_DIR}/https.crt"
-if [ -f "$https_key" && -f "$https_crt" ]
-then exec gunicorn $conf_opt -b0.0.0.0:"${PROXY_PORT}" satosa.wsgi:app --keyfile "$https_key" --certfile "$https_crt"
-else exec gunicorn $conf_opt -b0.0.0.0:"${PROXY_PORT}" satosa.wsgi:app
+if [ -f "$https_key" -a -f "$https_crt" ]
+then https_opts="--keyfile ${https_key} --certfile ${https_crt}"
 fi
+
+# start the proxy
+exec gunicorn $conf_opt        \
+	-b 0.0.0.0:"${PROXY_PORT}" \
+	satosa.wsgi:app            \
+	$https_opts                \
+	;
