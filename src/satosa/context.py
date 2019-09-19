@@ -1,4 +1,4 @@
-from .exception import SATOSAError
+from satosa.exception import SATOSAError
 
 
 class SATOSABadContextError(SATOSAError):
