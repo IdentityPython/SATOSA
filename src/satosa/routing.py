@@ -6,7 +6,6 @@ import re
 
 from .context import SATOSABadContextError
 from .exception import SATOSAError
-from .logging_util import satosa_logging
 
 logger = logging.getLogger(__name__)
 
@@ -66,9 +65,9 @@ class ModuleRouter(object):
         else:
             self.micro_services = {}
 
-        logger.debug("Loaded backends with endpoints: %s" % backends)
-        logger.debug("Loaded frontends with endpoints: %s" % frontends)
-        logger.debug("Loaded micro services with endpoints: %s" % micro_services)
+        logger.debug("Loaded backends with endpoints: {}".format(backends))
+        logger.debug("Loaded frontends with endpoints: {}".format(frontends))
+        logger.debug("Loaded micro services with endpoints: {}".format(micro_services))
 
     def backend_routing(self, context):
         """
@@ -80,7 +79,9 @@ class ModuleRouter(object):
         :param context: The request context
         :return: backend
         """
-        satosa_logging(logger, logging.DEBUG, "Routing to backend: %s " % context.target_backend, context.state)
+        msg = "Routing to backend: {backend}".format(backend=context.target_backend)
+        logline = "[{id}] {message}".format(id=context.state.get("SESSION_ID"), message=msg)
+        logger.debug(logline)
         backend = self.backends[context.target_backend]["instance"]
         context.state[STATE_KEY] = context.target_frontend
         return backend
@@ -97,7 +98,9 @@ class ModuleRouter(object):
         """
 
         target_frontend = context.state[STATE_KEY]
-        satosa_logging(logger, logging.DEBUG, "Routing to frontend: %s " % target_frontend, context.state)
+        msg = "Routing to frontend: {frontend}".format(frontend=target_frontend)
+        logline = "[{id}] {message}".format(id=context.state.get("SESSION_ID"), message=msg)
+        logger.debug(logline)
         context.target_frontend = target_frontend
         frontend = self.frontends[context.target_frontend]["instance"]
         return frontend
@@ -109,7 +112,9 @@ class ModuleRouter(object):
                 msg = "Found registered endpoint: module name:'{name}', endpoint: {endpoint}".format(
                     name=module["instance"].name,
                     endpoint=context.path)
-                satosa_logging(logger, logging.DEBUG, msg, context.state)
+                logline = "[{id}] {message}".format(
+                        id=context.state.get("SESSION_ID"), message=msg)
+                logger.debug(logline)
                 return spec
 
         return None
@@ -136,17 +141,24 @@ class ModuleRouter(object):
         :return: registered endpoint and bound parameters
         """
         if context.path is None:
-            satosa_logging(logger, logging.DEBUG, "Context did not contain a path!", context.state)
+            msg = "Context did not contain a path!"
+            logline = "[{id}] {message}".format(
+                    id=context.state.get("SESSION_ID"), message=msg)
+            logger.debug(logline)
             raise SATOSABadContextError("Context did not contain any path")
 
-        satosa_logging(logger, logging.DEBUG, "Routing path: %s" % context.path, context.state)
+        msg = "Routing path: {path}".format(path=context.path)
+        logline = "[{id}] {message}".format(id=context.state.get("SESSION_ID"), message=msg)
+        logger.debug(logline)
         path_split = context.path.split("/")
         backend = path_split[0]
 
         if backend in self.backends:
             context.target_backend = backend
         else:
-            satosa_logging(logger, logging.DEBUG, "Unknown backend %s" % backend, context.state)
+            msg = "Unknown backend {}".format(backend)
+            logline = "[{id} {message}".format(id=context.state.get("SESSION_ID"), message=msg)
+            logger.debug(logline)
 
         try:
             name, frontend_endpoint = self._find_registered_endpoint(context, self.frontends)
