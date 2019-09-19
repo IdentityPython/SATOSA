@@ -1,10 +1,18 @@
-"""
-Python logging package
-"""
 from uuid import uuid4
+
 
 # The state key for saving the session id in the state
 LOGGER_STATE_KEY = "SESSION_ID"
+LOG_FMT = "[{id}] {message}"
+
+
+def get_session_id(state):
+    session_id = (
+        "UNKNOWN"
+        if state is None
+        else state.get(LOGGER_STATE_KEY, uuid4().urn)
+    )
+    return session_id
 
 
 def satosa_logging(logger, level, message, state, **kwargs):
@@ -22,12 +30,6 @@ def satosa_logging(logger, level, message, state, **kwargs):
     :param state: The current state
     :param kwargs: set exc_info=True to get an exception stack trace in the log
     """
-    if state is None:
-        session_id = "UNKNOWN"
-    else:
-        try:
-            session_id = state[LOGGER_STATE_KEY]
-        except KeyError:
-            session_id = uuid4().urn
-            state[LOGGER_STATE_KEY] = session_id
-    logger.log(level, "[{id}] {msg}".format(id=session_id, msg=message), **kwargs)
+    session_id = get_session_id(state)
+    logline = LOG_FMT.format(id=session_id, message=message)
+    logger.log(level, logline, **kwargs)
