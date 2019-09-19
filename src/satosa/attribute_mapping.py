@@ -98,7 +98,7 @@ class AttributeMapper(object):
                                                                                 external_dict)
             if attribute_values:  # Only insert key if it has some values
                 logger.debug("backend attribute '%s' mapped to %s" % (external_attribute_name,
-                                                            internal_attribute_name))
+                                                                      internal_attribute_name))
                 internal_dict[internal_attribute_name] = attribute_values
             else:
                 logger.debug("skipped backend attribute '%s': no value found", external_attribute_name)
@@ -122,7 +122,7 @@ class AttributeMapper(object):
         t = Template(template, cache_enabled=True, imports=["from satosa.attribute_mapping import scope"])
         try:
             return t.render(**data).split(self.multivalue_separator)
-        except (NameError, TypeError) as e:
+        except (NameError, TypeError):
             return []
 
     def _handle_template_attributes(self, attribute_profile, internal_dict):
@@ -187,8 +187,7 @@ class AttributeMapper(object):
             if attribute_profile not in attribute_mapping:
                 # skip this internal attribute if we have no mapping in the specified profile
                 logger.debug("no mapping found for '%s' in attribute profile '%s'" %
-                             (internal_attribute_name,
-                             attribute_profile))
+                             (internal_attribute_name, attribute_profile))
                 continue
 
             external_attribute_names = self.from_internal_attributes[internal_attribute_name][attribute_profile]

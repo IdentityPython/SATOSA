@@ -8,12 +8,9 @@ class SATOSABadContextError(SATOSAError):
     pass
 
 
-"""
-Holds methods for sending internal data through the satosa proxy
-"""
 class Context(object):
     """
-    Holds information about the current request.
+    Holds methods for sharing proxy data through the current request
     """
     KEY_BACKEND_METADATA_STORE = 'metadata_store'
     KEY_TARGET_ENTITYID = 'target_entity_id'
