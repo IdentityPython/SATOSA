@@ -1,0 +1,57 @@
+# Render with https://www.websequencediagrams.com
+
+title SATOSA SAML Authn Response
+# v3.4.8
+
+note right of Gunicorn: GET \nsaml2/acs/post
+Gunicorn->*SATOSA_STATE: preceding\nAuthnRequest
+Gunicorn->+WsgiApplication\n(SATOSABase): __call__
+WsgiApplication\n(SATOSABase)->*Context:
+WsgiApplication\n(SATOSABase)->WsgiApplication\n(SATOSABase): unpack_request()
+WsgiApplication\n(SATOSABase)->+WsgiApplication\n(SATOSABase): run(Context)
+WsgiApplication\n(SATOSABase)->+WsgiApplication\n(SATOSABase): _load_state(Context)
+  SATOSA_STATE-->WsgiApplication\n(SATOSABase):
+WsgiApplication\n(SATOSABase)-->-WsgiApplication\n(SATOSABase):
+WsgiApplication\n(SATOSABase)->+ModuleRouter: endpoint_routing(context) -> endpoint
+ModuleRouter-->-WsgiApplication\n(SATOSABase): authn_response
+
+WsgiApplication\n(SATOSABase)-->+WsgiApplication\n(SATOSABase): _run_bound_endpoint\n(\authn_response)
+WsgiApplication\n(SATOSABase)->+SAMLBackend\n(Backendmodule): authn_response
+SAMLBackend\n(Backendmodule)->+SAMLBackend\n(Backendmodule): _translate_response
+SAMLBackend\n(Backendmodule)->SAMLBackend\n(Backendmodule): saml2.sigver.\n_check_signature
+SAMLBackend\n(Backendmodule)->*InternalData:
+SAMLBackend\n(Backendmodule)-->-SAMLBackend\n(Backendmodule):
+SAMLBackend\n(Backendmodule)->+WsgiApplication\n(SATOSABase): _auth_resp_callback_func
+
+note over Context, SAMLFrontend
+  Incorrect notation: Looping over Response Micro Services is in fact a recursive design:
+  Each microservice calls the next in the list, and the last one calls _handle_authn_response().
+end note
+loop for all Response Micro Services
+  WsgiApplication\n(SATOSABase)->+Instances of \nRequestMicroService: process
+  Instances of \nRequestMicroService->+WsgiApplication\n(SATOSABase): _auth_resp_finish
+  WsgiApplication\n(SATOSABase)->+ModuleRouter:frontend_routing
+  ModuleRouter-->-WsgiApplication\n(SATOSABase): Frontend
+    WsgiApplication\n(SATOSABase)->+SAMLFrontend: handle_authn_response
+  SAMLFrontend->+SAMLFrontend: _handle_authn_response
+  SAMLFrontend->SAMLFrontend: load_state
+  SAMLFrontend->+SAMLFrontend: _get_approved_attributes
+  SAMLFrontend->+SAMLFrontend: _filter_attributes
+  SAMLFrontend->*Response:
+  SAMLFrontend-->-SAMLFrontend:
+  SAMLFrontend-->-SAMLFrontend: Response
+  SAMLFrontend-->-WsgiApplication\n(SATOSABase): Response
+  WsgiApplication\n(SATOSABase)-->-SAMLFrontend: Response
+  SAMLFrontend-->-WsgiApplication\n(SATOSABase): Response
+  WsgiApplication\n(SATOSABase)-->-Instances of \nRequestMicroService: Response
+  Instances of \nRequestMicroService-->-WsgiApplication\n(SATOSABase): Response
+end
+
+WsgiApplication\n(SATOSABase)-->-SAMLBackend\n(Backendmodule):
+SAMLBackend\n(Backendmodule)-->-WsgiApplication\n(SATOSABase):
+WsgiApplication\n(SATOSABase)-->-WsgiApplication\n(SATOSABase):
+WsgiApplication\n(SATOSABase)->+WsgiApplication\n(SATOSABase): _save_state(Context)
+  destroy SATOSA_STATE
+WsgiApplication\n(SATOSABase)-->WsgiApplication\n(SATOSABase):
+WsgiApplication\n(SATOSABase)-->-Gunicorn:
+

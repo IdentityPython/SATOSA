@@ -1,0 +1,50 @@
+# Render with https://www.websequencediagrams.com
+
+title SATOSA SAML Authn Request
+# v3.4.8
+
+
+note right of Gunicorn: GET \n/saml2/sso/redirect
+Gunicorn->+WsgiApplication\n(SATOSABase): __call__
+WsgiApplication\n(SATOSABase)->*Context:
+WsgiApplication\n(SATOSABase)->WsgiApplication\n(SATOSABase): unpack_request()\n-> Context.request
+
+WsgiApplication\n(SATOSABase)->+WsgiApplication\n(SATOSABase): run(Context)
+WsgiApplication\n(SATOSABase)->WsgiApplication\n(SATOSABase): _load_state(Context)
+WsgiApplication\n(SATOSABase)->+ModuleRouter: endpoint_routing(context)
+note right of ModuleRouter, SAMLFrontend\n(Frontendmodule): endpoint function=handle_authn_request
+ModuleRouter-->-WsgiApplication\n(SATOSABase): endpoint function
+
+WsgiApplication\n(SATOSABase)-->+WsgiApplication\n(SATOSABase): _run_bound_endpoint(\nhandle_authn_request)
+WsgiApplication\n(SATOSABase)->+SAMLFrontend\n(Frontendmodule): handle_authn_request
+SAMLFrontend\n(Frontendmodule)->+SAMLFrontend\n(Frontendmodule): _handle_authn_request
+SAMLFrontend\n(Frontendmodule)->SAMLFrontend\n(Frontendmodule): _create_state_data
+SAMLFrontend\n(Frontendmodule)->*InternalData:
+SAMLFrontend\n(Frontendmodule)->SAMLFrontend\n(Frontendmodule): _get_approved_attributes
+SAMLFrontend\n(Frontendmodule)->+WsgiApplication\n(SATOSABase): auth_req_callback_func
+
+note over ModuleRouter, SAMLBackend
+  Incorrect notation: Looping over Request Micro Services is in fact a recursive design:
+  Each microservice calls the next in the list, and the last one calls _auth_req_finish().
+end note
+loop for all Request Micro Services
+  WsgiApplication\n(SATOSABase)->+Instances of \nRequestMicroService: process
+  Instances of \nRequestMicroService->+WsgiApplication\n(SATOSABase): _auth_req_finish
+  WsgiApplication\n(SATOSABase)->+ModuleRouter:backend_routing
+  ModuleRouter-->-WsgiApplication\n(SATOSABase): Backend
+  WsgiApplication\n(SATOSABase)->+SAMLBackend: start_auth
+  SAMLBackend->+SAMLBackend: authn_request
+  SAMLBackend->*SeeOther\n(Response):
+  SAMLBackend-->-SAMLBackend:
+  SAMLBackend-->-WsgiApplication\n(SATOSABase):
+  WsgiApplication\n(SATOSABase)-->-Instances of \nRequestMicroService:
+  Instances of \nRequestMicroService-->-WsgiApplication\n(SATOSABase):
+end
+WsgiApplication\n(SATOSABase)-->-SAMLFrontend\n(Frontendmodule):
+
+SAMLFrontend\n(Frontendmodule)-->-SAMLFrontend\n(Frontendmodule):
+SAMLFrontend\n(Frontendmodule)-->-WsgiApplication\n(SATOSABase):
+WsgiApplication\n(SATOSABase)-->-WsgiApplication\n(SATOSABase):
+WsgiApplication\n(SATOSABase)->WsgiApplication\n(SATOSABase): _save_state(Context)
+WsgiApplication\n(SATOSABase)-->-WsgiApplication\n(SATOSABase): 
+WsgiApplication\n(SATOSABase)-->-Gunicorn:
