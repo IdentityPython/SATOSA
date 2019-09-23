@@ -151,6 +151,7 @@ Common configuration parameters:
 | `attribute_profile` | string | `saml` | attribute profile to use for mapping attributes from/to response
 | `entityid_endpoint` | bool | `true` | whether `entityid` should be used as a URL that serves the metadata xml document
 | `acr_mapping` | dict | `None` | custom Authentication Context Class Reference
+| `custom_metadata_url` | string | `custom_metadata/endpoint.xml` | custom metadata endpoint, in the case you want to serve your metadata on an endpoint other than the `entityId`s path. Will not get populated if the attribute is missing or empty, or when the `entityid_endpoint` property is not `true`.  |
 
 The metadata could be loaded in multiple ways in the table above it's loaded from a static
 file by using the key "local". It's also possible to load read the metadata from a remote URL.
