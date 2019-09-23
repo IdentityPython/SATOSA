@@ -3,6 +3,7 @@ Holds satosa routing logic
 """
 import logging
 import re
+import pprint
 
 from satosa.context import SATOSABadContextError
 from satosa.exception import SATOSAError
@@ -38,6 +39,9 @@ class ModuleRouter(object):
     and handles the internal routing between frontends and backends.
     """
 
+    def __format_endpoint_urls(self, endpoints):
+        return pprint.pformat([{i : v['endpoints']} for i, v in endpoints.items()])
+
     def __init__(self, frontends, backends, micro_services):
         """
         :type frontends: dict[str, satosa.frontends.base.FrontendModule]
@@ -68,8 +72,8 @@ class ModuleRouter(object):
         else:
             self.micro_services = {}
 
-        logger.debug("Loaded backends with endpoints: {}".format(backends))
-        logger.debug("Loaded frontends with endpoints: {}".format(frontends))
+        logger.debug("Loaded backends with endpoints: {}".format(self.__format_endpoint_urls(self.backends)))
+        logger.debug("Loaded frontends with endpoints: {}".format(self.__format_endpoint_urls(self.frontends)))
         logger.debug("Loaded micro services with endpoints: {}".format(micro_services))
 
     def backend_routing(self, context):

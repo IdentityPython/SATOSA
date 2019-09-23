@@ -458,12 +458,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
                 parsed_endp = urlparse(endp)
                 url_map.append(("(%s)/%s$" % (valid_providers, parsed_endp.path),
                                 functools.partial(self.handle_authn_request, binding_in=binding)))
-
-        if self.expose_entityid_endpoint():
-            parsed_entity_id = urlparse(self.idp.config.entityid)
-            url_map.append(("^{0}".format(parsed_entity_id.path[1:]),
-                            self._metadata_endpoint))
-
+        self.populate_entityid_urls(url_map, self.idp.config.entityid, self._metadata_endpoint)
         return url_map
 
     def _set_common_domain_cookie(self, internal_response, http_args, context):

@@ -452,11 +452,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                 url_map.append(
                     ("^%s$" % parsed_endp.path[1:], self.disco_response))
 
-        if self.expose_entityid_endpoint():
-            parsed_entity_id = urlparse(self.sp.config.entityid)
-            url_map.append(("^{0}".format(parsed_entity_id.path[1:]),
-                            self._metadata_endpoint))
-
+        self.populate_entityid_urls(url_map, self.sp.config.entityid, self._metadata_endpoint)
         return url_map
 
     def get_metadata_desc(self):

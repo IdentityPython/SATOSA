@@ -4,6 +4,7 @@ The SATOSA main module
 import json
 import logging
 import uuid
+from urllib.parse import urlparse
 import warnings as _warnings
 
 from saml2.s_utils import UnknownSystemEntity
@@ -306,6 +307,7 @@ class SATOSABase(object):
 
 class SAMLBaseModule(object):
     KEY_ENTITYID_ENDPOINT = 'entityid_endpoint'
+    KEY_METADATA_URL = 'custom_metadata_url'
     KEY_ATTRIBUTE_PROFILE = 'attribute_profile'
     KEY_ACR_MAPPING = 'acr_mapping'
     VALUE_ATTRIBUTE_PROFILE_DEFAULT = 'saml'
@@ -321,6 +323,26 @@ class SAMLBaseModule(object):
         value = self.config.get(self.KEY_ENTITYID_ENDPOINT, False)
         return bool(value)
 
+    def custom_metadata_url(self):
+        value = self.config.get(self.KEY_METADATA_URL, '')
+        return str(value)
+
+    def populate_entityid_urls(self, url_map, entity_id, metadata_endpoint_fct):
+        """
+        Populate the endpoints that return the metadata
+
+        :param url_map: A list of tuples from endpoint to a metadata endpoint function
+        :param entity_id: The entity id defined in the config
+        :param metadata_endpoint_fct: The function that handles the metadata endpoint
+        """
+        if self.expose_entityid_endpoint():
+            parsed_entity_id = urlparse(entity_id)
+            url_map.append(("^{0}".format(parsed_entity_id.path[1:]),
+                            metadata_endpoint_fct))
+            custom_metadata_url = self.custom_metadata_url()
+            if custom_metadata_url:
+                url_map.append(("^{0}".format(custom_metadata_url),
+                            metadata_endpoint_fct))
 
 class SAMLEIDASBaseModule(SAMLBaseModule):
     VALUE_ATTRIBUTE_PROFILE_DEFAULT = 'eidas'
