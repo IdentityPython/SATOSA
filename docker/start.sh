@@ -57,9 +57,9 @@ then chain_opts="--ca-certs chain.pem"
 fi
 
 # start the proxy
-exec gunicorn $conf_opt        \
+(cd $DATA_DIR; exec gunicorn $conf_opt        \
 	-b 0.0.0.0:"${PROXY_PORT}" \
 	satosa.wsgi:app            \
 	$https_opts                \
 	$chain_opts                \
-	;
+	;)
