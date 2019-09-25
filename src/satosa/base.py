@@ -307,7 +307,7 @@ class SATOSABase(object):
 
 class SAMLBaseModule(object):
     KEY_ENTITYID_ENDPOINT = 'entityid_endpoint'
-    KEY_METADATA_URL = 'custom_metadata_url'
+    KEY_METADATA_ENDPOINT = 'metadata_endpoint'
     KEY_ATTRIBUTE_PROFILE = 'attribute_profile'
     KEY_ACR_MAPPING = 'acr_mapping'
     VALUE_ATTRIBUTE_PROFILE_DEFAULT = 'saml'
@@ -323,8 +323,8 @@ class SAMLBaseModule(object):
         value = self.config.get(self.KEY_ENTITYID_ENDPOINT, False)
         return bool(value)
 
-    def custom_metadata_url(self):
-        value = self.config.get(self.KEY_METADATA_URL, '')
+    def metadata_endpoint(self):
+        value = self.config.get(self.KEY_METADATA_ENDPOINT, '')
         return str(value)
 
     def populate_entityid_urls(self, url_map, entity_id, metadata_endpoint_fct):
@@ -339,10 +339,10 @@ class SAMLBaseModule(object):
             parsed_entity_id = urlparse(entity_id)
             url_map.append(("^{0}".format(parsed_entity_id.path[1:]),
                             metadata_endpoint_fct))
-            custom_metadata_url = self.custom_metadata_url()
-            if custom_metadata_url:
-                url_map.append(("^{0}".format(custom_metadata_url),
-                            metadata_endpoint_fct))
+        metadata_endpoint = self.metadata_endpoint()
+        if metadata_endpoint:
+            url_map.append(("^{0}".format(metadata_endpoint),
+                        metadata_endpoint_fct))
 
 class SAMLEIDASBaseModule(SAMLBaseModule):
     VALUE_ATTRIBUTE_PROFILE_DEFAULT = 'eidas'

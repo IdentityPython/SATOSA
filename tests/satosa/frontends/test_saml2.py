@@ -142,16 +142,16 @@ class TestSAMLFrontend:
         for endp in all_idp_endpoints:
             assert any(p.match(endp) for p in compiled_regex)
 
-    def test_register_endpoints_custom_url_mapping(self, idp_conf):
+    def test_register_endpoints_metadata_endpoint_mapping(self, idp_conf):
         """
-        Tests the method register_endpoints
+        Tests the method register_endpoints when a metadata_endpoint is defined
         """
-        custom_metadata_url = "potato/test"
+        metadata_endpoint = "potato/test"
         def get_path_from_url(url):
             return urlparse(url).path.lstrip("/")
 
         config = {"idp_config": idp_conf, "endpoints": ENDPOINTS, 
-            "custom_metadata_url": custom_metadata_url, "entityid_endpoint": True }
+            "metadata_endpoint": metadata_endpoint, "entityid_endpoint": True }
 
         base_url = self.construct_base_url_from_entity_id(idp_conf["entityid"])
         samlfrontend = SAMLFrontend(lambda context, internal_req: (context, internal_req),
@@ -160,7 +160,7 @@ class TestSAMLFrontend:
         providers = ["foo", "bar"]
         url_map = samlfrontend.register_endpoints(providers)
         compiled_regex = [re.compile(regex) for regex, _ in url_map]
-        assert any(p.match(custom_metadata_url) for p in compiled_regex)
+        assert any(p.match(metadata_endpoint) for p in compiled_regex)
 
     def test_handle_authn_request(self, context, idp_conf, sp_conf, internal_response):
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf)
