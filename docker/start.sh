@@ -41,6 +41,7 @@ satosa-saml-metadata              \
 # if the user provided a gunicorn configuration, use it
 if [ -f "$GUNICORN_CONF" ]
 then conf_opt="--config ${GUNICORN_CONF}"
+else conf_opt="--chdir ${DATA_DIR}"
 fi
 
 # if HTTPS cert is available, use it
@@ -57,9 +58,9 @@ then chain_opts="--ca-certs chain.pem"
 fi
 
 # start the proxy
-(cd $DATA_DIR; exec gunicorn $conf_opt        \
+exec gunicorn $conf_opt        \
 	-b 0.0.0.0:"${PROXY_PORT}" \
 	satosa.wsgi:app            \
 	$https_opts                \
 	$chain_opts                \
-	;)
+	;
