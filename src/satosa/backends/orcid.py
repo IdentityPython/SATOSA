@@ -96,8 +96,7 @@ class OrcidBackend(_OAuthBackend):
         url = urljoin(base_url, '{}/person'.format(orcid))
         headers = {
             'Accept': 'application/orcid+json',
-            'Authorization type': 'Bearer',
-            'Access token': access_token,
+            'Authorization': "Bearer {}".format(access_token)
         }
         r = requests.get(url, headers=headers)
         r = r.json()
