@@ -102,7 +102,7 @@ class OrcidBackend(_OAuthBackend):
         r = r.json()
         emails, addresses = r['emails']['email'], r['addresses']['address']
         ret = dict(
-            address=', '.join([e['address'] for e in addresses]),
+            address=', '.join([e['country']['value'] for e in addresses]),
             displayname=name,
             edupersontargetedid=orcid, orcid=orcid,
             mail=' '.join([e['email'] for e in emails]),
