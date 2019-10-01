@@ -1,16 +1,13 @@
 import json
-from unittest.mock import Mock
-from urllib.parse import urljoin, urlparse, parse_qsl
-
 import pytest
 import responses
-
-from saml2.saml import NAMEID_FORMAT_TRANSIENT
 
 from satosa.backends.orcid import OrcidBackend
 from satosa.context import Context
 from satosa.internal import InternalData
 from satosa.response import Response
+from unittest.mock import Mock
+from urllib.parse import urljoin, urlparse, parse_qsl
 
 ORCID_PERSON_ID = "0000-0000-0000-0000"
 ORCID_PERSON_GIVEN_NAME = "orcid_given_name"
@@ -19,10 +16,17 @@ ORCID_PERSON_NAME = "{} {}".format(ORCID_PERSON_GIVEN_NAME, ORCID_PERSON_FAMILY_
 ORCID_PERSON_EMAIL = "orcid_email"
 ORCID_PERSON_COUNTRY = "XX"
 
+
 class TestOrcidBackend(object):
     @pytest.fixture(autouse=True)
     def create_backend(self, internal_attributes, backend_config):
-        self.orcid_backend = OrcidBackend(Mock(), internal_attributes, backend_config, backend_config["base_url"], "orcid")
+        self.orcid_backend = OrcidBackend(
+            Mock(),
+            internal_attributes,
+            backend_config,
+            backend_config["base_url"],
+            "orcid"
+        )
 
     @pytest.fixture
     def backend_config(self):
@@ -44,12 +48,12 @@ class TestOrcidBackend(object):
     def internal_attributes(self):
         return {
             "attributes": {
-                "address": { "orcid": ["address"] },
-                "displayname": { "orcid": ["name"] },
+                "address": {"orcid": ["address"]},
+                "displayname": {"orcid": ["name"]},
                 "edupersontargetedid": {"orcid": ["orcid"]},
                 "givenname": {"orcid": ["givenname"]},
                 "mail": {"orcid": ["mail"]},
-                "name": { "orcid": ["name"] },
+                "name": {"orcid": ["name"]},
                 "surname": {"orcid": ["surname"]},
             }
         }
@@ -58,17 +62,21 @@ class TestOrcidBackend(object):
     def userinfo(self):
         return {
             "name": {
-                "given-names": { "value": ORCID_PERSON_GIVEN_NAME },
-                "family-name": { "value": ORCID_PERSON_FAMILY_NAME },
+                "given-names": {"value": ORCID_PERSON_GIVEN_NAME},
+                "family-name": {"value": ORCID_PERSON_FAMILY_NAME},
             },
             "emails": {
                 "email": [
-                    { "email": ORCID_PERSON_EMAIL, "verified": True, "primary": True }
+                    {
+                        "email": ORCID_PERSON_EMAIL,
+                        "verified": True,
+                        "primary": True
+                    }
                 ]
             },
             "addresses": {
                 "address": [
-                    { "country": { "value": ORCID_PERSON_COUNTRY } }
+                    {"country": {"value": ORCID_PERSON_COUNTRY}}
                 ]
             }
         }
@@ -77,8 +85,8 @@ class TestOrcidBackend(object):
     def userinfo_private(self):
         return {
             "name": {
-                "given-names": { "value": ORCID_PERSON_GIVEN_NAME },
-                "family-name": { "value": ORCID_PERSON_FAMILY_NAME },
+                "given-names": {"value": ORCID_PERSON_GIVEN_NAME},
+                "family-name": {"value": ORCID_PERSON_FAMILY_NAME},
             },
             "emails": {
                 "email": [
@@ -89,7 +97,6 @@ class TestOrcidBackend(object):
                 ]
             }
         }
-
 
     def assert_expected_attributes(self, user_claims, actual_attributes):
         print(user_claims)
@@ -116,18 +123,22 @@ class TestOrcidBackend(object):
             "orcid": ORCID_PERSON_ID
         }
 
-        responses.add(responses.POST,
-                      token_endpoint_url,
-                      body=json.dumps(token_response),
-                      status=200,
-                      content_type="application/json")
+        responses.add(
+            responses.POST,
+            token_endpoint_url,
+            body=json.dumps(token_response),
+            status=200,
+            content_type="application/json"
+        )
 
     def setup_userinfo_endpoint(self, userinfo_endpoint_url, userinfo):
-        responses.add(responses.GET,
-                      urljoin(userinfo_endpoint_url, '{}/person'.format(ORCID_PERSON_ID)),
-                      body=json.dumps(userinfo),
-                      status=200,
-                      content_type="application/json")
+        responses.add(
+            responses.GET,
+            urljoin(userinfo_endpoint_url, '{}/person'.format(ORCID_PERSON_ID)),
+            body=json.dumps(userinfo),
+            status=200,
+            content_type="application/json"
+        )
 
     @pytest.fixture
     def incoming_authn_response(self, context, backend_config):
@@ -149,7 +160,10 @@ class TestOrcidBackend(object):
         assert auth_params["scope"] == " ".join(backend_config["scope"])
         assert auth_params["response_type"] == backend_config["response_type"]
         assert auth_params["client_id"] == backend_config["client_config"]["client_id"]
-        assert auth_params["redirect_uri"] == backend_config["base_url"] + "/" + backend_config["authz_page"]
+        assert auth_params["redirect_uri"] == "{}/{}".format(
+            backend_config["base_url"],
+            backend_config["authz_page"]
+        )
 
     @responses.activate
     def test_authn_response(self, backend_config, userinfo, incoming_authn_response):
@@ -166,9 +180,16 @@ class TestOrcidBackend(object):
 
     @responses.activate
     def test_user_information(self, context, backend_config, userinfo):
-        self.setup_userinfo_endpoint(backend_config["server_info"]["user_info"], userinfo)
+        self.setup_userinfo_endpoint(
+            backend_config["server_info"]["user_info"],
+            userinfo
+        )
 
-        user_attributes = self.orcid_backend.user_information("orcid_access_token", ORCID_PERSON_ID, ORCID_PERSON_NAME)
+        user_attributes = self.orcid_backend.user_information(
+            "orcid_access_token",
+            ORCID_PERSON_ID,
+            ORCID_PERSON_NAME
+        )
 
         assert user_attributes["address"] == ORCID_PERSON_COUNTRY
         assert user_attributes["displayname"] == ORCID_PERSON_NAME
@@ -180,9 +201,16 @@ class TestOrcidBackend(object):
 
     @responses.activate
     def test_user_information_private(self, context, backend_config, userinfo_private):
-        self.setup_userinfo_endpoint(backend_config["server_info"]["user_info"], userinfo_private)
+        self.setup_userinfo_endpoint(
+            backend_config["server_info"]["user_info"],
+            userinfo_private
+        )
 
-        user_attributes = self.orcid_backend.user_information("orcid_access_token", ORCID_PERSON_ID, ORCID_PERSON_NAME)
+        user_attributes = self.orcid_backend.user_information(
+            "orcid_access_token",
+            ORCID_PERSON_ID,
+            ORCID_PERSON_NAME
+        )
 
         assert user_attributes["address"] == ""
         assert user_attributes["mail"] == ""
