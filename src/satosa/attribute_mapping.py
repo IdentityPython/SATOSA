@@ -58,7 +58,8 @@ class AttributeMapper(object):
         try:
             profile_mapping = self.to_internal_attributes[attribute_profile]
         except KeyError:
-            logger.warn("no attribute mapping found for the given attribute profile '%s'", attribute_profile)
+            logline = "no attribute mapping found for the given attribute profile {}".format(attribute_profile)
+            logger.warn(logline)
             # no attributes since the given profile is not configured
             return []
 
@@ -88,8 +89,10 @@ class AttributeMapper(object):
 
         for internal_attribute_name, mapping in self.from_internal_attributes.items():
             if attribute_profile not in mapping:
-                logger.debug("no attribute mapping found for internal attribute '%s' the attribute profile '%s'" % (
-                    internal_attribute_name, attribute_profile))
+                logline = "no attribute mapping found for internal attribute {internal} the attribute profile {attribute}".format(
+                    internal=internal_attribute_name, attribute=attribute_profile
+                )
+                logger.debug(logline)
                 # skip this internal attribute if we have no mapping in the specified profile
                 continue
 
@@ -97,12 +100,16 @@ class AttributeMapper(object):
             attribute_values = self._collate_attribute_values_by_priority_order(external_attribute_name,
                                                                                 external_dict)
             if attribute_values:  # Only insert key if it has some values
-                logger.debug("backend attribute '%s' mapped to %s" % (external_attribute_name,
-                                                                      internal_attribute_name))
+                logline = "backend attribute {external} mapped to {internal}".format(
+                    external=external_attribute_name, internal=internal_attribute_name
+                )
+                logger.debug(logline)
                 internal_dict[internal_attribute_name] = attribute_values
             else:
-                logger.debug("skipped backend attribute '%s': no value found", external_attribute_name)
-
+                logline = "skipped backend attribute {}: no value found".format(
+                    external_attribute_name
+                )
+                logger.debug(logline)
         internal_dict = self._handle_template_attributes(attribute_profile, internal_dict)
         return internal_dict
 
@@ -181,20 +188,27 @@ class AttributeMapper(object):
             try:
                 attribute_mapping = self.from_internal_attributes[internal_attribute_name]
             except KeyError:
-                logger.debug("no attribute mapping found for the internal attribute '%s'", internal_attribute_name)
+                logline = "no attribute mapping found for the internal attribute {}".format(
+                    internal_attribute_name
+                )
+                logger.debug(logline)
                 continue
 
             if attribute_profile not in attribute_mapping:
                 # skip this internal attribute if we have no mapping in the specified profile
-                logger.debug("no mapping found for '%s' in attribute profile '%s'" %
-                             (internal_attribute_name, attribute_profile))
+                logline = "no mapping found for '{internal}' in attribute profile '{attribute}'".format(
+                    internal=internal_attribute_name, attribute=attribute_profile
+                )
+                logger.debug(logline)
                 continue
 
             external_attribute_names = self.from_internal_attributes[internal_attribute_name][attribute_profile]
             # select the first attribute name
             external_attribute_name = external_attribute_names[0]
-            logger.debug("frontend attribute %s mapped from %s" % (external_attribute_name,
-                                                                   internal_attribute_name))
+            logline = "frontend attribute {external} mapped from {internal}".format(
+                external=external_attribute_name, internal=internal_attribute_name
+            )
+            logger.debug(logline)
 
             if self.separator in external_attribute_name:
                 nested_attribute_names = external_attribute_name.split(self.separator)
