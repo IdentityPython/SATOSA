@@ -13,7 +13,7 @@ from oic.oauth2.message import AuthorizationResponse
 from satosa.backends.oauth import _OAuthBackend
 from satosa.internal import InternalData
 from satosa.internal import AuthenticationInformation
-from satosa.response import Redirect
+from satosa.util import rndstr
 
 logger = logging.getLogger(__name__)
 
@@ -45,22 +45,15 @@ class OrcidBackend(_OAuthBackend):
             outgoing, internal_attributes, config, base_url, name, 'orcid',
             'orcid')
 
-    def start_auth(self, context, internal_request, get_state=stateID):
-        """
-        :param get_state: Generates a state to be used in authentication call
-
-        :type get_state: Callable[[str, bytes], str]
-        :type context: satosa.context.Context
-        :type internal_request: satosa.internal.InternalData
-        :rtype satosa.response.Redirect
-        """
-        request_args = dict(
-            client_id=self.config['client_config']['client_id'],
-            redirect_uri=self.redirect_url,
-            scope=' '.join(self.config['scope']), )
-        cis = self.consumer.construct_AuthorizationRequest(
-            request_args=request_args)
-        return Redirect(cis.request(self.consumer.authorization_endpoint))
+    def get_request_args(self, get_state=stateID):
+        oauth_state = get_state(self.config["base_url"], rndstr().encode())
+        request_args = {
+            "client_id": self.config['client_config']['client_id'],
+            "redirect_uri": self.redirect_url,
+            "scope": ' '.join(self.config['scope']),
+            "state": oauth_state,
+        }
+        return request_args
 
     def auth_info(self, requrest):
         return AuthenticationInformation(
@@ -68,27 +61,25 @@ class OrcidBackend(_OAuthBackend):
             self.config['server_info']['authorization_endpoint'])
 
     def _authn_response(self, context):
+        state_data = context.state[self.name]
         aresp = self.consumer.parse_response(
             AuthorizationResponse, info=json.dumps(context.request))
-        url = self.config['server_info']['token_endpoint']
-        data = dict(
-            grant_type='authorization_code',
-            code=aresp['code'],
-            redirect_uri=self.redirect_url,
-            client_id=self.config['client_config']['client_id'],
-            client_secret=self.config['client_secret'], )
-        headers = {'Accept': 'application/json'}
+        self._verify_state(aresp, state_data, context.state)
 
-        r = requests.post(url, data=data, headers=headers)
-        response = r.json()
-        token = response['access_token']
-        orcid, name = response['orcid'], response['name']
-        user_info = self.user_information(token, orcid, name)
-        auth_info = self.auth_info(context.request)
-        internal_response = InternalData(auth_info=auth_info)
+        rargs = {"code": aresp["code"], "redirect_uri": self.redirect_url,
+                 "state": state_data["state"]}
+
+        atresp = self.consumer.do_access_token_request(
+            request_args=rargs, state=aresp['state'])
+
+        user_info = self.user_information(
+            atresp['access_token'], atresp['orcid'], atresp['name'])
+        internal_response = InternalData(
+            auth_info=self.auth_info(context.request))
         internal_response.attributes = self.converter.to_internal(
             self.external_type, user_info)
-        internal_response.subject_id = orcid
+        internal_response.subject_id = user_info[self.user_id_attr]
+        del context.state[self.name]
         return self.auth_callback_func(context, internal_response)
 
     def user_information(self, access_token, orcid, name):

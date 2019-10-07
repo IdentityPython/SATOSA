@@ -12,9 +12,12 @@ from urllib.parse import urljoin, urlparse, parse_qsl
 ORCID_PERSON_ID = "0000-0000-0000-0000"
 ORCID_PERSON_GIVEN_NAME = "orcid_given_name"
 ORCID_PERSON_FAMILY_NAME = "orcid_family_name"
-ORCID_PERSON_NAME = "{} {}".format(ORCID_PERSON_GIVEN_NAME, ORCID_PERSON_FAMILY_NAME)
+ORCID_PERSON_NAME = "{} {}".format(
+    ORCID_PERSON_GIVEN_NAME, ORCID_PERSON_FAMILY_NAME)
 ORCID_PERSON_EMAIL = "orcid_email"
 ORCID_PERSON_COUNTRY = "XX"
+
+mock_get_state = Mock(return_value="abcdef")
 
 
 class TestOrcidBackend(object):
@@ -134,7 +137,8 @@ class TestOrcidBackend(object):
     def setup_userinfo_endpoint(self, userinfo_endpoint_url, userinfo):
         responses.add(
             responses.GET,
-            urljoin(userinfo_endpoint_url, '{}/person'.format(ORCID_PERSON_ID)),
+            urljoin(userinfo_endpoint_url,
+                    '{}/person'.format(ORCID_PERSON_ID)),
             body=json.dumps(userinfo),
             status=200,
             content_type="application/json"
@@ -143,19 +147,24 @@ class TestOrcidBackend(object):
     @pytest.fixture
     def incoming_authn_response(self, context, backend_config):
         context.path = backend_config["authz_page"]
+        state_data = dict(state=mock_get_state.return_value)
+        context.state[self.orcid_backend.name] = state_data
         context.request = {
             "code": "the_orcid_code",
+            "state": mock_get_state.return_value
         }
 
         return context
 
     def test_start_auth(self, context, backend_config):
-        auth_response = self.orcid_backend.start_auth(context, None)
+        auth_response = self.orcid_backend.start_auth(
+            context, None, mock_get_state)
         assert isinstance(auth_response, Response)
 
         login_url = auth_response.message
         parsed = urlparse(login_url)
-        assert login_url.startswith(backend_config["server_info"]["authorization_endpoint"])
+        assert login_url.startswith(
+            backend_config["server_info"]["authorization_endpoint"])
         auth_params = dict(parse_qsl(parsed.query))
         assert auth_params["scope"] == " ".join(backend_config["scope"])
         assert auth_params["response_type"] == backend_config["response_type"]
@@ -164,11 +173,14 @@ class TestOrcidBackend(object):
             backend_config["base_url"],
             backend_config["authz_page"]
         )
+        assert auth_params["state"] == mock_get_state.return_value
 
     @responses.activate
     def test_authn_response(self, backend_config, userinfo, incoming_authn_response):
-        self.setup_token_endpoint(backend_config["server_info"]["token_endpoint"])
-        self.setup_userinfo_endpoint(backend_config["server_info"]["user_info"], userinfo)
+        self.setup_token_endpoint(
+            backend_config["server_info"]["token_endpoint"])
+        self.setup_userinfo_endpoint(
+            backend_config["server_info"]["user_info"], userinfo)
 
         self.orcid_backend._authn_response(incoming_authn_response)
 
