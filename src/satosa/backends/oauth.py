@@ -6,14 +6,15 @@ import logging
 from base64 import urlsafe_b64encode
 
 import requests
+
 from oic.oauth2.consumer import Consumer, stateID
 from oic.oauth2.message import AuthorizationResponse
 from oic.utils.authn.authn_context import UNSPECIFIED
 
+import satosa.logging_util as lu
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from satosa.exception import SATOSAAuthenticationError
-from satosa.logging_util import satosa_logging
 from satosa.response import Redirect
 from satosa.util import rndstr
 from satosa.metadata_creation.description import (
@@ -112,8 +113,9 @@ class _OAuthBackend(BackendModule):
         is_known_state = "state" in resp and "state" in state_data and resp["state"] == state_data["state"]
         if not is_known_state:
             received_state = resp.get("state", "")
-            satosa_logging(logger, logging.DEBUG,
-                           "Missing or invalid state [%s] in response!" % received_state, state)
+            msg = "Missing or invalid state [{}] in response!".format(received_state)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(state), message=msg)
+            logger.debug(logline)
             raise SATOSAAuthenticationError(state,
                                             "Missing or invalid state [%s] in response!" %
                                             received_state)
