@@ -41,6 +41,7 @@ satosa-saml-metadata              \
 # if the user provided a gunicorn configuration, use it
 if [ -f "$GUNICORN_CONF" ]
 then conf_opt="--config ${GUNICORN_CONF}"
+else conf_opt="--chdir ${DATA_DIR}"
 fi
 
 # if HTTPS cert is available, use it
