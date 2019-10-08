@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client_base import Base
 from saml2.config import SPConfig
-from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
+from saml2.extension.mdui import NAMESPACE as UI_NAMESPACE
 from saml2.metadata import create_metadata_string
 from saml2.authn_context import requested_authn_context
 

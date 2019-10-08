@@ -17,7 +17,7 @@ from http.cookies import SimpleCookie
 
 from saml2 import SAMLError, xmldsig
 from saml2.config import IdPConfig
-from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
+from saml2.extension.mdui import NAMESPACE as UI_NAMESPACE
 from saml2.metadata import create_metadata_string
 from saml2.saml import NameID
 from saml2.saml import NAMEID_FORMAT_TRANSIENT
