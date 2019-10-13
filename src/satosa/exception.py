@@ -10,7 +10,13 @@ class SATOSAError(Exception):
     pass
 
 
-class SATOSAConfigurationError(SATOSAError):
+class SATOSAErrorNoTraceback(SATOSAError):
+    """
+    Base SATOSA exception
+    """
+
+
+class SATOSAConfigurationError(SATOSAErrorNoTraceback):
     """
     SATOSA configuration error
     """
