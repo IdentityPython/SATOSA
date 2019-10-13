@@ -14,7 +14,6 @@ from satosa.micro_services import consent
 from .context import Context
 from .exception import SATOSAConfigurationError
 from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
-from .logging_util import satosa_logging
 from .micro_services.account_linking import AccountLinking
 from .micro_services.consent import Consent
 from .plugin_loader import load_backends, load_frontends
@@ -24,6 +23,7 @@ from .state import cookie_to_state, SATOSAStateError, State, state_to_cookie
 
 from satosa.deprecated import hash_attributes
 
+import satosa.logging_util as lu
 
 logger = logging.getLogger(__name__)
 
@@ -136,8 +136,9 @@ class SATOSABase(object):
                 "filter": internal_request.attributes or [],
                 "requester_name": internal_request.requester_name,
             })
-        satosa_logging(logger, logging.INFO,
-                       "Requesting provider: {}".format(internal_request.requester), state)
+        msg = "Requesting provider: {}".format(internal_request.requester)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(state), message=msg)
+        logger.info(logline)
 
         if self.request_micro_services:
             return self.request_micro_services[0].process(context, internal_request)
@@ -232,7 +233,8 @@ class SATOSABase(object):
             msg = "ERROR_ID [{err_id}]\nSTATE:\n{state}".format(
                 err_id=error.error_id, state=state
             )
-            satosa_logging(logger, logging.ERROR, msg, error.state, exc_info=True)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline, error.state, exc_info=True)
             return self._handle_satosa_authentication_error(error)
 
     def _load_state(self, context):
@@ -252,9 +254,9 @@ class SATOSABase(object):
             state = State()
         finally:
             context.state = state
-            msg_tmpl = 'Loaded state {state} from cookie {cookie}'
-            msg = msg_tmpl.format(state=state, cookie=context.cookie)
-            logger.info(msg)
+            msg = "Loaded state {state} from cookie {cookie}".format(state=state, cookie=context.cookie)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.info(logline)
 
     def _save_state(self, resp, context):
         """
@@ -289,17 +291,19 @@ class SATOSABase(object):
         except SATOSANoBoundEndpointError:
             raise
         except SATOSAError:
-            satosa_logging(logger, logging.ERROR, "Uncaught SATOSA error ", context.state,
-                           exc_info=True)
+            msg = "Uncaught SATOSA error"
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline, exc_info=True)
             raise
         except UnknownSystemEntity as err:
-            satosa_logging(logger, logging.ERROR,
-                           "configuration error: unknown system entity " + str(err),
-                           context.state, exc_info=False)
+            msg = "configuration error: unknown system entity " + str(err)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline, exc_info=False)
             raise
         except Exception as err:
-            satosa_logging(logger, logging.ERROR, "Uncaught exception", context.state,
-                           exc_info=True)
+            msg = "Uncaught exception"
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline, exc_info=True)
             raise SATOSAUnknownError("Unknown error") from err
         return resp
 
