@@ -327,16 +327,17 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             del self.outstanding_queries[req_id]
 
         # check if the relay_state matches the cookie state
-        if context.state[self.name]["relay_state"] != context.request["RelayState"]:
-            satosa_logging(logger, logging.DEBUG,
-                           "State did not match relay state for state", context.state)
-            raise SATOSAAuthenticationError(context.state, "State did not match relay state")
+        if self.name in context.state and "relay_state" in context.state[self.name]:
+            if context.state[self.name]["relay_state"] != context.request["RelayState"]:
+                satosa_logging(logger, logging.DEBUG,
+                               "State did not match relay state for state", context.state)
+                raise SATOSAAuthenticationError(context.state, "State did not match relay state")
+            context.state.pop(self.name, None)
 
         context.decorate(Context.KEY_BACKEND_METADATA_STORE, self.sp.metadata)
         if self.config.get(SAMLBackend.KEY_MEMORIZE_IDP):
             issuer = authn_response.response.issuer.text.strip()
             context.state[Context.KEY_MEMORIZED_IDP] = issuer
-        context.state.pop(self.name, None)
         context.state.pop(Context.KEY_FORCE_AUTHN, None)
         return self.auth_callback_func(context, self._translate_response(authn_response, context.state))
 
