@@ -1,18 +1,19 @@
-import satosa.micro_services.base
-from satosa.logging_util import satosa_logging
-
-from satosa.response import Response
-
 import logging
 
+import satosa.logging_util as lu
+import satosa.micro_services.base
+from satosa.logging_util import satosa_logging
+from satosa.response import Response
+
+
 logger = logging.getLogger(__name__)
+
 
 class PingFrontend(satosa.frontends.base.FrontendModule):
     """
     SATOSA frontend that responds to a query with a simple
     200 OK, intended to be used as a simple heartbeat monitor.
     """
-    logprefix = "PING:"
 
     def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name):
         super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
@@ -50,9 +51,9 @@ class PingFrontend(satosa.frontends.base.FrontendModule):
     def ping_endpoint(self, context):
         """
         """
-        logprefix = PingFrontend.logprefix
-        satosa_logging(logger, logging.DEBUG, "{} ping returning 200 OK".format(logprefix), context.state)
+        msg = "Ping returning 200 OK"
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
 
         msg = " "
-
         return Response(msg)
