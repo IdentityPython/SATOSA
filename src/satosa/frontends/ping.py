@@ -4,7 +4,7 @@ from satosa.logging_util import satosa_logging
 from satosa.response import Response
 
 import logging
-
+import satosa.logging_util as lu
 logger = logging.getLogger(__name__)
 
 class PingFrontend(satosa.frontends.base.FrontendModule):
@@ -51,7 +51,9 @@ class PingFrontend(satosa.frontends.base.FrontendModule):
         """
         """
         logprefix = PingFrontend.logprefix
-        satosa_logging(logger, logging.DEBUG, "{} ping returning 200 OK".format(logprefix), context.state)
+        msg = "{} ping returning 200 OK".format(logprefix)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
 
         msg = " "
 
