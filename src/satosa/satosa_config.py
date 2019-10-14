@@ -147,11 +147,11 @@ class SATOSAConfig(object):
             with open(config_file) as f:
                 return yaml.safe_load(f.read())
         except yaml.YAMLError as exc:
-            logger.error("Could not parse config as YAML: {}", str(exc))
+            logger.error("Could not parse config as YAML: {}".format(exc))
             if hasattr(exc, 'problem_mark'):
                 mark = exc.problem_mark
-                logger.error("Error position: (%s:%s)" % (mark.line + 1, mark.column + 1))
+                logger.error("Error position: ({line}:{column})".format(line=mark.line + 1, column=mark.column + 1))
         except IOError as e:
-            logger.debug("Could not open config file: {}", str(e))
+            logger.debug("Could not open config file: {}".format(e))
 
         return None
