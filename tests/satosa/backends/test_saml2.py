@@ -103,11 +103,11 @@ class TestSAMLBackend:
         for endp in all_sp_endpoints:
             assert any(p.match(endp) for p in compiled_regex)
 
-    def test_start_auth_defaults_to_redirecting_to_discovery_server(self, context, sp_conf):
+    def test_start_auth_defaults_to_redirecting_to_discovery_server(self, context, sp_conf, **kwargs):
         resp = self.samlbackend.start_auth(context, InternalData())
         assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
 
-    def test_discovery_server_set_in_context(self, context, sp_conf):
+    def test_discovery_server_set_in_context(self, context, sp_conf, **kwargs):
         discosrv_url = 'https://my.org/saml_discovery_service'
         context.decorate(
             SAMLBackend.KEY_SAML_DISCOVERY_SERVICE_URL, discosrv_url
@@ -115,7 +115,7 @@ class TestSAMLBackend:
         resp = self.samlbackend.start_auth(context, InternalData())
         assert_redirect_to_discovery_server(resp, sp_conf, discosrv_url)
 
-    def test_full_flow(self, context, idp_conf, sp_conf):
+    def test_full_flow(self, context, idp_conf, sp_conf, **kwargs):
         test_state_key = "test_state_key_456afgrh"
         response_binding = BINDING_HTTP_REDIRECT
         fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf, metadata_construction=False))
@@ -165,7 +165,7 @@ class TestSAMLBackend:
         resp = self.samlbackend.start_auth(context, InternalData())
         assert_redirect_to_idp(resp, idp_conf)
 
-    def test_redirect_to_idp_if_only_one_idp_in_metadata(self, context, sp_conf, idp_conf):
+    def test_redirect_to_idp_if_only_one_idp_in_metadata(self, context, sp_conf, idp_conf, **kwargs):
         sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
         # instantiate new backend, without any discovery service configured
         samlbackend = SAMLBackend(None, INTERNAL_ATTRIBUTES, {"sp_config": sp_conf}, "base_url", "saml_backend")
@@ -173,13 +173,13 @@ class TestSAMLBackend:
         resp = samlbackend.start_auth(context, InternalData())
         assert_redirect_to_idp(resp, idp_conf)
 
-    def test_authn_request(self, context, idp_conf):
+    def test_authn_request(self, context, idp_conf, **kwargs):
         resp = self.samlbackend.authn_request(context, idp_conf["entityid"])
         assert_redirect_to_idp(resp, idp_conf)
         req_params = dict(parse_qsl(urlparse(resp.message).query))
         assert context.state[self.samlbackend.name]["relay_state"] == req_params["RelayState"]
 
-    def test_authn_response(self, context, idp_conf, sp_conf):
+    def test_authn_response(self, context, idp_conf, sp_conf, **kwargs):
         response_binding = BINDING_HTTP_REDIRECT
         fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
         fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf, metadata_construction=False))
@@ -199,7 +199,7 @@ class TestSAMLBackend:
     @pytest.mark.skipif(
             saml2.__version__ < '4.6.1',
             reason="Optional NameID needs pysaml2 v4.6.1 or higher")
-    def test_authn_response_no_name_id(self, context, idp_conf, sp_conf):
+    def test_authn_response_no_name_id(self, context, idp_conf, sp_conf, **kwargs):
         response_binding = BINDING_HTTP_REDIRECT
 
         fakesp_conf = SPConfig().load(sp_conf, metadata_construction=False)
@@ -232,7 +232,7 @@ class TestSAMLBackend:
         assert_authn_response(internal_resp)
         assert backend.name not in context.state
 
-    def test_authn_response_with_encrypted_assertion(self, sp_conf, context):
+    def test_authn_response_with_encrypted_assertion(self, sp_conf, context, **kwargs):
         with open(os.path.join(
             TEST_RESOURCE_BASE_PATH,
             "idp_metadata_for_encrypted_signed_auth_response.xml"
@@ -277,14 +277,14 @@ class TestSAMLBackend:
         context, internal_resp = samlbackend.auth_callback_func.call_args[0]
         assert Counter(internal_resp.attributes.keys()) == Counter({"mail", "givenname", "displayname", "surname"})
 
-    def test_backend_reads_encryption_key_from_key_file(self, sp_conf):
+    def test_backend_reads_encryption_key_from_key_file(self, sp_conf, **kwargs):
         sp_conf["key_file"] = os.path.join(TEST_RESOURCE_BASE_PATH, "encryption_key.pem")
         samlbackend = SAMLBackend(Mock(), INTERNAL_ATTRIBUTES, {"sp_config": sp_conf,
                                                                 "disco_srv": DISCOSRV_URL},
                                   "base_url", "samlbackend")
         assert samlbackend.encryption_keys
 
-    def test_backend_reads_encryption_key_from_encryption_keypair(self, sp_conf):
+    def test_backend_reads_encryption_key_from_encryption_keypair(self, sp_conf, **kwargs):
         del sp_conf["key_file"]
         sp_conf["encryption_keypairs"] = [{"key_file": os.path.join(TEST_RESOURCE_BASE_PATH, "encryption_key.pem")}]
         samlbackend = SAMLBackend(Mock(), INTERNAL_ATTRIBUTES, {"sp_config": sp_conf,
@@ -292,13 +292,13 @@ class TestSAMLBackend:
                                   "base_url", "samlbackend")
         assert samlbackend.encryption_keys
 
-    def test_metadata_endpoint(self, context, sp_conf):
+    def test_metadata_endpoint(self, context, sp_conf, **kwargs):
         resp = self.samlbackend._metadata_endpoint(context)
         headers = dict(resp.headers)
         assert headers["Content-Type"] == "text/xml"
         assert sp_conf["entityid"] in resp.message
 
-    def test_get_metadata_desc(self, sp_conf, idp_conf):
+    def test_get_metadata_desc(self, sp_conf, idp_conf, **kwargs):
         sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
         # instantiate new backend, with a single backing IdP
         samlbackend = SAMLBackend(None, INTERNAL_ATTRIBUTES, {"sp_config": sp_conf}, "base_url", "saml_backend")
@@ -321,7 +321,7 @@ class TestSAMLBackend:
         assert ui_info["description"] == expected_ui_info["description"]
         assert ui_info["logo"] == expected_ui_info["logo"]
 
-    def test_get_metadata_desc_with_logo_without_lang(self, sp_conf, idp_conf):
+    def test_get_metadata_desc_with_logo_without_lang(self, sp_conf, idp_conf, **kwargs):
         # add logo without 'lang'
         idp_conf["service"]["idp"]["ui_info"]["logo"] = [{"text": "https://idp.example.com/static/logo.png",
                                                           "width": "120", "height": "60"}]
@@ -351,8 +351,7 @@ class TestSAMLBackend:
 
 class TestSAMLBackendRedirects:
     def test_default_redirect_to_discovery_service_if_using_mdq(
-        self, context, sp_conf, idp_conf
-    ):
+            self, context, sp_conf, idp_conf, **kwargs):
         # one IdP in the metadata, but MDQ also configured so should always redirect to the discovery service
         sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
         sp_conf["metadata"]["mdq"] = ["https://mdq.example.com"]
@@ -362,8 +361,7 @@ class TestSAMLBackendRedirects:
         assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
 
     def test_use_of_disco_or_redirect_to_idp_when_using_mdq_and_forceauthn_is_not_set(
-        self, context, sp_conf, idp_conf
-    ):
+            self, context, sp_conf, idp_conf, **kwargs):
         sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
         sp_conf["metadata"]["mdq"] = ["https://mdq.example.com"]
 
@@ -402,8 +400,7 @@ class TestSAMLBackendRedirects:
         assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
 
     def test_use_of_disco_or_redirect_to_idp_when_using_mdq_and_forceauthn_is_set_true(
-        self, context, sp_conf, idp_conf
-    ):
+            self, context, sp_conf, idp_conf, **kwargs):
         sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
         sp_conf["metadata"]["mdq"] = ["https://mdq.example.com"]
 
@@ -430,8 +427,7 @@ class TestSAMLBackendRedirects:
         assert_redirect_to_idp(resp, idp_conf)
 
     def test_use_of_disco_or_redirect_to_idp_when_using_mdq_and_forceauthn_is_set_1(
-        self, context, sp_conf, idp_conf
-    ):
+            self, context, sp_conf, idp_conf, **kwargs):
         sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
         sp_conf["metadata"]["mdq"] = ["https://mdq.example.com"]
 

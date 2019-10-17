@@ -41,7 +41,7 @@ class TestSATOSABase:
         with pytest.raises(SATOSAConfigurationError):
             SATOSABase(satosa_config)
 
-    def test_auth_resp_callback_func_user_id_from_attrs_is_used_to_override_user_id(self, context, satosa_config):
+    def test_auth_resp_callback_func_user_id_from_attrs_is_used_to_override_user_id(self, context, satosa_config, **kwargs):
         satosa_config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"] = ["user_id", "domain"]
         base = SATOSABase(satosa_config)
 
@@ -56,7 +56,7 @@ class TestSATOSABase:
         expected_user_id = "user@example.com"
         assert internal_resp.subject_id == expected_user_id
 
-    def test_auth_req_callback_stores_state_for_consent(self, context, satosa_config):
+    def test_auth_req_callback_stores_state_for_consent(self, context, satosa_config, **kwargs):
         base = SATOSABase(satosa_config)
 
         context.target_backend = satosa_config["BACKEND_MODULES"][0]["name"]
@@ -70,7 +70,7 @@ class TestSATOSABase:
         assert context.state[consent.STATE_KEY]["requester_name"] == internal_req.requester_name
         assert context.state[consent.STATE_KEY]["filter"] == internal_req.attributes
 
-    def test_auth_resp_callback_func_hashes_all_specified_attributes(self, context, satosa_config):
+    def test_auth_resp_callback_func_hashes_all_specified_attributes(self, context, satosa_config, **kwargs):
         satosa_config["INTERNAL_ATTRIBUTES"]["hash"] = ["user_id", "mail"]
         base = SATOSABase(satosa_config)
 
@@ -88,7 +88,7 @@ class TestSATOSABase:
                 for v in attributes[attr]
             ]
 
-    def test_auth_resp_callback_func_respects_user_id_to_attr(self, context, satosa_config):
+    def test_auth_resp_callback_func_respects_user_id_to_attr(self, context, satosa_config, **kwargs):
         satosa_config["INTERNAL_ATTRIBUTES"]["user_id_to_attr"] = "user_id"
         base = SATOSABase(satosa_config)
 

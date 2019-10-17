@@ -145,7 +145,7 @@ class TestOrcidBackend(object):
         )
 
     @pytest.fixture
-    def incoming_authn_response(self, context, backend_config):
+    def incoming_authn_response(self, context, backend_config, **kwargs):
         context.path = backend_config["authz_page"]
         state_data = dict(state=mock_get_state.return_value)
         context.state[self.orcid_backend.name] = state_data
@@ -156,7 +156,7 @@ class TestOrcidBackend(object):
 
         return context
 
-    def test_start_auth(self, context, backend_config):
+    def test_start_auth(self, context, backend_config, **kwargs):
         auth_response = self.orcid_backend.start_auth(
             context, None, mock_get_state)
         assert isinstance(auth_response, Response)
@@ -191,7 +191,7 @@ class TestOrcidBackend(object):
         self.assert_expected_attributes(userinfo, args[1].attributes)
 
     @responses.activate
-    def test_user_information(self, context, backend_config, userinfo):
+    def test_user_information(self, context, backend_config, userinfo, **kwargs):
         self.setup_userinfo_endpoint(
             backend_config["server_info"]["user_info"],
             userinfo
@@ -212,7 +212,7 @@ class TestOrcidBackend(object):
         assert user_attributes["surname"] == ORCID_PERSON_FAMILY_NAME
 
     @responses.activate
-    def test_user_information_private(self, context, backend_config, userinfo_private):
+    def test_user_information_private(self, context, backend_config, userinfo_private, **kwargs):
         self.setup_userinfo_endpoint(
             backend_config["server_info"]["user_info"],
             userinfo_private

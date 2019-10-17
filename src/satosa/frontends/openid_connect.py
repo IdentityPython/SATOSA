@@ -117,7 +117,7 @@ class OpenIDConnectFrontend(FrontendModule):
         return AuthorizationState(HashBasedSubjectIdentifierFactory(sub_hash_salt), authz_code_db, access_token_db,
                                   refresh_token_db, sub_db, **token_lifetimes)
 
-    def handle_authn_response(self, context, internal_resp, extra_id_token_claims=None):
+    def handle_authn_response(self, context, internal_resp, extra_id_token_claims=None, **kwargs):
         """
         See super class method satosa.frontends.base.FrontendModule#handle_authn_response
         :type context: satosa.context.Context
@@ -232,7 +232,7 @@ class OpenIDConnectFrontend(FrontendModule):
         """
         return AuthorizationRequest().deserialize(state[self.name]["oidc_request"])
 
-    def client_registration(self, context):
+    def client_registration(self, context, **kwargs):
         """
         Handle the OIDC dynamic client registration.
         :type context: satosa.context.Context
@@ -247,7 +247,7 @@ class OpenIDConnectFrontend(FrontendModule):
         except InvalidClientRegistrationRequest as e:
             return BadRequest(e.to_json(), content="application/json")
 
-    def provider_config(self, context):
+    def provider_config(self, context, **kwargs):
         """
         Construct the provider configuration information (served at /.well-known/openid-configuration).
         :type context: satosa.context.Context
@@ -270,7 +270,7 @@ class OpenIDConnectFrontend(FrontendModule):
                     requested_claims.extend(authn_req["claims"][k].keys())
         return set(provider_supported_claims).intersection(set(requested_claims))
 
-    def _handle_authn_request(self, context):
+    def _handle_authn_request(self, context, **kwargs):
         """
         Parse and verify the authentication request into an internal request.
         :type context: satosa.context.Context
@@ -315,7 +315,7 @@ class OpenIDConnectFrontend(FrontendModule):
                                                     authn_req))
         return internal_req
 
-    def handle_authn_request(self, context):
+    def handle_authn_request(self, context, **kwargs):
         """
         Handle an authentication request and pass it on to the backend.
         :type context: satosa.context.Context
@@ -329,7 +329,7 @@ class OpenIDConnectFrontend(FrontendModule):
             return internal_req
         return self.auth_req_callback_func(context, internal_req)
 
-    def jwks(self, context):
+    def jwks(self, context, **kwargs):
         """
         Construct the JWKS document (served at /jwks).
         :type context: satosa.context.Context
@@ -340,7 +340,7 @@ class OpenIDConnectFrontend(FrontendModule):
         """
         return Response(json.dumps(self.provider.jwks), content="application/json")
 
-    def token_endpoint(self, context):
+    def token_endpoint(self, context, **kwargs):
         """
         Handle token requests (served at /token).
         :type context: satosa.context.Context
@@ -364,7 +364,7 @@ class OpenIDConnectFrontend(FrontendModule):
             error_resp = TokenErrorResponse(error=e.oauth_error, error_description=str(e))
             return BadRequest(error_resp.to_json(), content="application/json")
 
-    def userinfo_endpoint(self, context):
+    def userinfo_endpoint(self, context, **kwargs):
         headers = {"Authorization": context.request_authorization}
 
         try:

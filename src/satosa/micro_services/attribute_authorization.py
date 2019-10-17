@@ -48,7 +48,7 @@ structure above) are ORed together - i.e any attribute match is sufficient.
         self.attribute_allow = config.get("attribute_allow", {})
         self.attribute_deny = config.get("attribute_deny", {})
 
-    def _check_authz(self, context, attributes, requester, provider):
+    def _check_authz(self, context, attributes, requester, provider, **kwargs):
         for attribute_name, attribute_filters in get_dict_defaults(self.attribute_allow, requester, provider).items():
             if attribute_name in attributes:
                 if not any([any(filter(re.compile(af).search, attributes[attribute_name])) for af in attribute_filters]):

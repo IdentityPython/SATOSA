@@ -64,7 +64,7 @@ class OpenIDConnectBackend(BackendModule):
         if "response_type" not in config["client"]["auth_req_params"]:
             config["auth_req_params"]["response_type"] = "code"
 
-    def start_auth(self, context, request_info):
+    def start_auth(self, context, request_info, **kwargs):
         """
         See super class method satosa.backends.base#start_auth
         :type context: satosa.context.Context
@@ -167,7 +167,7 @@ class OpenIDConnectBackend(BackendModule):
         self._check_error_response(userinfo_resp, context)
         return userinfo_resp.to_dict()
 
-    def response_endpoint(self, context, *args):
+    def response_endpoint(self, context, *args, **kwargs):
         """
         Handles the authentication response from the OP.
         :type context: satosa.context.Context

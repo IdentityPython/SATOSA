@@ -45,7 +45,7 @@ class GitHubBackend(_OAuthBackend):
             outgoing, internal_attributes, config, base_url, name, 'github',
             'id')
 
-    def start_auth(self, context, internal_request, get_state=stateID):
+    def start_auth(self, context, internal_request, get_state=stateID, **kwargs):
         """
         :param get_state: Generates a state to be used in authentication call
 
@@ -75,7 +75,7 @@ class GitHubBackend(_OAuthBackend):
             UNSPECIFIED, None,
             self.config['server_info']['authorization_endpoint'])
 
-    def _authn_response(self, context):
+    def _authn_response(self, context, **kwargs):
         state_data = context.state[self.name]
         aresp = self.consumer.parse_response(
             AuthorizationResponse, info=json.dumps(context.request))

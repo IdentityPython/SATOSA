@@ -123,7 +123,7 @@ class TestConsent:
 
     @responses.activate
     def test_consent_handles_connection_error(self, context, internal_response, internal_request,
-                                              consent_verify_endpoint_regex):
+                                              consent_verify_endpoint_regex, **kwargs):
         responses.add(responses.GET,
                       consent_verify_endpoint_regex,
                       body=requests.ConnectionError("No connection"))
@@ -139,7 +139,7 @@ class TestConsent:
 
     @responses.activate
     def test_consent_prev_given(self, context, internal_response, internal_request,
-                                consent_verify_endpoint_regex):
+                                consent_verify_endpoint_regex, **kwargs):
         responses.add(responses.GET, consent_verify_endpoint_regex, status=200,
                       body=json.dumps(FILTER))
 
@@ -149,7 +149,8 @@ class TestConsent:
         assert "displayName" in internal_response.attributes
 
     def test_consent_full_flow(self, context, consent_config, internal_response, internal_request,
-                               consent_verify_endpoint_regex, consent_registration_endpoint_regex):
+                               consent_verify_endpoint_regex, consent_registration_endpoint_regex,
+                               **kwargs):
         expected_ticket = "my_ticket"
 
         requester_name = [{"lang": "en", "text": "test requester"}]
@@ -182,7 +183,8 @@ class TestConsent:
 
     @responses.activate
     def test_consent_not_given(self, context, consent_config, internal_response, internal_request,
-                               consent_verify_endpoint_regex, consent_registration_endpoint_regex):
+                               consent_verify_endpoint_regex, consent_registration_endpoint_regex,
+                               **kwargs):
         expected_ticket = "my_ticket"
 
         responses.add(responses.GET, consent_verify_endpoint_regex, status=401)
@@ -217,9 +219,9 @@ class TestConsent:
         assert Counter(filtered_attributes.keys()) == Counter(FILTER)
 
     @responses.activate
-    def test_manage_consent_filters_attributes_before_send_to_consent_service(self, context, internal_request,
-                                                                              internal_response,
-                                                                              consent_verify_endpoint_regex):
+    def test_manage_consent_filters_attributes_before_send_to_consent_service(
+            self, context, internal_request,
+            internal_response, consent_verify_endpoint_regex, **kwargs):
         approved_attributes = ["foo", "bar"]
         # fake previous consent
         responses.add(responses.GET, consent_verify_endpoint_regex, status=200,
@@ -238,8 +240,9 @@ class TestConsent:
         assert consent_hash == expected_hash
 
     @responses.activate
-    def test_manage_consent_without_filter_passes_through_all_attributes(self, context, internal_response,
-                                                                         consent_verify_endpoint_regex):
+    def test_manage_consent_without_filter_passes_through_all_attributes(
+            self, context, internal_response,
+            consent_verify_endpoint_regex, **kwargs):
         # fake previous consent
         responses.add(responses.GET, consent_verify_endpoint_regex, status=200,
                       body=json.dumps(list(internal_response.attributes.keys())))

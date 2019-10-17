@@ -226,7 +226,7 @@ class SATOSABase(object):
         :return: response
         """
         try:
-            return spec(context)
+            return spec(context, wsgi_app=self)
         except SATOSAAuthenticationError as error:
             error.error_id = uuid.uuid4().urn
             state = json.dumps(error.state.state_dict, indent=4)

@@ -61,7 +61,7 @@ class TestSAMLFrontend:
 
     def setup_for_authn_req(self, context, idp_conf, sp_conf, nameid_format=None, relay_state="relay_state",
                             internal_attributes=INTERNAL_ATTRIBUTES, extra_config={},
-                            subject=None):
+                            subject=None, **kwargs):
         config = {"idp_config": idp_conf, "endpoints": ENDPOINTS}
         config.update(extra_config)
         sp_metadata_str = create_metadata_from_config_dict(sp_conf)
@@ -142,7 +142,7 @@ class TestSAMLFrontend:
         for endp in all_idp_endpoints:
             assert any(p.match(endp) for p in compiled_regex)
 
-    def test_handle_authn_request(self, context, idp_conf, sp_conf, internal_response):
+    def test_handle_authn_request(self, context, idp_conf, sp_conf, internal_response, **kwargs):
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf)
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
         assert internal_req.requester == sp_conf["entityid"]
@@ -156,7 +156,8 @@ class TestSAMLFrontend:
         for key in resp.ava:
             assert USERS["testuser1"][key] == resp.ava[key]
 
-    def test_create_authn_request_with_subject(self, context, idp_conf, sp_conf, internal_response):
+    def test_create_authn_request_with_subject(self, context, idp_conf, sp_conf, internal_response,
+                                               **kwargs):
         name_id_value = 'somenameid'
         name_id = NameID(format=NAMEID_FORMAT_UNSPECIFIED, text=name_id_value)
         subject = Subject(name_id=name_id)
@@ -181,7 +182,8 @@ class TestSAMLFrontend:
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
         assert internal_req.subject_type == NAMEID_FORMAT_TRANSIENT
 
-    def test_handle_authn_response_without_relay_state(self, context, idp_conf, sp_conf, internal_response):
+    def test_handle_authn_response_without_relay_state(self, context, idp_conf, sp_conf,
+                                                       internal_response, **kwargs):
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, relay_state=None)
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
         assert internal_req.requester == sp_conf["entityid"]
@@ -263,7 +265,8 @@ class TestSAMLFrontend:
         assert set(filtered_attributes) == set(["edupersontargetedid", "edupersonprincipalname",
                                                 "edupersonaffiliation", "mail", "displayname", "sn", "givenname"])
 
-    def test_acr_mapping_in_authn_response(self, context, idp_conf, sp_conf, internal_response):
+    def test_acr_mapping_in_authn_response(self, context, idp_conf, sp_conf, internal_response,
+                                           **kwargs):
         eidas_loa_low = "http://eidas.europa.eu/LoA/low"
         loa = {"": eidas_loa_low}
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, extra_config={"acr_mapping": loa})
@@ -274,7 +277,8 @@ class TestSAMLFrontend:
         authn_context_class_ref = resp.assertion.authn_statement[0].authn_context.authn_context_class_ref
         assert authn_context_class_ref.text == eidas_loa_low
 
-    def test_acr_mapping_per_idp_in_authn_response(self, context, idp_conf, sp_conf, internal_response):
+    def test_acr_mapping_per_idp_in_authn_response(self, context, idp_conf, sp_conf,
+                                                   internal_response, **kwargs):
         expected_loa = "LoA1"
         loa = {"": "http://eidas.europa.eu/LoA/low", idp_conf["entityid"]: expected_loa}
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, extra_config={"acr_mapping": loa})
@@ -294,8 +298,9 @@ class TestSAMLFrontend:
         ([RESEARCH_AND_EDUCATION, NREN], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, NREN)]),
         ([SFS_1993_1153], "swamid", swamid.RELEASE[""] + swamid.RELEASE[SFS_1993_1153]),
     ])
-    def test_respect_sp_entity_categories(self, context, entity_category, entity_category_module, expected_attributes,
-                                          idp_conf, sp_conf, internal_response):
+    def test_respect_sp_entity_categories(self, context, entity_category, entity_category_module,
+                                          expected_attributes, idp_conf, sp_conf,
+                                          internal_response, **kwargs):
         idp_metadata_str = create_metadata_from_config_dict(idp_conf)
         idp_conf["service"]["idp"]["policy"]["default"]["entity_categories"] = [entity_category_module]
         if all(entity_category):  # don't insert empty entity category
@@ -321,22 +326,23 @@ class TestSAMLFrontend:
         resp = self.get_auth_response(samlfrontend, context, internal_response, sp_conf, idp_metadata_str)
         assert Counter(resp.ava.keys()) == Counter(expected_attributes)
 
-    def test_sp_metadata_including_uiinfo_display_name(self, context, idp_conf, sp_conf):
+    def test_sp_metadata_including_uiinfo_display_name(self, context, idp_conf, sp_conf, **kwargs):
         sp_conf["service"]["sp"]["ui_info"] = dict(display_name="Test SP")
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf)
         display_names = samlfrontend._get_sp_display_name(samlfrontend.idp, sp_conf["entityid"])
         assert display_names[0]["text"] == "Test SP"
 
-    def test_sp_metadata_including_uiinfo_without_display_name(self, context, idp_conf, sp_conf):
+    def test_sp_metadata_including_uiinfo_without_display_name(self, context, idp_conf, sp_conf,
+                                                               **kwargs):
         sp_conf["service"]["sp"]["ui_info"] = dict(information_url="http://info.example.com")
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf)
         assert samlfrontend._get_sp_display_name(samlfrontend.idp, sp_conf["entityid"]) is None
 
-    def test_sp_metadata_without_uiinfo(self, context, idp_conf, sp_conf):
+    def test_sp_metadata_without_uiinfo(self, context, idp_conf, sp_conf, **kwargs):
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf)
         assert samlfrontend._get_sp_display_name(samlfrontend.idp, sp_conf["entityid"]) is None
 
-    def test_metadata_endpoint(self, context, idp_conf):
+    def test_metadata_endpoint(self, context, idp_conf, **kwargs):
         conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS}
         samlfrontend = SAMLFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES, conf, "base_url", "saml_frontend")
         samlfrontend.register_endpoints(["todo"])
@@ -345,8 +351,9 @@ class TestSAMLFrontend:
         assert headers["Content-Type"] == "text/xml"
         assert idp_conf["entityid"] in resp.message
 
-    def test_custom_attribute_release_with_less_attributes_than_entity_category(self, context, idp_conf, sp_conf,
-                                                                                internal_response):
+    def test_custom_attribute_release_with_less_attributes_than_entity_category(
+            self, context, idp_conf, sp_conf,
+            internal_response, **kwargs):
         idp_metadata_str = create_metadata_from_config_dict(idp_conf)
         idp_conf["service"]["idp"]["policy"]["default"]["entity_categories"] = ["swamid"]
         sp_conf["entity_category"] = [SFS_1993_1153]
@@ -392,7 +399,7 @@ class TestSAMLMirrorFrontend:
         idp_config = self.frontend._load_endpoints_to_config(self.BACKEND, self.TARGET_ENTITY_ID)
         self.assert_dynamic_endpoints(idp_config["service"]["idp"]["endpoints"]["single_sign_on_service"])
 
-    def test_load_idp_dynamic_endpoints(self, context):
+    def test_load_idp_dynamic_endpoints(self, context, **kwargs):
         context.path = "{}/{}/sso/redirect".format(self.BACKEND, self.TARGET_ENTITY_ID)
         context.target_backend = self.BACKEND
         idp = self.frontend._load_idp_dynamic_endpoints(context)
