@@ -19,7 +19,8 @@ import logging
 import sys
 from typing import Tuple
 import satosa
-from .base import RequestMicroService, ResponseMicroService
+from satosa.internal import InternalData
+from satosa.micro_services.base import RequestMicroService, ResponseMicroService
 from satosa.micro_services.local_store import LocalStore
 
 MIN_PYTHON = (3, 6)

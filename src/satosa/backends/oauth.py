@@ -64,7 +64,7 @@ class _OAuthBackend(BackendModule):
             response_type=self.config["response_type"])
         self.consumer.client_secret = self.config["client_secret"]
 
-    def start_auth(self, context, internal_request, get_state=stateID):
+    def start_auth(self, context, internal_request, get_state=stateID, **kwargs):
         """
         See super class method satosa.backends.base#start_auth
         :param get_state: Generates a state to be used in the authentication call.
@@ -118,7 +118,7 @@ class _OAuthBackend(BackendModule):
                                             "Missing or invalid state [%s] in response!" %
                                             received_state)
 
-    def _authn_response(self, context):
+    def _authn_response(self, context, **kwargs):
         """
         Handles the authentication response from the AS.
 

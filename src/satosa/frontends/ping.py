@@ -19,7 +19,7 @@ class PingFrontend(satosa.frontends.base.FrontendModule):
 
         self.config = config
 
-    def handle_authn_response(self, context, internal_resp, extra_id_token_claims=None):
+    def handle_authn_response(self, context, internal_resp, extra_id_token_claims=None, **kwargs):
         """
         See super class method satosa.frontends.base.FrontendModule#handle_authn_response
         :type context: satosa.context.Context
@@ -47,7 +47,7 @@ class PingFrontend(satosa.frontends.base.FrontendModule):
 
         return url_map
 
-    def ping_endpoint(self, context):
+    def ping_endpoint(self, context, **kwargs):
         """
         """
         logprefix = PingFrontend.logprefix
