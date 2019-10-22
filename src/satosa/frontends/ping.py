@@ -1,5 +1,4 @@
 import satosa.micro_services.base
-from satosa.logging_util import satosa_logging
 
 from satosa.response import Response
 
