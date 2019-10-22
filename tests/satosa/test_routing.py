@@ -78,7 +78,7 @@ class TestModuleRouter:
         frontend = self.router.frontend_routing(context)
         assert frontend == self.router.frontends[expected_frontend]["instance"]
 
-    def test_endpoint_routing_with_unknown_endpoint(self, context):
+    def test_endpoint_routing_with_unknown_endpoint(self, context, **kwargs):
         context.path = "unknown"
         with pytest.raises(SATOSANoBoundEndpointError):
             self.router.endpoint_routing(context)

@@ -78,7 +78,7 @@ class TestBitBucketBackend(object):
                                            BB_CONFIG, "base_url", "bitbucket")
 
     @pytest.fixture
-    def incoming_authn_response(self, context):
+    def incoming_authn_response(self, context, **kwargs):
         context.path = 'bitbucket/sso/redirect'
         state_data = dict(state=mock_get_state.return_value)
         context.state[self.bb_backend.name] = state_data
@@ -127,7 +127,7 @@ class TestBitBucketBackend(object):
         expected_url_map = [('^bitbucket$', self.bb_backend._authn_response)]
         assert url_map == expected_url_map
 
-    def test_start_auth(self, context):
+    def test_start_auth(self, context, **kwargs):
         context.path = 'bitbucket/sso/redirect'
         internal_request = InternalData(
             subject_type=NAMEID_FORMAT_TRANSIENT, requester='test_requester'
@@ -135,7 +135,8 @@ class TestBitBucketBackend(object):
 
         resp = self.bb_backend.start_auth(context,
                                           internal_request,
-                                          mock_get_state)
+                                          mock_get_state,
+                                          **kwargs)
         login_url = resp.message
         assert login_url.startswith(
                 BB_CONFIG["server_info"]["authorization_endpoint"])
@@ -165,7 +166,7 @@ class TestBitBucketBackend(object):
         self.assert_token_request(**mock_do_access_token_request.call_args[1])
 
     @responses.activate
-    def test_entire_flow(self, context):
+    def test_entire_flow(self, context, **kwargs):
         """
         Tests start of authentication (incoming auth req) and receiving auth
         response.
