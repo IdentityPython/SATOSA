@@ -26,7 +26,8 @@ setup(
         "pystache"
     ],
     extras_require={
-        "ldap": ["ldap3"]
+        "ldap": ["ldap3"],
+        "redirecturl": ["redis"],
     },
     zip_safe=False,
     classifiers=[
