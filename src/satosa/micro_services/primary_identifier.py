@@ -5,15 +5,17 @@ a primary identifier or key for the user and assert it as
 the value for a configured attribute, for example uid.
 """
 
-import satosa.micro_services.base
-from satosa.logging_util import satosa_logging
-from satosa.response import Redirect
-
 import copy
 import logging
 import urllib.parse
 
+import satosa.logging_util as lu
+import satosa.micro_services.base
+from satosa.response import Redirect
+
+
 logger = logging.getLogger(__name__)
+
 
 class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
     """
@@ -39,17 +41,23 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
         context = self.context
 
         attributes = data.attributes
-        satosa_logging(logger, logging.DEBUG, "{} Input attributes {}".format(logprefix, attributes), context.state)
+        msg = "{} Input attributes {}".format(logprefix, attributes)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
 
         value = None
 
         for candidate in ordered_identifier_candidates:
-            satosa_logging(logger, logging.DEBUG, "{} Considering candidate {}".format(logprefix, candidate), context.state)
+            msg = "{} Considering candidate {}".format(logprefix, candidate)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
 
             # Get the values asserted by the IdP for the configured list of attribute names for this candidate
             # and substitute None if the IdP did not assert any value for a configured attribute.
             values = [ attributes.get(attribute_name, [None])[0] for attribute_name in candidate['attribute_names'] ]
-            satosa_logging(logger, logging.DEBUG, "{} Found candidate values {}".format(logprefix, values), context.state)
+            msg = "{} Found candidate values {}".format(logprefix, values)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
 
             # If one of the configured attribute names is name_id then if there is also a configured
             # name_id_format add the value for the NameID of that format if it was asserted by the IdP
@@ -65,7 +73,9 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
                     and candidate_name_id_format
                     and candidate_name_id_format == name_id_format
                 ):
-                    satosa_logging(logger, logging.DEBUG, "{} IdP asserted NameID {}".format(logprefix, name_id_value), context.state)
+                    msg = "{} IdP asserted NameID {}".format(logprefix, name_id_value)
+                    logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                    logger.debug(logline)
                     candidate_nameid_value = name_id_value
 
                 # Only add the NameID value asserted by the IdP if it is not already
@@ -74,15 +84,25 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
                 # in the value for SAML2 persistent NameID as well as asserting
                 # eduPersonPrincipalName.
                 if candidate_nameid_value not in values:
-                    satosa_logging(logger, logging.DEBUG, "{} Added NameID {} to candidate values".format(logprefix, candidate_nameid_value), context.state)
+                    msg = "{} Added NameID {} to candidate values".format(
+                        logprefix, candidate_nameid_value
+                    )
+                    logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                    logger.debug(logline)
                     values.append(candidate_nameid_value)
                 else:
-                    satosa_logging(logger, logging.WARN, "{} NameID {} value also asserted as attribute value".format(logprefix, candidate_nameid_value), context.state)
+                    msg = "{} NameID {} value also asserted as attribute value".format(
+                        logprefix, candidate_nameid_value
+                    )
+                    logline = logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                    logger.warn(logline)
 
             # If no value was asserted by the IdP for one of the configured list of attribute names
             # for this candidate then go onto the next candidate.
             if None in values:
-                satosa_logging(logger, logging.DEBUG, "{} Candidate is missing value so skipping".format(logprefix), context.state)
+                msg = "{} Candidate is missing value so skipping".format(logprefix)
+                logline = logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                logger.debug(logline)
                 continue
 
             # All values for the configured list of attribute names are present
@@ -93,7 +113,9 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
                     scope = data.auth_info.issuer
                 else:
                     scope = candidate['add_scope']
-                satosa_logging(logger, logging.DEBUG, "{} Added scope {} to values".format(logprefix, scope), context.state)
+                msg = "{} Added scope {} to values".format(logprefix, scope)
+                logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                logger.debug(logline)
                 values.append(scope)
 
             # Concatenate all values to create the primary identifier.
@@ -110,34 +132,46 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
         # that is passed during initialization.
         config = self.config
 
-        satosa_logging(logger, logging.DEBUG, "{} Using default configuration {}".format(logprefix, config), context.state)
+        msg = "{} Using default configuration {}".format(logprefix, config)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
 
         # Find the entityID for the SP that initiated the flow
         try:
             spEntityID = context.state.state_dict['SATOSA_BASE']['requester']
         except KeyError as err:
-            satosa_logging(logger, logging.ERROR, "{} Unable to determine the entityID for the SP requester".format(logprefix), context.state)
+            msg = "{} Unable to determine the entityID for the SP requester".format(logprefix)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline)
             return super().process(context, data)
 
-        satosa_logging(logger, logging.DEBUG, "{} entityID for the SP requester is {}".format(logprefix, spEntityID), context.state)
+        msg = "{} entityID for the SP requester is {}".format(logprefix, spEntityID)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
 
         # Find the entityID for the IdP that issued the assertion
         try:
             idpEntityID = data.auth_info.issuer
         except KeyError as err:
-            satosa_logging(logger, logging.ERROR, "{} Unable to determine the entityID for the IdP issuer".format(logprefix), context.state)
+            msg = "{} Unable to determine the entityID for the IdP issuer".format(logprefix)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline)
             return super().process(context, data)
 
         # Examine our configuration to determine if there is a per-IdP configuration
         if idpEntityID in self.config:
             config = self.config[idpEntityID]
-            satosa_logging(logger, logging.DEBUG, "{} For IdP {} using configuration {}".format(logprefix, idpEntityID, config), context.state)
+            msg  = "{} For IdP {} using configuration {}".format(logprefix, idpEntityID, config)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
 
         # Examine our configuration to determine if there is a per-SP configuration.
         # An SP configuration overrides an IdP configuration when there is a conflict.
         if spEntityID in self.config:
             config = self.config[spEntityID]
-            satosa_logging(logger, logging.DEBUG, "{} For SP {} using configuration {}".format(logprefix, spEntityID, config), context.state)
+            msg = "{} For SP {} using configuration {}".format(logprefix, spEntityID, config)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
 
         # Obtain configuration details from the per-SP configuration or the default configuration
         try:
@@ -169,20 +203,28 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
                 on_error = None
 
         except KeyError as err:
-            satosa_logging(logger, logging.ERROR, "{} Configuration '{}' is missing".format(logprefix, err), context.state)
+            msg = "{} Configuration '{}' is missing".format(logprefix, err)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline)
             return super().process(context, data)
 
         # Ignore this SP entirely if so configured.
         if ignore:
-            satosa_logging(logger, logging.INFO, "{} Ignoring SP {}".format(logprefix, spEntityID), context.state)
+            msg = "{} Ignoring SP {}".format(logprefix, spEntityID)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.info(logline)
             return super().process(context, data)
 
         # Construct the primary identifier.
-        satosa_logging(logger, logging.DEBUG, "{} Constructing primary identifier".format(logprefix), context.state)
+        msg = "{} Constructing primary identifier".format(logprefix)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
         primary_identifier_val = self.constructPrimaryIdentifier(data, ordered_identifier_candidates)
 
         if not primary_identifier_val:
-            satosa_logging(logger, logging.WARN, "{} No primary identifier found".format(logprefix), context.state)
+            msg = "{} No primary identifier found".format(logprefix)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.warn(logline)
             if on_error:
                 # Redirect to the configured error handling service with
                 # the entityIDs for the target SP and IdP used by the user
@@ -190,19 +232,33 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
                 encodedSpEntityID = urllib.parse.quote_plus(spEntityID)
                 encodedIdpEntityID = urllib.parse.quote_plus(data.auth_info.issuer)
                 url = "{}?sp={}&idp={}".format(on_error, encodedSpEntityID, encodedIdpEntityID)
-                satosa_logging(logger, logging.INFO, "{} Redirecting to {}".format(logprefix, url), context.state)
+                msg = "{} Redirecting to {}".format(logprefix, url)
+                logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                logger.info(logline)
                 return Redirect(url)
 
-        satosa_logging(logger, logging.INFO, "{} Found primary identifier: {}".format(logprefix, primary_identifier_val), context.state)
+        msg = "{} Found primary identifier: {}".format(logprefix, primary_identifier_val)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.info(logline)
 
         # Clear input attributes if so configured.
         if clear_input_attributes:
-            satosa_logging(logger, logging.DEBUG, "{} Clearing values for these input attributes: {}".format(logprefix, data.attributes), context.state)
+            msg = "{} Clearing values for these input attributes: {}".format(
+                logprefix, data.attribute_names
+            )
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
             data.attributes = {}
 
         # Set the primary identifier attribute to the value found.
         data.attributes[primary_identifier] = primary_identifier_val
-        satosa_logging(logger, logging.DEBUG, "{} Setting attribute {} to value {}".format(logprefix, primary_identifier, primary_identifier_val), context.state)
+        msg = "{} Setting attribute {} to value {}".format(
+            logprefix, primary_identifier, primary_identifier_val
+        )
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
 
-        satosa_logging(logger, logging.DEBUG, "{} returning data.attributes {}".format(logprefix, str(data.attributes)), context.state)
+        msg = "{} returning data.attributes {}".format(logprefix, str(data.attributes))
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.statestate), message=msg)
+        logger.debug(logline)
         return super().process(context, data)
