@@ -26,7 +26,8 @@ def _create_backend_metadata(backend_modules):
 
     for plugin_module in backend_modules:
         if isinstance(plugin_module, SAMLBackend):
-            logger.info("Generating SAML backend '%s' metadata", plugin_module.name)
+            logline = "Generating SAML backend '{}' metadata".format(plugin_module.name)
+            logger.info(logline)
             backend_metadata[plugin_module.name] = [_create_entity_descriptor(plugin_module.config["sp_config"])]
 
     return backend_metadata
@@ -60,7 +61,10 @@ def _create_frontend_metadata(frontend_modules, backend_modules):
     for frontend in frontend_modules:
         if isinstance(frontend, SAMLMirrorFrontend):
             for backend in backend_modules:
-                logger.info("Creating metadata for frontend '%s' and backend '%s'".format(frontend.name, backend.name))
+                logline = "Creating metadata for frontend '{}' and backend '{}'".format(
+                    frontend.name, backend.name
+                )
+                logger.info(logline)
                 meta_desc = backend.get_metadata_desc()
                 for desc in meta_desc:
                     entity_desc = _create_entity_descriptor(
@@ -72,7 +76,8 @@ def _create_frontend_metadata(frontend_modules, backend_modules):
                 co_names = frontend._co_names_from_config()
 
                 for co_name in co_names:
-                    logger.info("Creating metadata for CO {}".format(co_name))
+                    logline = "Creating metadata for CO {}".format(co_name)
+                    logger.info(logline)
                     idp_config = copy.deepcopy(frontend.config["idp_config"])
                     idp_config = frontend._add_endpoints_to_config(idp_config, co_name, backend.name)
                     idp_config = frontend._add_entity_id(idp_config, co_name)
