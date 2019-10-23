@@ -10,10 +10,10 @@ from jwkest.jws import JWS
 
 from satosa.internal import InternalData
 from ..exception import SATOSAAuthenticationError
-from ..logging_util import satosa_logging
 from ..micro_services.base import ResponseMicroService
 from ..response import Redirect
 
+import satosa.logging_util as lu
 logger = logging.getLogger(__name__)
 
 
@@ -53,8 +53,9 @@ class AccountLinking(ResponseMicroService):
         status_code, message = self._get_uuid(context, internal_response.auth_info.issuer, internal_response.attributes['issuer_user_id'])
 
         if status_code == 200:
-            satosa_logging(logger, logging.INFO, "issuer/id pair is linked in AL service",
-                           context.state)
+            msg = "issuer/id pair is linked in AL service"
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.info(logline)
             internal_response.subject_id = message
             if self.id_to_attr:
                 internal_response.attributes[self.id_to_attr] = [message]
@@ -64,8 +65,9 @@ class AccountLinking(ResponseMicroService):
         else:
             # User selected not to link their accounts, so the internal.response.subject_id is based on the
             # issuers id/sub which is fine
-            satosa_logging(logger, logging.INFO, "User selected to not link their identity in AL service",
-                           context.state)
+            msg = "User selected to not link their identity in AL service"
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.info(logline)
             del context.state[self.name]
             return super().process(context, internal_response)
 
@@ -94,15 +96,17 @@ class AccountLinking(ResponseMicroService):
         # Store the issuer subject_id/sub because we'll need it in handle_al_response
         internal_response.attributes['issuer_user_id'] = internal_response.subject_id
         if status_code == 200:
-            satosa_logging(logger, logging.INFO, "issuer/id pair is linked in AL service",
-                           context.state)
+            msg = "issuer/id pair is linked in AL service"
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.info(logline)
             internal_response.subject_id = message
             data['user_id'] = message
             if self.id_to_attr:
                 internal_response.attributes[self.id_to_attr] = [message]
         else:
-            satosa_logging(logger, logging.INFO, "issuer/id pair is not linked in AL service. Got a ticket",
-                           context.state)
+            msg = "issuer/id pair is not linked in AL service. Got a ticket"
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.info(logline)
             data['ticket'] = message
         jws = JWS(json.dumps(data), alg=self.signing_key.alg).sign_compact([self.signing_key])
         context.state[self.name] = internal_response.to_dict()
@@ -137,12 +141,14 @@ class AccountLinking(ResponseMicroService):
             response = requests.get(request)
         except Exception as con_exc:
             msg = "Could not connect to account linking service"
-            satosa_logging(logger, logging.CRITICAL, msg, context.state, exc_info=True)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.critical(logline)
             raise SATOSAAuthenticationError(context.state, msg) from con_exc
 
         if response.status_code not in [200, 404]:
-            msg = "Got status code '%s' from account linking service" % (response.status_code)
-            satosa_logging(logger, logging.CRITICAL, msg, context.state)
+            msg = "Got status code '{}' from account linking service".format(response.status_code)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.critical(logline)
             raise SATOSAAuthenticationError(context.state, msg)
 
         return response.status_code, response.text
