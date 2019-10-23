@@ -144,7 +144,7 @@ class SATOSAConfig(object):
         :return: Loaded config
         """
         try:
-            with open(config_file) as f:
+            with open(os.path.abspath(config_file)) as f:
                 return yaml.safe_load(f.read())
         except yaml.YAMLError as exc:
             logger.error("Could not parse config as YAML: {}".format(exc))
@@ -152,6 +152,6 @@ class SATOSAConfig(object):
                 mark = exc.problem_mark
                 logger.error("Error position: ({line}:{column})".format(line=mark.line + 1, column=mark.column + 1))
         except IOError as e:
-            logger.debug("Could not open config file: {}".format(e))
+            logger.error("Could not open config file: {}".format(e))
 
         return None
