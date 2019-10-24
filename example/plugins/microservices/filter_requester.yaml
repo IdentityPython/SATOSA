@@ -1,0 +1,10 @@
+# Requester whitelist: this microservice cannot be used for blacklisting
+config:
+  allow:
+    # this list must not be empty. Use '*' to allow all requesters
+    - https://sp1.test.wpv.portalverbund.at/sp.xml
+    - https://sp3.test.wpv.portalverbund.at/sp.xml
+    - https://sp4.test.wpv.portalverbund.at/sp.xml
+    - https://useradmin-core.austrian-standards.at/saml/metadata/alias/austrian-standards-core-wpv
+module: satosa.micro_services.filter_requester
+name: FilterRequester
