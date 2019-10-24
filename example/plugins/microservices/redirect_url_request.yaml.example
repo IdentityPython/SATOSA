@@ -1,0 +1,4 @@
+module: satosa.micro_services.redirect_url.RedirectUrlRequest
+name: RedirectUrlRequest
+config:
+  db_encryption_key: "WQpuhOELqGAs/ct2mujCqw"

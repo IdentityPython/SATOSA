@@ -5,6 +5,5 @@ config:
     - https://sp1.test.wpv.portalverbund.at/sp.xml
     - https://sp3.test.wpv.portalverbund.at/sp.xml
     - https://sp4.test.wpv.portalverbund.at/sp.xml
-    - https://useradmin-core.austrian-standards.at/saml/metadata/alias/austrian-standards-core-wpv
-module: satosa.micro_services.filter_requester
+module: satosa.micro_services.filter_requester.FilterRequester
 name: FilterRequester
