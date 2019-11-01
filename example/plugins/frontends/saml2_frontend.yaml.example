@@ -47,6 +47,8 @@ config:
             fail_on_missing_requested: false
             lifetime: {minutes: 15}
             name_form: urn:oasis:names:tc:SAML:2.0:attrname-format:uri
+            encrypt_assertion: false
+            encrypted_advice_attributes: false
   acr_mapping:
     "": default-LoA
     "https://accounts.google.com": LoA1

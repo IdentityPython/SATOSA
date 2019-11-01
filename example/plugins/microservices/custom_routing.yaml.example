@@ -1,0 +1,11 @@
+module: satosa.micro_services.custom_routing.DecideIfRequesterIsAllowed
+name: RequesterDecider
+config:
+  rules:
+    target_entity_id1:
+        allow: ["requester1", "requester2"]
+    target_entity_id2:
+        deny: ["requester3"]
+    target_entity_id3:
+        allow: ["requester1"]
+        deny: ["*"]
