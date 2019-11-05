@@ -79,12 +79,14 @@ class _Datafy(UserDict):
         return instance
 
 
-class AuthenticationInformation(object):
+class AuthenticationInformation(_Datafy):
     """
     Class that holds information about the authentication
     """
 
-    def __init__(self, auth_class_ref=None, timestamp=None, issuer=None):
+    def __init__(
+        self, auth_class_ref=None, timestamp=None, issuer=None, *args, **kwargs
+    ):
         """
         Initiate the data carrier
 
@@ -96,6 +98,7 @@ class AuthenticationInformation(object):
         :param timestamp: Time when the authentication was done
         :param issuer: Where the authentication was done
         """
+        super().__init__(self, *args, **kwargs)
         self.auth_class_ref = auth_class_ref
         self.timestamp = timestamp
         self.issuer = issuer
@@ -130,10 +133,17 @@ class AuthenticationInformation(object):
         return str(self.to_dict())
 
 
-class InternalData(object):
+class InternalData(_Datafy):
     """
     A base class for the data carriers between frontends/backends
     """
+
+    _DEPRECATED_TO_NEW_MEMBERS = {
+        "name_id": "subject_id",
+        "user_id": "subject_id",
+        "user_id_hash_type": "subject_type",
+        "approved_attributes": "attributes",
+    }
 
     def __init__(
         self,
@@ -147,6 +157,8 @@ class InternalData(object):
         user_id_hash_type=None,
         name_id=None,
         approved_attributes=None,
+        *args,
+        **kwargs,
     ):
         """
         :param auth_info:
@@ -171,6 +183,7 @@ class InternalData(object):
         :type name_id: str
         :type approved_attributes: dict
         """
+        super().__init__(self, *args, **kwargs)
         self.auth_info = auth_info or AuthenticationInformation()
         self.requester = requester
         self.requester_name = (
@@ -250,54 +263,6 @@ class InternalData(object):
             approved_attributes=data.get("approved_attributes"),
         )
         return instance
-
-    @property
-    def user_id(self):
-        msg = "user_id is deprecated; use subject_id instead."
-        _warnings.warn(msg, DeprecationWarning)
-        return self.subject_id
-
-    @user_id.setter
-    def user_id(self, value):
-        msg = "user_id is deprecated; use subject_id instead."
-        _warnings.warn(msg, DeprecationWarning)
-        self.subject_id = value
-
-    @property
-    def user_id_hash_type(self):
-        msg = "user_id_hash_type is deprecated; use subject_type instead."
-        _warnings.warn(msg, DeprecationWarning)
-        return self.subject_type
-
-    @user_id_hash_type.setter
-    def user_id_hash_type(self, value):
-        msg = "user_id_hash_type is deprecated; use subject_type instead."
-        _warnings.warn(msg, DeprecationWarning)
-        self.subject_type = value
-
-    @property
-    def approved_attributes(self):
-        msg = "approved_attributes is deprecated; use attributes instead."
-        _warnings.warn(msg, DeprecationWarning)
-        return self.attributes
-
-    @approved_attributes.setter
-    def approved_attributes(self, value):
-        msg = "approved_attributes is deprecated; use attributes instead."
-        _warnings.warn(msg, DeprecationWarning)
-        self.attributes = value
-
-    @property
-    def name_id(self):
-        msg = "name_id is deprecated; use subject_id instead."
-        _warnings.warn(msg, DeprecationWarning)
-        return self.subject_id
-
-    @name_id.setter
-    def name_id(self, value):
-        msg = "name_id is deprecated; use subject_id instead."
-        _warnings.warn(msg, DeprecationWarning)
-        self.subject_id = value
 
     def __repr__(self):
         return str(self.to_dict())
