@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.6.0
+
+- build: drop support for python 3.5
+
+
 ## 4.5.0 (2019-11-05)
 
 - add options in saml-frontend to encrypt assertion from AuthnResponse
