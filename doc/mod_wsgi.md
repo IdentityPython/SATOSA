@@ -12,7 +12,7 @@ yum install httpd mod_ssl httpd-devel python34 python34-devel
 yum install xmlsec1-openssl gcc curl
 ```
 
-Install the latest production release of pip and use it to install the latest 
+Install the latest production release of pip and use it to install the latest
 production release of mod\_wsgi:
 
 ```
@@ -120,7 +120,7 @@ BACKEND_MODULES:
   - "/etc/satosa/plugins/saml2_backend.yaml"
 
 FRONTEND_MODULES:
-  - "/etc/satosa/plugins/ping_frontend.yaml"  
+  - "/etc/satosa/plugins/ping_frontend.yaml"
   - "/etc/satosa/plugins/saml2_frontend.yaml"
 
 MICRO_SERVICES:
@@ -151,7 +151,7 @@ LOGGING:
       propagate: no
   root:
     level: INFO
-    handlers: 
+    handlers:
       - console
 ```
 
