@@ -2,7 +2,7 @@
 
 ## 4.5.0 (2019-11-05)
 
-- add options in samlofrontend to encrypt assertion from AuthnResponse
+- add options in saml-frontend to encrypt assertion from AuthnResponse
 - use saml2.extension.mdui in place of saml2.extension.ui
 - improve log handling
 - remove logging around state-cookie loading
