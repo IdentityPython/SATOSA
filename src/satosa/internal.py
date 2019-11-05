@@ -155,7 +155,11 @@ class InternalData(_Datafy):
         :type approved_attributes: dict
         """
         super().__init__(self, *args, **kwargs)
-        self.auth_info = auth_info or AuthenticationInformation()
+        self.auth_info = (
+            auth_info
+            if isinstance(auth_info, AuthenticationInformation)
+            else AuthenticationInformation(**(auth_info or {}))
+        )
         self.requester = requester
         self.requester_name = (
             requester_name
