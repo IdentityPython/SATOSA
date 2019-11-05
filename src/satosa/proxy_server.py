@@ -41,7 +41,8 @@ def unpack_post(environ, content_length):
     elif "application/json" in environ["CONTENT_TYPE"]:
         data = json.loads(post_body)
 
-    logger.debug("unpack_post:: %s", data)
+    logline = "unpack_post:: {}".format(data)
+    logger.debug(logline)
     return data
 
 
@@ -57,7 +58,8 @@ def unpack_request(environ, content_length=0):
     elif environ["REQUEST_METHOD"] == "POST":
         data = unpack_post(environ, content_length)
 
-    logger.debug("read request data: %s", data)
+    logline = "read request data: {}".format(data)
+    logger.debug(logline)
     return data
 
 
@@ -120,7 +122,8 @@ class WsgiApplication(SATOSABase):
             return resp(environ, start_response)
         except Exception as err:
             if type(err) != UnknownSystemEntity:
-                logger.exception("%s" % err)
+                logline = "{}".format(err)
+                logger.exception(logline)
             if debug:
                 raise
 
@@ -142,11 +145,14 @@ def make_app(satosa_config):
 
         try:
             _ = pkg_resources.get_distribution(module.__name__)
-            logger.info("Running SATOSA version %s",
-                        pkg_resources.get_distribution("SATOSA").version)
+            logline = "Running SATOSA version {}".format(
+                pkg_resources.get.get_distribution("SATOSA").version
+            )
+            logger.info(logline)
         except (NameError, pkg_resources.DistributionNotFound):
             pass
         return ToBytesMiddleware(WsgiApplication(satosa_config))
     except Exception:
-        logger.exception("Failed to create WSGI app.")
+        logline = "Failed to create WSGI app."
+        logger.exception(logline)
         raise
