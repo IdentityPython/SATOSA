@@ -13,13 +13,14 @@ from oic.oic.message import RegistrationRequest
 from oic.utils.authn.authn_context import UNSPECIFIED
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
+import satosa.logging_util as lu
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from .base import BackendModule
 from .oauth import get_metadata_desc_for_oauth_backend
 from ..exception import SATOSAAuthenticationError, SATOSAError
-from ..logging_util import satosa_logging
 from ..response import Redirect
+
 
 logger = logging.getLogger(__name__)
 
@@ -118,10 +119,9 @@ class OpenIDConnectBackend(BackendModule):
         """
         backend_state = context.state[self.name]
         if nonce != backend_state[NONCE_KEY]:
-            satosa_logging(logger, logging.DEBUG,
-                           "Missing or invalid nonce in authn response for state: %s" %
-                           backend_state,
-                           context.state)
+            msg = "Missing or invalid nonce in authn response for state: {}".format(backend_state)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
             raise SATOSAAuthenticationError(context.state, "Missing or invalid nonce in authn response")
 
     def _get_tokens(self, authn_response, context):
@@ -156,9 +156,13 @@ class OpenIDConnectBackend(BackendModule):
         :raise SATOSAAuthenticationError: if the response is an OAuth error response
         """
         if "error" in response:
-            satosa_logging(logger, logging.DEBUG, "%s error: %s %s" %
-                           (type(response).__name__, response["error"], response.get("error_description", "")),
-                           context.state)
+            msg = "{name} error: {error} {description}".format(
+                name=type(response).__name__,
+                error=response["error"],
+                description=response.get("error_description", ""),
+            )
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
             raise SATOSAAuthenticationError(context.state, "Access denied")
 
     def _get_userinfo(self, state, context):
@@ -181,10 +185,9 @@ class OpenIDConnectBackend(BackendModule):
         backend_state = context.state[self.name]
         authn_resp = self.client.parse_response(AuthorizationResponse, info=context.request, sformat="dict")
         if backend_state[STATE_KEY] != authn_resp["state"]:
-            satosa_logging(logger, logging.DEBUG,
-                           "Missing or invalid state in authn response for state: %s" %
-                           backend_state,
-                           context.state)
+            msg = "Missing or invalid state in authn response for state: {}".format(backend_state)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
             raise SATOSAAuthenticationError(context.state, "Missing or invalid state in authn response")
 
         self._check_error_response(authn_resp, context)
@@ -200,11 +203,15 @@ class OpenIDConnectBackend(BackendModule):
             userinfo = self._get_userinfo(authn_resp["state"], context)
 
         if not id_token_claims and not userinfo:
-            satosa_logging(logger, logging.ERROR, "No id_token or userinfo, nothing to do..", context.state)
+            msg = "No id_token or userinfo, nothing to do.."
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline)
             raise SATOSAAuthenticationError(context.state, "No user info available.")
 
         all_user_claims = dict(list(userinfo.items()) + list(id_token_claims.items()))
-        satosa_logging(logger, logging.DEBUG, "UserInfo: %s" % all_user_claims, context.state)
+        msg = "UserInfo: {}".format(all_user_claims)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
         del context.state[self.name]
         internal_resp = self._translate_response(all_user_claims, self.client.authorization_endpoint)
         return self.auth_callback_func(context, internal_resp)
