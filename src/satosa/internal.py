@@ -2,6 +2,81 @@
 
 
 import warnings as _warnings
+from collections import UserDict
+
+
+class _Datafy(UserDict):
+    _DEPRECATED_TO_NEW_MEMBERS = {}
+
+    def _get_new_key(self, old_key):
+        new_key = self.__class__._DEPRECATED_TO_NEW_MEMBERS.get(old_key, old_key)
+        is_key_deprecated = old_key != new_key
+        if is_key_deprecated:
+            msg = "'{old_key}' is deprecated; use '{new_key}' instead.".format(
+                old_key=old_key, new_key=new_key
+            )
+            _warnings.warn(msg, DeprecationWarning)
+        return new_key
+
+    def __setitem__(self, key, value):
+        new_key = self._get_new_key(key)
+        return super().__setitem__(new_key, value)
+
+    def __getitem__(self, key):
+        new_key = self._get_new_key(key)
+        value = super().__getitem__(new_key)
+        return value
+
+    def __setattr__(self, key, value):
+        if key == "data":
+            return super().__setattr__(key, value)
+
+        self.__setitem__(key, value)
+
+    def __getattr__(self, key):
+        if key == "data":
+            return self.data
+
+        try:
+            value = self.__getitem__(key)
+        except KeyError as e:
+            msg = "'{type}' object has no attribute '{attr}'".format(
+                type=type(self), attr=key
+            )
+            raise AttributeError(msg) from e
+        return value
+
+    def to_dict(self):
+        """
+        Converts an object to a dict
+        :rtype: dict[str, str]
+        :return: A dict representation of the object
+        """
+        data = {
+            key: value
+            for key, value_obj in self.items()
+            for value in [
+                value_obj.to_dict() if hasattr(value_obj, "to_dict") else value_obj
+            ]
+        }
+        data.update(
+            {
+                key: data.get(value)
+                for key, value in self.__class__._DEPRECATED_TO_NEW_MEMBERS.items()
+            }
+        )
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        """
+        :type data: dict[str, str]
+        :rtype: satosa.internal.AuthenticationInformation
+        :param data: A dict representation of an object
+        :return: An object
+        """
+        instance = cls(**data.copy())
+        return instance
 
 
 class AuthenticationInformation(object):
