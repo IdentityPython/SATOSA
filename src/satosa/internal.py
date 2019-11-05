@@ -121,9 +121,9 @@ class AuthenticationInformation(_Datafy):
         :param issuer: Where the authentication was done
         """
         super().__init__(self, *args, **kwargs)
-        self.auth_class_ref = auth_class_ref
-        self.timestamp = timestamp
-        self.issuer = issuer
+        self.update(
+            {"auth_class_ref": auth_class_ref, "timestamp": timestamp, "issuer": issuer}
+        )
 
 
 class InternalData(_Datafy):
@@ -177,37 +177,41 @@ class InternalData(_Datafy):
         :type approved_attributes: dict
         """
         super().__init__(self, *args, **kwargs)
-        self.auth_info = (
-            auth_info
-            if isinstance(auth_info, AuthenticationInformation)
-            else AuthenticationInformation(**(auth_info or {}))
-        )
-        self.requester = requester
-        self.requester_name = (
-            requester_name
-            if requester_name is not None
-            else [{"text": requester, "lang": "en"}]
-        )
-        self.subject_id = (
-            subject_id
-            if subject_id is not None
-            else user_id
-            if user_id is not None
-            else name_id
-            if name_id is not None
-            else None
-        )
-        self.subject_type = (
-            subject_type
-            if subject_type is not None
-            else user_id_hash_type
-            if user_id_hash_type is not None
-            else None
-        )
-        self.attributes = (
-            attributes
-            if attributes is not None
-            else approved_attributes
-            if approved_attributes is not None
-            else {}
+        self.update(
+            {
+                "auth_info": (
+                    auth_info
+                    if isinstance(auth_info, AuthenticationInformation)
+                    else AuthenticationInformation(**(auth_info or {}))
+                ),
+                "requester": requester,
+                "requester_name": (
+                    requester_name
+                    if requester_name is not None
+                    else [{"text": requester, "lang": "en"}]
+                ),
+                "subject_id": (
+                    subject_id
+                    if subject_id is not None
+                    else user_id
+                    if user_id is not None
+                    else name_id
+                    if name_id is not None
+                    else None
+                ),
+                "subject_type": (
+                    subject_type
+                    if subject_type is not None
+                    else user_id_hash_type
+                    if user_id_hash_type is not None
+                    else None
+                ),
+                "attributes": (
+                    attributes
+                    if attributes is not None
+                    else approved_attributes
+                    if approved_attributes is not None
+                    else {}
+                ),
+            }
         )
