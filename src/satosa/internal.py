@@ -103,35 +103,6 @@ class AuthenticationInformation(_Datafy):
         self.timestamp = timestamp
         self.issuer = issuer
 
-    def to_dict(self):
-        """
-        Converts an AuthenticationInformation object to a dict
-        :rtype: dict[str, str]
-        :return: A dict representation of the object
-        """
-        return {
-            "auth_class_ref": self.auth_class_ref,
-            "timestamp": self.timestamp,
-            "issuer": self.issuer,
-        }
-
-    @classmethod
-    def from_dict(cls, data):
-        """
-        :type data: dict[str, str]
-        :rtype: satosa.internal.AuthenticationInformation
-        :param data: A dict representation of an AuthenticationInformation object
-        :return: An AuthenticationInformation object
-        """
-        return cls(
-            auth_class_ref=data.get("auth_class_ref"),
-            timestamp=data.get("timestamp"),
-            issuer=data.get("issuer"),
-        )
-
-    def __repr__(self):
-        return str(self.to_dict())
-
 
 class InternalData(_Datafy):
     """
@@ -214,55 +185,3 @@ class InternalData(_Datafy):
             if approved_attributes is not None
             else {}
         )
-
-    def to_dict(self):
-        """
-        Converts an InternalData object to a dict
-        :rtype: dict[str, str]
-        :return: A dict representation of the object
-        """
-        data = {
-            "auth_info": self.auth_info.to_dict(),
-            "requester": self.requester,
-            "requester_name": self.requester_name,
-            "attributes": self.attributes,
-            "subject_id": self.subject_id,
-            "subject_type": self.subject_type,
-        }
-        data.update(
-            {
-                "user_id": self.subject_id,
-                "hash_type": self.subject_type,
-                "name_id": self.subject_id,
-                "approved_attributes": self.attributes,
-            }
-        )
-        return data
-
-    @classmethod
-    def from_dict(cls, data):
-        """
-        :type data: dict[str, str]
-        :rtype: satosa.internal.InternalData
-        :param data: A dict representation of an InternalData object
-        :return: An InternalData object
-        """
-        auth_info = AuthenticationInformation.from_dict(
-            data.get("auth_info", {})
-        )
-        instance = cls(
-            auth_info=auth_info,
-            requester=data.get("requester"),
-            requester_name=data.get("requester_name"),
-            subject_id=data.get("subject_id"),
-            subject_type=data.get("subject_type"),
-            attributes=data.get("attributes"),
-            user_id=data.get("user_id"),
-            user_id_hash_type=data.get("hash_type"),
-            name_id=data.get("name_id"),
-            approved_attributes=data.get("approved_attributes"),
-        )
-        return instance
-
-    def __repr__(self):
-        return str(self.to_dict())
