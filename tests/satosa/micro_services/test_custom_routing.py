@@ -144,7 +144,7 @@ class TestDecideIfRequesterIsAllowed:
         req = InternalData(requester="test_requester")
         assert decide_service.process(target_context, req)
 
-    def test_missing_target_entity_id_from_context(self, context):
+    def test_missing_target_entity_id_from_context(self, context, **kwargs):
         target_entity = "entity1"
         rules = {
             target_entity: {

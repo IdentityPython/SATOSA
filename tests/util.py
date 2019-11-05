@@ -381,7 +381,7 @@ class FakeBackend(BackendModule):
         self.start_auth_func = start_auth_func
         self.register_endpoints_func = register_endpoints_func
 
-    def start_auth(self, context, request_info, state):
+    def start_auth(self, context, request_info, state, **kwargs):
         """
         TODO comment
         :type context: TODO comment
@@ -419,7 +419,7 @@ class FakeFrontend(FrontendModule):
         self.handle_authn_response_func = handle_authn_response_func
         self.register_endpoints_func = register_endpoints_func
 
-    def handle_authn_request(self, context, binding_in):
+    def handle_authn_request(self, context, binding_in, **kwargs):
         """
         TODO comment
 
@@ -434,7 +434,7 @@ class FakeFrontend(FrontendModule):
             return self.handle_authn_request_func(context, binding_in)
         return None
 
-    def handle_authn_response(self, context, internal_response, state):
+    def handle_authn_response(self, context, internal_response, state, **kwargs):
         """
         TODO comment
         :type context: TODO comment
@@ -462,10 +462,10 @@ class TestBackend(BackendModule):
     def register_endpoints(self):
         return [("^{}/response$".format(self.name), self.handle_response)]
 
-    def start_auth(self, context, internal_request):
+    def start_auth(self, context, internal_request, **kwargs):
         return Response("Auth request received, passed to test backend")
 
-    def handle_response(self, context):
+    def handle_response(self, context, **kwargs):
         auth_info = AuthenticationInformation("test", str(datetime.now()), "test_issuer")
         internal_resp = InternalData(auth_info=auth_info)
         internal_resp.attributes = context.request
@@ -481,13 +481,13 @@ class TestFrontend(FrontendModule):
         url_map = [("^{}/{}/request$".format(p, self.name), self.handle_request) for p in backend_names]
         return url_map
 
-    def handle_request(self, context):
+    def handle_request(self, context, **kwargs):
         internal_req = InternalData(
             subject_type=NAMEID_FORMAT_TRANSIENT, requester="test_client"
         )
         return self.auth_req_callback_func(context, internal_req)
 
-    def handle_authn_response(self, context, internal_resp):
+    def handle_authn_response(self, context, internal_resp, **kwargs):
         return Response("Auth response received, passed to test frontend")
 
 

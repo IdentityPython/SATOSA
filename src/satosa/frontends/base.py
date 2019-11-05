@@ -26,7 +26,7 @@ class FrontendModule(object):
         self.base_url = base_url
         self.name = name
 
-    def handle_authn_response(self, context, internal_resp):
+    def handle_authn_response(self, context, internal_resp, **kwargs):
         """
         If an authorization has been successful in a backend, this function is called and is
         supposed to send an authorization response to the client.

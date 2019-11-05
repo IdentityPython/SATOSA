@@ -129,7 +129,7 @@ class TestOpenIDConnectBackend(object):
         return urlparse(backend_config["client"]["client_metadata"]["redirect_uris"][0]).path.lstrip("/")
 
     @pytest.fixture
-    def incoming_authn_response(self, context, backend_config):
+    def incoming_authn_response(self, context, backend_config, **kwargs):
         oidc_state = "my state"
         context.path = self.get_redirect_uri_path(backend_config)
         context.request = {
@@ -170,7 +170,7 @@ class TestOpenIDConnectBackend(object):
         assert isinstance(args[1], InternalData)
         self.assert_expected_attributes(internal_attributes, userinfo, args[1].attributes)
 
-    def test_start_auth_redirects_to_provider_authorization_endpoint(self, context, backend_config):
+    def test_start_auth_redirects_to_provider_authorization_endpoint(self, context, backend_config, **kwargs):
         auth_response = self.oidc_backend.start_auth(context, None)
         assert isinstance(auth_response, Response)
 
@@ -186,7 +186,7 @@ class TestOpenIDConnectBackend(object):
         assert "nonce" in auth_params
 
     @responses.activate
-    def test_entire_flow(self, context, backend_config, internal_attributes, userinfo):
+    def test_entire_flow(self, context, backend_config, internal_attributes, userinfo, **kwargs):
         self.setup_userinfo_endpoint(backend_config["provider_metadata"]["userinfo_endpoint"], userinfo)
         auth_response = self.oidc_backend.start_auth(context, None)
         auth_params = dict(parse_qsl(urlparse(auth_response.message).query))

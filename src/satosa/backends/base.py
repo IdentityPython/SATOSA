@@ -32,7 +32,7 @@ class BackendModule(object):
         self.base_url = base_url
         self.name = name
 
-    def start_auth(self, context, internal_request):
+    def start_auth(self, context, internal_request, **kwargs):
         """
         This is the start up function of the backend authorization.
 

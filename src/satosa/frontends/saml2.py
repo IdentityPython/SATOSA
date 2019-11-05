@@ -78,7 +78,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             self.KEY_CUSTOM_ATTR_RELEASE)
         self.idp = None
 
-    def handle_authn_response(self, context, internal_response):
+    def handle_authn_response(self, context, internal_response, **kwargs):
         """
         See super class method satosa.frontends.base.FrontendModule#handle_authn_response
         :type context: satosa.context.Context
@@ -87,7 +87,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         """
         return self._handle_authn_response(context, internal_response, self.idp)
 
-    def handle_authn_request(self, context, binding_in):
+    def handle_authn_request(self, context, binding_in, **kwargs):
         """
         This method is bound to the starting endpoint of the authentication.
 
@@ -174,7 +174,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             except KeyError as e:
                 raise ValueError("Missing configuration key: %s" % key) from e
 
-    def _handle_authn_request(self, context, binding_in, idp):
+    def _handle_authn_request(self, context, binding_in, idp, **kwargs):
         """
         See doc for handle_authn_request method.
 
@@ -286,7 +286,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
 
         return attributes
 
-    def _handle_authn_response(self, context, internal_response, idp):
+    def _handle_authn_response(self, context, internal_response, idp, **kwargs):
         """
         See super class satosa.frontends.base.FrontendModule
 
@@ -429,7 +429,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         satosa_logging(logger, logging.DEBUG, "HTTPargs: %s" % http_args, exception.state)
         return make_saml_response(resp_args["binding"], http_args)
 
-    def _metadata_endpoint(self, context):
+    def _metadata_endpoint(self, context, **kwargs):
         """
         Endpoint for retrieving the backend metadata
         :type context: satosa.context.Context
@@ -593,7 +593,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
             idp_conf["service"]["idp"]["endpoints"][service] = idp_endpoints
         return idp_conf
 
-    def _load_idp_dynamic_endpoints(self, context):
+    def _load_idp_dynamic_endpoints(self, context, **kwargs):
         """
         Loads an idp server that accepts the target backend name in the endpoint url
          ex: /<backend_name>/sso/redirect
@@ -625,7 +625,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         idp_config = IdPConfig().load(idp_config_file, metadata_construction=False)
         return Server(config=idp_config)
 
-    def handle_authn_request(self, context, binding_in):
+    def handle_authn_request(self, context, binding_in, **kwargs):
         """
         Loads approved endpoints dynamically
         See super class satosa.frontends.saml2.SAMLFrontend#handle_authn_request
@@ -641,7 +641,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         idp = self._load_idp_dynamic_endpoints(context)
         return self._handle_authn_request(context, binding_in, idp)
 
-    def _create_state_data(self, context, resp_args, relay_state):
+    def _create_state_data(self, context, resp_args, relay_state, **kwargs):
         """
         Adds the frontend idp entity id to state
         See super class satosa.frontends.saml2.SAMLFrontend#save_state
@@ -665,7 +665,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         idp = self._load_idp_dynamic_entity_id(exception.state)
         return self._handle_backend_error(exception, idp)
 
-    def handle_authn_response(self, context, internal_response):
+    def handle_authn_response(self, context, internal_response, **kwargs):
         """
         See super class satosa.frontends.base.FrontendModule#handle_authn_response
         :param context:
@@ -712,7 +712,7 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
     KEY_ORGANIZATION = 'organization'
     KEY_ORGANIZATION_KEYS = ['display_name', 'name', 'url']
 
-    def handle_authn_request(self, context, binding_in):
+    def handle_authn_request(self, context, binding_in, **kwargs):
         """
         See super class
         satosa.frontends.saml2.SAMLFrontend#handle_authn_request
@@ -727,7 +727,7 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         idp = self._create_co_virtual_idp(context)
         return self._handle_authn_request(context, binding_in, idp)
 
-    def handle_authn_response(self, context, internal_response):
+    def handle_authn_response(self, context, internal_response, **kwargs):
         """
         See super class satosa.frontends.base.
                         FrontendModule#handle_authn_response
@@ -738,7 +738,7 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
 
         return self._handle_authn_response(context, internal_response)
 
-    def _handle_authn_response(self, context, internal_response):
+    def _handle_authn_response(self, context, internal_response, **kwargs):
         """
         """
         # Using the context of the current request and saved state from the

@@ -44,7 +44,7 @@ class Consent(ResponseMicroService):
         self.endpoint = "/handle_consent"
         logger.info("Consent flow is active")
 
-    def _handle_consent_response(self, context):
+    def _handle_consent_response(self, context, **kwargs):
         """
         Endpoint for handling consent service response
         :type context: satosa.context.Context
@@ -78,7 +78,7 @@ class Consent(ResponseMicroService):
         internal_response.attributes = self._filter_attributes(internal_response.attributes, consent_attributes)
         return self._end_consent(context, internal_response)
 
-    def _approve_new_consent(self, context, internal_response, id_hash):
+    def _approve_new_consent(self, context, internal_response, id_hash, **kwargs):
         context.state[STATE_KEY]["internal_resp"] = internal_response.to_dict()
 
         consent_args = {

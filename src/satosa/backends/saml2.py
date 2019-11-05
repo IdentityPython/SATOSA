@@ -129,7 +129,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             with open(p) as key_file:
                 self.encryption_keys.append(key_file.read())
 
-    def get_idp_entity_id(self, context):
+    def get_idp_entity_id(self, context, **kwargs):
         """
         :type context: satosa.context.Context
         :rtype: str | None
@@ -164,7 +164,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         )
         return entity_id
 
-    def start_auth(self, context, internal_req):
+    def start_auth(self, context, internal_req, **kwargs):
         """
         See super class method satosa.backends.base.BackendModule#start_auth
 
@@ -184,7 +184,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         return self.authn_request(context, entity_id)
 
-    def disco_query(self, context):
+    def disco_query(self, context, **kwargs):
         """
         Makes a request to the discovery server
 
@@ -236,7 +236,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         return authn_context
 
-    def authn_request(self, context, entity_id):
+    def authn_request(self, context, entity_id, **kwargs):
         """
         Do an authorization request on idp with given entity id.
         This is the start of the authorization.
@@ -294,7 +294,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         context.state[self.name] = {"relay_state": relay_state}
         return make_saml_response(binding, ht_args)
 
-    def authn_response(self, context, binding):
+    def authn_response(self, context, binding, **kwargs):
         """
         Endpoint for the idp response
         :type context: satosa.context,Context
@@ -326,11 +326,12 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                 raise SATOSAAuthenticationError(context.state, errmsg)
             del self.outstanding_queries[req_id]
 
-        # check if the relay_state matches the cookie state
-        if context.state[self.name]["relay_state"] != context.request["RelayState"]:
-            satosa_logging(logger, logging.DEBUG,
-                           "State did not match relay state for state", context.state)
-            raise SATOSAAuthenticationError(context.state, "State did not match relay state")
+        # if the response relay_state exists it must match that from the request
+        if self.name in context.state and "relay_state" in context.state[self.name]:
+            if context.state[self.name]["relay_state"] != context.request["RelayState"]:
+                logger.debug("State did not match relay state for state", extra={'state': context.state})
+                raise SATOSAAuthenticationError(context.state, "State did not match relay state")
+            del context.state[self.name]
 
         context.decorate(Context.KEY_BACKEND_METADATA_STORE, self.sp.metadata)
         if self.config.get(SAMLBackend.KEY_MEMORIZE_IDP):
@@ -340,7 +341,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         context.state.pop(Context.KEY_FORCE_AUTHN, None)
         return self.auth_callback_func(context, self._translate_response(authn_response, context.state))
 
-    def disco_response(self, context):
+    def disco_response(self, context, **kwargs):
         """
         Endpoint for the discovery server response
 
@@ -406,7 +407,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                        json.dumps(response.ava, indent=4), state)
         return internal_resp
 
-    def _metadata_endpoint(self, context):
+    def _metadata_endpoint(self, context, **kwargs):
         """
         Endpoint for retrieving the backend metadata
         :type context: satosa.context.Context

@@ -35,7 +35,7 @@ class AccountLinking(ResponseMicroService):
         self.id_to_attr = config.get("id_to_attr", None)
         logger.info("Account linking is active")
 
-    def _handle_al_response(self, context):
+    def _handle_al_response(self, context, **kwargs):
         """
         Endpoint for handling account linking service response. When getting here
         user might have approved or rejected linking their account
@@ -108,7 +108,7 @@ class AccountLinking(ResponseMicroService):
         context.state[self.name] = internal_response.to_dict()
         return Redirect("%s/%s" % (self.redirect_url, jws))
 
-    def _get_uuid(self, context, issuer, id):
+    def _get_uuid(self, context, issuer, id, **kwargs):
         """
         Ask the account linking service for a uuid.
         If the given issuer/id pair is not linked, then the function will return a ticket.
