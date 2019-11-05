@@ -1,5 +1,29 @@
 # Changelog
 
+## 4.5.0 (2019-11-05)
+
+- add options in samlofrontend to encrypt assertion from AuthnResponse
+- use saml2.extension.mdui in place of saml2.extension.ui
+- improve log handling
+- remove logging around state-cookie loading
+- print the absolute path of the configuration when failing to read it
+- error out if no backend or frontend is configured
+- frontends: oidc: support extra_scopes
+- frontends: SAMLVirtualCoFrontend: add attribute scope
+- backends: orcid: add state parameter to authorization request
+- backends: orcid: fix read address attribute
+- backends: orcid: fix authorization token header
+- backends: bitbucket: new oauth2 backend
+- backends: facebook: add more configuration options
+- micro-services: improve the ldap_attribute_store
+- build: refactor the start.sh docker script
+- build: improve travis stages for new releases
+- docs: add sequence diagrams for SAML-to-SAML flow
+- docs: improve configuration docs
+- docs: improve micro-service docs
+- misc: correct typos
+
+
 ## 4.4.0 (2019-07-09)
 
 Trigger new version build to automatically upload to PyPI,
