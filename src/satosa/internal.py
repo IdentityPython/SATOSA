@@ -101,9 +101,7 @@ class InternalData(object):
         self.requester_name = (
             requester_name
             if requester_name is not None
-            else [
-                {"text": requester, "lang": "en"}
-            ]
+            else [{"text": requester, "lang": "en"}]
         )
         self.subject_id = (
             subject_id
