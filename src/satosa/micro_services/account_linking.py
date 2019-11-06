@@ -50,14 +50,18 @@ class AccountLinking(ResponseMicroService):
         internal_response = InternalData.from_dict(saved_state)
 
         #subject_id here is the linked id , not the facebook one, Figure out what to do
-        status_code, message = self._get_uuid(context, internal_response.auth_info.issuer, internal_response.attributes['issuer_user_id'])
+        status_code, message = self._get_uuid(
+            context,
+            internal_response["auth_info"]["issuer"],
+            internal_response["attributes"]["issuer_user_id"],
+        )
 
         if status_code == 200:
             satosa_logging(logger, logging.INFO, "issuer/id pair is linked in AL service",
                            context.state)
-            internal_response.subject_id = message
+            internal_response["subject_id"] = message
             if self.id_to_attr:
-                internal_response.attributes[self.id_to_attr] = [message]
+                internal_response["attributes"][self.id_to_attr] = [message]
 
             del context.state[self.name]
             return super().process(context, internal_response)
@@ -84,22 +88,26 @@ class AccountLinking(ResponseMicroService):
         :
         """
 
-        status_code, message = self._get_uuid(context, internal_response.auth_info.issuer, internal_response.subject_id)
+        status_code, message = self._get_uuid(
+            context,
+            internal_response["auth_info"]["issuer"],
+            internal_response["subject_id"],
+        )
 
         data = {
-            "issuer": internal_response.auth_info.issuer,
+            "issuer": internal_response["auth_info"]["issuer"],
             "redirect_endpoint": "%s/account_linking%s" % (self.base_url, self.endpoint)
         }
 
         # Store the issuer subject_id/sub because we'll need it in handle_al_response
-        internal_response.attributes['issuer_user_id'] = internal_response.subject_id
+        internal_response["attributes"]["issuer_user_id"] = internal_response["subject_id"]
         if status_code == 200:
             satosa_logging(logger, logging.INFO, "issuer/id pair is linked in AL service",
                            context.state)
-            internal_response.subject_id = message
+            internal_response["subject_id"] = message
             data['user_id'] = message
             if self.id_to_attr:
-                internal_response.attributes[self.id_to_attr] = [message]
+                internal_response["attributes"][self.id_to_attr] = [message]
         else:
             satosa_logging(logger, logging.INFO, "issuer/id pair is not linked in AL service. Got a ticket",
                            context.state)

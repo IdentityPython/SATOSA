@@ -73,12 +73,15 @@ class OrcidBackend(_OAuthBackend):
             request_args=rargs, state=aresp['state'])
 
         user_info = self.user_information(
-            atresp['access_token'], atresp['orcid'], atresp['name'])
+            atresp['access_token'], atresp['orcid'], atresp['name']
+        )
         internal_response = InternalData(
-            auth_info=self.auth_info(context.request))
-        internal_response.attributes = self.converter.to_internal(
-            self.external_type, user_info)
-        internal_response.subject_id = user_info[self.user_id_attr]
+            auth_info=self.auth_info(context.request),
+            attributes=self.converter.to_internal(
+                self.external_type, user_info
+            ),
+            subject_id=user_info[self.user_id_attr],
+        )
         del context.state[self.name]
         return self.auth_callback_func(context, internal_response)
 

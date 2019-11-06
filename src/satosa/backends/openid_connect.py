@@ -229,10 +229,13 @@ class OpenIDConnectBackend(BackendModule):
         :param subject_type: public or pairwise according to oidc standard.
         :return: A SATOSA internal response.
         """
-        auth_info = AuthenticationInformation(UNSPECIFIED, str(datetime.now()), issuer)
-        internal_resp = InternalData(auth_info=auth_info)
-        internal_resp.attributes = self.converter.to_internal("openid", response)
-        internal_resp.subject_id = response["sub"]
+        internal_resp = InternalData(
+            auth_info=AuthenticationInformation(
+                UNSPECIFIED, str(datetime.now()), issuer
+            ),
+            attributes=self.converter.to_internal("openid", response),
+            subject_id=response["sub"],
+        )
         return internal_resp
 
     def get_metadata_desc(self):

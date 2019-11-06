@@ -31,7 +31,7 @@ class DecideBackendByRequester(RequestMicroService):
         :param context: request context
         :param data: the internal request
         """
-        context.target_backend = self.requester_mapping[data.requester]
+        context.target_backend = self.requester_mapping[data["requester"]]
         return super().process(context, data)
 
 
@@ -72,27 +72,27 @@ class DecideIfRequesterIsAllowed(RequestMicroService):
         # default to allowing everything if there are no specific rules
         if not target_specific_rules:
             logger.debug("Requester '{}' allowed by default to target entity '{}' due to no entity specific rules".format(
-                data.requester, target_entity_id
+                data["requester"], target_entity_id
             ))
             return super().process(context, data)
 
         # deny rules takes precedence
         deny_rules = target_specific_rules.get("deny", [])
-        if data.requester in deny_rules:
+        if data["requester"] in deny_rules:
             logger.debug("Requester '{}' is not allowed by target entity '{}' due to deny rules '{}'".format(
-                data.requester, target_entity_id, deny_rules
+                data["requester"], target_entity_id, deny_rules
             ))
             raise SATOSAError("Requester is not allowed by target provider")
 
         allow_rules = target_specific_rules.get("allow", [])
         allow_all = "*" in allow_rules
-        if data.requester in allow_rules or allow_all:
+        if data["requester"] in allow_rules or allow_all:
             logger.debug("Requester '{}' allowed by target entity '{}' due to allow rules '{}".format(
-                data.requester, target_entity_id, allow_rules
+                data["requester"], target_entity_id, allow_rules
             ))
             return super().process(context, data)
 
         logger.debug("Requester '{}' is not allowed by target entity '{}' due to final deny all rule in '{}'".format(
-            data.requester, target_entity_id, deny_rules
+            data["requester"], target_entity_id, deny_rules
         ))
         raise SATOSAError("Requester is not allowed by target provider")

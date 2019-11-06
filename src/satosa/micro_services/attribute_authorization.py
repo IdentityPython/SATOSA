@@ -60,5 +60,5 @@ structure above) are ORed together - i.e any attribute match is sufficient.
                     raise SATOSAAuthenticationError(context.state, "Permission denied")
 
     def process(self, context, data):
-        self._check_authz(context, data.attributes, data.requester, data.auth_info.issuer)
+        self._check_authz(context, data["attributes"], data["requester"], data["auth_info"]["issuer"])
         return super().process(context, data)

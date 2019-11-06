@@ -125,7 +125,7 @@ class SATOSABase(object):
         :return: response
         """
         state = context.state
-        state[STATE_KEY] = {"requester": internal_request.requester}
+        state[STATE_KEY] = {"requester": internal_request["requester"]}
         # TODO consent module should manage any state it needs by itself
         try:
             state_dict = context.state[consent.STATE_KEY]
@@ -133,10 +133,10 @@ class SATOSABase(object):
             state_dict = context.state[consent.STATE_KEY] = {}
         finally:
             state_dict.update({
-                "filter": internal_request.attributes or [],
-                "requester_name": internal_request.requester_name,
+                "filter": internal_request["attributes"] or [],
+                "requester_name": internal_request["requester_name"],
             })
-        msg = "Requesting provider: {}".format(internal_request.requester)
+        msg = "Requesting provider: {}".format(internal_request["requester"])
         logline = lu.LOG_FMT.format(id=lu.get_session_id(state), message=msg)
         logger.info(logline)
 
@@ -153,11 +153,13 @@ class SATOSABase(object):
     def _auth_resp_finish(self, context, internal_response):
         user_id_to_attr = self.config["INTERNAL_ATTRIBUTES"].get("user_id_to_attr", None)
         if user_id_to_attr:
-            internal_response.attributes[user_id_to_attr] = [internal_response.subject_id]
+            internal_response["attributes"][user_id_to_attr] = [
+                internal_response["subject_id"]
+            ]
 
         hash_attributes(
             self.config["INTERNAL_ATTRIBUTES"].get("hash", []),
-            internal_response.attributes,
+            internal_response["attributes"],
             self.config.get("USER_ID_HASH_SALT", ""),
         )
 
@@ -183,19 +185,18 @@ class SATOSABase(object):
         """
 
         context.request = None
-        internal_response.requester = context.state[STATE_KEY]["requester"]
+        internal_response["requester"] = context.state[STATE_KEY]["requester"]
 
         # If configured construct the user id from attribute values.
         if "user_id_from_attrs" in self.config["INTERNAL_ATTRIBUTES"]:
             subject_id = [
-                "".join(internal_response.attributes[attr]) for attr in
+                "".join(internal_response["attributes"][attr]) for attr in
                 self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"]
             ]
-            internal_response.subject_id = "".join(subject_id)
+            internal_response["subject_id"] = "".join(subject_id)
 
         if self.response_micro_services:
-            return self.response_micro_services[0].process(
-                context, internal_response)
+            return self.response_micro_services[0].process(context, internal_response)
 
         return self._auth_resp_finish(context, internal_response)
 

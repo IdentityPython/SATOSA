@@ -28,8 +28,8 @@ class MustachAttrValue(object):
     @property
     def values(self):
         [{self._attr_name: v} for v in self._values]
-   
-    @property 
+
+    @property
     def value(self):
         if len(self._values) == 1:
            return self._values[0]
@@ -48,7 +48,7 @@ class MustachAttrValue(object):
         if self._scopes is not None:
            return self._scopes[0]
         return ""
-     
+
 
 class AddSyntheticAttributes(ResponseMicroService):
     """
@@ -124,15 +124,24 @@ you don't care which value is used in a template.
     def _synthesize(self, attributes, requester, provider):
         syn_attributes = dict()
         context = dict()
-        
-        for attr_name,values in attributes.items():
-           context[attr_name] = MustachAttrValue(attr_name, values)
+
+        for attr_name, values in attributes.items():
+            context[attr_name] = MustachAttrValue(attr_name, values)
 
         recipes = get_dict_defaults(self.synthetic_attributes, requester, provider)
         for attr_name, fmt in recipes.items():
-           syn_attributes[attr_name] = [v.strip().strip(';') for v in re.split("[;\n]+", pystache.render(fmt, context))]
+            syn_attributes[attr_name] = [
+                v.strip().strip(';')
+                for v in re.split("[;\n]+", pystache.render(fmt, context))
+            ]
         return syn_attributes
 
     def process(self, context, data):
-        data.attributes.update(self._synthesize(data.attributes, data.requester, data.auth_info.issuer))
+        data["attributes"].update(
+            self._synthesize(
+                data["attributes"],
+                data["requester"],
+                data["auth_info"]["issuer"],
+            )
+        )
         return super().process(context, data)

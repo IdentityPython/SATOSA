@@ -142,9 +142,13 @@ class _OAuthBackend(BackendModule):
             self._verify_state(atresp, state_data, context.state)
 
         user_info = self.user_information(atresp["access_token"])
-        internal_response = InternalData(auth_info=self.auth_info(context.request))
-        internal_response.attributes = self.converter.to_internal(self.external_type, user_info)
-        internal_response.subject_id = user_info[self.user_id_attr]
+        internal_response = InternalData(
+            auth_info=self.auth_info(context.request),
+            attributes=self.converter.to_internal(
+                self.external_type, user_info
+            ),
+            subject_id=user_info[self.user_id_attr],
+        )
         del context.state[self.name]
         return self.auth_callback_func(context, internal_response)
 

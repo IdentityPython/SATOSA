@@ -13,7 +13,7 @@ class AddStaticAttributes(ResponseMicroService):
         self.static_attributes = config["static_attributes"]
 
     def process(self, context, data):
-        data.attributes.update(self.static_attributes)
+        data["attributes"].update(self.static_attributes)
         return super().process(context, data)
 
 
@@ -29,12 +29,16 @@ class FilterAttributeValues(ResponseMicroService):
     def process(self, context, data):
         # apply default filters
         provider_filters = self.attribute_filters.get("", {})
-        self._apply_requester_filters(data.attributes, provider_filters, data.requester)
+        self._apply_requester_filters(
+            data["attributes"],
+            provider_filters,
+            data["requester"],
+        )
 
         # apply target provider specific filters
-        target_provider = data.auth_info.issuer
+        target_provider = data["auth_info"]["issuer"]
         provider_filters = self.attribute_filters.get(target_provider, {})
-        self._apply_requester_filters(data.attributes, provider_filters, data.requester)
+        self._apply_requester_filters(data["attributes"], provider_filters, data["requester"])
         return super().process(context, data)
 
     def _apply_requester_filters(self, attributes, provider_filters, requester):

@@ -57,8 +57,11 @@ class Consent(ResponseMicroService):
         saved_resp = consent_state["internal_resp"]
         internal_response = InternalData.from_dict(saved_resp)
 
-        hash_id = self._get_consent_id(internal_response.requester, internal_response.subject_id,
-                                       internal_response.attributes)
+        hash_id = self._get_consent_id(
+            internal_response["requester"],
+            internal_response["subject_id"],
+            internal_response["attributes"],
+        )
 
         try:
             consent_attributes = self._verify_consent(hash_id)
@@ -75,14 +78,16 @@ class Consent(ResponseMicroService):
         else:
             satosa_logging(logger, logging.INFO, "Consent was given", context.state)
 
-        internal_response.attributes = self._filter_attributes(internal_response.attributes, consent_attributes)
+        internal_response["attributes"] = self._filter_attributes(
+            internal_response["attributes"], consent_attributes
+        )
         return self._end_consent(context, internal_response)
 
     def _approve_new_consent(self, context, internal_response, id_hash):
         context.state[STATE_KEY]["internal_resp"] = internal_response.to_dict()
 
         consent_args = {
-            "attr": internal_response.attributes,
+            "attr": internal_response["attributes"],
             "id": id_hash,
             "redirect_endpoint": "%s/consent%s" % (self.base_url, self.endpoint),
             "requester_name": context.state[STATE_KEY]["requester_name"]
@@ -97,7 +102,7 @@ class Consent(ResponseMicroService):
             satosa_logging(logger, logging.ERROR, "Consent request failed, no consent given: {}".format(str(e)),
                            context.state)
             # Send an internal_response without any attributes
-            internal_response.attributes = {}
+            internal_response["attributes"] = {}
             return self._end_consent(context, internal_response)
 
         consent_redirect = "%s/%s" % (self.redirect_url, ticket)
@@ -117,9 +122,14 @@ class Consent(ResponseMicroService):
         """
         consent_state = context.state[STATE_KEY]
 
-        internal_response.attributes = self._filter_attributes(internal_response.attributes, consent_state["filter"])
-        id_hash = self._get_consent_id(internal_response.requester, internal_response.subject_id,
-                                       internal_response.attributes)
+        internal_response["attributes"] = self._filter_attributes(
+            internal_response["attributes"], consent_state["filter"]
+        )
+        id_hash = self._get_consent_id(
+            internal_response["requester"],
+            internal_response["subject_id"],
+            internal_response["attributes"],
+        )
 
         try:
             # Check if consent is already given
@@ -128,13 +138,15 @@ class Consent(ResponseMicroService):
             satosa_logging(logger, logging.ERROR,
                            "Consent service is not reachable, no consent given.", context.state)
             # Send an internal_response without any attributes
-            internal_response.attributes = {}
+            internal_response["attributes"] = {}
             return self._end_consent(context, internal_response)
 
         # Previous consent was given
         if consent_attributes is not None:
             satosa_logging(logger, logging.DEBUG, "Previous consent was given", context.state)
-            internal_response.attributes = self._filter_attributes(internal_response.attributes, consent_attributes)
+            internal_response["attributes"] = self._filter_attributes(
+                internal_response["attributes"], consent_attributes
+            )
             return self._end_consent(context, internal_response)
 
         # No previous consent, request consent by user

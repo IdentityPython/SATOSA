@@ -127,11 +127,11 @@ class OpenIDConnectFrontend(FrontendModule):
 
         auth_req = self._get_authn_request_from_state(context.state)
 
-        attributes = self.converter.from_internal("openid", internal_resp.attributes)
-        self.user_db[internal_resp.subject_id] = {k: v[0] for k, v in attributes.items()}
+        attributes = self.converter.from_internal("openid", internal_resp["attributes"])
+        self.user_db[internal_resp["subject_id"]] = {k: v[0] for k, v in attributes.items()}
         auth_resp = self.provider.authorize(
             auth_req,
-            internal_resp.subject_id,
+            internal_resp["subject_id"],
             extra_id_token_claims=extra_id_token_claims,
         )
 
@@ -304,15 +304,19 @@ class OpenIDConnectFrontend(FrontendModule):
             requester_name = [{"lang": "en", "text": client_name}]
         else:
             requester_name = None
+
         internal_req = InternalData(
             subject_type=subject_type,
             requester=client_id,
             requester_name=requester_name,
+            attributes=self.converter.to_internal_filter(
+                "openid",
+                self._get_approved_attributes(
+                    self.provider.configuration_information["claims_supported"],
+                    authn_req,
+                ),
+            ),
         )
-
-        internal_req.attributes = self.converter.to_internal_filter(
-            "openid", self._get_approved_attributes(self.provider.configuration_information["claims_supported"],
-                                                    authn_req))
         return internal_req
 
     def handle_authn_request(self, context):

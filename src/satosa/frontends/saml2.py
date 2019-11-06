@@ -241,7 +241,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
 
         idp_policy = idp.config.getattr("policy", "idp")
         if idp_policy:
-            internal_req.attributes = self._get_approved_attributes(
+            internal_req["attributes"] = self._get_approved_attributes(
                 idp, idp_policy, requester, context.state
             )
 
@@ -280,9 +280,14 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         idp_policy = idp.config.getattr("policy", "idp")
         attributes = {}
         if idp_policy:
-            approved_attributes = self._get_approved_attributes(idp, idp_policy, internal_response.requester,
-                                                                context.state)
-            attributes = {k: v for k, v in internal_response.attributes.items() if k in approved_attributes}
+            approved_attributes = self._get_approved_attributes(
+                idp, idp_policy, internal_response["requester"], context.state
+            )
+            attributes = {
+                k: v
+                for k, v in internal_response["attributes"].items()
+                if k in approved_attributes
+            }
 
         return attributes
 
@@ -303,32 +308,36 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
 
         resp_args = request_state["resp_args"]
         sp_entity_id = resp_args["sp_entity_id"]
-        internal_response.attributes = self._filter_attributes(
-            idp, internal_response, context)
+        internal_response["attributes"] = self._filter_attributes(
+            idp, internal_response, context
+        )
         ava = self.converter.from_internal(
-            self.attribute_profile, internal_response.attributes)
+            self.attribute_profile, internal_response["attributes"]
+        )
 
         auth_info = {}
         if self.acr_mapping:
             auth_info["class_ref"] = self.acr_mapping.get(
-                internal_response.auth_info.issuer, self.acr_mapping[""])
+                internal_response["auth_info"]["issuer"], self.acr_mapping[""]
+            )
         else:
-            auth_info["class_ref"] = internal_response.auth_info.auth_class_ref
+            auth_info["class_ref"] = internal_response["auth_info"]["auth_class_ref"]
 
-        auth_info["authn_auth"] = internal_response.auth_info.issuer
+        auth_info["authn_auth"] = internal_response["auth_info"]["issuer"]
 
         if self.custom_attribute_release:
             custom_release = util.get_dict_defaults(
                 self.custom_attribute_release,
-                internal_response.auth_info.issuer,
-                sp_entity_id)
+                internal_response["auth_info"]["issuer"],
+                sp_entity_id,
+            )
             attributes_to_remove = custom_release.get("exclude", [])
             for k in attributes_to_remove:
                 ava.pop(k, None)
 
-        nameid_value = internal_response.subject_id
+        nameid_value = internal_response["subject_id"]
         nameid_format = subject_type_to_saml_nameid_format(
-            internal_response.subject_type
+            internal_response["subject_type"]
         )
 
         # If the backend did not receive a SAML <NameID> and so
@@ -489,7 +498,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         satosa_logging(logger, logging.DEBUG, "Common domain cookie list of IdPs is {}".format(idp_list), context.state)
 
         # Identity the current IdP just used for authentication in this flow.
-        this_flow_idp = internal_response.auth_info.issuer
+        this_flow_idp = internal_response["auth_info"]["issuer"]
 
         # Remove all occurrences of the current IdP from the list of IdPs.
         idp_list = [idp for idp in idp_list if idp != this_flow_idp]
@@ -753,7 +762,7 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         co_config = self._get_co_config(context)
 
         if self.KEY_CO_ATTRIBUTES in co_config:
-            attributes = internal_response.attributes
+            attributes = internal_response["attributes"]
             for attribute, value in co_config[self.KEY_CO_ATTRIBUTES].items():
                 # XXX This should be refactored when Python 3.4 support is
                 # XXX no longer required to use isinstance(value, Iterable).
