@@ -178,9 +178,11 @@ class TestOrcidBackend(object):
     @responses.activate
     def test_authn_response(self, backend_config, userinfo, incoming_authn_response):
         self.setup_token_endpoint(
-            backend_config["server_info"]["token_endpoint"])
+            backend_config["server_info"]["token_endpoint"]
+        )
         self.setup_userinfo_endpoint(
-            backend_config["server_info"]["user_info"], userinfo)
+            backend_config["server_info"]["user_info"], userinfo
+        )
 
         self.orcid_backend._authn_response(incoming_authn_response)
 
@@ -188,7 +190,7 @@ class TestOrcidBackend(object):
         assert isinstance(args[0], Context)
         assert isinstance(args[1], InternalData)
 
-        self.assert_expected_attributes(userinfo, args[1].attributes)
+        self.assert_expected_attributes(userinfo, args[1]["attributes"])
 
     @responses.activate
     def test_user_information(self, context, backend_config, userinfo):

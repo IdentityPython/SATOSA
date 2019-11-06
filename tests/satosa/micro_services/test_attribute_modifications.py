@@ -20,14 +20,16 @@ class TestFilterAttributeValues:
         }
         filter_service = self.create_filter_service(attribute_filters)
 
-        resp = InternalData(auth_info=AuthenticationInformation())
-        resp.attributes = {
-            "a1": ["abc:xyz"],
-            "a2": ["foo:bar", "1:foo:bar:2"],
-            "a3": ["a:foo:bar:b"]
-        }
+        resp = InternalData(
+            auth_info=AuthenticationInformation(),
+            attributes={
+                "a1": ["abc:xyz"],
+                "a2": ["foo:bar", "1:foo:bar:2"],
+                "a3": ["a:foo:bar:b"]
+            },
+        )
         filtered = filter_service.process(None, resp)
-        assert filtered.attributes == {"a1": [], "a2": ["foo:bar", "1:foo:bar:2"], "a3": ["a:foo:bar:b"]}
+        assert filtered["attributes"] == {"a1": [], "a2": ["foo:bar", "1:foo:bar:2"], "a3": ["a:foo:bar:b"]}
 
     def test_filter_one_attribute_from_all_target_providers_for_all_requesters(self):
         attribute_filters = {
@@ -39,64 +41,48 @@ class TestFilterAttributeValues:
         }
         filter_service = self.create_filter_service(attribute_filters)
 
-        resp = InternalData(AuthenticationInformation())
-        resp.attributes = {
-            "a1": ["abc:xyz"],
-            "a2": ["foo:bar", "1:foo:bar:2"],
-        }
+        resp = InternalData(
+            auth_info=AuthenticationInformation(),
+            attributes={"a1": ["abc:xyz"], "a2": ["foo:bar", "1:foo:bar:2"]},
+        )
         filtered = filter_service.process(None, resp)
-        assert filtered.attributes == {"a1": ["abc:xyz"], "a2": ["foo:bar"]}
+        assert filtered["attributes"] == {"a1": ["abc:xyz"], "a2": ["foo:bar"]}
 
     def test_filter_one_attribute_from_all_target_providers_for_one_requester(self):
         requester = "test_requester"
-        attribute_filters = {
-            "": {
-                requester:
-                    {"a1": "foo:bar"}
-            }
-        }
+        attribute_filters = {"": {requester: {"a1": "foo:bar"}}}
         filter_service = self.create_filter_service(attribute_filters)
 
-        resp = InternalData(auth_info=AuthenticationInformation())
-        resp.requester = requester
-        resp.attributes = {
-            "a1": ["abc:xyz", "1:foo:bar:2"],
-        }
+        resp = InternalData(
+            auth_info=AuthenticationInformation(),
+            requester=requester,
+            attributes={"a1": ["abc:xyz", "1:foo:bar:2"]},
+        )
         filtered = filter_service.process(None, resp)
-        assert filtered.attributes == {"a1": ["1:foo:bar:2"]}
+        assert filtered["attributes"] == {"a1": ["1:foo:bar:2"]}
 
     def test_filter_attribute_not_in_response(self):
-        attribute_filters = {
-            "": {
-                "":
-                    {"a0": "foo:bar"}
-            }
-        }
+        attribute_filters = {"": {"": {"a0": "foo:bar"}}}
         filter_service = self.create_filter_service(attribute_filters)
 
-        resp = InternalData(auth_info=AuthenticationInformation())
-        resp.attributes = {
-            "a1": ["abc:xyz", "1:foo:bar:2"],
-        }
+        resp = InternalData(
+            auth_info=AuthenticationInformation(),
+            attributes={"a1": ["abc:xyz", "1:foo:bar:2"]},
+        )
         filtered = filter_service.process(None, resp)
-        assert filtered.attributes == {"a1": ["abc:xyz", "1:foo:bar:2"]}
+        assert filtered["attributes"] == {"a1": ["abc:xyz", "1:foo:bar:2"]}
 
     def test_filter_one_attribute_for_one_target_provider(self):
         target_provider = "test_provider"
-        attribute_filters = {
-            target_provider: {
-                "":
-                    {"a1": "foo:bar"}
-            }
-        }
+        attribute_filters = {target_provider: {"": {"a1": "foo:bar"}}}
         filter_service = self.create_filter_service(attribute_filters)
 
-        resp = InternalData(auth_info=AuthenticationInformation(issuer=target_provider))
-        resp.attributes = {
-            "a1": ["abc:xyz", "1:foo:bar:2"],
-        }
+        resp = InternalData(
+            auth_info=AuthenticationInformation(issuer=target_provider),
+            attributes={"a1": ["abc:xyz", "1:foo:bar:2"]},
+        )
         filtered = filter_service.process(None, resp)
-        assert filtered.attributes == {"a1": ["1:foo:bar:2"]}
+        assert filtered["attributes"] == {"a1": ["1:foo:bar:2"]}
 
     def test_filter_one_attribute_for_one_target_provider_for_one_requester(self):
         target_provider = "test_provider"
@@ -109,10 +95,10 @@ class TestFilterAttributeValues:
         }
         filter_service = self.create_filter_service(attribute_filters)
 
-        resp = InternalData(auth_info=AuthenticationInformation(issuer=target_provider))
-        resp.requester = requester
-        resp.attributes = {
-            "a1": ["abc:xyz", "1:foo:bar:2"],
-        }
+        resp = InternalData(
+            auth_info=AuthenticationInformation(issuer=target_provider),
+            requester=requester,
+            attributes={"a1": ["abc:xyz", "1:foo:bar:2"]},
+        )
         filtered = filter_service.process(None, resp)
-        assert filtered.attributes == {"a1": ["1:foo:bar:2"]}
+        assert filtered["attributes"] == {"a1": ["1:foo:bar:2"]}

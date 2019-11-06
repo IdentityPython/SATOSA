@@ -12,88 +12,76 @@ class TestAttributeAuthorization:
         return authz_service
 
     def test_authz_allow_success(self):
-        attribute_allow = {
-           "": { "default": {"a0": ['.+@.+']} }
-        }
+        attribute_allow = {"": {"default": {"a0": ['.+@.+']}}}
         attribute_deny = {}
         authz_service = self.create_authz_service(attribute_allow, attribute_deny)
-        resp = InternalData(auth_info=AuthenticationInformation())
-        resp.attributes = {
-            "a0": ["test@example.com"],
-        }
+        resp = InternalData(
+            auth_info=AuthenticationInformation(),
+            attributes={"a0": ["test@example.com"]},
+        )
         try:
-           ctx = Context()
-           ctx.state = dict()
-           authz_service.process(ctx, resp)
+            ctx = Context()
+            ctx.state = dict()
+            authz_service.process(ctx, resp)
         except SATOSAAuthenticationError as ex:
-           assert False
+            assert False
 
     def test_authz_allow_fail(self):
-        attribute_allow = {
-           "": { "default": {"a0": ['foo1','foo2']} }
-        }
+        attribute_allow = {"": {"default": {"a0": ['foo1', 'foo2']}}}
         attribute_deny = {}
         authz_service = self.create_authz_service(attribute_allow, attribute_deny)
-        resp = InternalData(auth_info=AuthenticationInformation())
-        resp.attributes = {
-            "a0": ["bar"],
-        }
+        resp = InternalData(
+            auth_info=AuthenticationInformation(),
+            attributes={"a0": ["bar"]},
+        )
         try:
-           ctx = Context()
-           ctx.state = dict()
-           authz_service.process(ctx, resp)
-           assert False
+            ctx = Context()
+            ctx.state = dict()
+            authz_service.process(ctx, resp)
+            assert False
         except SATOSAAuthenticationError as ex:
-           assert True
+            assert True
 
     def test_authz_allow_second(self):
-        attribute_allow = {
-           "": { "default": {"a0": ['foo1','foo2']} }
-        }
+        attribute_allow = {"": {"default": {"a0": ['foo1', 'foo2']}}}
         attribute_deny = {}
         authz_service = self.create_authz_service(attribute_allow, attribute_deny)
-        resp = InternalData(auth_info=AuthenticationInformation())
-        resp.attributes = {
-            "a0": ["foo2","kaka"],
-        }
+        resp = InternalData(
+            auth_info=AuthenticationInformation(),
+            attributes={"a0": ["foo2", "kaka"]},
+        )
         try:
-           ctx = Context()
-           ctx.state = dict()
-           authz_service.process(ctx, resp)
+            ctx = Context()
+            ctx.state = dict()
+            authz_service.process(ctx, resp)
         except SATOSAAuthenticationError as ex:
-           assert False
+            assert False
 
     def test_authz_deny_success(self):
-        attribute_deny = {
-           "": { "default": {"a0": ['foo1','foo2']} }
-        }
+        attribute_deny = {"": {"default": {"a0": ['foo1', 'foo2']}}}
         attribute_allow = {}
         authz_service = self.create_authz_service(attribute_allow, attribute_deny)
-        resp = InternalData(auth_info=AuthenticationInformation())
-        resp.attributes = {
-            "a0": ["foo2"],
-        }
+        resp = InternalData(
+            auth_info=AuthenticationInformation(), attributes={"a0": ["foo2"]}
+        )
         try:
-           ctx = Context()
-           ctx.state = dict()
-           authz_service.process(ctx, resp)
-           assert False
+            ctx = Context()
+            ctx.state = dict()
+            authz_service.process(ctx, resp)
+            assert False
         except SATOSAAuthenticationError as ex:
-           assert True
+            assert True
 
     def test_authz_deny_fail(self):
-        attribute_deny = {
-           "": { "default": {"a0": ['foo1','foo2']} }
-        }
+        attribute_deny = {"": {"default": {"a0": ['foo1', 'foo2']}}}
         attribute_allow = {}
         authz_service = self.create_authz_service(attribute_allow, attribute_deny)
-        resp = InternalData(auth_info=AuthenticationInformation())
-        resp.attributes = {
-            "a0": ["foo3"],
-        }
+        resp = InternalData(
+            auth_info=AuthenticationInformation(), attributes={"a0": ["foo3"]}
+        )
         try:
-           ctx = Context()
-           ctx.state = dict()
-           authz_service.process(ctx, resp)
+            ctx = Context()
+            ctx.state = dict()
+            authz_service.process(ctx, resp)
         except SATOSAAuthenticationError as ex:
-           assert False
+            assert False

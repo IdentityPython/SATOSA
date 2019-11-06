@@ -17,49 +17,55 @@ class TestAddSyntheticAttributes:
            "": { "default": {"a0": "value1;value2" }}
         }
         authz_service = self.create_syn_service(synthetic_attributes)
-        resp = InternalData(auth_info=AuthenticationInformation())
-        resp.attributes = {
-            "a1": ["test@example.com"],
-        }
+        resp = InternalData(
+            auth_info=AuthenticationInformation(),
+            attributes={
+                "a1": ["test@example.com"],
+            },
+        )
         ctx = Context()
         ctx.state = dict()
         authz_service.process(ctx, resp)
-        assert("value1" in resp.attributes['a0'])
-        assert("value2" in resp.attributes['a0'])
-        assert("test@example.com" in resp.attributes['a1'])
+        assert("value1" in resp["attributes"]['a0'])
+        assert("value2" in resp["attributes"]['a0'])
+        assert("test@example.com" in resp["attributes"]['a1'])
 
     def test_generate_mustache1(self):
         synthetic_attributes = {
            "": { "default": {"a0": "{{kaka}}#{{eppn.scope}}" }}
         }
         authz_service = self.create_syn_service(synthetic_attributes)
-        resp = InternalData(auth_info=AuthenticationInformation())
-        resp.attributes = {
-            "kaka": ["kaka1"],
-            "eppn": ["a@example.com","b@example.com"]
-        }
+        resp = InternalData(
+            auth_info=AuthenticationInformation(),
+            attributes={
+                "kaka": ["kaka1"],
+                "eppn": ["a@example.com","b@example.com"]
+            },
+        )
         ctx = Context()
         ctx.state = dict()
         authz_service.process(ctx, resp)
-        assert("kaka1#example.com" in resp.attributes['a0'])
-        assert("kaka1" in resp.attributes['kaka'])
-        assert("a@example.com" in resp.attributes['eppn'])
-        assert("b@example.com" in resp.attributes['eppn'])
+        assert("kaka1#example.com" in resp["attributes"]['a0'])
+        assert("kaka1" in resp["attributes"]['kaka'])
+        assert("a@example.com" in resp["attributes"]['eppn'])
+        assert("b@example.com" in resp["attributes"]['eppn'])
 
     def test_generate_mustache2(self):
         synthetic_attributes = {
            "": { "default": {"a0": "{{kaka.first}}#{{eppn.scope}}" }}
         }
         authz_service = self.create_syn_service(synthetic_attributes)
-        resp = InternalData(auth_info=AuthenticationInformation())
-        resp.attributes = {
-            "kaka": ["kaka1","kaka2"],
-            "eppn": ["a@example.com","b@example.com"]
-        }
+        resp = InternalData(
+            auth_info=AuthenticationInformation(),
+            attributes={
+                "kaka": ["kaka1","kaka2"],
+                "eppn": ["a@example.com","b@example.com"]
+            },
+        )
         ctx = Context()
         ctx.state = dict()
         authz_service.process(ctx, resp)
-        assert("kaka1#example.com" in resp.attributes['a0'])
-        assert("kaka1" in resp.attributes['kaka'])
-        assert("a@example.com" in resp.attributes['eppn'])
-        assert("b@example.com" in resp.attributes['eppn'])
+        assert("kaka1#example.com" in resp["attributes"]['a0'])
+        assert("kaka1" in resp["attributes"]['kaka'])
+        assert("a@example.com" in resp["attributes"]['eppn'])
+        assert("b@example.com" in resp["attributes"]['eppn'])

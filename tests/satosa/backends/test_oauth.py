@@ -97,7 +97,7 @@ class TestFacebookBackend(object):
         }
 
         context, internal_resp = self.fb_backend.auth_callback_func.call_args[0]
-        assert internal_resp.attributes == expected_attributes
+        assert internal_resp["attributes"] == expected_attributes
 
     def assert_token_request(self, request_args, state, **kwargs):
         assert request_args["code"] == FB_RESPONSE_CODE

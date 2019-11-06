@@ -18,8 +18,10 @@ class TestAccountLinking():
     @pytest.fixture
     def internal_response(self):
         auth_info = AuthenticationInformation("auth_class_ref", "timestamp", "issuer")
-        internal_response = InternalData(auth_info=auth_info)
-        internal_response.subject_id = "user1"
+        internal_response = InternalData(
+            auth_info=auth_info,
+            subject_id="user1",
+        )
         return internal_response
 
     @pytest.fixture
@@ -40,8 +42,8 @@ class TestAccountLinking():
     def test_existing_account_linking_with_known_known_uuid(self, account_linking_config, internal_response, context):
         uuid = "uuid"
         data = {
-            "idp": internal_response.auth_info.issuer,
-            "id": internal_response.subject_id,
+            "idp": internal_response["auth_info"]["issuer"],
+            "id": internal_response["subject_id"],
             "redirect_endpoint": self.account_linking.base_url + "/account_linking/handle_account_linking"
         }
         key = RSAKey(key=rsa_load(account_linking_config["sign_key"]), use="sig", alg="RS256")
@@ -56,7 +58,7 @@ class TestAccountLinking():
         )
 
         self.account_linking.process(context, internal_response)
-        assert internal_response.subject_id == uuid
+        assert internal_response["subject_id"] == uuid
 
     def test_full_flow(self, account_linking_config, internal_response, context):
         ticket = "ticket"
@@ -73,8 +75,8 @@ class TestAccountLinking():
         assert result.message.startswith(account_linking_config["redirect_url"])
 
         data = {
-            "idp": internal_response.auth_info.issuer,
-            "id": internal_response.subject_id,
+            "idp": internal_response["auth_info"]["issuer"],
+            "id": internal_response["subject_id"],
             "redirect_endpoint": self.account_linking.base_url + "/account_linking/handle_account_linking"
         }
         key = RSAKey(key=rsa_load(account_linking_config["sign_key"]), use="sig", alg="RS256")
@@ -91,7 +93,7 @@ class TestAccountLinking():
                 match_querystring=True
             )
             internal_response = self.account_linking._handle_al_response(context)
-        assert internal_response.subject_id == uuid
+        assert internal_response["subject_id"] == uuid
 
     @responses.activate
     def test_account_linking_failed(self, account_linking_config, internal_response, context):
@@ -103,7 +105,7 @@ class TestAccountLinking():
             body=ticket,
             content_type="text/html"
         )
-        issuer_user_id = internal_response.subject_id
+        issuer_user_id = internal_response["subject_id"]
         result = self.account_linking.process(context, internal_response)
         assert isinstance(result, Redirect)
         assert result.message.startswith(account_linking_config["redirect_url"])
@@ -111,7 +113,7 @@ class TestAccountLinking():
         # account linking endpoint still does not return an id
         internal_response = self.account_linking._handle_al_response(context)
         #Verify that we kept the subject_id the issuer sent us
-        assert internal_response.subject_id == issuer_user_id
+        assert internal_response["subject_id"] == issuer_user_id
 
     @responses.activate
     def test_manage_al_handle_failed_connection(self, account_linking_config, internal_response, context):

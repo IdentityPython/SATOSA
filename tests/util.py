@@ -469,9 +469,11 @@ class TestBackend(BackendModule):
 
     def handle_response(self, context):
         auth_info = AuthenticationInformation("test", str(datetime.now()), "test_issuer")
-        internal_resp = InternalData(auth_info=auth_info)
-        internal_resp.attributes = context.request
-        internal_resp.subject_id = "test_user"
+        internal_resp = InternalData(
+            auth_info=auth_info,
+            attributes=context.request,
+            subject_id="test_user",
+        )
         return self.auth_callback_func(context, internal_resp)
 
 

@@ -153,11 +153,13 @@ class TestOpenIDConnectFrontend(object):
         auth_info = AuthenticationInformation(
             PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml"
         )
-        internal_response = InternalData(auth_info=auth_info)
-        internal_response.attributes = AttributeMapper(
-            frontend.internal_attributes
-        ).to_internal("saml", USERS["testuser1"])
-        internal_response.subject_id = USERS["testuser1"]["eduPersonTargetedID"][0]
+        internal_response = InternalData(
+            auth_info=auth_info,
+            attributes=AttributeMapper(
+                frontend.internal_attributes
+            ).to_internal("saml", USERS["testuser1"]),
+            subject_id=USERS["testuser1"]["eduPersonTargetedID"][0],
+        )
 
         return internal_response
 
@@ -188,10 +190,10 @@ class TestOpenIDConnectFrontend(object):
 
         assert mock_callback.call_count == 1
         context, internal_req = mock_callback.call_args[0]
-        assert internal_req.requester == authn_req["client_id"]
-        assert internal_req.requester_name == [{"lang": "en", "text": client_name}]
-        assert internal_req.subject_type == 'pairwise'
-        assert internal_req.attributes == ["mail"]
+        assert internal_req["requester"] == authn_req["client_id"]
+        assert internal_req["requester_name"] == [{"lang": "en", "text": client_name}]
+        assert internal_req["subject_type"] == 'pairwise'
+        assert internal_req["attributes"] == ["mail"]
 
     def test_handle_authn_request_with_extra_scopes(
         self, context, frontend_with_extra_scopes, authn_req_with_extra_scopes
@@ -206,10 +208,10 @@ class TestOpenIDConnectFrontend(object):
         context.request = dict(parse_qsl(authn_req_with_extra_scopes.to_urlencoded()))
         frontend_with_extra_scopes.handle_authn_request(context)
         internal_req = frontend_with_extra_scopes._handle_authn_request(context)
-        assert internal_req.requester == authn_req_with_extra_scopes["client_id"]
-        assert internal_req.requester_name == [{"lang": "en", "text": client_name}]
-        assert internal_req.subject_type == "pairwise"
-        assert sorted(internal_req.attributes) == [
+        assert internal_req["requester"] == authn_req_with_extra_scopes["client_id"]
+        assert internal_req["requester_name"] == [{"lang": "en", "text": client_name}]
+        assert internal_req["subject_type"] == "pairwise"
+        assert sorted(internal_req["attributes"]) == [
             "eduPersonPrincipalName",
             "eduPersonScopedAffiliation",
             "mail",

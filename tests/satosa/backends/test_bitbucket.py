@@ -111,10 +111,8 @@ class TestBitBucketBackend(object):
             "mail": [BB_USER_EMAIL_RESPONSE["values"][0]["email"]],
         }
 
-        context, internal_resp = self.bb_backend \
-            .auth_callback_func \
-            .call_args[0]
-        assert internal_resp.attributes == expected_attributes
+        context, internal_resp = self.bb_backend.auth_callback_func.call_args[0]
+        assert internal_resp["attributes"] == expected_attributes
 
     def assert_token_request(self, request_args, state, **kwargs):
         assert request_args["code"] == BB_RESPONSE_CODE
@@ -133,9 +131,7 @@ class TestBitBucketBackend(object):
             subject_type=NAMEID_FORMAT_TRANSIENT, requester='test_requester'
         )
 
-        resp = self.bb_backend.start_auth(context,
-                                          internal_request,
-                                          mock_get_state)
+        resp = self.bb_backend.start_auth(context, internal_request, mock_get_state)
         login_url = resp.message
         assert login_url.startswith(
                 BB_CONFIG["server_info"]["authorization_endpoint"])

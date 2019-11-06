@@ -61,11 +61,11 @@ def assert_redirect_to_idp(redirect_response, idp_conf):
 
 
 def assert_authn_response(internal_resp):
-    assert internal_resp.auth_info.auth_class_ref == PASSWORD
+    assert internal_resp["auth_info"]["auth_class_ref"] == PASSWORD
     expected_data = {'surname': ['Testsson 1'], 'mail': ['test@example.com'],
                      'displayname': ['Test Testsson'], 'givenname': ['Test 1'],
                      'edupersontargetedid': ['one!for!all']}
-    assert expected_data == internal_resp.attributes
+    assert expected_data == internal_resp["attributes"]
 
 
 def setup_test_config(sp_conf, idp_conf):
@@ -275,7 +275,7 @@ class TestSAMLBackend:
             samlbackend.authn_response(context, response_binding)
 
         context, internal_resp = samlbackend.auth_callback_func.call_args[0]
-        assert Counter(internal_resp.attributes.keys()) == Counter({"mail", "givenname", "displayname", "surname"})
+        assert Counter(internal_resp["attributes"].keys()) == Counter({"mail", "givenname", "displayname", "surname"})
 
     def test_backend_reads_encryption_key_from_key_file(self, sp_conf):
         sp_conf["key_file"] = os.path.join(TEST_RESOURCE_BASE_PATH, "encryption_key.pem")

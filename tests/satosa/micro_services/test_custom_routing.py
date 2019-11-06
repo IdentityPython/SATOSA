@@ -20,8 +20,11 @@ def target_context(context):
 
 class TestDecideIfRequesterIsAllowed:
     def create_decide_service(self, rules):
-        decide_service = DecideIfRequesterIsAllowed(config=dict(rules=rules), name="test_decide_service",
-                                                    base_url="https://satosa.example.com")
+        decide_service = DecideIfRequesterIsAllowed(
+            config=dict(rules=rules),
+            name="test_decide_service",
+            base_url="https://satosa.example.com",
+        )
         decide_service.next = lambda ctx, data: data
         return decide_service
 
@@ -36,7 +39,7 @@ class TestDecideIfRequesterIsAllowed:
         req = InternalData(requester="test_requester")
         assert decide_service.process(target_context, req)
 
-        req.requester = "somebody else"
+        req["requester"] = "somebody else"
         with pytest.raises(SATOSAError):
             decide_service.process(target_context, req)
 
@@ -97,7 +100,7 @@ class TestDecideIfRequesterIsAllowed:
 
         assert decide_service.process(target_context, req)
 
-        req.requester = "somebody else"
+        req["requester"] = "somebody else"
         with pytest.raises(SATOSAError):
             decide_service.process(target_context, req)
 

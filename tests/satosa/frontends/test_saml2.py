@@ -52,8 +52,12 @@ class TestSAMLFrontend:
     @pytest.fixture
     def internal_response(self, idp_conf):
         auth_info = AuthenticationInformation(PASSWORD, "2015-09-30T12:21:37Z", idp_conf["entityid"])
-        internal_response = InternalData(auth_info=auth_info)
-        internal_response.attributes = AttributeMapper(INTERNAL_ATTRIBUTES).to_internal("saml", USERS["testuser1"])
+        internal_response = InternalData(
+            auth_info=auth_info,
+            attributes=AttributeMapper(INTERNAL_ATTRIBUTES).to_internal(
+                "saml", USERS["testuser1"]
+            ),
+        )
         return internal_response
 
     def construct_base_url_from_entity_id(self, entity_id):
@@ -145,7 +149,7 @@ class TestSAMLFrontend:
     def test_handle_authn_request(self, context, idp_conf, sp_conf, internal_response):
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf)
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
-        assert internal_req.requester == sp_conf["entityid"]
+        assert internal_req["requester"] == sp_conf["entityid"]
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
@@ -164,7 +168,7 @@ class TestSAMLFrontend:
             context, idp_conf, sp_conf, subject=subject
         )
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
-        assert internal_req.subject_id == name_id_value
+        assert internal_req["subject_id"] == name_id_value
         # XXX TODO how should type be handled?
         # assert internal_req.subject_type == NAMEID_FORMAT_UNSPECIFIED
 
@@ -172,19 +176,19 @@ class TestSAMLFrontend:
             self, context, idp_conf, sp_conf):
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, nameid_format="")
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
-        assert internal_req.subject_type == sp_conf["service"]["sp"]["name_id_format"][0]
+        assert internal_req["subject_type"] == sp_conf["service"]["sp"]["name_id_format"][0]
 
     def test_handle_authn_request_without_name_id_policy_and_metadata_without_name_id_format(
             self, context, idp_conf, sp_conf):
         del sp_conf["service"]["sp"]["name_id_format"]
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, nameid_format="")
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
-        assert internal_req.subject_type == NAMEID_FORMAT_TRANSIENT
+        assert internal_req["subject_type"] == NAMEID_FORMAT_TRANSIENT
 
     def test_handle_authn_response_without_relay_state(self, context, idp_conf, sp_conf, internal_response):
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, relay_state=None)
         _, internal_req = samlfrontend.handle_authn_request(context, BINDING_HTTP_REDIRECT)
-        assert internal_req.requester == sp_conf["entityid"]
+        assert internal_req["requester"] == sp_conf["entityid"]
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
@@ -201,14 +205,16 @@ class TestSAMLFrontend:
     def test_handle_authn_response_without_name_id(
                           self, context, idp_conf, sp_conf, internal_response):
         samlfrontend = self.setup_for_authn_req(
-                                  context, idp_conf, sp_conf, relay_state=None)
+            context, idp_conf, sp_conf, relay_state=None
+        )
         _, internal_req = samlfrontend.handle_authn_request(
-                                                context, BINDING_HTTP_REDIRECT)
+            context, BINDING_HTTP_REDIRECT
+        )
 
         # Make sure we are testing the equivalent of a <Response> with no
         # <NameID> in the <Subject>.
-        assert internal_response.subject_type is None
-        assert internal_response.subject_id is None
+        assert internal_response["subject_type"] is None
+        assert internal_response["subject_id"] is None
 
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
@@ -255,10 +261,12 @@ class TestSAMLFrontend:
             requester="http://sp.example.com",
             requester_name="Example SP",
         )
-        filtered_attributes = samlfrontend._get_approved_attributes(samlfrontend.idp,
-                                                                    samlfrontend.idp.config.getattr(
-                                                                        "policy", "idp"),
-                                                                    internal_req.requester, None)
+        filtered_attributes = samlfrontend._get_approved_attributes(
+            samlfrontend.idp,
+            samlfrontend.idp.config.getattr("policy", "idp"),
+            internal_req["requester"],
+            None,
+        )
 
         assert set(filtered_attributes) == set(["edupersontargetedid", "edupersonprincipalname",
                                                 "edupersonaffiliation", "mail", "displayname", "sn", "givenname"])
@@ -315,8 +323,8 @@ class TestSAMLFrontend:
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, internal_attributes=internal_attributes)
 
         user_attributes = {k: "foo" for k in expected_attributes_in_all_entity_categories}
-        internal_response.attributes = AttributeMapper(internal_attributes).to_internal("saml", user_attributes)
-        internal_response.requester = sp_conf["entityid"]
+        internal_response["attributes"] = AttributeMapper(internal_attributes).to_internal("saml", user_attributes)
+        internal_response["requester"] = sp_conf["entityid"]
 
         resp = self.get_auth_response(samlfrontend, context, internal_response, sp_conf, idp_metadata_str)
         assert Counter(resp.ava.keys()) == Counter(expected_attributes)
@@ -345,8 +353,9 @@ class TestSAMLFrontend:
         assert headers["Content-Type"] == "text/xml"
         assert idp_conf["entityid"] in resp.message
 
-    def test_custom_attribute_release_with_less_attributes_than_entity_category(self, context, idp_conf, sp_conf,
-                                                                                internal_response):
+    def test_custom_attribute_release_with_less_attributes_than_entity_category(
+        self, context, idp_conf, sp_conf, internal_response
+    ):
         idp_metadata_str = create_metadata_from_config_dict(idp_conf)
         idp_conf["service"]["idp"]["policy"]["default"]["entity_categories"] = ["swamid"]
         sp_conf["entity_category"] = [SFS_1993_1153]
@@ -358,7 +367,7 @@ class TestSAMLFrontend:
         internal_attributes = dict(attributes=attribute_mapping)
 
         user_attributes = {k: "foo" for k in expected_attributes}
-        internal_response.attributes = AttributeMapper(internal_attributes).to_internal("saml", user_attributes)
+        internal_response["attributes"] = AttributeMapper(internal_attributes).to_internal("saml", user_attributes)
 
         custom_attributes = {idp_conf["entityid"]: {sp_conf["entityid"]: {"exclude": ["norEduPersonNIN"]}}}
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, internal_attributes=internal_attributes,
@@ -529,8 +538,9 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
         for endpoint in all_idp_endpoints:
             assert any(pat.match(endpoint) for pat in compiled_regex)
 
-    def test_co_static_attributes(self, frontend, context, internal_response,
-                                  idp_conf, sp_conf):
+    def test_co_static_attributes(
+        self, frontend, context, internal_response, idp_conf, sp_conf
+    ):
         # Use the frontend and context fixtures to dynamically create the
         # proxy IdP server that would be created during a flow.
         idp_server = frontend._create_co_virtual_idp(context)
@@ -586,7 +596,7 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
         # Verify that the frontend added the CO static SAML attributes to the
         # internal response.
         for attr, value in self.CO_STATIC_SAML_ATTRIBUTES.items():
-            assert internal_response.attributes[attr] == value
+            assert internal_response["attributes"][attr] == value
 
 
 class TestSubjectTypeToSamlNameIdFormat:

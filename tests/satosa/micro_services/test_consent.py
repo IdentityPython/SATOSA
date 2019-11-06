@@ -44,9 +44,9 @@ class TestConsent:
     @pytest.fixture
     def internal_response(self):
         auth_info = AuthenticationInformation("auth_class_ref", "timestamp", "issuer")
-        internal_response = InternalData(auth_info=auth_info)
-        internal_response.requester = "client"
-        internal_response.attributes = ATTRIBUTES
+        internal_response = InternalData(
+            auth_info=auth_info, requester="client", attributes=ATTRIBUTES
+        )
         return internal_response
 
     @pytest.fixture
@@ -54,8 +54,8 @@ class TestConsent:
         req = InternalData(
             subject_type=NAMEID_FORMAT_PERSISTENT,
             requester="example_requester",
+            attributes=FILTER + ["sn"],
         )
-        req.attributes = FILTER + ["sn"]
         return req
 
     @pytest.fixture(scope="session")
@@ -83,7 +83,7 @@ class TestConsent:
         jws.verify_compact(jwks, [sign_key])
 
         consent_args = jws.msg
-        assert consent_args["attr"] == internal_response.attributes
+        assert consent_args["attr"] == internal_response["attributes"]
         assert consent_args["redirect_endpoint"] == base_url + "/consent/handle_consent"
         assert consent_args["requester_name"] == requester_name
         assert consent_args["locked_attrs"] == [USER_ID_ATTR]
@@ -135,7 +135,7 @@ class TestConsent:
             context, internal_response = self.consent_module.process(context, internal_response)
 
         assert context
-        assert not internal_response.attributes
+        assert not internal_response["attributes"]
 
     @responses.activate
     def test_consent_prev_given(self, context, internal_response, internal_request,
@@ -143,17 +143,17 @@ class TestConsent:
         responses.add(responses.GET, consent_verify_endpoint_regex, status=200,
                       body=json.dumps(FILTER))
 
-        context.state[consent.STATE_KEY] = {"filter": internal_request.attributes}
+        context.state[consent.STATE_KEY] = {"filter": internal_request["attributes"]}
         context, internal_response = self.consent_module.process(context, internal_response)
         assert context
-        assert "displayName" in internal_response.attributes
+        assert "displayName" in internal_response["attributes"]
 
     def test_consent_full_flow(self, context, consent_config, internal_response, internal_request,
                                consent_verify_endpoint_regex, consent_registration_endpoint_regex):
         expected_ticket = "my_ticket"
 
         requester_name = [{"lang": "en", "text": "test requester"}]
-        context.state[consent.STATE_KEY] = {"filter": internal_request.attributes,
+        context.state[consent.STATE_KEY] = {"filter": internal_request["attributes"],
                                             "requester_name": requester_name}
 
         with responses.RequestsMock() as rsps:
@@ -176,9 +176,9 @@ class TestConsent:
 
             context, internal_response = self.consent_module._handle_consent_response(context)
 
-        assert internal_response.attributes["displayName"] == ["Test"]
-        assert internal_response.attributes["co"] == ["example"]
-        assert "sn" not in internal_response.attributes  # 'sn' should be filtered
+        assert internal_response["attributes"]["displayName"] == ["Test"]
+        assert internal_response["attributes"]["co"] == ["example"]
+        assert "sn" not in internal_response["attributes"]  # 'sn' should be filtered
 
     @responses.activate
     def test_consent_not_given(self, context, consent_config, internal_response, internal_request,
@@ -204,7 +204,7 @@ class TestConsent:
         new_context.state = context.state
         # Verify endpoint of consent service still gives 401 (no consent given)
         context, internal_response = self.consent_module._handle_consent_response(context)
-        assert not internal_response.attributes
+        assert not internal_response["attributes"]
 
     def test_get_consent_id(self):
         attributes = {"foo": ["bar", "123"], "abc": ["xyz", "456"]}
@@ -217,37 +217,47 @@ class TestConsent:
         assert Counter(filtered_attributes.keys()) == Counter(FILTER)
 
     @responses.activate
-    def test_manage_consent_filters_attributes_before_send_to_consent_service(self, context, internal_request,
-                                                                              internal_response,
-                                                                              consent_verify_endpoint_regex):
+    def test_manage_consent_filters_attributes_before_send_to_consent_service(
+        self, context, internal_request, internal_response, consent_verify_endpoint_regex
+    ):
         approved_attributes = ["foo", "bar"]
         # fake previous consent
         responses.add(responses.GET, consent_verify_endpoint_regex, status=200,
                       body=json.dumps(approved_attributes))
 
         attributes = {"foo": "123", "bar": "456", "abc": "should be filtered"}
-        internal_response.attributes = attributes
+        internal_response["attributes"] = attributes
 
         context.state[consent.STATE_KEY] = {"filter": approved_attributes}
         self.consent_module.process(context, internal_response)
 
         consent_hash = urlparse(responses.calls[0].request.url).path.split("/")[2]
-        expected_hash = self.consent_module._get_consent_id(internal_response.requester, internal_response.subject_id,
-                                                            {k: v for k, v in attributes.items() if
-                                                             k in approved_attributes})
+        expected_hash = self.consent_module._get_consent_id(
+            internal_response["requester"],
+            internal_response["subject_id"],
+            {k: v for k, v in attributes.items() if k in approved_attributes},
+        )
         assert consent_hash == expected_hash
 
     @responses.activate
-    def test_manage_consent_without_filter_passes_through_all_attributes(self, context, internal_response,
-                                                                         consent_verify_endpoint_regex):
+    def test_manage_consent_without_filter_passes_through_all_attributes(
+        self, context, internal_response, consent_verify_endpoint_regex
+    ):
         # fake previous consent
-        responses.add(responses.GET, consent_verify_endpoint_regex, status=200,
-                      body=json.dumps(list(internal_response.attributes.keys())))
+        responses.add(
+            responses.GET,
+            consent_verify_endpoint_regex,
+            status=200,
+            body=json.dumps(list(internal_response["attributes"].keys())),
+        )
 
         context.state[consent.STATE_KEY] = {"filter": []} # No filter
         self.consent_module.process(context, internal_response)
 
         consent_hash = urlparse(responses.calls[0].request.url).path.split("/")[2]
-        expected_hash = self.consent_module._get_consent_id(internal_response.requester, internal_response.subject_id,
-                                                            internal_response.attributes)
+        expected_hash = self.consent_module._get_consent_id(
+            internal_response["requester"],
+            internal_response["subject_id"],
+            internal_response["attributes"],
+        )
         assert consent_hash == expected_hash
