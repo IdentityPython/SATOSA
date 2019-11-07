@@ -1,8 +1,14 @@
 # Changelog
 
-## 4.6.0
+## 5.0.0 (2019-11-07)
 
+*Notice*: Support for python 3.5 has been dropped.
+
+- Add a dict-like interface to the internal objects
+- Fix escaped chars in RegEx strings
+- tests: fix warnings
 - build: drop support for python 3.5
+- misc: typos and formatting
 
 
 ## 4.5.0 (2019-11-05)
