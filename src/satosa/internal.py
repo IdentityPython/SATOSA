@@ -2,14 +2,91 @@
 
 
 import warnings as _warnings
+from collections import UserDict
 
 
-class AuthenticationInformation(object):
+class _Datafy(UserDict):
+    _DEPRECATED_TO_NEW_MEMBERS = {}
+
+    def _get_new_key(self, old_key):
+        new_key = self.__class__._DEPRECATED_TO_NEW_MEMBERS.get(old_key, old_key)
+        is_key_deprecated = old_key != new_key
+        if is_key_deprecated:
+            msg = "'{old_key}' is deprecated; use '{new_key}' instead.".format(
+                old_key=old_key, new_key=new_key
+            )
+            _warnings.warn(msg, DeprecationWarning)
+        return new_key
+
+    def __setitem__(self, key, value):
+        new_key = self._get_new_key(key)
+        return super().__setitem__(new_key, value)
+
+    def __getitem__(self, key):
+        new_key = self._get_new_key(key)
+        value = super().__getitem__(new_key)
+        return value
+
+    def __setattr__(self, key, value):
+        if key == "data":
+            return super().__setattr__(key, value)
+
+        self.__setitem__(key, value)
+
+    def __getattr__(self, key):
+        if key == "data":
+            return self.data
+
+        try:
+            value = self.__getitem__(key)
+        except KeyError as e:
+            msg = "'{type}' object has no attribute '{attr}'".format(
+                type=type(self), attr=key
+            )
+            raise AttributeError(msg) from e
+        return value
+
+    def to_dict(self):
+        """
+        Converts an object to a dict
+        :rtype: dict[str, str]
+        :return: A dict representation of the object
+        """
+        data = {
+            key: value
+            for key, value_obj in self.items()
+            for value in [
+                value_obj.to_dict() if hasattr(value_obj, "to_dict") else value_obj
+            ]
+        }
+        data.update(
+            {
+                key: data.get(value)
+                for key, value in self.__class__._DEPRECATED_TO_NEW_MEMBERS.items()
+            }
+        )
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        """
+        :type data: dict[str, str]
+        :rtype: satosa.internal.AuthenticationInformation
+        :param data: A dict representation of an object
+        :return: An object
+        """
+        instance = cls(**data.copy())
+        return instance
+
+
+class AuthenticationInformation(_Datafy):
     """
     Class that holds information about the authentication
     """
 
-    def __init__(self, auth_class_ref=None, timestamp=None, issuer=None):
+    def __init__(
+        self, auth_class_ref=None, timestamp=None, issuer=None, *args, **kwargs
+    ):
         """
         Initiate the data carrier
 
@@ -21,44 +98,23 @@ class AuthenticationInformation(object):
         :param timestamp: Time when the authentication was done
         :param issuer: Where the authentication was done
         """
+        super().__init__(self, *args, **kwargs)
         self.auth_class_ref = auth_class_ref
         self.timestamp = timestamp
         self.issuer = issuer
 
-    def to_dict(self):
-        """
-        Converts an AuthenticationInformation object to a dict
-        :rtype: dict[str, str]
-        :return: A dict representation of the object
-        """
-        return {
-            "auth_class_ref": self.auth_class_ref,
-            "timestamp": self.timestamp,
-            "issuer": self.issuer,
-        }
 
-    @classmethod
-    def from_dict(cls, data):
-        """
-        :type data: dict[str, str]
-        :rtype: satosa.internal.AuthenticationInformation
-        :param data: A dict representation of an AuthenticationInformation object
-        :return: An AuthenticationInformation object
-        """
-        return cls(
-            auth_class_ref=data.get("auth_class_ref"),
-            timestamp=data.get("timestamp"),
-            issuer=data.get("issuer"),
-        )
-
-    def __repr__(self):
-        return str(self.to_dict())
-
-
-class InternalData(object):
+class InternalData(_Datafy):
     """
     A base class for the data carriers between frontends/backends
     """
+
+    _DEPRECATED_TO_NEW_MEMBERS = {
+        "name_id": "subject_id",
+        "user_id": "subject_id",
+        "user_id_hash_type": "subject_type",
+        "approved_attributes": "attributes",
+    }
 
     def __init__(
         self,
@@ -72,6 +128,8 @@ class InternalData(object):
         user_id_hash_type=None,
         name_id=None,
         approved_attributes=None,
+        *args,
+        **kwargs,
     ):
         """
         :param auth_info:
@@ -96,14 +154,17 @@ class InternalData(object):
         :type name_id: str
         :type approved_attributes: dict
         """
-        self.auth_info = auth_info or AuthenticationInformation()
+        super().__init__(self, *args, **kwargs)
+        self.auth_info = (
+            auth_info
+            if isinstance(auth_info, AuthenticationInformation)
+            else AuthenticationInformation(**(auth_info or {}))
+        )
         self.requester = requester
         self.requester_name = (
             requester_name
             if requester_name is not None
-            else [
-                {"text": requester, "lang": "en"}
-            ]
+            else [{"text": requester, "lang": "en"}]
         )
         self.subject_id = (
             subject_id
@@ -128,103 +189,3 @@ class InternalData(object):
             if approved_attributes is not None
             else {}
         )
-
-    def to_dict(self):
-        """
-        Converts an InternalData object to a dict
-        :rtype: dict[str, str]
-        :return: A dict representation of the object
-        """
-        data = {
-            "auth_info": self.auth_info.to_dict(),
-            "requester": self.requester,
-            "requester_name": self.requester_name,
-            "attributes": self.attributes,
-            "subject_id": self.subject_id,
-            "subject_type": self.subject_type,
-        }
-        data.update(
-            {
-                "user_id": self.subject_id,
-                "hash_type": self.subject_type,
-                "name_id": self.subject_id,
-                "approved_attributes": self.attributes,
-            }
-        )
-        return data
-
-    @classmethod
-    def from_dict(cls, data):
-        """
-        :type data: dict[str, str]
-        :rtype: satosa.internal.InternalData
-        :param data: A dict representation of an InternalData object
-        :return: An InternalData object
-        """
-        auth_info = AuthenticationInformation.from_dict(
-            data.get("auth_info", {})
-        )
-        instance = cls(
-            auth_info=auth_info,
-            requester=data.get("requester"),
-            requester_name=data.get("requester_name"),
-            subject_id=data.get("subject_id"),
-            subject_type=data.get("subject_type"),
-            attributes=data.get("attributes"),
-            user_id=data.get("user_id"),
-            user_id_hash_type=data.get("hash_type"),
-            name_id=data.get("name_id"),
-            approved_attributes=data.get("approved_attributes"),
-        )
-        return instance
-
-    @property
-    def user_id(self):
-        msg = "user_id is deprecated; use subject_id instead."
-        _warnings.warn(msg, DeprecationWarning)
-        return self.subject_id
-
-    @user_id.setter
-    def user_id(self, value):
-        msg = "user_id is deprecated; use subject_id instead."
-        _warnings.warn(msg, DeprecationWarning)
-        self.subject_id = value
-
-    @property
-    def user_id_hash_type(self):
-        msg = "user_id_hash_type is deprecated; use subject_type instead."
-        _warnings.warn(msg, DeprecationWarning)
-        return self.subject_type
-
-    @user_id_hash_type.setter
-    def user_id_hash_type(self, value):
-        msg = "user_id_hash_type is deprecated; use subject_type instead."
-        _warnings.warn(msg, DeprecationWarning)
-        self.subject_type = value
-
-    @property
-    def approved_attributes(self):
-        msg = "approved_attributes is deprecated; use attributes instead."
-        _warnings.warn(msg, DeprecationWarning)
-        return self.attributes
-
-    @approved_attributes.setter
-    def approved_attributes(self, value):
-        msg = "approved_attributes is deprecated; use attributes instead."
-        _warnings.warn(msg, DeprecationWarning)
-        self.attributes = value
-
-    @property
-    def name_id(self):
-        msg = "name_id is deprecated; use subject_id instead."
-        _warnings.warn(msg, DeprecationWarning)
-        return self.subject_id
-
-    @name_id.setter
-    def name_id(self, value):
-        msg = "name_id is deprecated; use subject_id instead."
-        _warnings.warn(msg, DeprecationWarning)
-        self.subject_id = value
-
-    def __repr__(self):
-        return str(self.to_dict())
