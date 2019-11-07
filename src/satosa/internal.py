@@ -31,11 +31,33 @@ class _Datafy(UserDict):
         if key == "data":
             return super().__setattr__(key, value)
 
+        if not key.startswith("_"):
+            msg = " ".join(
+                [
+                    "Setting attributes on {cls} is deprecated;",
+                    "use the dict interface instead:",
+                    "Replace 'object.{key} = {value}'",
+                    "with 'object[\"{key}\"] = {value}'",
+                ]
+            ).format(cls=self.__class__, key=key, value=value)
+            _warnings.warn(msg, DeprecationWarning)
+
         self.__setitem__(key, value)
 
     def __getattr__(self, key):
         if key == "data":
             return self.data
+
+        if not key.startswith("_"):
+            msg = " ".join(
+                [
+                    "Getting attributes from {cls} is deprecated;",
+                    "use the dict interface instead:",
+                    "Replace 'object.{key}'",
+                    "with 'object.get(\"{key}\")'",
+                ]
+            ).format(cls=self.__class__, key=key)
+            _warnings.warn(msg, DeprecationWarning)
 
         try:
             value = self.__getitem__(key)
