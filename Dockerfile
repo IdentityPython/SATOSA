@@ -3,14 +3,10 @@ FROM debian:stable-slim
 RUN apt-get update \
     && apt-get -y dist-upgrade \
     && apt-get install -y --no-install-recommends \
-        git \
-        python3-dev \
-        build-essential \
+        python3 \
         python3-pip \
-        libffi-dev \
-        libssl-dev \
+        python3-venv \
         xmlsec1 \
-        libyaml-dev \
     && apt-get clean
 
 RUN mkdir -p /src/satosa
