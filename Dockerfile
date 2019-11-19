@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM debian:stable-slim
 
 RUN apt-get update \
     && apt-get -y dist-upgrade \
