@@ -1,13 +1,13 @@
 FROM debian:stable-slim
 
-RUN apt-get update \
+RUN apt-get -y update \
     && apt-get -y dist-upgrade \
-    && apt-get install -y --no-install-recommends \
+    && apt-get -y --no-install-recommends install \
         python3 \
         python3-pip \
         python3-venv \
         xmlsec1 \
-    && apt-get clean
+    && apt-get -y clean
 
 RUN mkdir -p /src/satosa
 COPY . /src/satosa
