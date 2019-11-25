@@ -293,7 +293,10 @@ class TestOpenIDConnectFrontend(object):
         scopes_supported = provider_config_dict.pop("scopes_supported")
         assert "eduperson" not in scopes_supported
         assert all(scope in scopes_supported for scope in ["openid", "email"])
-        assert provider_config_dict == expected_capabilities
+
+        provider_items = provider_config_dict.items()
+        expected_items = expected_capabilities.items()
+        assert all(item in provider_items for item in expected_items)
 
     def test_provider_configuration_endpoint_with_extra_scopes(
         self, context, frontend_with_extra_scopes
@@ -340,14 +343,9 @@ class TestOpenIDConnectFrontend(object):
             scope in scopes_supported for scope in ["openid", "email", "eduperson"]
         )
 
-        # FIXME why is this needed?
-        expected_capabilities["claims_supported"] = set(
-            expected_capabilities["claims_supported"]
-        )
-        provider_config_dict["claims_supported"] = set(
-            provider_config_dict["claims_supported"]
-        )
-        assert provider_config_dict == expected_capabilities
+        provider_items = provider_config_dict.items()
+        expected_items = expected_capabilities.items()
+        assert all(item in provider_items for item in expected_items)
 
     def test_jwks(self, context, frontend):
         http_response = frontend.jwks(context)
