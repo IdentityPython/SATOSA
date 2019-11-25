@@ -259,6 +259,6 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
         logger.debug(logline)
 
         msg = "{} returning data.attributes {}".format(logprefix, str(data.attributes))
-        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.statestate), message=msg)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.debug(logline)
         return super().process(context, data)
