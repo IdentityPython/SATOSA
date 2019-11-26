@@ -12,8 +12,6 @@ import urllib
 import ldap3
 from ldap3.core.exceptions import LDAPException
 
-from collections import defaultdict
-
 from satosa.exception import SATOSAError
 from satosa.logging_util import satosa_logging
 from satosa.micro_services.base import ResponseMicroService
@@ -350,7 +348,7 @@ class LdapAttributeStore(ResponseMicroService):
             else config["search_return_attributes"]
         )
 
-        attributes = defaultdict(list)
+        attributes = {}
 
         for attr, values in ldap_attributes.items():
             internal_attr = ldap_to_internal_map.get(attr, None)
@@ -358,7 +356,11 @@ class LdapAttributeStore(ResponseMicroService):
                 internal_attr = ldap_to_internal_map.get(attr.split(";")[0], None)
 
             if internal_attr and values:
-                attributes[internal_attr].extend(values)
+                attributes[internal_attr] = (
+                    values
+                    if isinstance(values, list)
+                    else [values]
+                )
                 msg = "Recording internal attribute {} with values {}"
                 msg = msg.format(internal_attr, attributes[internal_attr])
                 satosa_logging(logger, logging.DEBUG, msg, None)
