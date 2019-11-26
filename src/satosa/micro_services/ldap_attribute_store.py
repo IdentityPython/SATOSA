@@ -293,6 +293,7 @@ class LdapAttributeStore(ResponseMicroService):
             "LDIF": ldap3.LDIF,
             "RESTARTABLE": ldap3.RESTARTABLE,
             "REUSABLE": ldap3.REUSABLE,
+            "MOCK_SYNC": ldap3.MOCK_SYNC
         }
         client_strategy = client_strategy_map[client_strategy_string]
 
@@ -503,7 +504,7 @@ class LdapAttributeStore(ResponseMicroService):
         # This adapts records with different search and connection strategy
         # (sync without pool), it should be tested with anonimous bind with
         # message_id.
-        if isinstance(results, bool):
+        if isinstance(results, bool) and record:
             record = {
                 "dn": record.entry_dn if hasattr(record, "entry_dn") else "",
                 "attributes": (
