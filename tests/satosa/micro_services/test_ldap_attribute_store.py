@@ -7,6 +7,8 @@ from satosa.internal import InternalData
 from satosa.micro_services.ldap_attribute_store import LdapAttributeStore
 from satosa.context import Context
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 class TestLdapAttributeStore:
     ldap_attribute_store_config = {
@@ -21,15 +23,13 @@ class TestLdapAttributeStore:
                 'givenName',
                 'sn',
                 'mail',
-                'employeeNumber',
-                'voPersonID'
+                'employeeNumber'
             ],
             'ldap_to_internal_map': {
                 'givenName': 'givenname',
                 'sn': 'sn',
                 'mail': 'mail',
-                'employeeNumber': 'employeenumber',
-                'voPersonID': 'vopersonid'
+                'employeeNumber': 'employeenumber'
             },
             'clear_input_attributes': True,
             'ordered_identifier_candidates': [
@@ -46,8 +46,7 @@ class TestLdapAttributeStore:
             'givenName': 'Jane',
             'sn': 'Baxter',
             'uid': 'jbaxter',
-            'mail': 'jbaxter@example.com',
-            'voPersonID': 'EX1000'
+            'mail': 'jbaxter@example.com'
             }
          ],
         ['employeeNumber=1001,ou=people,dc=example,dc=com', {
@@ -56,8 +55,7 @@ class TestLdapAttributeStore:
             'givenName': 'Booker',
             'sn': 'Lawson',
             'uid': 'booker.lawson',
-            'mail': 'blawson@example.com',
-            'voPersonID': 'EX1001'
+            'mail': 'blawson@example.com'
             }
          ],
     ]

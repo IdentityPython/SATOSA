@@ -263,7 +263,22 @@ class LdapAttributeStore(ResponseMicroService):
         if not bind_password:
             raise LdapAttributeStoreError("bind_password is not configured")
 
-        server = ldap3.Server(config["ldap_url"])
+        client_strategy_string = config["client_strategy"]
+        client_strategy_map = {
+            "SYNC": ldap3.SYNC,
+            "ASYNC": ldap3.ASYNC,
+            "LDIF": ldap3.LDIF,
+            "RESTARTABLE": ldap3.RESTARTABLE,
+            "REUSABLE": ldap3.REUSABLE,
+            "MOCK_SYNC": ldap3.MOCK_SYNC
+        }
+        client_strategy = client_strategy_map[client_strategy_string]
+
+        args = {'host': config["ldap_url"]}
+        if client_strategy == ldap3.MOCK_SYNC:
+            args['get_info'] = ldap3.OFFLINE_SLAPD_2_4
+
+        server = ldap3.Server(**args)
 
         msg = "Creating a new LDAP connection"
         satosa_logging(logger, logging.DEBUG, msg, None)
@@ -285,17 +300,6 @@ class LdapAttributeStore(ResponseMicroService):
 
         read_only = config["read_only"]
         version = config["version"]
-
-        client_strategy_string = config["client_strategy"]
-        client_strategy_map = {
-            "SYNC": ldap3.SYNC,
-            "ASYNC": ldap3.ASYNC,
-            "LDIF": ldap3.LDIF,
-            "RESTARTABLE": ldap3.RESTARTABLE,
-            "REUSABLE": ldap3.REUSABLE,
-            "MOCK_SYNC": ldap3.MOCK_SYNC
-        }
-        client_strategy = client_strategy_map[client_strategy_string]
 
         pool_size = config["pool_size"]
         pool_keepalive = config["pool_keepalive"]
