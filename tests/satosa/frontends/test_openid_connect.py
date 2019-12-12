@@ -22,6 +22,8 @@ from satosa.frontends.openid_connect import OpenIDConnectFrontend
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from tests.users import USERS
+from tests.users import OIDC_USERS
+
 
 INTERNAL_ATTRIBUTES = {
     "attributes": {"mail": {"saml": ["email"], "openid": ["email"]}}
@@ -174,7 +176,7 @@ class TestOpenIDConnectFrontend(object):
         assert id_token["nonce"] == authn_req["nonce"]
         assert id_token["aud"] == [authn_req["client_id"]]
         assert "sub" in id_token
-        assert id_token["email"] == USERS["testuser1"]["email"][0]
+        assert id_token["email"] == OIDC_USERS["testuser1"]["email"]
         assert frontend.name not in context.state
 
     def test_handle_authn_request(self, context, frontend, authn_req):

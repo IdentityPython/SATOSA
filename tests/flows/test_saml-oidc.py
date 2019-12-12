@@ -11,6 +11,7 @@ from satosa.metadata_creation.saml_metadata import create_entity_descriptors
 from satosa.proxy_server import make_app
 from satosa.satosa_config import SATOSAConfig
 from tests.users import USERS
+from tests.users import OIDC_USERS
 from tests.util import FakeSP
 
 
@@ -43,7 +44,7 @@ class TestSAMLToOIDC:
         parsed_auth_req = dict(parse_qsl(urlparse(proxied_auth_req.data.decode("utf-8")).query))
 
         # create auth resp
-        id_token_claims = {k: v[0] for k, v in USERS[subject_id].items()}
+        id_token_claims = {k: v for k, v in OIDC_USERS[subject_id].items()}
         id_token_claims["sub"] = subject_id
         id_token_claims["iat"] = time.time()
         id_token_claims["exp"] = time.time() + 3600

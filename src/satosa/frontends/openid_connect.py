@@ -3,6 +3,7 @@ A OpenID Connect frontend module for the satosa proxy
 """
 import json
 import logging
+from collections import defaultdict
 from urllib.parse import urlencode, urlparse
 
 from jwkest.jwk import rsa_load, RSAKey
@@ -127,8 +128,8 @@ class OpenIDConnectFrontend(FrontendModule):
 
         auth_req = self._get_authn_request_from_state(context.state)
 
-        attributes = self.converter.from_internal("openid", internal_resp.attributes)
-        self.user_db[internal_resp.subject_id] = {k: v[0] for k, v in attributes.items()}
+        claims = self.converter.from_internal("openid", internal_resp.attributes)
+        self.user_db[internal_resp.subject_id] = dict(combine_claim_values(claims.items()))
         auth_resp = self.provider.authorize(
             auth_req,
             internal_resp.subject_id,
@@ -378,3 +379,50 @@ class OpenIDConnectFrontend(FrontendModule):
             response = Unauthorized(error_resp.to_json(), headers=[("WWW-Authenticate", AccessToken.BEARER_TOKEN_TYPE)],
                                     content="application/json")
             return response
+
+
+def combine_return_input(values):
+    return values
+
+
+def combine_select_first_value(values):
+    return values[0]
+
+
+def combine_join_by_space(values):
+    return " ".join(values)
+
+
+combine_values_by_claim = defaultdict(
+    lambda: combine_return_input,
+    {
+        "sub": combine_select_first_value,
+        "name": combine_select_first_value,
+        "given_name": combine_join_by_space,
+        "family_name": combine_join_by_space,
+        "middle_name": combine_join_by_space,
+        "nickname": combine_select_first_value,
+        "preferred_username": combine_select_first_value,
+        "profile": combine_select_first_value,
+        "picture": combine_select_first_value,
+        "website": combine_select_first_value,
+        "email": combine_select_first_value,
+        "email_verified": combine_select_first_value,
+        "gender": combine_select_first_value,
+        "birthdate": combine_select_first_value,
+        "zoneinfo": combine_select_first_value,
+        "locale": combine_select_first_value,
+        "phone_number": combine_select_first_value,
+        "phone_number_verified": combine_select_first_value,
+        "address": combine_select_first_value,
+        "updated_at": combine_select_first_value,
+    },
+)
+
+
+def combine_claim_values(claim_items):
+    claims = (
+        (name, combine_values_by_claim[name](values))
+        for name, values in claim_items
+    )
+    return claims

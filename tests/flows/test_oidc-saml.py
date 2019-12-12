@@ -15,7 +15,9 @@ from satosa.metadata_creation.saml_metadata import create_entity_descriptors
 from satosa.proxy_server import make_app
 from satosa.satosa_config import SATOSAConfig
 from tests.users import USERS
+from tests.users import OIDC_USERS
 from tests.util import FakeIdP
+
 
 CLIENT_ID = "client1"
 REDIRECT_URI = "https://client.example.com/cb"
@@ -97,4 +99,8 @@ class TestOIDCToSAML:
         signing_key = RSAKey(key=rsa_load(oidc_frontend_config["config"]["signing_key_path"]),
                              use="sig", alg="RS256")
         id_token_claims = JWS().verify_compact(resp_dict["id_token"], keys=[signing_key])
-        assert all((k, v[0]) in id_token_claims.items() for k, v in USERS[subject_id].items())
+
+        assert all(
+            (name, values) in id_token_claims.items()
+            for name, values in OIDC_USERS[subject_id].items()
+        )
