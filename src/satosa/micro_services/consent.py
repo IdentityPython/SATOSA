@@ -12,10 +12,11 @@ from jwkest.jwk import rsa_load
 from jwkest.jws import JWS
 from requests.exceptions import ConnectionError
 
+import satosa.logging_util as lu
 from satosa.internal import InternalData
-from satosa.logging_util import satosa_logging
 from satosa.micro_services.base import ResponseMicroService
 from satosa.response import Redirect
+
 
 logger = logging.getLogger(__name__)
 
@@ -63,17 +64,22 @@ class Consent(ResponseMicroService):
         try:
             consent_attributes = self._verify_consent(hash_id)
         except ConnectionError as e:
-            satosa_logging(logger, logging.ERROR,
-                           "Consent service is not reachable, no consent given.", context.state)
+            msg = "Consent service is not reachable, no consent given."
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline)
             # Send an internal_response without any attributes
             consent_attributes = None
 
         if consent_attributes is None:
-            satosa_logging(logger, logging.INFO, "Consent was NOT given", context.state)
+            msg = "Consent was NOT given"
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.info(logline)
             # If consent was not given, then don't send any attributes
             consent_attributes = []
         else:
-            satosa_logging(logger, logging.INFO, "Consent was given", context.state)
+            msg = "Consent was given"
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.info(logline)
 
         internal_response.attributes = self._filter_attributes(internal_response.attributes, consent_attributes)
         return self._end_consent(context, internal_response)
@@ -94,8 +100,9 @@ class Consent(ResponseMicroService):
         try:
             ticket = self._consent_registration(consent_args)
         except (ConnectionError, UnexpectedResponseError) as e:
-            satosa_logging(logger, logging.ERROR, "Consent request failed, no consent given: {}".format(str(e)),
-                           context.state)
+            msg = "Consent request failed, no consent given: {}".format(str(e))
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline)
             # Send an internal_response without any attributes
             internal_response.attributes = {}
             return self._end_consent(context, internal_response)
@@ -125,15 +132,18 @@ class Consent(ResponseMicroService):
             # Check if consent is already given
             consent_attributes = self._verify_consent(id_hash)
         except requests.exceptions.ConnectionError as e:
-            satosa_logging(logger, logging.ERROR,
-                           "Consent service is not reachable, no consent given.", context.state)
+            msg = "Consent service is not reachable, no consent is given."
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline)
             # Send an internal_response without any attributes
             internal_response.attributes = {}
             return self._end_consent(context, internal_response)
 
         # Previous consent was given
         if consent_attributes is not None:
-            satosa_logging(logger, logging.DEBUG, "Previous consent was given", context.state)
+            msg = "Previous consent was given"
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
             internal_response.attributes = self._filter_attributes(internal_response.attributes, consent_attributes)
             return self._end_consent(context, internal_response)
 
