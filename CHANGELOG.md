@@ -1,5 +1,15 @@
 # Changelog
 
+## 6.0.0 (2019-12-17)
+
+- properly support mutliple values when converting internal attributes to OIDC
+  claims. For all claims other than the ones define in OIDC core specification,
+  the same values as the ones that have been set in the internal representation
+  will be returned.
+- improve log handling
+- micro-services: Better handling of single-value attribute by LdapAttributeStore
+
+
 ## 5.0.0 (2019-11-07)
 
 *Notice*: Support for python 3.5 has been dropped.
