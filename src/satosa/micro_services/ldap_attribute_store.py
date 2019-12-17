@@ -12,8 +12,6 @@ import urllib
 import ldap3
 from ldap3.core.exceptions import LDAPException
 
-from collections import defaultdict
-
 from satosa.exception import SATOSAError
 from satosa.logging_util import satosa_logging
 from satosa.micro_services.base import ResponseMicroService
@@ -265,7 +263,22 @@ class LdapAttributeStore(ResponseMicroService):
         if not bind_password:
             raise LdapAttributeStoreError("bind_password is not configured")
 
-        server = ldap3.Server(config["ldap_url"])
+        client_strategy_string = config["client_strategy"]
+        client_strategy_map = {
+            "SYNC": ldap3.SYNC,
+            "ASYNC": ldap3.ASYNC,
+            "LDIF": ldap3.LDIF,
+            "RESTARTABLE": ldap3.RESTARTABLE,
+            "REUSABLE": ldap3.REUSABLE,
+            "MOCK_SYNC": ldap3.MOCK_SYNC
+        }
+        client_strategy = client_strategy_map[client_strategy_string]
+
+        args = {'host': config["ldap_url"]}
+        if client_strategy == ldap3.MOCK_SYNC:
+            args['get_info'] = ldap3.OFFLINE_SLAPD_2_4
+
+        server = ldap3.Server(**args)
 
         msg = "Creating a new LDAP connection"
         satosa_logging(logger, logging.DEBUG, msg, None)
@@ -287,16 +300,6 @@ class LdapAttributeStore(ResponseMicroService):
 
         read_only = config["read_only"]
         version = config["version"]
-
-        client_strategy_string = config["client_strategy"]
-        client_strategy_map = {
-            "SYNC": ldap3.SYNC,
-            "ASYNC": ldap3.ASYNC,
-            "LDIF": ldap3.LDIF,
-            "RESTARTABLE": ldap3.RESTARTABLE,
-            "REUSABLE": ldap3.REUSABLE,
-        }
-        client_strategy = client_strategy_map[client_strategy_string]
 
         pool_size = config["pool_size"]
         pool_keepalive = config["pool_keepalive"]
@@ -350,7 +353,7 @@ class LdapAttributeStore(ResponseMicroService):
             else config["search_return_attributes"]
         )
 
-        attributes = defaultdict(list)
+        attributes = {}
 
         for attr, values in ldap_attributes.items():
             internal_attr = ldap_to_internal_map.get(attr, None)
@@ -358,7 +361,11 @@ class LdapAttributeStore(ResponseMicroService):
                 internal_attr = ldap_to_internal_map.get(attr.split(";")[0], None)
 
             if internal_attr and values:
-                attributes[internal_attr].extend(values)
+                attributes[internal_attr] = (
+                    values
+                    if isinstance(values, list)
+                    else [values]
+                )
                 msg = "Recording internal attribute {} with values {}"
                 msg = msg.format(internal_attr, attributes[internal_attr])
                 satosa_logging(logger, logging.DEBUG, msg, None)
@@ -501,7 +508,7 @@ class LdapAttributeStore(ResponseMicroService):
         # This adapts records with different search and connection strategy
         # (sync without pool), it should be tested with anonimous bind with
         # message_id.
-        if isinstance(results, bool):
+        if isinstance(results, bool) and record:
             record = {
                 "dn": record.entry_dn if hasattr(record, "entry_dn") else "",
                 "attributes": (
