@@ -30,13 +30,13 @@ from saml2.server import Server
 from satosa.base import SAMLBaseModule
 from satosa.context import Context
 from .base import FrontendModule
-from ..logging_util import satosa_logging
 from ..response import Response
 from ..response import ServiceError
 from ..saml_util import make_saml_response
 from satosa.exception import SATOSAError
 import satosa.util as util
 
+import satosa.logging_util as lu
 from satosa.internal import InternalData
 from satosa.deprecated import saml_name_id_format_to_hash_type
 from satosa.deprecated import hash_type_to_saml_name_id_format
@@ -190,7 +190,9 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         """
         req_info = idp.parse_authn_request(context.request["SAMLRequest"], binding_in)
         authn_req = req_info.message
-        satosa_logging(logger, logging.DEBUG, "%s" % authn_req, context.state)
+        msg = "{}".format(authn_req)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
 
         # keep the ForceAuthn value to be used by plugins
         context.decorate(Context.KEY_FORCE_AUTHN, authn_req.force_authn)
@@ -198,7 +200,9 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         try:
             resp_args = idp.response_args(authn_req)
         except SAMLError as e:
-            satosa_logging(logger, logging.ERROR, "Could not find necessary info about entity: %s" % e, context.state)
+            msg = "Could not find necessary info about entity: {}".format(e)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline)
             return ServiceError("Incorrect request from requester: %s" % e)
 
         requester = resp_args["sp_entity_id"]
@@ -273,7 +277,9 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
                 attribute_filter = list(idp_policy.restrict(all_attributes, sp_entity_id, idp.metadata).keys())
                 break
         attribute_filter = self.converter.to_internal_filter(self.attribute_profile, attribute_filter)
-        satosa_logging(logger, logging.DEBUG, "Filter: %s" % attribute_filter, state)
+        msg = "Filter: {}".format(attribute_filter)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(state), message=msg)
+        logger.debug(logline)
         return attribute_filter
 
     def _filter_attributes(self, idp, internal_response, context,):
@@ -343,8 +349,9 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             name_qualifier=None,
         )
 
-        dbgmsg = "returning attributes %s" % json.dumps(ava)
-        satosa_logging(logger, logging.DEBUG, dbgmsg, context.state)
+        msg = "returning attributes {}".format(json.dumps(ava))
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
 
         policies = self.idp_config.get(
             'service', {}).get('idp', {}).get('policy', {})
@@ -376,22 +383,26 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         try:
             args['sign_alg'] = getattr(xmldsig, sign_alg)
         except AttributeError as e:
-            errmsg = "Unsupported sign algorithm %s" % sign_alg
-            satosa_logging(logger, logging.ERROR, errmsg, context.state)
-            raise Exception(errmsg) from e
+            msg = "Unsupported sign algorithm {}".format(sign_alg)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline)
+            raise Exception(msg) from e
         else:
-            dbgmsg = "signing with algorithm %s" % args['sign_alg']
-            satosa_logging(logger, logging.DEBUG, dbgmsg, context.state)
+            msg = "signing with algorithm {}".format(args['sign_alg'])
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
 
         try:
             args['digest_alg'] = getattr(xmldsig, digest_alg)
         except AttributeError as e:
-            errmsg = "Unsupported digest algorithm %s" % digest_alg
-            satosa_logging(logger, logging.ERROR, errmsg, context.state)
-            raise Exception(errmsg) from e
+            msg = "Unsupported digest algorithm {}".format(digest_alg)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline)
+            raise Exception(msg) from e
         else:
-            dbgmsg = "using digest algorithm %s" % args['digest_alg']
-            satosa_logging(logger, logging.DEBUG, dbgmsg, context.state)
+            msg = "using digest algorithm {}".format(args['digest_alg'])
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
 
         resp = idp.create_authn_response(**args)
         http_args = idp.apply_binding(
@@ -426,7 +437,9 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         http_args = idp.apply_binding(resp_args["binding"], str(error_resp), resp_args["destination"], relay_state,
                                       response=True)
 
-        satosa_logging(logger, logging.DEBUG, "HTTPargs: %s" % http_args, exception.state)
+        msg = "HTTPSards: {}".format(http_args)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(exception.state), message=msg)
+        logger.debug(logline)
         return make_saml_response(resp_args["binding"], http_args)
 
     def _metadata_endpoint(self, context):
@@ -438,7 +451,9 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         :param context: The current context
         :return: response with metadata
         """
-        satosa_logging(logger, logging.DEBUG, "Sending metadata response", context.state)
+        msg = "Sending metadata response"
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
         metadata_string = create_metadata_string(None, self.idp.config, 4, None, None, None, None,
                                                  None).decode("utf-8")
         return Response(metadata_string, content="text/xml")
@@ -478,15 +493,21 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         cookie = SimpleCookie(context.cookie)
         if '_saml_idp' in cookie:
             common_domain_cookie = cookie['_saml_idp']
-            satosa_logging(logger, logging.DEBUG, "Found existing common domain cookie {}".format(common_domain_cookie), context.state)
+            msg = "Found existing common domain cookie {}".format(common_domain_cookie)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
             space_separated_b64_idp_string = unquote(common_domain_cookie.value)
             b64_idp_list = space_separated_b64_idp_string.split()
             idp_list = [urlsafe_b64decode(b64_idp).decode('utf-8') for b64_idp in b64_idp_list]
         else:
-            satosa_logging(logger, logging.DEBUG, "No existing common domain cookie found", context.state)
+            msg = "No existing common domain cookie found"
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
             idp_list = []
 
-        satosa_logging(logger, logging.DEBUG, "Common domain cookie list of IdPs is {}".format(idp_list), context.state)
+        msg = "Common domain cookie list of IdPs is {}".format(idp_list)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
 
         # Identity the current IdP just used for authentication in this flow.
         this_flow_idp = internal_response.auth_info.issuer
@@ -496,8 +517,12 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
 
         # Append the current IdP.
         idp_list.append(this_flow_idp)
-        satosa_logging(logger, logging.DEBUG, "Added IdP {} to common domain cookie list of IdPs".format(this_flow_idp), context.state)
-        satosa_logging(logger, logging.DEBUG, "Common domain cookie list of IdPs is now {}".format(idp_list), context.state)
+        msg = "Added IdP {} to common domain cookie list of IdPs".format(this_flow_idp)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
+        msg = "Common domain cookie list of IdPs is now {}".format(idp_list)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
 
         # Construct the cookie.
         b64_idp_list = [urlsafe_b64encode(idp.encode()).decode("utf-8") for idp in idp_list]
@@ -523,7 +548,9 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         cookie['_saml_idp']['secure'] = True
 
         # Set the cookie.
-        satosa_logging(logger, logging.DEBUG, "Setting common domain cookie with {}".format(cookie.output()), context.state)
+        msg = "Setting common domain cookie with {}".format(cookie.output())
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
         http_args['headers'].append(tuple(cookie.output().split(": ", 1)))
 
     def _build_idp_config_endpoints(self, config, providers):
@@ -840,10 +867,12 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         """
         try:
             co_name = context.state[self.name][self.KEY_CO_NAME]
-            logger.debug("Found CO {} from state".format(co_name))
+            logline = "Found CO {} from state".format(co_name)
+            logger.debug(logline)
         except KeyError:
             co_name = self._get_co_name_from_path(context)
-            logger.debug("Found CO {} from request path".format(co_name))
+            logline = "Found CO {} from request path".format(co_name)
+            logger.debug(logline)
 
         return co_name
 
@@ -985,9 +1014,9 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         if co_name not in co_names:
             msg = "CO {} not in configured list of COs {}".format(co_name,
                                                                   co_names)
-            satosa_logging(logger, logging.WARN, msg, context.state)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.warn(logline)
             raise SATOSAError(msg)
-
         # Make a copy of the general IdP config that we will then overwrite
         # with mappings between SAML bindings and CO specific URL endpoints,
         # and the entityID for the CO virtual IdP.
@@ -1038,8 +1067,10 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
 
         # Create a regex pattern that will match any of the backend names.
         backend_url_pattern = "|^".join(backend_names)
-        logger.debug("Input backend names are {}".format(backend_names))
-        logger.debug("Created backend regex '{}'".format(backend_url_pattern))
+        logline = "Input backend names are {}".format(backend_names)
+        logger.debug(logline)
+        logline = "Created backend regex '{}'".format(backend_url_pattern)
+        logger.debug(logline)
 
         # Hold a list of tuples containing URL regex patterns and the callables
         # that handle them.
@@ -1047,18 +1078,19 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
 
         # Loop over IdP endpoint categories, e.g., single_sign_on_service.
         for endpoint_category in self.endpoints:
-            logger.debug("Examining endpoint category {}".format(
-                                    endpoint_category))
+            logline = "Examining endpoint category {}".format(endpoint_category)
+            logger.debug(logline)
 
             # For each endpoint category loop of the bindings and their
             # assigned endpoints.
             for binding, endpoint in self.endpoints[endpoint_category].items():
-                logger.debug("Found binding {} and endpoint {}".format(binding,
-                             endpoint))
+                logline = "Found binding {} and endpoint {}".format(binding, endpoint)
+                logger.debug(logline)
 
                 # Parse out the path from the endpoint.
                 endpoint_path = urlparse(endpoint).path
-                logger.debug("Using path {}".format(endpoint_path))
+                logline = "Using path {}".format(endpoint_path)
+                logger.debug(logline)
 
                 # Use the backend URL pattern and the endpoint path to create
                 # a regex that will match and that includes a pattern for
@@ -1067,7 +1099,8 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
                                 backend_url_pattern,
                                 co_name_pattern,
                                 endpoint_path)
-                logger.debug("Created URL regex {}".format(regex_pattern))
+                logline = "Created URL regex {}".format(regex_pattern)
+                logger.debug(logline)
 
                 # Map the regex pattern to a callable.
                 the_callable = functools.partial(self.handle_authn_request,
@@ -1076,6 +1109,7 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
 
                 mapping = (regex_pattern, the_callable)
                 url_to_callable_mappings.append(mapping)
-                logger.debug("Adding mapping {}".format(mapping))
+                logline = "Adding mapping {}".format(mapping)
+                logger.debug(logline)
 
         return url_to_callable_mappings
