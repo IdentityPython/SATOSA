@@ -65,8 +65,7 @@ class LdapAttributeStore(ResponseMicroService):
 
         if "default" in config and "" in config:
             msg = """Use either 'default' or "" in config but not both"""
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-            logger.error(logline)
+            logger.error(msg)
             raise LdapAttributeStoreError(msg)
 
         if "" in config:
@@ -74,8 +73,7 @@ class LdapAttributeStore(ResponseMicroService):
 
         if "default" not in config:
             msg = "No default configuration is present"
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-            logger.error(logline)
+            logger.error(msg)
             raise LdapAttributeStoreError(msg)
 
         self.config = {}
@@ -89,8 +87,7 @@ class LdapAttributeStore(ResponseMicroService):
         for sp in sp_list:
             if not isinstance(config[sp], dict):
                 msg = "Configuration value for {} must be a dictionary"
-                logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-                logger.error(logline)
+                logger.error(msg)
                 raise LdapAttributeStoreError(msg)
 
             # Initialize configuration using module defaults then update
@@ -113,16 +110,14 @@ class LdapAttributeStore(ResponseMicroService):
             if connection_params in connections:
                 sp_config["connection"] = connections[connection_params]
                 msg = "Reusing LDAP connection for SP {}".format(sp)
-                logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-                logger.debug(logline)
+                logger.debug(msg)
             else:
                 try:
                     connection = self._ldap_connection_factory(sp_config)
                     connections[connection_params] = connection
                     sp_config["connection"] = connection
                     msg = "Created new LDAP connection for SP {}".format(sp)
-                    logline = logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-                    logger.debug(logline)
+                    logger.debug(msg)
                 except LdapAttributeStoreError:
                     # It is acceptable to not have a default LDAP connection
                     # but all SP overrides must have a connection, either
@@ -130,15 +125,13 @@ class LdapAttributeStore(ResponseMicroService):
                     if sp != "default":
                         msg = "No LDAP connection can be initialized for SP {}".format(sp)
                         msg = msg.format(sp)
-                        logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-                        logger.error(logline)
+                        logger.error(msg)
                         raise LdapAttributeStoreError(msg)
 
             self.config[sp] = sp_config
 
         msg = "LDAP Attribute Store microservice initialized"
-        logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-        logger.info(logline)
+        logger.info(msg)
 
     def _construct_filter_value(
         self, candidate, name_id_value, name_id_format, issuer, attributes
@@ -182,8 +175,7 @@ class LdapAttributeStore(ResponseMicroService):
             for attr_value in [attributes.get(identifier_name)]
         ]
         msg = "Found candidate values {}".format(values)
-        logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-        logger.debug(logline)
+        logger.debug(msg)
 
         # If one of the configured identifier names is name_id then if there is
         # also a configured name_id_format add the value for the NameID of that
@@ -197,8 +189,7 @@ class LdapAttributeStore(ResponseMicroService):
                 and candidate_name_id_format == name_id_format
             ):
                 msg = "IdP asserted NameID {}".format(name_id_value)
-                logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-                logger.debug(logline)
+                logger.debug(msg)
                 candidate_nameid_value = name_id_value
 
             # Only add the NameID value asserted by the IdP if it is not
@@ -209,21 +200,18 @@ class LdapAttributeStore(ResponseMicroService):
             if candidate_nameid_value not in values:
                 msg = "Added NameID {} to candidate values"
                 msg = msg.format(candidate_nameid_value)
-                logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-                logger.debug(logline)
+                logger.debug(msg)
                 values.append(candidate_nameid_value)
             else:
                 msg = "NameID {} value also asserted as attribute value"
                 msg = msg.format(candidate_nameid_value)
-                logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-                logger.warn(logline)
+                logger.warn(msg)
 
         # If no value was asserted by the IdP for one of the configured list of
         # identifier names for this candidate then go onto the next candidate.
         if None in values:
             msg = "Candidate is missing value so skipping"
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-            logger.debug(logline)
+            logger.debug(msg)
             return None
 
         # All values for the configured list of attribute names are present
@@ -236,16 +224,14 @@ class LdapAttributeStore(ResponseMicroService):
                 else candidate["add_scope"]
             )
             msg = "Added scope {} to values".format(scope)
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-            logger.debug(logline)
+            logger.debug(msg)
             values.append(scope)
 
         # Concatenate all values to create the filter value.
         value = "".join(values)
 
         msg = "Constructed filter value {}".format(value)
-        logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-        logger.debug(logline)
+        logger.debug(msg)
 
         return value
 
@@ -281,16 +267,13 @@ class LdapAttributeStore(ResponseMicroService):
         server = ldap3.Server(config["ldap_url"])
 
         msg = "Creating a new LDAP connection"
-        logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-        logger.debug(logline)
+        logger.debug(msg)
 
         msg = "Using LDAP URL {}".format(ldap_url)
-        logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-        logger.debug(logline)
+        logger.debug(msg)
 
         msg = "Using bind DN {}".format(bind_dn)
-        logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-        logger.debug(logline)
+        logger.debug(msg)
 
         auto_bind_string = config["auto_bind"]
         auto_bind_map = {
@@ -318,11 +301,9 @@ class LdapAttributeStore(ResponseMicroService):
         pool_keepalive = config["pool_keepalive"]
         if client_strategy == ldap3.REUSABLE:
             msg = "Using pool size {}".format(pool_size)
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-            logger.debug(logline)
+            logger.debug(msg)
             msg = "Using pool keep alive {}".format(pool_keepalive)
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-            logger.debug(logline)
+            logger.debug(msg)
 
         try:
             connection = ldap3.Connection(
@@ -337,19 +318,16 @@ class LdapAttributeStore(ResponseMicroService):
                 pool_keepalive=pool_keepalive,
             )
             msg = "Successfully connected to LDAP server"
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-            logger.debug(logline)
+            logger.debug(msg)
 
         except LDAPException as e:
             msg = "Caught exception when connecting to LDAP server: {}"
             msg = msg.format(e)
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-            logger.error(logline)
+            logger.error(msg)
             raise LdapAttributeStoreError(msg)
 
         msg = "Successfully connected to LDAP server"
-        logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-        logger.debug(logline)
+        logger.debug(msg)
 
         return connection
 
@@ -361,8 +339,7 @@ class LdapAttributeStore(ResponseMicroService):
         ldap_attributes = record.get("attributes", None)
         if not ldap_attributes:
             msg = "No attributes returned with LDAP record"
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-            logger.debug(logline)
+            logger.debug(msg)
             return
 
         ldap_to_internal_map = (
@@ -383,8 +360,7 @@ class LdapAttributeStore(ResponseMicroService):
                 attributes[internal_attr].extend(values)
                 msg = "Recording internal attribute {} with values {}"
                 msg = msg.format(internal_attr, attributes[internal_attr])
-                logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
-                logger.debug(logline)
+                logger.debug(msg)
 
         return attributes
 
@@ -570,8 +546,7 @@ class LdapAttributeStore(ResponseMicroService):
             if user_ids:
                 data.subject_id = "".join(user_ids)
             msg = "NameID value is {}".format(data.subject_id)
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.None), message=msg)
-            logger.debug(logline)
+            logger.debug(msg)
 
             # Add the record to the context so that later microservices
             # may use it if required.
