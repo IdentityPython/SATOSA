@@ -124,8 +124,13 @@ class LdapAttributeStore(ResponseMicroService):
                     # inherited from the default or directly configured.
                     if sp != "default":
                         msg = "No LDAP connection can be initialized for SP {}".format(sp)
+<<<<<<< HEAD
                         msg = msg.format(sp)
                         logger.error(msg)
+=======
+                        logline = lu.LOG_FMT.format(id=lu.get_session_id(None), message=msg)
+                        logger.error(logline)
+>>>>>>> d3c0b65a39dfc4033f908b0f6b34c7763153683a
                         raise LdapAttributeStoreError(msg)
 
             self.config[sp] = sp_config
