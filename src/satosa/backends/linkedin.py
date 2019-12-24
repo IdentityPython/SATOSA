@@ -94,18 +94,17 @@ class LinkedInBackend(_OAuthBackend):
         if self.config.get('verify_accesstoken_state', True):
             self._verify_state(response, state_data, context.state)
 
-        user_info = self.user_information(response["access_token"], 'user_info')
         auth_info = self.auth_info(context.request)
         user_email_response = self.user_information(response["access_token"], 'email_info')
-
+        user_info = self.user_information(response["access_token"], 'user_info')
         user_email = {
             "emailAddress": [
                 element['handle~']['emailAddress']
                 for element in user_email_response['elements']
             ]
         }
-        
         user_info.update(user_email)
+
         internal_response = InternalData(auth_info=auth_info)
         internal_response.attributes = self.converter.to_internal(
             self.external_type, user_info)

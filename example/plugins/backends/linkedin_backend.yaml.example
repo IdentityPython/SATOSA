@@ -6,14 +6,15 @@ config:
   client_config:
     client_id: 12345678
   client_secret: a2s3d4f5g6h7j8k9
-  scope: [r_liteprofile,r_emailaddress]
+  scope:
+    - r_liteprofile
+	- r_emailaddress
   response_type: code
-  server_info: {
-    authorization_endpoint: 'https://www.linkedin.com/oauth/v2/authorization',
-    token_endpoint: 'https://www.linkedin.com/oauth/v2/accessToken',
-    user_info: 'https://api.linkedin.com/v2/me',
+  server_info:
+    authorization_endpoint: 'https://www.linkedin.com/oauth/v2/authorization'
+    token_endpoint: 'https://www.linkedin.com/oauth/v2/accessToken'
+    user_info: 'https://api.linkedin.com/v2/me'
     email_info: 'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))'
-  }
   entity_info:
     organization:
       display_name:
