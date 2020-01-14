@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 
 from saml2 import SAMLError, xmldsig
 from saml2.config import IdPConfig
-from saml2.extension.ui import NAMESPACE as UI_NAMESPACE
+from saml2.extension.mdui import NAMESPACE as UI_NAMESPACE
 from saml2.metadata import create_metadata_string
 from saml2.saml import NameID, NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT
 from saml2.samlp import name_id_policy_from_string
