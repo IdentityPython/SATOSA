@@ -8,7 +8,7 @@ import hashlib
 import json
 import logging
 from collections import UserDict
-from http.cookies import SimpleCookie
+from satosa.cookies import SimpleCookie
 from uuid import uuid4
 
 from lzma import LZMACompressor
@@ -38,7 +38,7 @@ def state_to_cookie(state, name, path, encryption_key):
     :type name: str
     :type path: str
     :type encryption_key: str
-    :rtype: http.cookies.SimpleCookie
+    :rtype: satosa.cookies.SimpleCookie
 
     :param state: The state to save
     :param name: Name identifier of the cookie
@@ -57,6 +57,7 @@ def state_to_cookie(state, name, path, encryption_key):
     logger.debug(logline)
     cookie = SimpleCookie()
     cookie[name] = cookie_data
+    cookie[name]["samesite"] = "None"
     cookie[name]["secure"] = STATE_COOKIE_SECURE
     cookie[name]["path"] = path
     cookie[name]["max-age"] = max_age

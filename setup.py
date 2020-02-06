@@ -23,7 +23,8 @@ setup(
         "gunicorn",
         "Werkzeug",
         "click",
-        "pystache"
+        "pystache",
+        "cookies-samesite-compat",
     ],
     extras_require={
         "ldap": ["ldap3"]

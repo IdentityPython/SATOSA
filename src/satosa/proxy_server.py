@@ -7,6 +7,7 @@ from urllib.parse import parse_qsl
 
 import pkg_resources
 
+from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from .base import SATOSABase
 from .context import Context
 from .response import ServiceError, NotFound
@@ -151,7 +152,13 @@ def make_app(satosa_config):
             logger.info(logline)
         except (NameError, pkg_resources.DistributionNotFound):
             pass
-        return ToBytesMiddleware(WsgiApplication(satosa_config))
+
+        res1 = WsgiApplication(satosa_config)
+        res2 = CookiesSameSiteCompatMiddleware(res1, satosa_config)
+        res3 = ToBytesMiddleware(res2)
+        res = res3
+
+        return res
     except Exception:
         logline = "Failed to create WSGI app."
         logger.exception(logline)
