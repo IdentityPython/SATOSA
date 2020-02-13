@@ -29,8 +29,22 @@ apt-get install libffi-dev libssl-dev xmlsec1
 Alternatively the application can be installed directly from PyPI (`pip install satosa`), or the [Docker image](https://hub.docker.com/r/satosa/) can be used.
 
 # Configuration
+SATOSA is configured using YAML.
+
 All default configuration files, as well as an example WSGI application for the proxy, can be found
 in the [example directory](../example).
+
+A configuration value that includes the tag !ENV will have a value of the form `${SOME_ENVIRONMENT_VARIABLE}`
+replaced with the value from the process environment variable of the same name. For example if the file
+`ldap_attribute_store.yaml' includes
+
+```
+bind_password: !ENV ${LDAP_BIND_PASSWORD}
+```
+
+and the SATOSA process environment includes the environment variable `LDAP_BIND_PASSWORD` with
+value `my_password` then the configuration for `bind_password` will be `my_password`.
+
 
 ## <a name="proxy_conf" style="color:#000000">SATOSA proxy configuration</a>: `proxy_conf.yaml.example`
 | Parameter name | Data type | Example value | Description |
