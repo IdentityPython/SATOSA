@@ -3,6 +3,7 @@ This module contains methods to load, verify and build configurations for the sa
 """
 import logging
 import os
+import os.path
 import re
 
 import yaml
@@ -145,12 +146,12 @@ class SATOSAConfig(object):
         :return: Loaded config
         """
         # Tag to indicate environment variable: !ENV
-        tag = '!ENV'
+        tag_env = '!ENV'
 
         # Pattern for environment variable: ${word}
-        pattern = re.compile('.*?\${(\w+)}.*?')
+        pattern_env = re.compile('.*?\${(\w+)}.*?')
 
-        yaml.SafeLoader.add_implicit_resolver(tag, pattern, None)
+        yaml.SafeLoader.add_implicit_resolver(tag_env, pattern_env, None)
 
         def constructor_env_variables(loader, node):
             """
@@ -160,7 +161,7 @@ class SATOSAConfig(object):
             :return: value of the environment variable
             """
             value = loader.construct_scalar(node)
-            match = pattern.findall(value)
+            match = pattern_env.findall(value)
             if match:
                 new_value = value
                 for m in match:
@@ -169,7 +170,39 @@ class SATOSAConfig(object):
                 return new_value
             return value
 
-        yaml.SafeLoader.add_constructor(tag, constructor_env_variables)
+        yaml.SafeLoader.add_constructor(tag_env, constructor_env_variables)
+
+        # Tag to indicate file pointed to by environment variable: !ENVFILE
+        tag_env_file = '!ENVFILE'
+
+        # Pattern for environment variable: $(word)
+        pattern_env_file = re.compile('.*?\$\((\w+)\).*?')
+
+        yaml.SafeLoader.add_implicit_resolver(tag_env_file,
+                                              pattern_env_file, None)
+
+        def constructor_envfile_variables(loader, node):
+            """
+            Extracts the environment variable from the node's value.
+            :param yaml.Loader loader: the yaml loader
+            :param node: the current node in the yaml
+            :return: value read from file pointed to by environment variable
+            """
+            value = loader.construct_scalar(node)
+            match = pattern_env_file.findall(value)
+            if match:
+                new_value = value
+                for m in match:
+                    path = os.environ.get(m, '')
+                    if os.path.exists(path):
+                        with open(path, 'r') as f:
+                            new_value = new_value.replace('$(' + m + ')',
+                                                          f.read().strip())
+                return new_value
+            return value
+
+        yaml.SafeLoader.add_constructor(tag_env_file,
+                                        constructor_envfile_variables)
 
         try:
             with open(os.path.abspath(config_file)) as f:

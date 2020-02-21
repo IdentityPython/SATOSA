@@ -10,6 +10,9 @@ config:
       bind_dn: cn=admin,dc=example,dc=org
       # Obtain bind password from environment variable LDAP_BIND_PASSWORD.
       bind_password: !ENV ${LDAP_BIND_PASSWORD}
+      # Obtain bind password from file pointed to by
+      # environment variable LDAP_BIND_PASSWORD_FILE.
+      # bind_password: !ENVFILE $(LDAP_BIND_PASSWORD)
       search_base: ou=People,dc=example,dc=org
       read_only: true
       auto_bind: true
