@@ -30,6 +30,6 @@ def satosa_logging(logger, level, message, state, **kwargs):
     :param state: The current state
     :param kwargs: set exc_info=True to get an exception stack trace in the log
     """
-    session_id = get_session_id(state)
+    state[LOGGER_STATE_KEY] = session_id = get_session_id(state)
     logline = LOG_FMT.format(id=session_id, message=message)
     logger.log(level, logline, **kwargs)
