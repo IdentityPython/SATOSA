@@ -9,20 +9,25 @@ import json
 import logging
 from collections import UserDict
 from http.cookies import SimpleCookie
-from lzma import LZMADecompressor, LZMACompressor
+from uuid import uuid4
+
+from lzma import LZMACompressor
+from lzma import LZMADecompressor
 
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 
-from .exception import SATOSAStateError
-
 import satosa.logging_util as lu
+from satosa.exception import SATOSAStateError
+
 
 logger = logging.getLogger(__name__)
 
 # TODO MOVE TO CONFIG
 STATE_COOKIE_MAX_AGE = 1200
 STATE_COOKIE_SECURE = True
+
+_SESSION_ID_KEY = "SESSION_ID"
 
 
 def state_to_cookie(state, name, path, encryption_key):
@@ -178,6 +183,7 @@ class State(UserDict):
         """
         self.delete = False
 
+        urlstate_data = {} if urlstate_data is None else urlstate_data
         if urlstate_data and not encryption_key:
             raise ValueError("If an 'urlstate_data' is supplied 'encrypt_key' must be specified.")
 
@@ -192,7 +198,18 @@ class State(UserDict):
             urlstate_data = urlstate_data.decode("UTF-8")
             urlstate_data = json.loads(urlstate_data)
 
-        super().__init__(urlstate_data or {})
+        session_id = (
+            urlstate_data[_SESSION_ID_KEY]
+            if urlstate_data and _SESSION_ID_KEY in urlstate_data
+            else uuid4().urn
+        )
+        urlstate_data[_SESSION_ID_KEY] = session_id
+
+        super().__init__(urlstate_data)
+
+    @property
+    def session_id(self):
+        return self.data.get(_SESSION_ID_KEY)
 
     def urlstate(self, encryption_key):
         """
