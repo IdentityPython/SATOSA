@@ -23,9 +23,6 @@ from satosa.exception import SATOSAStateError
 
 logger = logging.getLogger(__name__)
 
-# TODO MOVE TO CONFIG
-STATE_COOKIE_MAX_AGE = 1200
-
 _SESSION_ID_KEY = "SESSION_ID"
 
 
@@ -47,14 +44,13 @@ def state_to_cookie(state, name, path, encryption_key):
     """
 
     cookie_data = "" if state.delete else state.urlstate(encryption_key)
-    max_age = 0 if state.delete else STATE_COOKIE_MAX_AGE
 
     cookie = SimpleCookie()
     cookie[name] = cookie_data
     cookie[name]["samesite"] = "None"
     cookie[name]["secure"] = True
     cookie[name]["path"] = path
-    cookie[name]["max-age"] = max_age
+    cookie[name]["max-age"] = 0 if state.delete else ""
 
     msg = "Saved state in cookie {name} with properties {props}".format(
         name=name, props=list(cookie[name].items())
