@@ -50,17 +50,19 @@ def state_to_cookie(state, name, path, encryption_key):
     cookie_data = "" if state.delete else state.urlstate(encryption_key)
     max_age = 0 if state.delete else STATE_COOKIE_MAX_AGE
 
-    msg = "Saving state as cookie, secure: {secure}, max-age: {max_age}, path: {path}".format(
-        secure=STATE_COOKIE_SECURE, max_age=STATE_COOKIE_MAX_AGE, path=path
-    )
-    logline = lu.LOG_FMT.format(id=lu.get_session_id(state), message=msg)
-    logger.debug(logline)
     cookie = SimpleCookie()
     cookie[name] = cookie_data
     cookie[name]["samesite"] = "None"
     cookie[name]["secure"] = STATE_COOKIE_SECURE
     cookie[name]["path"] = path
     cookie[name]["max-age"] = max_age
+
+    msg = "Saved state in cookie {name} with properties {props}".format(
+        name=name, props=list(cookie[name].items())
+    )
+    logline = lu.LOG_FMT.format(id=lu.get_session_id(state), message=msg)
+    logger.debug(logline)
+
     return cookie
 
 
