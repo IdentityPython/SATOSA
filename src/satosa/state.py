@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 # TODO MOVE TO CONFIG
 STATE_COOKIE_MAX_AGE = 1200
-STATE_COOKIE_SECURE = True
 
 _SESSION_ID_KEY = "SESSION_ID"
 
@@ -53,7 +52,7 @@ def state_to_cookie(state, name, path, encryption_key):
     cookie = SimpleCookie()
     cookie[name] = cookie_data
     cookie[name]["samesite"] = "None"
-    cookie[name]["secure"] = STATE_COOKIE_SECURE
+    cookie[name]["secure"] = True
     cookie[name]["path"] = path
     cookie[name]["max-age"] = max_age
 
