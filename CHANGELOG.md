@@ -1,5 +1,18 @@
 # Changelog
 
+## 6.1.0 (2020-02-28)
+
+- Set the SameSite cookie attribute to "None"
+- Add compatibility support for the SameSite attribute for incompatible
+  browsers
+- Set the Secure attribute of the cookie, always
+- Set minimum pysaml2 version to make sure we get a version patched for
+  CVE-2020-5390
+- Fix typos and improve documetation
+- Set the session-id when state is created
+- Use LinkedIn API v2
+
+
 ## 6.0.0 (2019-12-17)
 
 - properly support mutliple values when converting internal attributes to OIDC
