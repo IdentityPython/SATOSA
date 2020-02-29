@@ -78,16 +78,19 @@ class TestSATOSAConfig:
 
     def test_can_substitute_from_environment_variable(self, monkeypatch):
         monkeypatch.setenv("SATOSA_COOKIE_STATE_NAME", "oatmeal_raisin")
-        config = SATOSAConfig(os.path.join(TEST_RESOURCE_BASE_PATH,
-                              "proxy_conf_environment_test.yaml"))
+        config = SATOSAConfig(
+            os.path.join(TEST_RESOURCE_BASE_PATH, "proxy_conf_environment_test.yaml")
+        )
 
         assert config["COOKIE_STATE_NAME"] == 'oatmeal_raisin'
 
     def test_can_substitute_from_environment_variable_file(self, monkeypatch):
-        cookie_file = os.path.join(TEST_RESOURCE_BASE_PATH,
-                                   'cookie_state_name')
+        cookie_file = os.path.join(TEST_RESOURCE_BASE_PATH, 'cookie_state_name')
         monkeypatch.setenv("SATOSA_COOKIE_STATE_NAME_FILE", cookie_file)
-        config = SATOSAConfig(os.path.join(TEST_RESOURCE_BASE_PATH,
-                              "proxy_conf_environment_file_test.yaml"))
+        config = SATOSAConfig(
+            os.path.join(
+                TEST_RESOURCE_BASE_PATH, "proxy_conf_environment_file_test.yaml"
+            )
+        )
 
         assert config["COOKIE_STATE_NAME"] == 'chocolate_chip'
