@@ -32,12 +32,6 @@ def _constructor_envfile_variables(loader, node):
     """
     raw_value = loader.construct_scalar(node)
     filepath = os.environ.get(raw_value)
-    if filepath is None:
-        msg = "Cannot construct value from {node}: {path}".format(
-            node=node, path=filepath
-        )
-        raise YAMLError(msg)
-
     try:
         with open(filepath, "r") as fd:
             new_value = fd.read()
