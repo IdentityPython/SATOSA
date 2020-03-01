@@ -29,7 +29,6 @@ from ..util import rndstr
 
 import satosa.logging_util as lu
 from satosa.internal import InternalData
-from satosa.deprecated import oidc_subject_type_to_hash_type
 
 
 logger = logging.getLogger(__name__)

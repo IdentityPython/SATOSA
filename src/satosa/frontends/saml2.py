@@ -38,8 +38,6 @@ import satosa.util as util
 
 import satosa.logging_util as lu
 from satosa.internal import InternalData
-from satosa.deprecated import saml_name_id_format_to_hash_type
-from satosa.deprecated import hash_type_to_saml_name_id_format
 
 
 logger = logging.getLogger(__name__)

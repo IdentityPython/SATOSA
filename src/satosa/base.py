@@ -4,7 +4,6 @@ The SATOSA main module
 import json
 import logging
 import uuid
-import warnings as _warnings
 
 from saml2.s_utils import UnknownSystemEntity
 
@@ -17,9 +16,8 @@ from .plugin_loader import load_request_microservices, load_response_microservic
 from .routing import ModuleRouter, SATOSANoBoundEndpointError
 from .state import cookie_to_state, SATOSAStateError, State, state_to_cookie
 
-from satosa.deprecated import hash_attributes
-
 import satosa.logging_util as lu
+
 
 logger = logging.getLogger(__name__)
 
@@ -40,22 +38,6 @@ class SATOSABase(object):
         :param config: satosa proxy config
         """
         self.config = config
-
-        for option in ["USER_ID_HASH_SALT"]:
-            if option in self.config:
-                msg = (
-                    "'{opt}' configuration option is deprecated."
-                    " Use the hasher microservice instead."
-                ).format(opt=option)
-                _warnings.warn(msg, DeprecationWarning)
-
-        for option in ["hash"]:
-            if option in self.config["INTERNAL_ATTRIBUTES"]:
-                msg = (
-                    "'{opt}' configuration option is deprecated."
-                    " Use the hasher microservice instead."
-                ).format(opt=option)
-                _warnings.warn(msg, DeprecationWarning)
 
         logger.info("Loading backend modules...")
         backends = load_backends(self.config, self._auth_resp_callback_func,
@@ -129,12 +111,6 @@ class SATOSABase(object):
         user_id_to_attr = self.config["INTERNAL_ATTRIBUTES"].get("user_id_to_attr", None)
         if user_id_to_attr:
             internal_response.attributes[user_id_to_attr] = [internal_response.subject_id]
-
-        hash_attributes(
-            self.config["INTERNAL_ATTRIBUTES"].get("hash", []),
-            internal_response.attributes,
-            self.config.get("USER_ID_HASH_SALT", ""),
-        )
 
         # remove all session state unless CONTEXT_STATE_DELETE is False
         context.state.delete = self.config.get("CONTEXT_STATE_DELETE", True)

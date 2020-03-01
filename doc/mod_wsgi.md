@@ -110,8 +110,6 @@ BASE: https://some.host.org
 
 STATE_ENCRYPTION_KEY: fazmC8yELv38f9PF0kbS
 
-USER_ID_HASH_SALT: i7tmt34rzb2QRDgN1Ggy
-
 INTERNAL_ATTRIBUTES: "/etc/satosa/internal_attributes.yaml"
 
 COOKIE_STATE_NAME: "SATOSA_STATE"

@@ -1,10 +1,8 @@
-import copy
 from unittest.mock import Mock
 
 import pytest
 
 import satosa
-from satosa import util
 from satosa.base import SATOSABase
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
@@ -38,24 +36,6 @@ class TestSATOSABase:
 
         expected_user_id = "user@example.com"
         assert internal_resp.subject_id == expected_user_id
-
-    def test_auth_resp_callback_func_hashes_all_specified_attributes(self, context, satosa_config):
-        satosa_config["INTERNAL_ATTRIBUTES"]["hash"] = ["user_id", "mail"]
-        base = SATOSABase(satosa_config)
-
-        attributes = {"user_id": ["user"], "mail": ["user@example.com", "user@otherdomain.com"]}
-        internal_resp = InternalData(auth_info=AuthenticationInformation("", "", ""))
-        internal_resp.attributes = copy.copy(attributes)
-        internal_resp.subject_id = "test_user"
-        context.state[satosa.base.STATE_KEY] = {"requester": "test_requester"}
-        context.state[satosa.routing.STATE_KEY] = satosa_config["FRONTEND_MODULES"][0]["name"]
-
-        base._auth_resp_callback_func(context, internal_resp)
-        for attr in satosa_config["INTERNAL_ATTRIBUTES"]["hash"]:
-            assert internal_resp.attributes[attr] == [
-                util.hash_data(satosa_config.get("USER_ID_HASH_SALT", ""), v)
-                for v in attributes[attr]
-            ]
 
     def test_auth_resp_callback_func_respects_user_id_to_attr(self, context, satosa_config):
         satosa_config["INTERNAL_ATTRIBUTES"]["user_id_to_attr"] = "user_id"

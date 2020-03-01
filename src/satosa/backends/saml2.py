@@ -30,7 +30,6 @@ from satosa.metadata_creation.description import (
     MetadataDescription, OrganizationDesc, ContactPersonDesc, UIInfoDesc
 )
 from satosa.backends.base import BackendModule
-from satosa.deprecated import SAMLInternalResponse
 
 
 logger = logging.getLogger(__name__)
