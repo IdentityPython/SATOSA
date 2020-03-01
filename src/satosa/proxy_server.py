@@ -5,9 +5,9 @@ import logging.config
 import sys
 from urllib.parse import parse_qsl
 
-import pkg_resources
-
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
+
+import satosa
 from .base import SATOSABase
 from .context import Context
 from .response import ServiceError, NotFound
@@ -144,14 +144,7 @@ def make_app(satosa_config):
             root_logger.addHandler(stderr_handler)
             root_logger.setLevel(logging.DEBUG)
 
-        try:
-            _ = pkg_resources.get_distribution(module.__name__)
-            logline = "Running SATOSA version {}".format(
-                pkg_resources.get.get_distribution("SATOSA").version
-            )
-            logger.info(logline)
-        except (NameError, pkg_resources.DistributionNotFound):
-            pass
+        logger.info("Running SATOSA version {v}".format(v=satosa.__version__))
 
         res1 = WsgiApplication(satosa_config)
         res2 = CookiesSameSiteCompatMiddleware(res1, satosa_config)
