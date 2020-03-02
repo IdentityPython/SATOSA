@@ -14,8 +14,6 @@ from satosa.micro_services import consent
 from .context import Context
 from .exception import SATOSAConfigurationError
 from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
-from .micro_services.account_linking import AccountLinking
-from .micro_services.consent import Consent
 from .plugin_loader import load_backends, load_frontends
 from .plugin_loader import load_request_microservices, load_response_microservices
 from .routing import ModuleRouter, SATOSANoBoundEndpointError
@@ -84,7 +82,6 @@ class SATOSABase(object):
                                             self.config["MICRO_SERVICES"],
                                             self.config["INTERNAL_ATTRIBUTES"],
                                             self.config["BASE"]))
-            self._verify_response_micro_services(self.response_micro_services)
             self._link_micro_services(self.response_micro_services, self._auth_resp_finish)
 
         self.module_router = ModuleRouter(frontends, backends,
@@ -98,17 +95,6 @@ class SATOSABase(object):
             micro_services[i].next = micro_services[i + 1].process
 
         micro_services[-1].next = finisher
-
-    def _verify_response_micro_services(self, response_micro_services):
-        account_linking_index = next((i for i in range(len(response_micro_services))
-                                      if isinstance(response_micro_services[i], AccountLinking)), -1)
-        if account_linking_index > 0:
-            raise SATOSAConfigurationError("Account linking must be configured first in the list of micro services")
-
-        consent_index = next((i for i in range(len(response_micro_services))
-                              if isinstance(response_micro_services[i], Consent)), -1)
-        if consent_index != -1 and consent_index < len(response_micro_services) - 1:
-            raise SATOSAConfigurationError("Consent must be configured last in the list of micro services")
 
     def _auth_req_callback_func(self, context, internal_request):
         """

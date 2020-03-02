@@ -29,18 +29,6 @@ class TestSATOSABase:
         assert len(base.request_micro_services) == 1
         assert len(base.response_micro_services) == 1
 
-    def test_constuctor_should_raise_exception_if_account_linking_is_not_first_in_micro_service_list(
-            self, satosa_config, account_linking_module_config):
-        satosa_config["MICRO_SERVICES"].append(account_linking_module_config)
-        with pytest.raises(SATOSAConfigurationError):
-            SATOSABase(satosa_config)
-
-    def test_constuctor_should_raise_exception_if_consent_is_not_last_in_micro_service_list(
-            self, satosa_config, consent_module_config):
-        satosa_config["MICRO_SERVICES"].insert(0, consent_module_config)
-        with pytest.raises(SATOSAConfigurationError):
-            SATOSABase(satosa_config)
-
     def test_auth_resp_callback_func_user_id_from_attrs_is_used_to_override_user_id(self, context, satosa_config):
         satosa_config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"] = ["user_id", "domain"]
         base = SATOSABase(satosa_config)
