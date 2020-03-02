@@ -91,7 +91,7 @@ class Consent(ResponseMicroService):
             "attr": internal_response.attributes,
             "id": id_hash,
             "redirect_endpoint": "%s/consent%s" % (self.base_url, self.endpoint),
-            "requester_name": context.state[STATE_KEY]["requester_name"]
+            "requester_name": internal_response.requester_name,
         }
         if self.locked_attr:
             consent_args["locked_attrs"] = [self.locked_attr]
@@ -122,11 +122,15 @@ class Consent(ResponseMicroService):
         :param internal_response: the response
         :return: response
         """
-        consent_state = context.state[STATE_KEY]
-
-        internal_response.attributes = self._filter_attributes(internal_response.attributes, consent_state["filter"])
-        id_hash = self._get_consent_id(internal_response.requester, internal_response.subject_id,
-                                       internal_response.attributes)
+        context.state[STATE_KEY] = context.state.get(STATE_KEY, {})
+        consent_filter = internal_response.attributes or []
+        internal_response.attributes = self._filter_attributes(
+            internal_response.attributes, consent_filter
+        )
+        id_hash = self._get_consent_id(
+            internal_response.requester, internal_response.subject_id,
+            internal_response.attributes,
+        )
 
         try:
             # Check if consent is already given
@@ -225,7 +229,7 @@ class Consent(ResponseMicroService):
         :param internal_response: the response
         :return: response
         """
-        del context.state[STATE_KEY]
+        context.state.pop(STATE_KEY, None)
         return super().process(context, internal_response)
 
     def register_endpoints(self):

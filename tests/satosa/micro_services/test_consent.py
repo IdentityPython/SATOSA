@@ -152,7 +152,7 @@ class TestConsent:
                                consent_verify_endpoint_regex, consent_registration_endpoint_regex):
         expected_ticket = "my_ticket"
 
-        requester_name = [{"lang": "en", "text": "test requester"}]
+        requester_name = internal_response.requester_name
         context.state[consent.STATE_KEY] = {"filter": internal_request.attributes,
                                             "requester_name": requester_name}
 
@@ -189,7 +189,8 @@ class TestConsent:
         responses.add(responses.GET, consent_registration_endpoint_regex, status=200,
                       body=expected_ticket)
 
-        context.state[consent.STATE_KEY] = {"filter": [], "requester_name": None}
+        requester_name = internal_response.requester_name
+        context.state[consent.STATE_KEY] = {}
 
         resp = self.consent_module.process(context, internal_response)
 
@@ -198,7 +199,7 @@ class TestConsent:
                                      internal_response,
                                      consent_config["sign_key"],
                                      self.consent_module.base_url,
-                                     None)
+                                     requester_name)
 
         new_context = Context()
         new_context.state = context.state

@@ -9,8 +9,6 @@ import warnings as _warnings
 from saml2.s_utils import UnknownSystemEntity
 
 from satosa import util
-from satosa.micro_services import consent
-
 from .context import Context
 from .exception import SATOSAConfigurationError
 from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
@@ -112,16 +110,7 @@ class SATOSABase(object):
         """
         state = context.state
         state[STATE_KEY] = {"requester": internal_request.requester}
-        # TODO consent module should manage any state it needs by itself
-        try:
-            state_dict = context.state[consent.STATE_KEY]
-        except KeyError:
-            state_dict = context.state[consent.STATE_KEY] = {}
-        finally:
-            state_dict.update({
-                "filter": internal_request.attributes or [],
-                "requester_name": internal_request.requester_name,
-            })
+
         msg = "Requesting provider: {}".format(internal_request.requester)
         logline = lu.LOG_FMT.format(id=lu.get_session_id(state), message=msg)
         logger.info(logline)
