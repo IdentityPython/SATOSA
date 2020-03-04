@@ -123,12 +123,9 @@ class Consent(ResponseMicroService):
         :return: response
         """
         context.state[STATE_KEY] = context.state.get(STATE_KEY, {})
-        consent_filter = internal_response.attributes or []
-        internal_response.attributes = self._filter_attributes(
-            internal_response.attributes, consent_filter
-        )
         id_hash = self._get_consent_id(
-            internal_response.requester, internal_response.subject_id,
+            internal_response.requester,
+            internal_response.subject_id,
             internal_response.attributes,
         )
 

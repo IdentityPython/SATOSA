@@ -218,27 +218,6 @@ class TestConsent:
         assert Counter(filtered_attributes.keys()) == Counter(FILTER)
 
     @responses.activate
-    def test_manage_consent_filters_attributes_before_send_to_consent_service(self, context, internal_request,
-                                                                              internal_response,
-                                                                              consent_verify_endpoint_regex):
-        approved_attributes = ["foo", "bar"]
-        # fake previous consent
-        responses.add(responses.GET, consent_verify_endpoint_regex, status=200,
-                      body=json.dumps(approved_attributes))
-
-        attributes = {"foo": "123", "bar": "456", "abc": "should be filtered"}
-        internal_response.attributes = attributes
-
-        context.state[consent.STATE_KEY] = {"filter": approved_attributes}
-        self.consent_module.process(context, internal_response)
-
-        consent_hash = urlparse(responses.calls[0].request.url).path.split("/")[2]
-        expected_hash = self.consent_module._get_consent_id(internal_response.requester, internal_response.subject_id,
-                                                            {k: v for k, v in attributes.items() if
-                                                             k in approved_attributes})
-        assert consent_hash == expected_hash
-
-    @responses.activate
     def test_manage_consent_without_filter_passes_through_all_attributes(self, context, internal_response,
                                                                          consent_verify_endpoint_regex):
         # fake previous consent
