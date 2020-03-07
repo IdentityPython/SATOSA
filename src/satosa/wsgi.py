@@ -17,13 +17,14 @@ app = make_app(satosa_config)
 def main():
     global app
 
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('port', type=int)
-    parser.add_argument('--keyfile', type=str)
-    parser.add_argument('--certfile', type=str)
-    parser.add_argument('--host', type=str)
-    parser.add_argument('-d', action='store_true', dest="debug",
-                        help="enable debug mode.")
+    parser = argparse.ArgumentParser(description="Process some integers.")
+    parser.add_argument("port", type=int)
+    parser.add_argument("--keyfile", type=str)
+    parser.add_argument("--certfile", type=str)
+    parser.add_argument("--host", type=str)
+    parser.add_argument(
+        "-d", action='store_true', dest="debug", help="enable debug mode."
+    )
     args = parser.parse_args()
 
     if (args.keyfile and not args.certfile) or (args.certfile and not args.keyfile):
@@ -45,5 +46,5 @@ def main():
         run_simple('localhost', args.port, app, ssl_context=ssl_context)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
