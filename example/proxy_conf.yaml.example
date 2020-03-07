@@ -22,26 +22,50 @@ LOGGING:
   version: 1
   formatters:
     simple:
-      format: "[%(asctime)-19.19s] [%(levelname)-5.5s]: %(message)s"
+      format: "[%(asctime)s] [%(levelname)s] [%(name)s.%(funcName)s] %(message)s"
   handlers:
-    console:
+    stdout:
       class: logging.StreamHandler
+      stream: "ext://sys.stdout"
       level: DEBUG
       formatter: simple
-      stream: ext://sys.stdout
-    info_file_handler:
-      class: logging.handlers.RotatingFileHandler
-      level: INFO
+    syslog:
+      class: logging.handlers.SysLogHandler
+      address: "/dev/log"
+      level: DEBUG
       formatter: simple
-      filename: info.log
+    debug_file:
+      class: logging.FileHandler
+      filename: satosa-debug.log
+      encoding: utf8
+      level: DEBUG
+      formatter: simple
+    error_file:
+      class: logging.FileHandler
+      filename: satosa-error.log
+      encoding: utf8
+      level: ERROR
+      formatter: simple
+    info_file:
+      class: logging.FileHandler
+      filename: satosa-info.log
+      encoding: utf8
       maxBytes: 10485760 # 10MB
       backupCount: 20
-      encoding: utf8
+      level: INFO
+      formatter: simple
   loggers:
     satosa:
       level: DEBUG
-      handlers: [console]
-      propagate: no
+    saml2:
+      level: DEBUG
+    oidcendpoint:
+      level: DEBUG
+    pyop:
+      level: DEBUG
+    oic:
+      level: DEBUG
   root:
-    level: INFO
-    handlers: [info_file_handler]
+    level: DEBUG
+    handlers:
+      - stdout
