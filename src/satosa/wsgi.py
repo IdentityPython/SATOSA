@@ -26,16 +26,13 @@ def main():
         print("Both keyfile and certfile must be specified for HTTPS.")
         sys.exit(1)
 
-
-    if (args.keyfile and args.certfile):
-        ssl_context = (args.certfile, args.keyfile)
-    else:
-        ssl_context = None
-
-    if args.host:
-        run_simple(args.host, args.port, app, ssl_context=ssl_context)
-    else:
-        run_simple('localhost', args.port, app, ssl_context=ssl_context)
+    ssl_context = (
+        (args.certfile, args.keyfile)
+        if args.keyfile and args.certfile
+        else None
+    )
+    host = args.host or "localhost"
+    run_simple(host, args.port, app, ssl_context=ssl_context)
 
 
 if __name__ == "__main__":
