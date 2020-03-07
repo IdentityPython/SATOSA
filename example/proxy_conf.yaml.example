@@ -1,23 +1,22 @@
-#--- SATOSA Config ---#
 BASE: https://example.com
-INTERNAL_ATTRIBUTES: "internal_attributes.yaml"
+
 COOKIE_STATE_NAME: "SATOSA_STATE"
 CONTEXT_STATE_DELETE: yes
 STATE_ENCRYPTION_KEY: "asdASD123"
-CUSTOM_PLUGIN_MODULE_PATHS:
-  - "plugins/backends"
-  - "plugins/frontends"
-  - "plugins/micro_services"
+
+cookies_samesite_compat:
+  - ["SATOSA_STATE", "SATOSA_STATE_LEGACY"]
+
+INTERNAL_ATTRIBUTES: "internal_attributes.yaml"
+
 BACKEND_MODULES:
   - "plugins/backends/saml2_backend.yaml"
+
 FRONTEND_MODULES:
   - "plugins/frontends/saml2_frontend.yaml"
+
 MICRO_SERVICES:
   - "plugins/microservices/static_attributes.yaml"
-
-cookies_samesite_compat: [
-    ("SATOSA_STATE", "SATOSA_STATE_LEGACY"),
-]
 
 LOGGING:
   version: 1
