@@ -24,7 +24,7 @@ def main():
 
     if (args.keyfile and not args.certfile) or (args.certfile and not args.keyfile):
         print("Both keyfile and certfile must be specified for HTTPS.")
-        sys.exit()
+        sys.exit(1)
 
 
     if (args.keyfile and args.certfile):
