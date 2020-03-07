@@ -134,15 +134,25 @@ class WsgiApplication(SATOSABase):
 
 def make_app(satosa_config):
     try:
-        if "LOGGING" in satosa_config:
-            logging.config.dictConfig(satosa_config["LOGGING"])
-        else:
-            stderr_handler = logging.StreamHandler(sys.stderr)
-            stderr_handler.setLevel(logging.DEBUG)
-
-            root_logger = logging.getLogger("")
-            root_logger.addHandler(stderr_handler)
-            root_logger.setLevel(logging.DEBUG)
+        default_logging_config = {
+            "version": 1,
+            "formatters": {
+                "simple": {
+                    "format": "[%(asctime)s] [%(levelname)s] [%(name)s.%(funcName)s] %(message)s"
+                }
+            },
+            "handlers": {
+                "stdout": {
+                    "class": "logging.StreamHandler",
+                    "stream": "ext://sys.stdout",
+                    "level": "DEBUG",
+                    "formatter": "simple",
+                }
+            },
+            "loggers": {"satosa": {"level": "DEBUG"}},
+            "root": {"level": "DEBUG", "handlers": ["stdout"]},
+        }
+        logging.config.dictConfig(satosa_config.get("LOGGING", default_logging_config))
 
         logger.info("Running SATOSA version {v}".format(v=satosa.__version__))
 
