@@ -47,7 +47,7 @@ LOGGING:
       level: ERROR
       formatter: simple
     info_file:
-      class: logging.FileHandler
+      class: logging.handlers.RotatingFileHandler
       filename: satosa-info.log
       encoding: utf8
       maxBytes: 10485760 # 10MB
