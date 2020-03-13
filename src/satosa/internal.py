@@ -109,13 +109,6 @@ class InternalData(_Datafy):
     A base class for the data carriers between frontends/backends
     """
 
-    _DEPRECATED_TO_NEW_MEMBERS = {
-        "name_id": "subject_id",
-        "user_id": "subject_id",
-        "user_id_hash_type": "subject_type",
-        "approved_attributes": "attributes",
-    }
-
     def __init__(
         self,
         auth_info=None,
@@ -124,10 +117,6 @@ class InternalData(_Datafy):
         subject_id=None,
         subject_type=None,
         attributes=None,
-        user_id=None,
-        user_id_hash_type=None,
-        name_id=None,
-        approved_attributes=None,
         *args,
         **kwargs,
     ):
@@ -138,10 +127,6 @@ class InternalData(_Datafy):
         :param subject_id:
         :param subject_type:
         :param attributes:
-        :param user_id:
-        :param user_id_hash_type:
-        :param name_id:
-        :param approved_attributes:
 
         :type auth_info: AuthenticationInformation
         :type requester: str
@@ -149,10 +134,6 @@ class InternalData(_Datafy):
         :type subject_id: str
         :type subject_type: str
         :type attributes: dict
-        :type user_id: str
-        :type user_id_hash_type: str
-        :type name_id: str
-        :type approved_attributes: dict
         """
         super().__init__(self, *args, **kwargs)
         self.auth_info = (
@@ -166,26 +147,6 @@ class InternalData(_Datafy):
             if requester_name is not None
             else [{"text": requester, "lang": "en"}]
         )
-        self.subject_id = (
-            subject_id
-            if subject_id is not None
-            else user_id
-            if user_id is not None
-            else name_id
-            if name_id is not None
-            else None
-        )
-        self.subject_type = (
-            subject_type
-            if subject_type is not None
-            else user_id_hash_type
-            if user_id_hash_type is not None
-            else None
-        )
-        self.attributes = (
-            attributes
-            if attributes is not None
-            else approved_attributes
-            if approved_attributes is not None
-            else {}
-        )
+        self.subject_id = subject_id
+        self.subject_type = subject_type
+        self.attributes = attributes if attributes is not None else {}
