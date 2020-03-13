@@ -1,3 +1,5 @@
+from warnings import warn as _warn
+
 from satosa.exception import SATOSAError
 
 
@@ -12,7 +14,7 @@ class Context(object):
     """
     Holds methods for sharing proxy data through the current request
     """
-    KEY_BACKEND_METADATA_STORE = 'metadata_store'
+    KEY_METADATA_STORE = 'metadata_store'
     KEY_TARGET_ENTITYID = 'target_entity_id'
     KEY_FORCE_AUTHN = 'force_authn'
     KEY_MEMORIZED_IDP = 'memorized_idp'
@@ -28,9 +30,13 @@ class Context(object):
         self.cookie = None
         self.state = None
 
-    def __repr__(self):
-        from pprint import pformat
-        return pformat(vars(self))
+    @property
+    def KEY_BACKEND_METADATA_STORE(self):
+        msg = "'{old_key}' is deprecated; use '{new_key}' instead.".format(
+            old_key="KEY_BACKEND_METADATA_STORE", new_key="KEY_METADATA_STORE"
+        )
+        _warn(msg, DeprecationWarning)
+        return Context.KEY_METADATA_STORE
 
     @property
     def path(self):

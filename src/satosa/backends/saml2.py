@@ -343,7 +343,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             logger.debug(logline)
             raise SATOSAAuthenticationError(context.state, "State did not match relay state")
 
-        context.decorate(Context.KEY_BACKEND_METADATA_STORE, self.sp.metadata)
+        context.decorate(Context.KEY_METADATA_STORE, self.sp.metadata)
         if self.config.get(SAMLBackend.KEY_MEMORIZE_IDP):
             issuer = authn_response.response.issuer.text.strip()
             context.state[Context.KEY_MEMORIZED_IDP] = issuer

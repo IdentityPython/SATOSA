@@ -247,6 +247,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
                 idp, idp_policy, requester, context.state
             )
 
+        context.decorate(Context.KEY_METADATA_STORE, self.idp.metadata)
         return self.auth_req_callback_func(context, internal_req)
 
     def _get_approved_attributes(self, idp, idp_policy, sp_entity_id, state):
