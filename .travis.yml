@@ -23,8 +23,9 @@ jobs:
     - python: 3.9-dev
     - python: pypy3
 
-    - stage: Deploy latest version
+    - stage: Deploy latest image on DockerHub
       script: skip
+      if: branch = master
       deploy:
         - provider: script
           script: scripts/travis_create_docker_image_branch.sh
@@ -32,7 +33,8 @@ jobs:
             repo: IdentityPython/SATOSA
             branch: master
 
-    - stage: Deploy new release
+    - stage: Deploy new release on GitHub
+      if: tag IS present
       script: skip
       deploy:
         - provider: releases
@@ -41,6 +43,11 @@ jobs:
           on:
             repo: IdentityPython/SATOSA
             tags: true
+
+    - stage: Deploy new release on PyPI
+      if: tag IS present
+      script: skip
+      deploy:
         - provider: pypi
           distributions: sdist bdist_wheel
           user: Lundberg
@@ -49,12 +56,16 @@ jobs:
           on:
             repo: IdentityPython/SATOSA
             tags: true
+
+    - stage: Deploy new release on DockerHub
+      if: tag IS present
+      script: skip
+      deploy:
         - provider: script
           script: scripts/travis_create_docker_image_tag.sh
           on:
             repo: IdentityPython/SATOSA
             tags: true
-      if: tag IS present
 
 env:
   global:
