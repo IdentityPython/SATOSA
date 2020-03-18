@@ -23,15 +23,39 @@ jobs:
     - python: 3.9-dev
     - python: pypy3
 
-    - stage: Deploy latest image on DockerHub
-      script: skip
+    - stage: Build docker image by commit and deploy on DockerHub
+      script:
+        - set -e
+        - docker build -f Dockerfile -t "${REPO}:${TRAVIS_COMMIT}" .
+        - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASS"
+        - docker push "$REPO"
+
+    - stage: Tag docker image with branch
+      if: branch IS present
+      script:
+        - set -e
+        - docker pull "${REPO}:${TRAVIS_COMMIT}"
+        - docker tag "${REPO}:${TRAVIS_COMMIT}" "${REPO}:latest"
+        - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASS"
+        - docker push "$REPO"
+
+    - stage: Tag docker image as latest
       if: branch = master
-      deploy:
-        - provider: script
-          script: scripts/travis_create_docker_image_branch.sh
-          on:
-            repo: IdentityPython/SATOSA
-            branch: master
+      script:
+        - set -e
+        - docker pull "${REPO}:${TRAVIS_COMMIT}"
+        - docker tag "${REPO}:${TRAVIS_COMMIT}" "${REPO}:latest"
+        - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASS"
+        - docker push "$REPO"
+
+    - stage: Tag docker image with git-tag
+      if: tag IS present
+      script:
+        - set -e
+        - docker pull "${REPO}:${TRAVIS_COMMIT}"
+        - docker tag "${REPO}:${TRAVIS_COMMIT}" "${REPO}:${TRAVIS_TAG}"
+        - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASS"
+        - docker push "$REPO"
 
     - stage: Deploy new release on GitHub
       if: tag IS present
@@ -57,17 +81,8 @@ jobs:
             repo: IdentityPython/SATOSA
             tags: true
 
-    - stage: Deploy new release on DockerHub
-      if: tag IS present
-      script: skip
-      deploy:
-        - provider: script
-          script: scripts/travis_create_docker_image_tag.sh
-          on:
-            repo: IdentityPython/SATOSA
-            tags: true
-
 env:
   global:
     - secure: ymdbaVVKJFq193xn+pr7sRyjkcOBtpm6eu+A9QsdtzO6vhaj+MhFfsjWAJbGiaSvX691bLd+9kFqH76HViN1LbmkCujBm2+4k0DBSakb70T/81UNNpYGy4iIYzCKaWPPSwvFGfRjNY14RILEpOI8NCkJuDMuO7CiGkwOtmlOdP/tYdV9T3p36Hgpwa/0U5kIahqwnbBKiwjGGhI8YA4Ik01P4biEv3Fr++jS4dhzMe+hYjWDXW+bksf9OikbtJkPzHlZxCDgFH4yNY1TH6P3X/B8NLTrvpNZOj2GgQoZBDrTEM+RLdaLQ8EYcrJaEaOZs65Jicpw5Ycz8DHUuBXwlSiG1g/VJlzxYchGxnLguVyEELEm7p7vhDFYNOROL3J4PpY8E1+L834xzmhCqbHM2kHB2WeiIob0j1Hq7U1802tFuM+tu8P4gdEyGxstQaIehiTI/VQEJm+sKB1W5xtDQokrnMyiQfJy4K7T4ZrONV/gVhb85ayS6eF/Xu1vr/5s/fWyQOxNKvoeEiO6VVoLTWNPEysTewLFc8o7HcE/Qnv/67IwuK/vx0ZlESbNCRgTfqyWpn5vybyWmgo9aUC51hDiVQtZfVeaoF/Xtg2yxVn/4C1aPybpA2Oacll8LjyYwyoCeH3naD0j9Msy4izny2PF7MTT4iNbtwhRoAAqXic=
     - secure: loJ+Bfind3tbEVrWqEalZT5bMqGFrMewo3jDwH9iJEw28tl+PasTCvCOJRsOomtdMp2QZh8e5wwnL1m7mkHWZaBDMxAg2mXlEv2W817SyAKkgFVnjXr8FJK4kjGAA5l2WXWKo7HKs2lOygZaDxj67i4htvg6cIxVf3dnI+MHpN5CONBfF6cXkFGMZoW+uc2diApyvIVCzte0JZkp6ZepWiyjelPl38pgWlD9elJEUaut0qKGZHtsRnLgTOzbBl49FV4lzCqt7wBnnwwQpTtvEyRW47O/VMYORAFFXpgUDPejE37+bf1wS6hlr0vSHFSUKILQWUH0l09+BPrxpoRj5SYkFD18xvqlWDNrNoANSMgRm/8cL1ucd7T5N03lKtNpaKT2ejHPj6Hu86mXFvcxcZnIcH7ppmXjZU2xfI2ytmmqxXysYeiCc6RgClmFBf3lnZz7iaHVrL8tU1x+eDzEQKvDbYHQnO9+4xXY37PH4ViJJEDoLq3NGhKxbDJ4oMgtz0mrjdWm8a1nWXIm8QTs2+oIhf+HrCpdqE8FfKnI7OyM8C+cwraApY77cZ9xfBqJGDQIgX3c+syB1ufVxY/DPDOXTysRUUHyWVgJeaL8EJEiMVnZMoGliY7QtnBznOglxynekIIaaZ5FMfh8hwA0pQ5idruqrtzVkBQoq8CdHfk=
+    - REPO: "satosa/satosa"
