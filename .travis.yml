@@ -118,7 +118,7 @@ jobs:
 
 env:
   global:
-    - DOCKER_REPO: "satosa/satosa"
+    - DOCKER_REPO: "idpy/satosa"
     - DOCKER_TAG_COMMIT: "${DOCKER_REPO}:${TRAVIS_COMMIT}"
     - DOCKER_TAG_BRANCH: "${DOCKER_REPO}:${TRAVIS_BRANCH}"
     - DOCKER_TAG_PR_NUM: "${DOCKER_REPO}:PR${TRAVIS_PULL_REQUEST}"
