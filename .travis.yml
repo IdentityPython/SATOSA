@@ -53,7 +53,7 @@ jobs:
       script:
         - set -e
         - docker build -f Dockerfile -t "$DOCKER_TAG_COMMIT" .
-        - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASS"
+        - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
         - docker push "$DOCKER_REPO"
 
     - stage: Tag docker image with branch name
@@ -62,7 +62,7 @@ jobs:
         - set -e
         - docker pull "$DOCKER_TAG_COMMIT"
         - docker tag "$DOCKER_TAG_COMMIT" "$DOCKER_TAG_BRANCH"
-        - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASS"
+        - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
         - docker push "$DOCKER_REPO"
 
     - stage: Tag docker image with pull request number
@@ -71,7 +71,7 @@ jobs:
         - set -e
         - docker pull "$DOCKER_TAG_COMMIT"
         - docker tag "$DOCKER_TAG_COMMIT" "$DOCKER_TAG_PR_NUM"
-        - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASS"
+        - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
         - docker push "$DOCKER_REPO"
 
     - stage: Tag docker image with git-tag
@@ -80,7 +80,7 @@ jobs:
         - set -e
         - docker pull "$DOCKER_TAG_COMMIT"
         - docker tag "$DOCKER_TAG_COMMIT" "$DOCKER_TAG_GITTAG"
-        - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASS"
+        - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
         - docker push "$DOCKER_REPO"
 
     - stage: Tag docker image as latest
@@ -89,7 +89,7 @@ jobs:
         - set -e
         - docker pull "$DOCKER_TAG_COMMIT"
         - docker tag "$DOCKER_TAG_COMMIT" "$DOCKER_TAG_LATEST"
-        - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASS"
+        - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
         - docker push "$DOCKER_REPO"
 
     - stage: Deploy new release on GitHub
