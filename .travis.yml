@@ -44,6 +44,7 @@ jobs:
         DOCKER_REPO: $DOCKER_REPO
         DOCKER_TAG_COMMIT: $DOCKER_TAG_COMMIT
         DOCKER_TAG_BRANCH: $DOCKER_TAG_BRANCH
+        DOCKER_TAG_PR_BRANCH: $DOCKER_TAG_PR_BRANCH
         DOCKER_TAG_PR_NUM: $DOCKER_TAG_PR_NUM
         DOCKER_TAG_GITTAG: $DOCKER_TAG_GITTAG
         DOCKER_TAG_LATEST: $DOCKER_TAG_LATEST
@@ -64,6 +65,15 @@ jobs:
         - docker tag "$DOCKER_TAG_COMMIT" "$DOCKER_TAG_BRANCH"
         - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
         - docker push "$DOCKER_TAG_BRANCH"
+
+    - stage: Tag docker image with pull-request branch name
+      if: type = pull_request AND head_branch IS present
+      script:
+        - set -e
+        - docker pull "$DOCKER_TAG_COMMIT"
+        - docker tag "$DOCKER_TAG_COMMIT" "$DOCKER_TAG_PR_BRANCH"
+        - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        - docker push "$DOCKER_TAG_PR_BRANCH"
 
     - stage: Tag docker image with pull request number
       if: type = pull_request
@@ -121,6 +131,7 @@ env:
     - DOCKER_REPO: "satosa/satosa"
     - DOCKER_TAG_COMMIT: "${DOCKER_REPO}:${TRAVIS_COMMIT}"
     - DOCKER_TAG_BRANCH: "${DOCKER_REPO}:${TRAVIS_BRANCH}"
+    - DOCKER_TAG_PR_BRANCH: "${DOCKER_REPO}:PR${TRAVIS_PULL_REQUEST_BRANCH}"
     - DOCKER_TAG_PR_NUM: "${DOCKER_REPO}:PR${TRAVIS_PULL_REQUEST}"
     - DOCKER_TAG_GITTAG: "${DOCKER_REPO}:${TRAVIS_TAG:-NO_TAG}"
     - DOCKER_TAG_LATEST: "${DOCKER_REPO}:latest"
