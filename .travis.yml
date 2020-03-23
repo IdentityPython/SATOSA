@@ -82,6 +82,7 @@ jobs:
       if: type = pull_request AND head_branch IS present
       script:
         - set -e
+        - test "$TRAVIS_SECURE_ENV_VARS" = "false" && exit 0
         - docker pull "$DOCKER_TAG_COMMIT"
         - docker tag "$DOCKER_TAG_COMMIT" "$DOCKER_TAG_PR_BRANCH"
         - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
@@ -91,6 +92,7 @@ jobs:
       if: type = pull_request
       script:
         - set -e
+        - test "$TRAVIS_SECURE_ENV_VARS" = "false" && exit 0
         - docker pull "$DOCKER_TAG_COMMIT"
         - docker tag "$DOCKER_TAG_COMMIT" "$DOCKER_TAG_PR_NUM"
         - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
