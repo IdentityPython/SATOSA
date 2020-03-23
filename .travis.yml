@@ -57,7 +57,7 @@ jobs:
         - docker push "$DOCKER_TAG_COMMIT"
 
     - stage: Tag docker image with branch name
-      if: branch IS present
+      if: type = push AND branch IS present
       script:
         - set -e
         - docker pull "$DOCKER_TAG_COMMIT"
@@ -75,7 +75,7 @@ jobs:
         - docker push "$DOCKER_TAG_PR_NUM"
 
     - stage: Tag docker image with git-tag
-      if: tag IS present
+      if: type = push AND tag IS present
       script:
         - set -e
         - docker pull "$DOCKER_TAG_COMMIT"
@@ -84,7 +84,7 @@ jobs:
         - docker push "$DOCKER_TAG_GITTAG"
 
     - stage: Tag docker image as latest
-      if: branch = master
+      if: type = push AND branch = master
       script:
         - set -e
         - docker pull "$DOCKER_TAG_COMMIT"
@@ -93,7 +93,7 @@ jobs:
         - docker push "$DOCKER_TAG_LATEST"
 
     - stage: Deploy new release on GitHub
-      if: tag IS present
+      if: type = push AND branch = master AND tag IS present
       script: skip
       deploy:
         - provider: releases
@@ -104,7 +104,7 @@ jobs:
             tags: true
 
     - stage: Deploy new release on PyPI
-      if: tag IS present
+      if: type = push AND branch = master AND tag IS present
       script: skip
       deploy:
         - provider: pypi
