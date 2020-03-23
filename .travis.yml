@@ -54,7 +54,7 @@ jobs:
         - set -e
         - docker build -f Dockerfile -t "$DOCKER_TAG_COMMIT" .
         - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
-        - docker push "$DOCKER_REPO"
+        - docker push "$DOCKER_TAG_COMMIT"
 
     - stage: Tag docker image with branch name
       if: branch IS present
@@ -63,7 +63,7 @@ jobs:
         - docker pull "$DOCKER_TAG_COMMIT"
         - docker tag "$DOCKER_TAG_COMMIT" "$DOCKER_TAG_BRANCH"
         - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
-        - docker push "$DOCKER_REPO"
+        - docker push "$DOCKER_TAG_BRANCH"
 
     - stage: Tag docker image with pull request number
       if: type = pull_request
@@ -72,7 +72,7 @@ jobs:
         - docker pull "$DOCKER_TAG_COMMIT"
         - docker tag "$DOCKER_TAG_COMMIT" "$DOCKER_TAG_PR_NUM"
         - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
-        - docker push "$DOCKER_REPO"
+        - docker push "$DOCKER_TAG_PR_NUM"
 
     - stage: Tag docker image with git-tag
       if: tag IS present
@@ -81,7 +81,7 @@ jobs:
         - docker pull "$DOCKER_TAG_COMMIT"
         - docker tag "$DOCKER_TAG_COMMIT" "$DOCKER_TAG_GITTAG"
         - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
-        - docker push "$DOCKER_REPO"
+        - docker push "$DOCKER_TAG_GITTAG"
 
     - stage: Tag docker image as latest
       if: branch = master
@@ -90,7 +90,7 @@ jobs:
         - docker pull "$DOCKER_TAG_COMMIT"
         - docker tag "$DOCKER_TAG_COMMIT" "$DOCKER_TAG_LATEST"
         - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
-        - docker push "$DOCKER_REPO"
+        - docker push "$DOCKER_TAG_LATEST"
 
     - stage: Deploy new release on GitHub
       if: tag IS present
