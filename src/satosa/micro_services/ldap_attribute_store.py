@@ -14,11 +14,12 @@ import urllib
 import ldap3
 from ldap3.core.exceptions import LDAPException
 
+import satosa.logging_util as lu
 from satosa.exception import SATOSAError
 from satosa.micro_services.base import ResponseMicroService
 from satosa.response import Redirect
 
-import satosa.logging_util as lu
+
 logger = logging.getLogger(__name__)
 
 KEY_FOUND_LDAP_RECORD = "ldap_attribute_store_found_record"
@@ -372,8 +373,8 @@ class LdapAttributeStore(ResponseMicroService):
                     else [values]
                 )
                 msg = "Recording internal attribute {} with values {}"
-                msg = msg.format(internal_attr, attributes[internal_attr])
-                logger.debug(msg)
+                logline = msg.format(internal_attr, attributes[internal_attr])
+                logger.debug(logline)
 
         return attributes
 
@@ -452,7 +453,8 @@ class LdapAttributeStore(ResponseMicroService):
             "message": "LDAP server host",
             "server host": connection.server.host,
         }
-        satosa_logging(logger, logging.DEBUG, msg, context.state)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
 
         for filter_val in filter_values:
             ldap_ident_attr = config["ldap_identifier_attribute"]
@@ -576,7 +578,7 @@ class LdapAttributeStore(ResponseMicroService):
         else:
             msg = "No record found in LDAP so no attributes will be added"
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.warning(msg)
+            logger.warning(logline)
             on_ldap_search_result_empty = config["on_ldap_search_result_empty"]
             if on_ldap_search_result_empty:
                 # Redirect to the configured URL with
@@ -591,10 +593,10 @@ class LdapAttributeStore(ResponseMicroService):
                 )
                 msg = "Redirecting to {}".format(url)
                 logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-                logger.info(msg)
+                logger.info(logline)
                 return Redirect(url)
 
         msg = "Returning data.attributes {}".format(data.attributes)
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-        logger.debug(msg)
+        logger.debug(logline)
         return super().process(context, data)
