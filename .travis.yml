@@ -75,7 +75,7 @@ jobs:
         - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
         - docker push "$DOCKER_TAG_PR_BRANCH"
 
-    - stage: Tag docker image with pull request number
+    - stage: Tag docker image with pull-request number
       if: type = pull_request
       script:
         - set -e
