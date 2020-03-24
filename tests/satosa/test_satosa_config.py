@@ -2,7 +2,6 @@ import json
 from unittest.mock import mock_open, patch
 
 import pytest
-from satosa.exception import SATOSAConfigurationError
 
 from satosa.exception import SATOSAConfigurationError
 from satosa.satosa_config import SATOSAConfig
@@ -15,8 +14,8 @@ class TestSATOSAConfig:
         config = {
             "BASE": "https://example.com",
             "COOKIE_STATE_NAME": "TEST_STATE",
-            "BACKEND_MODULES": [],
-            "FRONTEND_MODULES": [],
+            "BACKEND_MODULES": [{"foo": "bar"}],
+            "FRONTEND_MODULES": [{"foo": "bar"}],
             "INTERNAL_ATTRIBUTES": {"attributes": {}}
         }
         return config
@@ -73,3 +72,34 @@ class TestSATOSAConfig:
 
         with pytest.raises(SATOSAConfigurationError):
             SATOSAConfig(satosa_config_dict)
+
+    def test_missing_mandatory_dict_keys_raises_exception(self, satosa_config_dict):
+        for key in SATOSAConfig.mandatory_dict_keys:
+            patched_dict = satosa_config_dict
+            del patched_dict[key]
+            with pytest.raises(SATOSAConfigurationError):
+                SATOSAConfig(satosa_config_dict)
+
+    def test_empty_mandatory_dict_key_vals_raises_exception(self, satosa_config_dict):
+        for key in SATOSAConfig.mandatory_dict_keys:
+            patched_dict = satosa_config_dict
+            patched_dict[key] = None
+            with pytest.raises(SATOSAConfigurationError):
+                SATOSAConfig(satosa_config_dict)
+
+    def test_can_skip_unset_microservices(self, satosa_config_dict):
+        satosa_config_dict["MICRO_SERVICES"] = None
+        config = SATOSAConfig(satosa_config_dict)
+        assert config["MICRO_SERVICES"] == []
+
+    def test_invalid_internal_attributes_raises_exception(self, satosa_config_dict):
+        satosa_config_dict["INTERNAL_ATTRIBUTES"] = ["dummy.yaml"]
+        expected_config = {}
+
+        with patch("builtins.open", mock_open(read_data=json.dumps(expected_config))), \
+             pytest.raises(SATOSAConfigurationError):
+            SATOSAConfig(satosa_config_dict)
+
+    def test_invalid_conf_raises_exception(self):
+        with pytest.raises(SATOSAConfigurationError) as e:
+            SATOSAConfig({})
