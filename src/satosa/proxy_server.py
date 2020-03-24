@@ -8,6 +8,7 @@ from urllib.parse import parse_qsl
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 
 import satosa
+import satosa.logging_util as lu
 from .base import SATOSABase
 from .context import Context
 from .response import ServiceError, NotFound
@@ -118,17 +119,21 @@ class WsgiApplication(SATOSABase):
             if isinstance(resp, Exception):
                 raise resp
             return resp(environ, start_response)
-        except SATOSANoBoundEndpointError:
+        except SATOSANoBoundEndpointError as e:
+            import ipdb; ipdb.set_trace()  # noqa XXX
+            msg = str(e)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
             resp = NotFound("The Service or Identity Provider you requested could not be found.")
             return resp(environ, start_response)
-        except Exception as err:
-            if type(err) != UnknownSystemEntity:
-                logline = "{}".format(err)
+        except Exception as e:
+            if type(e) != UnknownSystemEntity:
+                logline = "{}".format(e)
                 logger.exception(logline)
             if debug:
                 raise
 
-            resp = ServiceError("%s" % err)
+            resp = ServiceError("%s" % e)
             return resp(environ, start_response)
 
 
