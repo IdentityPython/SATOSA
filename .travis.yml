@@ -1,9 +1,10 @@
+os: linux
+dist: xenial
+language: python
 
 services:
   - docker
   - mongodb
-
-language: python
 
 before_install:
   - sudo apt-get install -y xmlsec1
@@ -135,7 +136,7 @@ jobs:
       script: skip
       deploy:
         - provider: releases
-          api_key:
+          token:
             secure: EOM9qDlyGQrD6NXs8KKMNr2htFXU/H47tO051aA3RKWQrEk7paLXYTDSbQiEq3W9yLg+fifDb0qVqAcFhnV4OWf5ArP++khjaiKQCHYoTaoKIRrTch+12Unq22FEgNj0SYd3HX+CKkG2WpyMoBQAiChgaouDnYIPOvCoqfCxiJzj5e/l5Qomt31smUgZSYhqeDPvX0lN6LP47OLrzsEGDvVxz/fb+EMK3mkCppgPwsB2zy849dER7ofHD6uJiYhY3jP4oCHDBv6GdzqxgMIyDD4zJYh9qCfy1kAwOwc7CYInrELk8GK+YwLFRKMXdTMHu4nYUTgTAJeiXgX6n7oEUfvj4ip+UJ2MfsLdaX7MmgRb2sVStlYjqLWgVR1sZThKmDTH1SzztmZFcNjXBg5Yvs8zPKe+955AoL/EG+pu0ZapFTIrsW7Wq7dCSiXhUkdJ3E/3RZqawqDhTHmrQEiG2j4N2B90SeK7TcXncr7TxaQMwjRpUpkDHmNQPMW3TEHyjEVlTKjzeCmvJEzu/n2oDR12kD6FL5oh4lkMIzIIQqVtp09cB9IJXEO0ww3elIbjZPhMASOocwvoFWM/m9ZTH8i2NjulWuIsnPj9AMmQ8hryR+nqSmkK942D+/9W0/ZHX4rzZ4/6hpEwAi+2+BNnS9yPk1zP4LNMy5FA4NwCV14=
           on:
             repo: IdentityPython/SATOSA
@@ -149,7 +150,7 @@ jobs:
       deploy:
         - provider: pypi
           distributions: sdist bdist_wheel
-          user: Lundberg
+          username: Lundberg
           password:
             secure: NwkpOakaeJjErjTF4Y5MWeHzMvkxYZqrBFdRkzfenVfkWsomuyy553A691d3lc1+oREsh1fJJLjpZQYxTLUFIHOUmt/9zr02rFfguzj7hEYfWF8wHBXG6YSWv6T3aCA4RTMXvvzv9cHf1zfxh0fS7kgc+NRMAnd01diVLfYpBciLgmQ31J4mlwShp8yBQUoRBIvzSdzrgjr0TzCQZXB9xM6R2t/oJgXLo6Zz8dTzqq3De9nOU/1P2ZHLxodDikuFdu2/0CjoDgFXB0KnGKGKmJ6G1WMCVvi7abY7smmGA3s4a4NVL7Cirx6VwIj79PsAcgupr2iBAQk/GsPffzdpLtIrBek9u//p84hxrj/IaJWgPOeKeD7+r2Kc2g0r2dQjaM+9MqBx9/lC57xJRX/JHLQWirXfCucB9YyPun5I13Sf3hArkssQy/Jvd2aLFZ885BTfow6TAwl1ud+UPeauvEj6myKO98sko/3Y521EGXRofLGaPokLyPjI/3I4N4jCvw8m86eZAjjIhPFL7JKHf8OVc5gQCYQy3kxiF5wyvbfOeMBp0sk9UvJOrWvBEXFrimAZPu8o8T5WtlQAV02q7rxUwhMd+fpnbGewsl7Ob6eE4rGVrfWQIb86wOHbbJk3lCwPytjEFEI2bdUfRUFcrWxhC040hRP0gzVKLa+nBHM=
           on:
