@@ -1,13 +1,13 @@
-addons:
-  apt:
-    packages:
-      - xmlsec1
 
 services:
   - docker
   - mongodb
 
 language: python
+
+before_install:
+  - sudo apt-get install -y xmlsec1
+
 install:
   - pip install tox
   - pip install tox-travis
@@ -63,6 +63,8 @@ jobs:
         EOF
 
     - stage: Build docker image by commit and deploy on DockerHub
+      before_install: skip
+      install: skip
       script:
         - set -e
         - docker build -f Dockerfile -t "$DOCKER_TAG_COMMIT" .
@@ -71,6 +73,8 @@ jobs:
 
     - stage: Tag docker image with branch name
       if: type = push AND branch IS present
+      before_install: skip
+      install: skip
       script:
         - set -e
         - docker pull "$DOCKER_TAG_COMMIT"
@@ -80,6 +84,8 @@ jobs:
 
     - stage: Tag docker image with pull-request branch name
       if: type = pull_request AND head_branch IS present
+      before_install: skip
+      install: skip
       script:
         - set -e
         - test "$TRAVIS_SECURE_ENV_VARS" = "false" && exit 0
@@ -90,6 +96,8 @@ jobs:
 
     - stage: Tag docker image with pull-request number
       if: type = pull_request
+      before_install: skip
+      install: skip
       script:
         - set -e
         - test "$TRAVIS_SECURE_ENV_VARS" = "false" && exit 0
@@ -100,6 +108,8 @@ jobs:
 
     - stage: Tag docker image with git-tag
       if: type = push AND tag IS present
+      before_install: skip
+      install: skip
       script:
         - set -e
         - docker pull "$DOCKER_TAG_COMMIT"
@@ -109,6 +119,8 @@ jobs:
 
     - stage: Tag docker image as latest
       if: type = push AND branch = master
+      before_install: skip
+      install: skip
       script:
         - set -e
         - docker pull "$DOCKER_TAG_COMMIT"
@@ -118,6 +130,8 @@ jobs:
 
     - stage: Deploy new release on GitHub
       if: type = push AND branch = master AND tag IS present
+      before_install: skip
+      install: skip
       script: skip
       deploy:
         - provider: releases
@@ -129,6 +143,8 @@ jobs:
 
     - stage: Deploy new release on PyPI
       if: type = push AND branch = master AND tag IS present
+      before_install: skip
+      install: skip
       script: skip
       deploy:
         - provider: pypi
