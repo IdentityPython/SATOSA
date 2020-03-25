@@ -34,16 +34,39 @@ SATOSA is configured using YAML.
 All default configuration files, as well as an example WSGI application for the proxy, can be found
 in the [example directory](../example).
 
-A configuration value that includes the tag !ENV will have a value of the form `SOME_ENVIRONMENT_VARIABLE`
-replaced with the value from the process environment variable of the same name. For example if the file
-`ldap_attribute_store.yaml' includes
+The default YAML syntax is extended to include the capability to resolve
+environment variables. The following tags are used to achieve this:
+
+* The `!ENV` tag
+
+The `!ENV` tag is followed by a string that denotes the environment variable
+name. It will be replaced by the value of the environment variable with the
+same name.
+
+In the example below `LDAP_BIND_PASSWORD` will, at runtime, be replaced with
+the value from the process environment variable of the same name. If the
+process environment has been set with `LDAP_BIND_PASSWORD=secret_password` then
+the configuration value for `bind_password` will be `secret_password`.
 
 ```
 bind_password: !ENV LDAP_BIND_PASSWORD
 ```
 
-and the SATOSA process environment includes the environment variable `LDAP_BIND_PASSWORD` with
-value `my_password` then the configuration value for `bind_password` will be `my_password`.
+* The `!ENVFILE` tag
+
+The `!ENVFILE` tag is followed by a string that denotes the environment
+variable name. It will be replaced by the value of the environment variable
+with the same name.
+
+In the example below `LDAP_BIND_PASSWORD_FILE` will, at runtime, be replaced
+with the value from the process environment variable of the same name. If the
+process environment has been set with
+`LDAP_BIND_PASSWORD_FILE=/etc/satosa/secrets/ldap.txt` then the configuration
+value for `bind_password` will be `secret_password`.
+
+```
+bind_password: !ENVFILE LDAP_BIND_PASSWORD_FILE
+```
 
 
 ## <a name="proxy_conf" style="color:#000000">SATOSA proxy configuration</a>: `proxy_conf.yaml.example`
