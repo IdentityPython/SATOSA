@@ -45,8 +45,8 @@ def _constructor_envfile_variables(loader, node):
 
 
 TAG_ENV = "!ENV"
-TAG_ENV_FILE = "!ENVFILE"
+TAG_ENVFILE = "!ENVFILE"
 
 
 _safe_loader.add_constructor(TAG_ENV, _constructor_env_variables)
-_safe_loader.add_constructor(TAG_ENV_FILE, _constructor_envfile_variables)
+_safe_loader.add_constructor(TAG_ENVFILE, _constructor_envfile_variables)
