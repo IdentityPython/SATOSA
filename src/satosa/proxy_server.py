@@ -120,7 +120,6 @@ class WsgiApplication(SATOSABase):
                 raise resp
             return resp(environ, start_response)
         except SATOSANoBoundEndpointError as e:
-            import ipdb; ipdb.set_trace()  # noqa XXX
             msg = str(e)
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline)
