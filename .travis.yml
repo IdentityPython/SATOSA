@@ -66,6 +66,7 @@ jobs:
 
     - stage: Build docker image by commit and deploy on DockerHub
       before_install: skip
+      install: skip
       script:
         - set -e
         - test "$TRAVIS_SECURE_ENV_VARS" = "false" && exit 0
