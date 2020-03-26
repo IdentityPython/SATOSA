@@ -17,11 +17,12 @@ script:
   - tox
 
 jobs:
+  allow_failures:
+    - python: 3.9-dev
   include:
     - python: 3.6
     - python: 3.7
     - python: 3.8
-    - python: 3.9-dev
     - python: pypy3
 
     - stage: Expose env-var information
