@@ -69,6 +69,7 @@ jobs:
       install: skip
       script:
         - set -e
+        - test "$TRAVIS_SECURE_ENV_VARS" = "false" && exit 0
         - docker build -f Dockerfile -t "$DOCKER_TAG_COMMIT" .
         - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
         - docker push "$DOCKER_TAG_COMMIT"
@@ -79,6 +80,7 @@ jobs:
       install: skip
       script:
         - set -e
+        - test "$TRAVIS_SECURE_ENV_VARS" = "false" && exit 0
         - docker pull "$DOCKER_TAG_COMMIT"
         - docker tag "$DOCKER_TAG_COMMIT" "$DOCKER_TAG_BRANCH"
         - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
@@ -114,6 +116,7 @@ jobs:
       install: skip
       script:
         - set -e
+        - test "$TRAVIS_SECURE_ENV_VARS" = "false" && exit 0
         - docker pull "$DOCKER_TAG_COMMIT"
         - docker tag "$DOCKER_TAG_COMMIT" "$DOCKER_TAG_GITTAG"
         - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
@@ -125,6 +128,7 @@ jobs:
       install: skip
       script:
         - set -e
+        - test "$TRAVIS_SECURE_ENV_VARS" = "false" && exit 0
         - docker pull "$DOCKER_TAG_COMMIT"
         - docker tag "$DOCKER_TAG_COMMIT" "$DOCKER_TAG_LATEST"
         - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
