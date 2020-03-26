@@ -141,8 +141,7 @@ jobs:
       script: skip
       deploy:
         - provider: releases
-          token:
-            secure: EOM9qDlyGQrD6NXs8KKMNr2htFXU/H47tO051aA3RKWQrEk7paLXYTDSbQiEq3W9yLg+fifDb0qVqAcFhnV4OWf5ArP++khjaiKQCHYoTaoKIRrTch+12Unq22FEgNj0SYd3HX+CKkG2WpyMoBQAiChgaouDnYIPOvCoqfCxiJzj5e/l5Qomt31smUgZSYhqeDPvX0lN6LP47OLrzsEGDvVxz/fb+EMK3mkCppgPwsB2zy849dER7ofHD6uJiYhY3jP4oCHDBv6GdzqxgMIyDD4zJYh9qCfy1kAwOwc7CYInrELk8GK+YwLFRKMXdTMHu4nYUTgTAJeiXgX6n7oEUfvj4ip+UJ2MfsLdaX7MmgRb2sVStlYjqLWgVR1sZThKmDTH1SzztmZFcNjXBg5Yvs8zPKe+955AoL/EG+pu0ZapFTIrsW7Wq7dCSiXhUkdJ3E/3RZqawqDhTHmrQEiG2j4N2B90SeK7TcXncr7TxaQMwjRpUpkDHmNQPMW3TEHyjEVlTKjzeCmvJEzu/n2oDR12kD6FL5oh4lkMIzIIQqVtp09cB9IJXEO0ww3elIbjZPhMASOocwvoFWM/m9ZTH8i2NjulWuIsnPj9AMmQ8hryR+nqSmkK942D+/9W0/ZHX4rzZ4/6hpEwAi+2+BNnS9yPk1zP4LNMy5FA4NwCV14=
+          token: "$GITHUB_RELEASE_TOKEN"
           on:
             repo: IdentityPython/SATOSA
             tags: true
