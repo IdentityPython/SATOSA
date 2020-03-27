@@ -7,8 +7,8 @@ import sys
 from contextlib import contextmanager
 from pydoc import locate
 
-import yaml
-from yaml.error import YAMLError
+from satosa.yaml import load as yaml_load
+from satosa.yaml import YAMLError
 
 from .backends.base import BackendModule
 from .exception import SATOSAConfigurationError
@@ -143,7 +143,7 @@ def _response_micro_service_filter(cls):
 
 def _load_plugin_config(config):
     try:
-        return yaml.safe_load(config)
+        return yaml_load(config)
     except YAMLError as exc:
         if hasattr(exc, 'problem_mark'):
             mark = exc.problem_mark

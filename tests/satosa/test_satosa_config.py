@@ -1,4 +1,5 @@
 import json
+import os
 from unittest.mock import mock_open, patch
 
 import pytest
@@ -7,6 +8,7 @@ from satosa.exception import SATOSAConfigurationError
 from satosa.exception import SATOSAConfigurationError
 from satosa.satosa_config import SATOSAConfig
 
+TEST_RESOURCE_BASE_PATH = os.path.join(os.path.dirname(__file__), "../test_resources")
 
 class TestSATOSAConfig:
     @pytest.fixture
@@ -73,3 +75,22 @@ class TestSATOSAConfig:
 
         with pytest.raises(SATOSAConfigurationError):
             SATOSAConfig(satosa_config_dict)
+
+    def test_can_substitute_from_environment_variable(self, monkeypatch):
+        monkeypatch.setenv("SATOSA_COOKIE_STATE_NAME", "oatmeal_raisin")
+        config = SATOSAConfig(
+            os.path.join(TEST_RESOURCE_BASE_PATH, "proxy_conf_environment_test.yaml")
+        )
+
+        assert config["COOKIE_STATE_NAME"] == 'oatmeal_raisin'
+
+    def test_can_substitute_from_environment_variable_file(self, monkeypatch):
+        cookie_file = os.path.join(TEST_RESOURCE_BASE_PATH, 'cookie_state_name')
+        monkeypatch.setenv("SATOSA_COOKIE_STATE_NAME_FILE", cookie_file)
+        config = SATOSAConfig(
+            os.path.join(
+                TEST_RESOURCE_BASE_PATH, "proxy_conf_environment_file_test.yaml"
+            )
+        )
+
+        assert config["COOKIE_STATE_NAME"] == 'chocolate_chip'

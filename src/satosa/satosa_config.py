@@ -3,10 +3,12 @@ This module contains methods to load, verify and build configurations for the sa
 """
 import logging
 import os
+import os.path
 
-import yaml
+from satosa.exception import SATOSAConfigurationError
+from satosa.yaml import load as yaml_load
+from satosa.yaml import YAMLError
 
-from .exception import SATOSAConfigurationError
 
 logger = logging.getLogger(__name__)
 
@@ -143,10 +145,11 @@ class SATOSAConfig(object):
         :param config_file: config to load. Can be file path or yaml string
         :return: Loaded config
         """
+
         try:
             with open(os.path.abspath(config_file)) as f:
-                return yaml.safe_load(f.read())
-        except yaml.YAMLError as exc:
+                return yaml_load(f.read())
+        except YAMLError as exc:
             logger.error("Could not parse config as YAML: {}".format(exc))
             if hasattr(exc, 'problem_mark'):
                 mark = exc.problem_mark
