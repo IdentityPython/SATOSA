@@ -18,6 +18,8 @@ import satosa.logging_util as lu
 from satosa.exception import SATOSAError
 from satosa.micro_services.base import ResponseMicroService
 from satosa.response import Redirect
+from satosa.frontends.saml2 import SAMLVirtualCoFrontend
+from satosa.routing import STATE_KEY as ROUTING_STATE_KEY
 
 
 logger = logging.getLogger(__name__)
@@ -399,23 +401,35 @@ class LdapAttributeStore(ResponseMicroService):
         Default interface for microservices. Process the input data for
         the input context.
         """
-        session_id = lu.get_session_id(context.state)
+        state = context.state
+        session_id = lu.get_session_id(state)
 
-        issuer = data.auth_info.issuer
         requester = data.requester
-        config = self.config.get(requester) or self.config["default"]
+        issuer = data.auth_info.issuer
+
+        frontend_name = state.get(ROUTING_STATE_KEY)
+        co_entity_id_key = SAMLVirtualCoFrontend.KEY_CO_ENTITY_ID
+        co_entity_id = state.get(frontend_name, {}).get(co_entity_id_key)
+
+        entity_ids = [requester, issuer, co_entity_id, "default"]
+
+        config, entity_id = next((self.config.get(e), e)
+                                 for e in entity_ids if self.config.get(e))
+
         msg = {
             "message": "entityID for the involved entities",
             "requester": requester,
             "issuer": issuer,
             "config": self._filter_config(config),
         }
+        if co_entity_id:
+            msg["co_entity_id"] = co_entity_id
         logline = lu.LOG_FMT.format(id=session_id, message=msg)
         logger.debug(logline)
 
-        # Ignore this SP entirely if so configured.
+        # Ignore this entityID entirely if so configured.
         if config["ignore"]:
-            msg = "Ignoring SP {}".format(requester)
+            msg = "Ignoring entityID {}".format(entity_id)
             logline = lu.LOG_FMT.format(id=session_id, message=msg)
             logger.info(logline)
             return super().process(context, data)
