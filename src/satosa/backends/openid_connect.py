@@ -19,7 +19,9 @@ from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from .base import BackendModule
 from .oauth import get_metadata_desc_for_oauth_backend
-from ..exception import SATOSAAuthenticationError, SATOSAError
+from ..exception import SATOSAAuthenticationError
+from ..exception import SATOSAError
+from ..exception import SATOSAMissingStateError
 from ..response import Redirect
 
 
@@ -58,11 +60,24 @@ class OpenIDConnectBackend(BackendModule):
         self.config = config
         cfg_verify_ssl = config["client"].get("verify_ssl", True)
         oidc_settings = PyoidcSettings(verify_ssl=cfg_verify_ssl)
-        self.client = _create_client(
-            provider_metadata=config["provider_metadata"],
-            client_metadata=config["client"]["client_metadata"],
-            settings=oidc_settings,
-        )
+
+        try:
+            self.client = _create_client(
+                provider_metadata=config["provider_metadata"],
+                client_metadata=config["client"]["client_metadata"],
+                settings=oidc_settings,
+            )
+        except Exception as exc:
+            msg = {
+                "message": f"Failed to initialize client",
+                "error": str(exc),
+                "client_metadata": self.config['client']['client_metadata'],
+                "provider_metadata": self.config['provider_metadata'],
+            }
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline)
+            raise SATOSAAuthenticationError(context.state, msg) from exc
+
         if "scope" not in config["client"]["auth_req_params"]:
             config["auth_req_params"]["scope"] = "openid"
         if "response_type" not in config["client"]["auth_req_params"]:
@@ -185,6 +200,22 @@ class OpenIDConnectBackend(BackendModule):
         :param args: None
         :return:
         """
+
+        if self.name not in context.state:
+            """
+            If we end up here, it means that the user returns to the proxy
+            without the SATOSA session cookie. This can happen at least in the
+            following cases:
+            - the user deleted the cookie from the browser
+            - the browser of the user blocked the cookie
+            - the user has completed an authentication flow, the cookie has
+              been removed by SATOSA and then the user used the back button
+              of their browser and resend the authentication response, but
+              without the SATOSA session cookie
+            """
+            error = "Received AuthN response without a SATOSA session cookie"
+            raise SATOSAMissingStateError(error)
+
         backend_state = context.state[self.name]
         authn_resp = self.client.parse_response(AuthorizationResponse, info=context.request, sformat="dict")
         if backend_state[STATE_KEY] != authn_resp["state"]:
@@ -215,7 +246,6 @@ class OpenIDConnectBackend(BackendModule):
         msg = "UserInfo: {}".format(all_user_claims)
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.debug(logline)
-        del context.state[self.name]
         internal_resp = self._translate_response(all_user_claims, self.client.authorization_endpoint)
         return self.auth_callback_func(context, internal_resp)
 

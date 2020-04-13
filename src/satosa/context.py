@@ -18,6 +18,7 @@ class Context(object):
     KEY_TARGET_ENTITYID = 'target_entity_id'
     KEY_FORCE_AUTHN = 'force_authn'
     KEY_MEMORIZED_IDP = 'memorized_idp'
+    KEY_REQUESTER_METADATA = 'requester_metadata'
     KEY_AUTHN_CONTEXT_CLASS_REF = 'authn_context_class_ref'
     KEY_TARGET_AUTHN_CONTEXT_CLASS_REF = 'target_authn_context_class_ref'
 

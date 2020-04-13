@@ -34,6 +34,8 @@ from ..response import Response
 from ..response import ServiceError
 from ..saml_util import make_saml_response
 from satosa.exception import SATOSAError
+from satosa.exception import SATOSABadRequestError
+from satosa.exception import SATOSAMissingStateError
 import satosa.util as util
 
 import satosa.logging_util as lu
@@ -152,7 +154,23 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         :param state: The current state
         :return: The dictionary given by the save_state function
         """
-        state_data = state[self.name]
+        try:
+            state_data = state[self.name]
+        except KeyError:
+            """
+            If we end up here, it means that the user returns to the proxy
+            without the SATOSA session cookie. This can happen at least in the
+            following cases:
+            - the user deleted the cookie from the browser
+            - the browser of the user blocked the cookie
+            - the user has completed an authentication flow, the cookie has
+              been removed by SATOSA and then the user used the back button
+              of their browser and resend the authentication response, but
+              without the SATOSA session cookie
+            """
+            error =  "Received AuthN response without a SATOSA session cookie"
+            raise SATOSAMissingStateError(error)
+
         if isinstance(state_data["resp_args"]["name_id_policy"], str):
             state_data["resp_args"]["name_id_policy"] = name_id_policy_from_string(
                 state_data["resp_args"]["name_id_policy"])
@@ -190,7 +208,16 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         :param idp: The saml frontend idp server
         :return: response
         """
-        req_info = idp.parse_authn_request(context.request["SAMLRequest"], binding_in)
+
+        try:
+            req_info = idp.parse_authn_request(context.request["SAMLRequest"], binding_in)
+        except KeyError:
+            """
+            HTTP clients that call the SSO endpoint without sending SAML AuthN
+            request will receive a "400 Bad Request" response
+            """
+            raise SATOSABadRequestError("HTTP request does not include a SAML AuthN request")
+
         authn_req = req_info.message
         msg = "{}".format(authn_req)
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
@@ -444,6 +471,21 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             self._set_common_domain_cookie(internal_response, http_args, context)
 
         del context.state[self.name]
+
+        msg = {
+            "message": "Sending SAML AuthN Response",
+            "issuer": internal_response.auth_info.issuer,
+            "requester": sp_entity_id,
+            "signed response": sign_response,
+            "signed assertion": sign_assertion,
+            "encrypted": encrypt_assertion,
+            "attributes": " ".join(list(ava.keys()))
+        }
+        if nameid_format:
+            msg['name_id'] = nameid_format
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.info(logline)
+
         return make_saml_response(resp_args["binding"], http_args)
 
     def _handle_backend_error(self, exception, idp):

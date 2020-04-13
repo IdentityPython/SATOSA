@@ -110,7 +110,6 @@ class LinkedInBackend(_OAuthBackend):
             self.external_type, user_info)
 
         internal_response.subject_id = user_info[self.user_id_attr]
-        del context.state[self.name]
         return self.auth_callback_func(context, internal_response)
 
     def user_information(self, access_token, api):
