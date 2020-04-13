@@ -23,7 +23,7 @@ from satosa.base import SAMLEIDASBaseModule
 from satosa.context import Context
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
-from satosa.exception import SATOSAAuthenticationError
+from satosa.exception import SATOSAAuthenticationError, SATOSAStateError
 from satosa.response import SeeOther, Response
 from satosa.saml_util import make_saml_response
 from satosa.metadata_creation.description import (
@@ -75,7 +75,9 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
     """
     A saml2 backend module (acting as a SP).
     """
+    KEY_ALLOW_DISCO_INIT_CONFIG = 'allow_discovery_initiated'
     KEY_DISCO_SRV = 'disco_srv'
+    KEY_SAML_DISCOVERY_INITIATED = 'saml_discovery_initiated'
     KEY_SAML_DISCOVERY_SERVICE_URL = 'saml_discovery_service_url'
     KEY_SAML_DISCOVERY_SERVICE_POLICY = 'saml_discovery_service_policy'
     KEY_SP_CONFIG = 'sp_config'
@@ -168,6 +170,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :type internal_req: satosa.internal.InternalData
         :rtype: satosa.response.Response
         """
+        context.state[self.name] = {}
 
         entity_id = self.get_idp_entity_id(context)
         if entity_id is None:
@@ -210,6 +213,10 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         loc = self.sp.create_discovery_service_request(
             disco_url, self.sp.config.entityid, **args
         )
+
+        state_dict = context.state[self.name]
+        state_dict[SAMLBackend.KEY_SAML_DISCOVERY_INITIATED] = True
+
         return SeeOther(loc)
 
     def construct_requested_authn_context(self, entity_id):
@@ -363,12 +370,24 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         """
         info = context.request
         state = context.state
+        session_id = lu.get_session_id(state)
+        state_dict = state.get(self.name, {})
+        disco_initiated = state_dict.get(
+                              SAMLBackend.KEY_SAML_DISCOVERY_INITIATED,
+                              False)
+
+        if (not self.config.get(SAMLBackend.KEY_ALLOW_DISCO_INIT_CONFIG, True)
+                and not disco_initiated):
+            msg = "IdP discovery initiated flow not allowed"
+            logline = lu.LOG_FMT.format(id=session_id, message=msg)
+            logger.debug(logline, exc_info=True)
+            raise SATOSAStateError(state, msg)
 
         try:
             entity_id = info["entityID"]
         except KeyError as err:
             msg = "No IDP chosen for state"
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(state), message=msg)
+            logline = lu.LOG_FMT.format(id=session_id, message=msg)
             logger.debug(logline, exc_info=True)
             raise SATOSAAuthenticationError(state, "No IDP chosen") from err
 

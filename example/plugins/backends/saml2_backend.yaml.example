@@ -59,3 +59,8 @@ config:
         name_id_format_allow_create: true
   # disco_srv must be defined if there is more than one IdP in the metadata specified above
   disco_srv: http://disco.example.com
+
+  # Allow flows to start at the discovery response endpoint.
+  # Not recommend but allowed by default for backwards compatiblity.
+  # Default will change to false in a later release.
+  # allow_discovery_initiated: true

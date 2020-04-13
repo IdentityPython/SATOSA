@@ -19,6 +19,7 @@ from saml2.s_utils import deflate_and_base64_encode
 
 from satosa.backends.saml2 import SAMLBackend
 from satosa.context import Context
+from satosa.exception import SATOSAStateError
 from satosa.internal import InternalData
 from tests.users import USERS
 from tests.util import FakeIdP, create_metadata_from_config_dict, FakeSP
@@ -347,6 +348,60 @@ class TestSAMLBackend:
         assert ui_info["display_name"] == expected_ui_info["display_name"]
         assert ui_info["description"] == expected_ui_info["description"]
         assert ui_info["logo"] == expected_ui_info["logo"]
+
+    def test_allow_discovery_initiated(self, sp_conf, context, idp_conf):
+
+        # Test that with allow_discovery_initiated set to True can initiate
+        # flow at disco_response() and be directed to the correct IdP.
+        config = {"sp_config": sp_conf,
+                  "disco_srv": DISCOSRV_URL,
+                  "allow_discovery_initiated": True}
+
+        samlbackend = SAMLBackend(
+            Mock(),
+            INTERNAL_ATTRIBUTES,
+            config,
+            "base_url",
+            "samlbackend",
+        )
+
+        context.request = {'entityID': idp_conf["entityid"]}
+        resp = samlbackend.disco_response(context)
+        assert_redirect_to_idp(resp, idp_conf)
+
+        # Test that with allow_discovery_initiated set to False can not
+        # initiate flow at disco_response() and instead raises exception.
+        config = {"sp_config": sp_conf,
+                  "disco_srv": DISCOSRV_URL,
+                  SAMLBackend.KEY_ALLOW_DISCO_INIT_CONFIG: False}
+
+        samlbackend = SAMLBackend(
+            Mock(),
+            INTERNAL_ATTRIBUTES,
+            config,
+            "base_url",
+            "samlbackend",
+        )
+
+        context.request = {'entityID': idp_conf["entityid"]}
+
+        with pytest.raises(SATOSAStateError):
+            resp = samlbackend.disco_response(context)
+
+        # Test that with allow_discovery_initiated set to False a flow
+        # that begins in the backend with start_auth() marks the state
+        # as having been initiated properly through the disco_query()
+        # method on the backend and that the flow succeeds in redirecting
+        # to the IdP selected during discovery.
+        samlbackend.start_auth(context, InternalData())
+        name = samlbackend.name
+        key = SAMLBackend.KEY_SAML_DISCOVERY_INITIATED
+        initiated = context.state[name][key]
+        assert initiated is True
+
+        context.request = {'entityID': idp_conf["entityid"]}
+        resp = samlbackend.disco_response(context)
+        assert_redirect_to_idp(resp, idp_conf)
 
 
 class TestSAMLBackendRedirects:
