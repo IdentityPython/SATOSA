@@ -18,6 +18,8 @@ import satosa.logging_util as lu
 from satosa.exception import SATOSAError
 from satosa.micro_services.base import ResponseMicroService
 from satosa.response import Redirect
+from satosa.frontends.saml2 import SAMLVirtualCoFrontend
+from satosa.routing import STATE_KEY as ROUTING_STATE_KEY
 
 
 logger = logging.getLogger(__name__)
@@ -399,22 +401,36 @@ class LdapAttributeStore(ResponseMicroService):
         Default interface for microservices. Process the input data for
         the input context.
         """
-        issuer = data.auth_info.issuer
+        state = context.state
+        session_id = lu.get_session_id(state)
+
         requester = data.requester
-        config = self.config.get(requester) or self.config["default"]
+        issuer = data.auth_info.issuer
+
+        frontend_name = state.get(ROUTING_STATE_KEY)
+        co_entity_id_key = SAMLVirtualCoFrontend.KEY_CO_ENTITY_ID
+        co_entity_id = state.get(frontend_name, {}).get(co_entity_id_key)
+
+        entity_ids = [requester, issuer, co_entity_id, "default"]
+
+        config, entity_id = next((self.config.get(e), e)
+                                 for e in entity_ids if self.config.get(e))
+
         msg = {
             "message": "entityID for the involved entities",
             "requester": requester,
             "issuer": issuer,
             "config": self._filter_config(config),
         }
-        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        if co_entity_id:
+            msg["co_entity_id"] = co_entity_id
+        logline = lu.LOG_FMT.format(id=session_id, message=msg)
         logger.debug(logline)
 
-        # Ignore this SP entirely if so configured.
+        # Ignore this entityID entirely if so configured.
         if config["ignore"]:
-            msg = "Ignoring SP {}".format(requester)
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            msg = "Ignoring entityID {}".format(entity_id)
+            logline = lu.LOG_FMT.format(id=session_id, message=msg)
             logger.info(logline)
             return super().process(context, data)
 
@@ -439,7 +455,7 @@ class LdapAttributeStore(ResponseMicroService):
             if filter_value
         ]
         msg = {"message": "Search filters", "filter_values": filter_values}
-        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logline = lu.LOG_FMT.format(id=session_id, message=msg)
         logger.debug(logline)
 
         # Initialize an empty LDAP record. The first LDAP record found using
@@ -453,7 +469,7 @@ class LdapAttributeStore(ResponseMicroService):
             "message": "LDAP server host",
             "server host": connection.server.host,
         }
-        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logline = lu.LOG_FMT.format(id=session_id, message=msg)
         logger.debug(logline)
 
         for filter_val in filter_values:
@@ -463,7 +479,7 @@ class LdapAttributeStore(ResponseMicroService):
                 "message": "LDAP query with constructed search filter",
                 "search filter": search_filter,
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(id=session_id, message=msg)
             logger.debug(logline)
 
             attributes = (
@@ -485,14 +501,14 @@ class LdapAttributeStore(ResponseMicroService):
                 exp_msg = "Caught unhandled exception: {}".format(err)
 
             if exp_msg:
-                logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=exp_msg)
+                logline = lu.LOG_FMT.format(id=session_id, message=exp_msg)
                 logger.error(logline)
                 return super().process(context, data)
 
             if not results:
                 msg = "Querying LDAP server: No results for {}."
                 msg = msg.format(filter_val)
-                logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                logline = lu.LOG_FMT.format(id=session_id, message=msg)
                 logger.debug(logline)
                 continue
 
@@ -502,10 +518,10 @@ class LdapAttributeStore(ResponseMicroService):
                 responses = connection.get_response(results)[0]
 
             msg = "Done querying LDAP server"
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(id=session_id, message=msg)
             logger.debug(logline)
             msg = "LDAP server returned {} records".format(len(responses))
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(id=session_id, message=msg)
             logger.info(logline)
 
             # For now consider only the first record found (if any).
@@ -514,7 +530,7 @@ class LdapAttributeStore(ResponseMicroService):
                     msg = "LDAP server returned {} records using search filter"
                     msg = msg + " value {}"
                     msg = msg.format(len(responses), filter_val)
-                    logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                    logline = lu.LOG_FMT.format(id=session_id, message=msg)
                     logger.warning(logline)
                 record = responses[0]
                 break
@@ -524,7 +540,7 @@ class LdapAttributeStore(ResponseMicroService):
         if config["clear_input_attributes"]:
             msg = "Clearing values for these input attributes: {}"
             msg = msg.format(data.attributes)
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(id=session_id, message=msg)
             logger.debug(logline)
             data.attributes = {}
 
@@ -549,7 +565,7 @@ class LdapAttributeStore(ResponseMicroService):
                 "DN": record["dn"],
                 "attributes": record["attributes"],
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(id=session_id, message=msg)
             logger.debug(logline)
 
             # Populate attributes as configured.
@@ -573,11 +589,11 @@ class LdapAttributeStore(ResponseMicroService):
             # may use it if required.
             context.decorate(KEY_FOUND_LDAP_RECORD, record)
             msg = "Added record {} to context".format(record)
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(id=session_id, message=msg)
             logger.debug(logline)
         else:
             msg = "No record found in LDAP so no attributes will be added"
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(id=session_id, message=msg)
             logger.warning(logline)
             on_ldap_search_result_empty = config["on_ldap_search_result_empty"]
             if on_ldap_search_result_empty:
@@ -592,11 +608,11 @@ class LdapAttributeStore(ResponseMicroService):
                     encoded_idp_entity_id,
                 )
                 msg = "Redirecting to {}".format(url)
-                logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                logline = lu.LOG_FMT.format(id=session_id, message=msg)
                 logger.info(logline)
                 return Redirect(url)
 
         msg = "Returning data.attributes {}".format(data.attributes)
-        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logline = lu.LOG_FMT.format(id=session_id, message=msg)
         logger.debug(logline)
         return super().process(context, data)
