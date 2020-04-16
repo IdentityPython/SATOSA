@@ -134,6 +134,12 @@ class SATOSABase(object):
         """
 
         context.request = None
+        context_state = context.state.get(STATE_KEY)
+        if not context_state:
+            redirect_url = self.config.get("UNKNOW_ERROR_REDIRECT_PAGE")
+            raise SATOSAStateError(('context.state has no {}. Your session '
+                                    'is not valid, please start a new '
+                                    'Authentication request again.'.format(STATE_KEY)))
         internal_response.requester = context.state[STATE_KEY]["requester"]
 
         # If configured construct the user id from attribute values.
