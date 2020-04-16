@@ -11,7 +11,8 @@ import satosa
 import satosa.logging_util as lu
 from .base import SATOSABase
 from .context import Context
-from .response import ServiceError, NotFound
+from .exception import SATOSAUnknownErrorRedirectUrl
+from .response import ServiceError, NotFound, Redirect
 from .routing import SATOSANoBoundEndpointError
 from saml2.s_utils import UnknownSystemEntity
 
@@ -125,6 +126,9 @@ class WsgiApplication(SATOSABase):
             logger.debug(logline)
             resp = NotFound("The Service or Identity Provider you requested could not be found.")
             return resp(environ, start_response)
+        except SATOSAUnknownErrorRedirectUrl as e:
+            redirect_url, error_log = json.loads(str(e))
+            return Redirect(redirect_url)(environ, start_response)
         except Exception as e:
             if type(e) != UnknownSystemEntity:
                 logline = "{}".format(e)

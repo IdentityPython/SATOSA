@@ -311,7 +311,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :param binding: The saml binding type
         :return: response
         """
-        if not context.request["SAMLResponse"]:
+        if not context.request.get("SAMLResponse"):
             msg = "Missing Response for state"
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline)

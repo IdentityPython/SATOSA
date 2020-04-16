@@ -38,6 +38,20 @@ class SATOSAUnknownError(SATOSAError):
     pass
 
 
+class SATOSABackendNotFoundError(SATOSAError):
+    """
+    SATOSA Backend not existent/not found
+    """
+    pass
+
+
+class SATOSAUnknownErrorRedirectUrl(SATOSAError):
+    """
+    SATOSA unknown error redirect page
+    """
+    pass
+
+
 class SATOSAAuthenticationError(SATOSAError):
     """
     SATOSA authentication error.
