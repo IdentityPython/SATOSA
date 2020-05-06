@@ -1,5 +1,5 @@
 {
-  "test_client": {
+  "the_client_id": {
     "response_types": ["code", "and", "other", "types"],
     "client_id": "the_client_id",
     "client_secret": "the_client_secret",
