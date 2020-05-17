@@ -189,6 +189,10 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         req_info = idp.parse_authn_request(context.request["SAMLRequest"], binding_in)
         authn_req = req_info.message
         msg = "{}".format(authn_req)
+        if "AuthnContextClassRef" in msg:
+            authn_context = msg[msg.find("<ns1:AuthnContextClassRef>") +
+                                26:msg.find("</ns1:AuthnContextClassRef>")]
+            context.state['authn_context_class_ref'] = authn_context
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.debug(logline)
 
