@@ -112,7 +112,6 @@ Trigger new version build to automatically upload to PyPI and docker hub.
 - Add initial eIDAS support
 - Support memoization of IdP selection when using MDQ
 - plugins: Warn when AssertionConsumerService binding is HTTP-Redirect in the saml2 backend
-- plugins: Add SAMLUnsolicitedFrontend frontend
 - plugins: Add SAMLVirtualCoFrontend frontend
 - plugins: Add extra_scopes configuration to support multiple scopes
 - plugins: Use the latest pyop version
