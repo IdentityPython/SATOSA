@@ -1,5 +1,50 @@
 # Changelog
 
+## 7.0.0 (2020-06-09)
+
+- Make the AuthnContextClassRefs available through the context
+- Extend YAML parsing to understand the `!ENV` and `!ENVFILE` tags, that read
+  values or file contents from the environment
+- Add `satosa.yaml` module to handle YAML parsing
+- BREAKING: Remove previously deprecated configuration options:
+  - `hash`: use the hasher micro-service instead
+  - `USER_ID_HASH_SALT`: use the hasher micro-service instead
+- BREAKING: Remove previously deprecated classes:
+  - `SAMLInternalResponse`: use `satosa.internal.InternalData` instead
+  - `InternalRequest`: use `satosa.internal.InternalData` instead
+  - `InternalResponse`: use `satosa.internal.InternalData` instead
+  - `UserIdHashType`: use the hasher micro-service instead
+  - `UserIdHasher`: use the hasher micro-service instead
+- BREAKING: Remove previously deprecated functions:
+  - `hash_attributes`: use the hasher micro-service instead
+  - `oidc_subject_type_to_hash_type`: use `satosa.internal.InternalData.subject_type` directly
+  - `saml_name_id_format_to_hash_type`: use `satosa.internal.InternalData.subject_type` directly
+  - `hash_type_to_saml_name_id_format`: use `satosa.internal.InternalData.subject_type` directly
+- BREAKING: Remove previously deprecated modules:
+  - `src/satosa/internal_data.py`
+- BREAKING: Remove previously deprecated properties of the `saml2.internal.InternalData` class:
+  - `name_id`: use use `subject_id` instead,
+  - `user_id`: use `subject_id` instead,
+  - `user_id_hash_type`: use `subject_type` instead,
+  - `approved_attributes`: use `attributes` instead,
+- The cookie is now a session-cookie; To have the the cookie removed
+  immediately after use, the CONTEXT_STATE_DELETE configuration option should
+  be set to `True`
+- Create dedicated module to handle the proxy version
+- Set the logger to log to stdout on DEBUG level by default
+- Cleanup code around the wsgi calls
+- micro-services: separate core from micro-services; drop checks for
+  micro-services order; drop references to the Consent and AccountLinking
+  micro-services
+- micro-services: generate a random name for the pool name when REUSABLE client
+  strategy is used for the ldap-attribute-store micro-service.
+- docs: improve example proxy configuration
+- docs: minor fixes/typos/etc
+- build: update CI to use Travis-CI stages
+- build: run tests for Python3.8
+- build: tag docker image by commit, branch, PR number, version and "latest"
+
+
 ## 6.1.0 (2020-02-28)
 
 - Set the SameSite cookie attribute to "None"
