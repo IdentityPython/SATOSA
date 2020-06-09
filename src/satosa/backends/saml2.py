@@ -82,6 +82,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
     KEY_MIRROR_FORCE_AUTHN = 'mirror_force_authn'
     KEY_MEMORIZE_IDP = 'memorize_idp'
     KEY_USE_MEMORIZED_IDP_WHEN_FORCE_AUTHN = 'use_memorized_idp_when_force_authn'
+    KEY_DYNAMIC_REQUESTED_ATTRIBUTES = 'dynamic_requested_attributes'
 
     VALUE_ACR_COMPARISON_DEFAULT = 'exact'
 
@@ -113,6 +114,9 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         self.encryption_keys = []
         self.outstanding_queries = {}
         self.idp_blacklist_file = config.get('idp_blacklist_file', None)
+        self.requested_attributes = self.config.get(
+            SAMLBackend.KEY_DYNAMIC_REQUESTED_ATTRIBUTES
+        )
 
         sp_keypairs = sp_config.getattr('encryption_keypairs', '')
         sp_key_file = sp_config.getattr('key_file', '')
@@ -170,15 +174,22 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         """
 
         entity_id = self.get_idp_entity_id(context)
+        requested_attributes = internal_req.get("attributes")
         if entity_id is None:
             # since context is not passed to disco_query
             # keep the information in the state cookie
             context.state[Context.KEY_FORCE_AUTHN] = get_force_authn(
                 context, self.config, self.sp.config
             )
+            if self.requested_attributes:
+                # We need the requested attributes, so store them in the cookie
+                context.state[Context.KEY_REQUESTED_ATTRIBUTES] = \
+                    requested_attributes
             return self.disco_query(context)
 
-        return self.authn_request(context, entity_id)
+        return self.authn_request(
+            context, entity_id, requested_attributes=requested_attributes
+        )
 
     def disco_query(self, context):
         """
@@ -232,13 +243,59 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         return authn_context
 
-    def authn_request(self, context, entity_id):
+    def _get_requested_attributes(self, requested_attributes):
+        if not requested_attributes:
+            return
+
+        attrs = self.converter.from_internal_filter(
+            self.attribute_profile, requested_attributes
+        )
+        requested_attrs = []
+        for attr in attrs:
+            # Internal attributes map to the attribute's friendly_name
+            for req_attr in self.requested_attributes:
+                if req_attr['friendly_name'] == attr:
+                    requested_attrs.append(
+                        dict(
+                            friendly_name=attr,
+                            required=req_attr['required']
+                        )
+                    )
+
+        return requested_attrs
+
+    def _get_authn_request_args(
+        self, context, entity_id, requested_attributes=None
+    ):
+        kwargs = {}
+        authn_context = self.construct_requested_authn_context(entity_id)
+        _, response_binding = self.sp.config.getattr(
+            "endpoints", "sp"
+        )["assertion_consumer_service"][0]
+        kwargs["binding"] = response_binding
+
+        if authn_context:
+            kwargs["requested_authn_context"] = authn_context
+        if self.config.get(SAMLBackend.KEY_MIRROR_FORCE_AUTHN):
+            kwargs["force_authn"] = get_force_authn(
+                context, self.config, self.sp.config
+            )
+        if self.requested_attributes:
+            requested_attributes = self._get_requested_attributes(
+                requested_attributes
+            )
+            if requested_attributes:
+                kwargs["requested_attributes"] = requested_attributes
+        return kwargs
+
+    def authn_request(self, context, entity_id, requested_attributes=None):
         """
         Do an authorization request on idp with given entity id.
         This is the start of the authorization.
 
         :type context: satosa.context.Context
         :type entity_id: str
+        :type requested_attributes: list
         :rtype: satosa.response.Response
 
         :param context: The current context
@@ -257,15 +314,6 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                     logger.debug(logline, exc_info=False)
                     raise SATOSAAuthenticationError(context.state, "Selected IdP is blacklisted for this backend")
 
-        kwargs = {}
-        authn_context = self.construct_requested_authn_context(entity_id)
-        if authn_context:
-            kwargs["requested_authn_context"] = authn_context
-        if self.config.get(SAMLBackend.KEY_MIRROR_FORCE_AUTHN):
-            kwargs["force_authn"] = get_force_authn(
-                context, self.config, self.sp.config
-            )
-
         try:
             binding, destination = self.sp.pick_binding(
                 "single_sign_on_service", None, "idpsso", entity_id=entity_id
@@ -274,10 +322,10 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline)
 
-            acs_endp, response_binding = self.sp.config.getattr("endpoints", "sp")["assertion_consumer_service"][0]
-            req_id, req = self.sp.create_authn_request(
-                destination, binding=response_binding, **kwargs
+            kwargs = self._get_authn_request_args(
+                context, entity_id, requested_attributes=requested_attributes
             )
+            req_id, req = self.sp.create_authn_request(destination, **kwargs)
             relay_state = util.rndstr()
             ht_args = self.sp.apply_binding(binding, "%s" % req, destination, relay_state=relay_state)
             msg = "ht_args: {}".format(ht_args)
@@ -363,6 +411,9 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         """
         info = context.request
         state = context.state
+        requested_attributes = state.pop(
+            Context.KEY_REQUESTED_ATTRIBUTES, None
+        )
 
         try:
             entity_id = info["entityID"]
@@ -372,7 +423,11 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             logger.debug(logline, exc_info=True)
             raise SATOSAAuthenticationError(state, "No IDP chosen") from err
 
-        return self.authn_request(context, entity_id)
+        return self.authn_request(
+            context,
+            entity_id,
+            requested_attributes=requested_attributes
+        )
 
     def _translate_response(self, response, state):
         """
