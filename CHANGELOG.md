@@ -1,5 +1,10 @@
 # Changelog
 
+## 7.0.1 (2020-06-09)
+
+- build: fix the CI release process
+
+
 ## 7.0.0 (2020-06-09)
 
 - Make the AuthnContextClassRefs available through the context
