@@ -179,6 +179,193 @@ class TestSAMLBackend:
         req_params = dict(parse_qsl(urlparse(resp.message).query))
         assert context.state[self.samlbackend.name]["relay_state"] == req_params["RelayState"]
 
+    def test_authn_request_requested_attributes(
+        self, context, idp_conf, sp_conf
+    ):
+        requested_attributes = [
+            {"friendly_name": "cn", "required": True},
+            {"friendly_name": "sn", "required": False}
+        ]
+
+        backend = SAMLBackend(
+            None,
+            INTERNAL_ATTRIBUTES,
+            {
+                SAMLBackend.KEY_DYNAMIC_REQUESTED_ATTRIBUTES: requested_attributes,
+                "sp_config": sp_conf
+            },
+            "base_url",
+            "saml_backend"
+        )
+
+        with patch.object(
+            backend.sp,
+            "create_authn_request",
+            wraps=backend.sp.create_authn_request
+        ) as mock:
+            backend.authn_request(
+                context,
+                idp_conf["entityid"],
+                requested_attributes=["name", "surname"]
+            )
+
+            kwargs = mock.call_args[1]
+            assert "requested_attributes" in kwargs
+            assert kwargs["requested_attributes"] == [
+                {"friendly_name": "cn", "required": True},
+                {"friendly_name": "sn", "required": False}
+            ]
+
+    def test_authn_request_requested_attributes_ignore_extra(
+        self, context, idp_conf, sp_conf
+    ):
+        """
+        Extra internal attributes should be ignored
+        """
+        requested_attributes = [
+            {"friendly_name": "cn", "required": True},
+            {"friendly_name": "sn", "required": False}
+        ]
+
+        backend = SAMLBackend(
+            None,
+            INTERNAL_ATTRIBUTES,
+            {
+                SAMLBackend.KEY_DYNAMIC_REQUESTED_ATTRIBUTES: requested_attributes,
+                "sp_config": sp_conf
+            },
+            "base_url",
+            "saml_backend"
+        )
+
+        with patch.object(
+            backend.sp,
+            "create_authn_request",
+            wraps=backend.sp.create_authn_request
+        ) as mock:
+            backend.authn_request(
+                context,
+                idp_conf["entityid"],
+                requested_attributes=["name", "surname", "email"]
+            )
+
+            kwargs = mock.call_args[1]
+            assert "requested_attributes" in kwargs
+            assert kwargs["requested_attributes"] == [
+                {"friendly_name": "cn", "required": True},
+                {"friendly_name": "sn", "required": False}
+            ]
+
+    def test_authn_request_requested_attributes_not_present(
+        self, context, idp_conf, sp_conf
+    ):
+        """
+        If some requested attributes are not in the requested don't add them to
+        the request
+        """
+        requested_attributes = [
+            {"friendly_name": "cn", "required": True},
+            {"friendly_name": "sn", "required": False}
+        ]
+
+        backend = SAMLBackend(
+            None,
+            INTERNAL_ATTRIBUTES,
+            {
+                SAMLBackend.KEY_DYNAMIC_REQUESTED_ATTRIBUTES: requested_attributes,
+                "sp_config": sp_conf
+            },
+            "base_url",
+            "saml_backend"
+        )
+
+        with patch.object(
+            backend.sp,
+            "create_authn_request",
+            wraps=backend.sp.create_authn_request
+        ) as mock:
+            backend.authn_request(
+                context,
+                idp_conf["entityid"],
+                requested_attributes=["name"]
+            )
+
+            kwargs = mock.call_args[1]
+            assert "requested_attributes" in kwargs
+            assert kwargs["requested_attributes"] == [
+                {"friendly_name": "cn", "required": True},
+            ]
+
+    @pytest.mark.parametrize("req_attributes", [[], ["email"]])
+    def test_authn_request_no_requested_attributes(
+        self, context, idp_conf, sp_conf, req_attributes
+    ):
+        """
+        If no attributes are requested or if they are not in the ,
+        configuration don't add the extention
+        """
+        requested_attributes = [
+            {"friendly_name": "cn", "required": True},
+            {"friendly_name": "sn", "required": False}
+        ]
+
+        backend = SAMLBackend(
+            None,
+            INTERNAL_ATTRIBUTES,
+            {
+                SAMLBackend.KEY_DYNAMIC_REQUESTED_ATTRIBUTES: requested_attributes,
+                "sp_config": sp_conf
+            },
+            "base_url",
+            "saml_backend"
+        )
+
+        with patch.object(
+            backend.sp,
+            "create_authn_request",
+            wraps=backend.sp.create_authn_request
+        ) as mock:
+            backend.authn_request(
+                context,
+                idp_conf["entityid"],
+                requested_attributes=req_attributes
+            )
+
+            kwargs = mock.call_args[1]
+            assert "requested_attributes" not in kwargs
+
+    @pytest.mark.parametrize("req_attributes", [False, None, []])
+    def test_authn_request_no_requested_attributes_configured(
+        self, context, idp_conf, sp_conf, req_attributes
+    ):
+        """
+        If requested attributes is not configured, don't add the extention
+        """
+        backend = SAMLBackend(
+            None,
+            INTERNAL_ATTRIBUTES,
+            {
+                SAMLBackend.KEY_DYNAMIC_REQUESTED_ATTRIBUTES: req_attributes,
+                "sp_config": sp_conf
+            },
+            "base_url",
+            "saml_backend"
+        )
+
+        with patch.object(
+            backend.sp,
+            "create_authn_request",
+            wraps=backend.sp.create_authn_request
+        ) as mock:
+            backend.authn_request(
+                context,
+                idp_conf["entityid"],
+                requested_attributes=["email"]
+            )
+
+            kwargs = mock.call_args[1]
+            assert "requested_attributes" not in kwargs
+
     def test_authn_response(self, context, idp_conf, sp_conf):
         response_binding = BINDING_HTTP_REDIRECT
         fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
