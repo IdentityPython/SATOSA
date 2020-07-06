@@ -211,10 +211,14 @@ class TestSAMLBackend:
 
             kwargs = mock.call_args[1]
             assert "requested_attributes" in kwargs
-            assert kwargs["requested_attributes"] == [
-                {"friendly_name": "cn", "required": True},
-                {"friendly_name": "sn", "required": False}
-            ]
+            assert all(
+                any(r == req for r in requested_attributes)
+                for req in kwargs["requested_attributes"]
+            )
+            assert (
+                len(kwargs["requested_attributes"])
+                == len(requested_attributes)
+            )
 
     def test_authn_request_requested_attributes_ignore_extra(
         self, context, idp_conf, sp_conf
@@ -251,10 +255,14 @@ class TestSAMLBackend:
 
             kwargs = mock.call_args[1]
             assert "requested_attributes" in kwargs
-            assert kwargs["requested_attributes"] == [
-                {"friendly_name": "cn", "required": True},
-                {"friendly_name": "sn", "required": False}
-            ]
+            assert all(
+                any(r == req for r in requested_attributes)
+                for req in kwargs["requested_attributes"]
+            )
+            assert (
+                len(kwargs["requested_attributes"])
+                == len(requested_attributes)
+            )
 
     def test_authn_request_requested_attributes_not_present(
         self, context, idp_conf, sp_conf
