@@ -3,6 +3,7 @@ A saml2 backend module for the satosa proxy
 """
 import copy
 import functools
+from itertools import product
 import json
 import logging
 import warnings as _warnings
@@ -250,18 +251,13 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         attrs = self.converter.from_internal_filter(
             self.attribute_profile, requested_attributes
         )
-        requested_attrs = []
-        for attr in attrs:
-            # Internal attributes map to the attribute's friendly_name
-            for req_attr in self.requested_attributes:
-                if req_attr['friendly_name'] == attr:
-                    requested_attrs.append(
-                        dict(
-                            friendly_name=attr,
-                            required=req_attr['required']
-                        )
-                    )
+        attrs_req_attrs_product = product(attrs, self.requested_attributes)
 
+        requested_attrs = [
+            dict(friendly_name=attr, required=req_attr['required'])
+            for (attr, req_attr) in attrs_req_attrs_product
+            if req_attr['friendly_name'] == attr
+        ]
         return requested_attrs
 
     def _get_authn_request_args(
