@@ -541,7 +541,7 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
         backend_name = context.target_backend
         idp_conf = frontend._add_endpoints_to_config(idp_conf, co_name,
                                                      backend_name)
-        idp_conf = frontend._add_entity_id(context, idp_conf, co_name)
+        idp_conf = frontend._add_entity_id(idp_conf, co_name)
 
         # Use a utility function to serialize the idp_conf IdP configuration
         # fixture to a string and then dynamically update the sp_conf

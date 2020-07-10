@@ -919,7 +919,7 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
 
         return config
 
-    def _add_entity_id(self, context, config, co_name):
+    def _add_entity_id(self, config, co_name):
         """
         Use the CO name to construct the entity ID for the virtual IdP
         for the CO and add it to the config. Also add it to the
@@ -943,7 +943,6 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         base_entity_id = config['entityid']
         co_entity_id = "{}/{}".format(base_entity_id, quote_plus(co_name))
         config['entityid'] = co_entity_id
-        context.decorate(self.KEY_CO_ENTITY_ID, co_entity_id)
 
         return config
 
@@ -1026,10 +1025,11 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         # and the entityID for the CO virtual IdP.
         backend_name = context.target_backend
         idp_config = copy.deepcopy(self.idp_config)
-        idp_config = self._add_endpoints_to_config(idp_config,
-                                                   co_name,
-                                                   backend_name)
-        idp_config = self._add_entity_id(context, idp_config, co_name)
+        idp_config = self._add_endpoints_to_config(
+            idp_config, co_name, backend_name
+        )
+        idp_config = self._add_entity_id(idp_config, co_name)
+        context.decorate(self.KEY_CO_ENTITY_ID, idp_config['entityid'])
 
         # Use the overwritten IdP config to generate a pysaml2 config object
         # and from it a server object.
