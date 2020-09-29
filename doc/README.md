@@ -433,6 +433,7 @@ The configuration parameters available:
 * `signing_key_path`: path to a RSA Private Key file (PKCS#1). MUST be configured.
 * `db_uri`: connection URI to MongoDB instance where the data will be persisted, if it's not specified all data will only
    be stored in-memory (not suitable for production use).
+* `sub_hash_salt`: salt which is hashed into the `sub` claim. If it's not specified, SATOSA will generate a random salt on each startup, which means that users will get new `sub` value after every restart.
 * `provider`: provider configuration information. MUST be configured, the following configuration are supported:
     * `response_types_supported` (default: `[id_token]`): list of all supported response types, see [Section 3 of OIDC Core](http://openid.net/specs/openid-connect-core-1_0.html#Authentication).
     * `subject_types_supported` (default: `[pairwise]`): list of all supported subject identifier types, see [Section 8 of OIDC Core](http://openid.net/specs/openid-connect-core-1_0.html#SubjectIDTypes)
