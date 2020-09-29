@@ -3,6 +3,7 @@ name: Saml2
 config:
   idp_blacklist_file: /path/to/blacklist.json
 
+  entityid_endpoint: true
   mirror_force_authn: no
   memorize_idp: no
   use_memorized_idp_when_force_authn: no
