@@ -1,0 +1,29 @@
+module: satosa.backends.apple.AppleBackend
+name: apple
+config:
+  provider_metadata:
+    issuer: https://appleid.apple.com
+  client:
+    verify_ssl: yes
+    auth_req_params:
+      response_type: code
+      scope: [openid, email, name]
+      response_mode: form_post
+      token_endpoint_auth_method: client_secret_post
+    client_metadata:
+      application_name: Sign in with Apple
+      application_type: web
+      client_id: 'CLIENT_ID_HERE'
+      client_secret: 'CLIENT_SECRET_HERE'
+      redirect_uris: [<base_url>/<name>]
+      subject_type: pairwise
+  entity_info:
+    organization:
+      display_name:
+      - ['Apple', 'en']
+      name:
+      - ['Apple Inc.', 'en']
+    ui_info:
+      display_name:
+        - lang: en
+          text: 'Sign in with Apple'
