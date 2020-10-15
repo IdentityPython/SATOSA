@@ -5,6 +5,7 @@ SATOSA microservice that outputs log in custom format.
 from .base import ResponseMicroService
 from satosa.logging_util import satosa_logging
 from base64 import urlsafe_b64encode, urlsafe_b64decode
+from datetime import datetime
 
 import json
 import copy
@@ -21,7 +22,7 @@ class CustomLoggingService(ResponseMicroService):
     def __init__(self, config, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.config = config
-        
+
     def process(self, context, data):
         logprefix = CustomLoggingService.logprefix
 
@@ -73,12 +74,13 @@ class CustomLoggingService(ResponseMicroService):
             # This is where the logging magic happens
             log = {}
             log['router'] = context.state.state_dict['ROUTER']
-            log['timestamp'] = data.auth_info.timestamp
+            log['samltime'] = data.auth_info.timestamp
+            log['timestamp'] = datetime.now().isoformat()
             log['sessionid'] = context.state.state_dict['SESSION_ID']
             log['idp'] = idpEntityID
             log['sp'] = spEntityID
             log['attr'] = { key: data.to_dict()['attr'].get(key) for key in attrs }
-            
+
             print(json.dumps(log), file=loghandle, end="\n")
 
         except Exception as err:
