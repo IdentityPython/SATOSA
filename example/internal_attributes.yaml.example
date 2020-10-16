@@ -27,7 +27,7 @@ attributes:
     orcid: [emails.str]
     github: [email]
     openid: [email]
-    saml: [email, emailAdress, mail]
+    saml: [email, emailAddress, mail]
   name:
     facebook: [name]
     orcid: [name.credit-name]
