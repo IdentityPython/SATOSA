@@ -75,7 +75,7 @@ class TestSAMLFrontend:
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
 
-        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf))
         destination, auth_req = fakesp.make_auth_req(
             samlfrontend.idp_config["entityid"],
             nameid_format,
@@ -94,7 +94,7 @@ class TestSAMLFrontend:
         return samlfrontend
 
     def get_auth_response(self, samlfrontend, context, internal_response, sp_conf, idp_metadata_str):
-        sp_config = SPConfig().load(sp_conf, metadata_construction=False)
+        sp_config = SPConfig().load(sp_conf)
         resp_args = {
             "name_id_policy": NameIDPolicy(format=NAMEID_FORMAT_TRANSIENT),
             "in_response_to": None,
@@ -150,7 +150,7 @@ class TestSAMLFrontend:
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
 
-        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf))
         resp = fakesp.parse_authn_request_response(resp_dict["SAMLResponse"][0],
                                                    BINDING_HTTP_REDIRECT)
         for key in resp.ava:
@@ -189,7 +189,7 @@ class TestSAMLFrontend:
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
 
-        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf))
         resp = fakesp.parse_authn_request_response(resp_dict["SAMLResponse"][0],
                                                    BINDING_HTTP_REDIRECT)
 
@@ -213,7 +213,7 @@ class TestSAMLFrontend:
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
 
-        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf))
         resp = fakesp.parse_authn_request_response(
                            resp_dict["SAMLResponse"][0], BINDING_HTTP_REDIRECT)
 
@@ -548,7 +548,7 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
         # SP configuration fixture with the metadata.
         idp_metadata_str = create_metadata_from_config_dict(idp_conf)
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
-        sp_config = SPConfig().load(sp_conf, metadata_construction=False)
+        sp_config = SPConfig().load(sp_conf)
 
         # Use the updated sp_config fixture to generate a fake SP and then
         # use the fake SP to generate an authentication request aimed at the

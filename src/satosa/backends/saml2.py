@@ -104,9 +104,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         super().__init__(outgoing, internal_attributes, base_url, name)
         self.config = self.init_config(config)
 
-        sp_config = SPConfig().load(copy.deepcopy(
-            config[SAMLBackend.KEY_SP_CONFIG]), False
-        )
+        sp_config = SPConfig().load(copy.deepcopy(config[SAMLBackend.KEY_SP_CONFIG]))
         self.sp = Base(sp_config)
 
         self.discosrv = config.get(SAMLBackend.KEY_DISCO_SRV)

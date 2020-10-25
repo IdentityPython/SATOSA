@@ -236,7 +236,7 @@ class TestCreateEntityDescriptors:
 class TestCreateSignedEntitiesDescriptor:
     @pytest.fixture
     def entity_desc(self, sp_conf):
-        return entity_descriptor(SPConfig().load(sp_conf, metadata_construction=True))
+        return entity_descriptor(SPConfig().load(sp_conf))
 
     @pytest.fixture
     def verification_security_context(self, cert_and_key):
@@ -274,7 +274,7 @@ class TestCreateSignedEntitiesDescriptor:
 class TestCreateSignedEntityDescriptor:
     @pytest.fixture
     def entity_desc(self, sp_conf):
-        return entity_descriptor(SPConfig().load(sp_conf, metadata_construction=True))
+        return entity_descriptor(SPConfig().load(sp_conf))
 
     @pytest.fixture
     def verification_security_context(self, cert_and_key):

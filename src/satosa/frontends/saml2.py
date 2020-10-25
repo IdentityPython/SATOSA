@@ -116,7 +116,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         self.idp_config = self._build_idp_config_endpoints(
             self.config[self.KEY_IDP_CONFIG], backend_names)
         # Create the idp
-        idp_config = IdPConfig().load(copy.deepcopy(self.idp_config), metadata_construction=False)
+        idp_config = IdPConfig().load(copy.deepcopy(self.idp_config))
         self.idp = Server(config=idp_config)
         return self._register_endpoints(backend_names)
 
@@ -290,9 +290,14 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         idp_policy = idp.config.getattr("policy", "idp")
         attributes = {}
         if idp_policy:
-            approved_attributes = self._get_approved_attributes(idp, idp_policy, internal_response.requester,
-                                                                context.state)
-            attributes = {k: v for k, v in internal_response.attributes.items() if k in approved_attributes}
+            approved_attributes = self._get_approved_attributes(
+                idp, idp_policy, internal_response.requester, context.state
+            )
+            attributes = {
+                k: v
+                for k, v in internal_response.attributes.items()
+                if k in approved_attributes
+            }
 
         return attributes
 
@@ -637,7 +642,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         """
         target_entity_id = context.target_entity_id_from_path()
         idp_conf_file = self._load_endpoints_to_config(context.target_backend, target_entity_id)
-        idp_config = IdPConfig().load(idp_conf_file, metadata_construction=False)
+        idp_config = IdPConfig().load(idp_conf_file)
         return Server(config=idp_config)
 
     def _load_idp_dynamic_entity_id(self, state):
@@ -653,7 +658,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         # Change the idp entity id dynamically
         idp_config_file = copy.deepcopy(self.idp_config)
         idp_config_file["entityid"] = "{}/{}".format(self.idp_config["entityid"], state[self.name]["target_entity_id"])
-        idp_config = IdPConfig().load(idp_config_file, metadata_construction=False)
+        idp_config = IdPConfig().load(idp_config_file)
         return Server(config=idp_config)
 
     def handle_authn_request(self, context, binding_in):
@@ -1033,8 +1038,7 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
 
         # Use the overwritten IdP config to generate a pysaml2 config object
         # and from it a server object.
-        pysaml2_idp_config = IdPConfig().load(idp_config,
-                                              metadata_construction=False)
+        pysaml2_idp_config = IdPConfig().load(idp_config)
 
         server = Server(config=pysaml2_idp_config)
 

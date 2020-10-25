@@ -78,7 +78,7 @@ class TestOIDCToSAML:
         # config test IdP
         backend_metadata_str = str(backend_metadata[saml_backend_config["name"]][0])
         idp_conf["metadata"]["inline"].append(backend_metadata_str)
-        fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf, metadata_construction=False))
+        fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf))
 
         # create auth resp
         req_params = dict(parse_qsl(urlparse(proxied_auth_req.data.decode("utf-8")).query))

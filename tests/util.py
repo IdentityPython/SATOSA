@@ -231,7 +231,7 @@ class FakeIdP(server.Server):
 
 def create_metadata_from_config_dict(config):
     nspair = {"xs": "http://www.w3.org/2001/XMLSchema"}
-    conf = Config().load(config, metadata_construction=True)
+    conf = Config().load(config)
     return entity_descriptor(conf).to_string(nspair).decode("utf-8")
 
 
