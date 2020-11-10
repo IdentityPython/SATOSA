@@ -193,11 +193,10 @@ Metadata from local file:
 
 Metadata from remote URL:
 
-    "metadata": {
-        "remote":
-            - url:https://kalmar2.org/simplesaml/module.php/aggregator/?id=kalmarcentral2&set=saml2
-              cert:null
-    }
+    "metadata":
+        remote:
+            - url: "https://kalmar2.org/simplesaml/module.php/aggregator/?id=kalmarcentral2&set=saml2"
+              cert: null
 
 For more detailed information on how you could customize the SAML entities,
 see the
