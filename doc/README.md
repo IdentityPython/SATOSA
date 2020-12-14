@@ -306,17 +306,17 @@ basis. This example summarizes the most common settings (hopefully self-explanat
 
 ```yaml
 config:
-    idp_config:
-        service:
-            idp:
-                policy:
-                    default:
-                        sign_response: True
-                        sign_assertion: False
-                        sign_alg: "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
-                        digest_alg: "http://www.w3.org/2001/04/xmlenc#sha256"
-                    <sp entityID>:
-                        ...
+  idp_config:
+    service:
+      idp:
+        policy:
+          default:
+            sign_response: True
+            sign_assertion: False
+            sign_alg: "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
+            digest_alg: "http://www.w3.org/2001/04/xmlenc#sha256"
+          <sp entityID>:
+            ...
 ```
 
 Overrides per SP entityID is possible by using the entityID as a key instead of the "default" key
