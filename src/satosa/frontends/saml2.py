@@ -377,17 +377,17 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         # Construct arguments for method create_authn_response
         # on IdP Server instance
         args = {
-            'identity'      : ava,
-            'name_id'       : name_id,
-            'authn'         : auth_info,
-            'sign_response' : sign_response,
+            # Add the SP details
+            **resp_args,
+            # AuthnResponse data
+            'identity': ava,
+            'name_id': name_id,
+            'authn': auth_info,
+            'sign_response': sign_response,
             'sign_assertion': sign_assertion,
             'encrypt_assertion': encrypt_assertion,
-            'encrypted_advice_attributes': encrypted_advice_attributes
+            'encrypted_advice_attributes': encrypted_advice_attributes,
         }
-
-        # Add the SP details
-        args.update(**resp_args)
 
         try:
             args['sign_alg'] = getattr(xmldsig, sign_alg)
@@ -412,6 +412,16 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             msg = "using digest algorithm {}".format(args['digest_alg'])
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline)
+
+        if 'sign_alg' in args or 'digest_alg' in args:
+            msg = (
+                "sign_alg and digest_alg are deprecated; "
+                "instead, use signing_algorithm and digest_algorithm "
+                "under the service/idp configuration path "
+                "(not under policy/default)."
+            )
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.warning(msg)
 
         resp = idp.create_authn_response(**args)
         http_args = idp.apply_binding(
