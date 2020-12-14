@@ -313,8 +313,6 @@ config:
           default:
             sign_response: True
             sign_assertion: False
-            sign_alg: "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
-            digest_alg: "http://www.w3.org/2001/04/xmlenc#sha256"
           <sp entityID>:
             ...
 ```
