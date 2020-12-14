@@ -285,17 +285,28 @@ class TestSAMLFrontend:
         authn_context_class_ref = resp.assertion.authn_statement[0].authn_context.authn_context_class_ref
         assert authn_context_class_ref.text == expected_loa
 
-    @pytest.mark.parametrize("entity_category, entity_category_module, expected_attributes", [
-        ([""], "swamid", swamid.RELEASE[""]),
-        ([COCO], "edugain", edugain.RELEASE[""] + edugain.RELEASE[COCO]),
-        ([RESEARCH_AND_SCHOLARSHIP], "refeds", refeds.RELEASE[""] + refeds.RELEASE[RESEARCH_AND_SCHOLARSHIP]),
-        ([RESEARCH_AND_EDUCATION, EU], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, EU)]),
-        ([RESEARCH_AND_EDUCATION, HEI], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, HEI)]),
-        ([RESEARCH_AND_EDUCATION, NREN], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, NREN)]),
-        ([SFS_1993_1153], "swamid", swamid.RELEASE[""] + swamid.RELEASE[SFS_1993_1153]),
-    ])
-    def test_respect_sp_entity_categories(self, context, entity_category, entity_category_module, expected_attributes,
-                                          idp_conf, sp_conf, internal_response):
+    @pytest.mark.parametrize(
+        "entity_category, entity_category_module, expected_attributes",
+        [
+            ([""], "swamid", swamid.RELEASE[""]),
+            ([COCO], "edugain", edugain.RELEASE[""] + edugain.RELEASE[COCO]),
+            ([RESEARCH_AND_SCHOLARSHIP], "refeds", refeds.RELEASE[""] + refeds.RELEASE[RESEARCH_AND_SCHOLARSHIP]),
+            ([RESEARCH_AND_EDUCATION, EU], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, EU)]),
+            ([RESEARCH_AND_EDUCATION, HEI], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, HEI)]),
+            ([RESEARCH_AND_EDUCATION, NREN], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, NREN)]),
+            ([SFS_1993_1153], "swamid", swamid.RELEASE[""] + swamid.RELEASE[SFS_1993_1153]),
+        ]
+    )
+    def test_respect_sp_entity_categories(
+        self,
+        context,
+        entity_category,
+        entity_category_module,
+        expected_attributes,
+        idp_conf,
+        sp_conf,
+        internal_response
+    ):
         idp_metadata_str = create_metadata_from_config_dict(idp_conf)
         idp_conf["service"]["idp"]["policy"]["default"]["entity_categories"] = [entity_category_module]
         if all(entity_category):  # don't insert empty entity category
@@ -303,10 +314,18 @@ class TestSAMLFrontend:
         if entity_category == [COCO]:
             sp_conf["service"]["sp"]["required_attributes"] = expected_attributes
 
-        expected_attributes_in_all_entity_categories = list(
-            itertools.chain(swamid.RELEASE[""], edugain.RELEASE[COCO], refeds.RELEASE[RESEARCH_AND_SCHOLARSHIP],
-                            swamid.RELEASE[(RESEARCH_AND_EDUCATION, EU)], swamid.RELEASE[(RESEARCH_AND_EDUCATION, HEI)],
-                            swamid.RELEASE[(RESEARCH_AND_EDUCATION, NREN)], swamid.RELEASE[SFS_1993_1153]))
+        expected_attributes_in_all_entity_categories = set(
+            itertools.chain(
+                swamid.RELEASE[""],
+                edugain.RELEASE[""],
+                edugain.RELEASE[COCO],
+                refeds.RELEASE[RESEARCH_AND_SCHOLARSHIP],
+                swamid.RELEASE[(RESEARCH_AND_EDUCATION, EU)],
+                swamid.RELEASE[(RESEARCH_AND_EDUCATION, HEI)],
+                swamid.RELEASE[(RESEARCH_AND_EDUCATION, NREN)],
+                swamid.RELEASE[SFS_1993_1153],
+            )
+        )
         attribute_mapping = {}
         for expected_attribute in expected_attributes_in_all_entity_categories:
             attribute_mapping[expected_attribute.lower()] = {"saml": [expected_attribute]}
@@ -345,8 +364,9 @@ class TestSAMLFrontend:
         assert headers["Content-Type"] == "text/xml"
         assert idp_conf["entityid"] in resp.message
 
-    def test_custom_attribute_release_with_less_attributes_than_entity_category(self, context, idp_conf, sp_conf,
-                                                                                internal_response):
+    def test_custom_attribute_release_with_less_attributes_than_entity_category(
+        self, context, idp_conf, sp_conf, internal_response
+    ):
         idp_metadata_str = create_metadata_from_config_dict(idp_conf)
         idp_conf["service"]["idp"]["policy"]["default"]["entity_categories"] = ["swamid"]
         sp_conf["entity_category"] = [SFS_1993_1153]
@@ -364,8 +384,12 @@ class TestSAMLFrontend:
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, internal_attributes=internal_attributes,
                                                 extra_config=dict(custom_attribute_release=custom_attributes))
 
+        internal_response.requester = sp_conf["entityid"]
         resp = self.get_auth_response(samlfrontend, context, internal_response, sp_conf, idp_metadata_str)
-        assert len(resp.ava.keys()) == 0
+        assert len(resp.ava.keys()) == (
+            len(expected_attributes)
+            - len(custom_attributes[internal_response.auth_info.issuer][internal_response.requester]["exclude"])
+        )
 
 
 class TestSAMLMirrorFrontend:
