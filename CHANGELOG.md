@@ -1,5 +1,11 @@
 # Changelog
 
+## 7.0.3 (2021-01-21)
+
+- dependencies: Set minimum pysaml2 version to v6.5.1 to fix internal XML
+  parser issues around the xs and xsd namespace prefixes declarations
+
+
 ## 7.0.2 (2021-01-20) - Security release for pySAML2 dependency
 
 - Add RegexSubProcessor attribute processor
