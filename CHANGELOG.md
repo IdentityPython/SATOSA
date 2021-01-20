@@ -1,5 +1,24 @@
 # Changelog
 
+## 7.0.2 (2021-01-20) - Security release for pySAML2 dependency
+
+- Add RegexSubProcessor attribute processor
+- Fix SAMLVirtualCoFrontend metadata generation
+- frontends: Deprecate the sign_alg and digest_alg configuration options on the
+  saml2 frontend. Instead, use the signing_algorithm and digest_algorithm
+  configuration options under the service/idp configuration path (not under
+  service/idp/policy/default)
+- backends: New backend to login with Apple ID
+- dependencies: Set minimum pysaml2 version to v6.5.0 to make sure we get a
+  version patched for CVE-2021-21238 and CVE-2021-21239
+- build: Fix the CI base image
+- tests: Fix entity-category checks
+- docs: Document the sub_hash_salt configuration for the OIDC frontend
+- examples: Add entityid_endpoint to the saml backend and frontend
+  configuration
+- examples: Fix the SAMLVirtualCoFrontend example configuration
+
+
 ## 7.0.1 (2020-06-09)
 
 - build: fix the CI release process
@@ -50,7 +69,7 @@
 - build: tag docker image by commit, branch, PR number, version and "latest"
 
 
-## 6.1.0 (2020-02-28)
+## 6.1.0 (2020-02-28) - Security release for pySAML2 dependency
 
 - Set the SameSite cookie attribute to "None"
 - Add compatibility support for the SameSite attribute for incompatible
