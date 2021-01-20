@@ -362,17 +362,20 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.debug(logline)
 
-        policies = self.idp_config.get(
-            'service', {}).get('idp', {}).get('policy', {})
+        idp_conf = self.idp_config.get('service', {}).get('idp', {})
+        policies = idp_conf.get('policy', {})
         sp_policy = policies.get('default', {})
         sp_policy.update(policies.get(sp_entity_id, {}))
 
         sign_assertion = sp_policy.get('sign_assertion', False)
         sign_response = sp_policy.get('sign_response', True)
-        sign_alg = sp_policy.get('sign_alg', 'SIG_RSA_SHA256')
-        digest_alg = sp_policy.get('digest_alg', 'DIGEST_SHA256')
         encrypt_assertion = sp_policy.get('encrypt_assertion', False)
         encrypted_advice_attributes = sp_policy.get('encrypted_advice_attributes', False)
+
+        signing_algorithm = idp_conf.get('signing_algorithm')
+        digest_algorithm = idp_conf.get('digest_algorithm')
+        sign_alg_attr = sp_policy.get('sign_alg', 'SIG_RSA_SHA256')
+        digest_alg_attr = sp_policy.get('digest_alg', 'DIGEST_SHA256')
 
         # Construct arguments for method create_authn_response
         # on IdP Server instance
@@ -389,31 +392,35 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             'encrypted_advice_attributes': encrypted_advice_attributes,
         }
 
-        try:
-            args['sign_alg'] = getattr(xmldsig, sign_alg)
-        except AttributeError as e:
-            msg = "Unsupported sign algorithm {}".format(sign_alg)
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.error(logline)
-            raise Exception(msg) from e
-        else:
-            msg = "signing with algorithm {}".format(args['sign_alg'])
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.debug(logline)
+        args['sign_alg'] = signing_algorithm
+        if not args['sign_alg']:
+            try:
+                args['sign_alg'] = getattr(xmldsig, sign_alg_attr)
+            except AttributeError as e:
+                msg = "Unsupported sign algorithm {}".format(sign_alg)
+                logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                logger.error(logline)
+                raise Exception(msg) from e
 
-        try:
-            args['digest_alg'] = getattr(xmldsig, digest_alg)
-        except AttributeError as e:
-            msg = "Unsupported digest algorithm {}".format(digest_alg)
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.error(logline)
-            raise Exception(msg) from e
-        else:
-            msg = "using digest algorithm {}".format(args['digest_alg'])
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.debug(logline)
+        msg = "signing with algorithm {}".format(args['sign_alg'])
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
 
-        if 'sign_alg' in args or 'digest_alg' in args:
+        args['digest_alg'] = digest_algorithm
+        if not args['digest_alg']:
+            try:
+                args['digest_alg'] = getattr(xmldsig, digest_alg_attr)
+            except AttributeError as e:
+                msg = "Unsupported digest algorithm {}".format(digest_alg)
+                logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                logger.error(logline)
+                raise Exception(msg) from e
+
+        msg = "using digest algorithm {}".format(args['digest_alg'])
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
+
+        if sign_alg_attr or digest_alg_attr:
             msg = (
                 "sign_alg and digest_alg are deprecated; "
                 "instead, use signing_algorithm and digest_algorithm "
