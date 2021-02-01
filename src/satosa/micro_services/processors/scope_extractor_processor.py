@@ -31,6 +31,8 @@ class ScopeExtractorProcessor(BaseProcessor):
         values = attributes.get(attribute, [])
         if not values:
             raise AttributeProcessorWarning("Cannot apply scope_extractor to {}, it has no values".format(attribute))
+        if not isinstance(values, list):
+            values = [values]
         if not any('@' in val for val in values):
             raise AttributeProcessorWarning("Cannot apply scope_extractor to {}, it's values are not scoped".format(attribute))
         for value in values:
