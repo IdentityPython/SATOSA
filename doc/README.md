@@ -402,6 +402,30 @@ config:
   [...]
 ```
 
+##### Dynamic requested attributes
+
+The `dynamic_requested_attributes` option can be used to enable the requested
+attributes eIDAS extension for requesting attributes from the IdP. These
+attributes are populated dynamically using the attributes which were
+requested from the frontend.
+
+In order for this to work the frontend must populate the internal request's
+`attributes` field.
+
+To enable this feature we need to provide a list of the friendly names of the
+attributes which we want to be able to request and whether they are required or
+not. E.g.:
+
+```yaml
+config:
+  dynamic_requested_attributes:
+    - friendly_name: attr1
+      required: True
+    - friendly_name: attr2
+      required: False
+  [...]
+```
+
 ### <a name="openid_plugin" style="color:#000000">OpenID Connect plugins</a>
 
 #### Backend

@@ -219,3 +219,38 @@ class AttributeMapper(object):
                 external_dict[external_attribute_name] = internal_dict[internal_attribute_name]
 
         return external_dict
+
+    def from_internal_filter(
+        self, attribute_profile, internal_attribute_names
+    ):
+        """
+        Converts attribute names from internal to external "type"
+
+        :type attribute_profile: str
+        :type internal_attribute_names: list[str]
+        :rtype: list[str]
+
+        :param attribute_profile: To which external type to convert to
+            (ex: oidc, saml, ...)
+        :param internal_attribute_names: A list of attribute names
+        :return: A list of attribute names in the external format
+        """
+        external_attribute_names = set()
+        for internal_attribute_name in internal_attribute_names:
+            try:
+                external_attribute_name = self.from_internal_attributes[
+                    internal_attribute_name
+                ]
+                # Take the first value always
+                external_attribute_names.add(
+                    external_attribute_name[attribute_profile][0]
+                )
+            except KeyError:
+                logger.warn(
+                    f"No attribute mapping found for the attribute "
+                    f"{internal_attribute_name} to the profile "
+                    f"{attribute_profile}"
+                )
+                pass
+
+        return list(external_attribute_names)
