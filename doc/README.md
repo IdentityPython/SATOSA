@@ -566,6 +566,18 @@ the string `"foo:bar"`:
         "attr1": "foo:bar"
 ```
 
+#### Apply a Attribute Policy
+
+Attributes delivered from the target provider can be filtered based on a list of allowed attributes per requester
+using the `AttributePolicy` class:
+```yaml
+attribute_policy:
+    <requester>:
+        allowed:
+            - attr1
+            - attr2
+```
+
 #### Route to a specific backend based on the requester
 To choose which backend (essentially choosing target provider) to use based on the requester, use the
 `DecideBackendByRequester` class which implements that special routing behavior. See the
