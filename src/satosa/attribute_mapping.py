@@ -100,8 +100,8 @@ class AttributeMapper(object):
             attribute_values = self._collate_attribute_values_by_priority_order(external_attribute_name,
                                                                                 external_dict)
             if attribute_values:  # Only insert key if it has some values
-                logline = "backend attribute {external} mapped to {internal}".format(
-                    external=external_attribute_name, internal=internal_attribute_name
+                logline = "backend attribute {external} mapped to {internal} ({value})".format(
+                    external=external_attribute_name, internal=internal_attribute_name, value=attribute_values
                 )
                 logger.debug(logline)
                 internal_dict[internal_attribute_name] = attribute_values
@@ -205,8 +205,8 @@ class AttributeMapper(object):
             external_attribute_names = self.from_internal_attributes[internal_attribute_name][attribute_profile]
             # select the first attribute name
             external_attribute_name = external_attribute_names[0]
-            logline = "frontend attribute {external} mapped from {internal}".format(
-                external=external_attribute_name, internal=internal_attribute_name
+            logline = "frontend attribute {external} mapped from {internal} ({value})".format(
+                external=external_attribute_name, internal=internal_attribute_name, value=internal_dict[internal_attribute_name]
             )
             logger.debug(logline)
 
