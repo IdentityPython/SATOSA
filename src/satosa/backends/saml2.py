@@ -9,6 +9,7 @@ import warnings as _warnings
 from base64 import urlsafe_b64encode
 from urllib.parse import urlparse
 
+from saml2 import samlp
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client_base import Base
 from saml2.config import SPConfig
@@ -79,6 +80,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
     KEY_SAML_DISCOVERY_SERVICE_URL = 'saml_discovery_service_url'
     KEY_SAML_DISCOVERY_SERVICE_POLICY = 'saml_discovery_service_policy'
     KEY_SP_CONFIG = 'sp_config'
+    KEY_SEND_REQUESTER_ID = 'send_requester_id'
     KEY_MIRROR_FORCE_AUTHN = 'mirror_force_authn'
     KEY_MEMORIZE_IDP = 'memorize_idp'
     KEY_USE_MEMORIZED_IDP_WHEN_FORCE_AUTHN = 'use_memorized_idp_when_force_authn'
@@ -263,6 +265,10 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             kwargs["force_authn"] = get_force_authn(
                 context, self.config, self.sp.config
             )
+        if self.config.get(SAMLBackend.KEY_SEND_REQUESTER_ID):
+            kwargs["scoping"] = samlp.Scoping(requester_id=[samlp.RequesterID()])
+            requesterID = context.state.state_dict['SATOSA_BASE']['requester']
+            kwargs["scoping"].requester_id[0].text = requesterID
 
         try:
             binding, destination = self.sp.pick_binding(
