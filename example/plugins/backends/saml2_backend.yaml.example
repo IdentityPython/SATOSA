@@ -7,6 +7,7 @@ config:
   mirror_force_authn: no
   memorize_idp: no
   use_memorized_idp_when_force_authn: no
+  send_requester_id: no
 
   sp_config:
     key_file: backend.key

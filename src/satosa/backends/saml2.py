@@ -15,11 +15,14 @@ from saml2.config import SPConfig
 from saml2.extension.mdui import NAMESPACE as UI_NAMESPACE
 from saml2.metadata import create_metadata_string
 from saml2.authn_context import requested_authn_context
+from saml2.samlp import RequesterID
+from saml2.samlp import Scoping
 
 import satosa.logging_util as lu
 import satosa.util as util
 from satosa.base import SAMLBaseModule
 from satosa.base import SAMLEIDASBaseModule
+from satosa.base import STATE_KEY as STATE_KEY_BASE
 from satosa.context import Context
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
@@ -79,6 +82,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
     KEY_SAML_DISCOVERY_SERVICE_URL = 'saml_discovery_service_url'
     KEY_SAML_DISCOVERY_SERVICE_POLICY = 'saml_discovery_service_policy'
     KEY_SP_CONFIG = 'sp_config'
+    KEY_SEND_REQUESTER_ID = 'send_requester_id'
     KEY_MIRROR_FORCE_AUTHN = 'mirror_force_authn'
     KEY_MEMORIZE_IDP = 'memorize_idp'
     KEY_USE_MEMORIZED_IDP_WHEN_FORCE_AUTHN = 'use_memorized_idp_when_force_authn'
@@ -263,6 +267,9 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             kwargs["force_authn"] = get_force_authn(
                 context, self.config, self.sp.config
             )
+        if self.config.get(SAMLBackend.KEY_SEND_REQUESTER_ID):
+            requester = context.state.state_dict[STATE_KEY_BASE]['requester']
+            kwargs["scoping"] = Scoping(requester_id=[RequesterID(text=requester)])
 
         try:
             binding, destination = self.sp.pick_binding(
