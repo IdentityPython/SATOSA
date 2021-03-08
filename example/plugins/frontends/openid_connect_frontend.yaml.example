@@ -12,5 +12,6 @@ config:
     scopes_supported: ["openid", "email"]
     extra_scopes:
       foo_scope:
-	  - bar_claim
-	  - baz_claim
+      - bar_claim
+      - baz_claim
+    id_token_lifetime: 3600
