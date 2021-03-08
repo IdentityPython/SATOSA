@@ -9,18 +9,20 @@ import warnings as _warnings
 from base64 import urlsafe_b64encode
 from urllib.parse import urlparse
 
-from saml2 import samlp
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client_base import Base
 from saml2.config import SPConfig
 from saml2.extension.mdui import NAMESPACE as UI_NAMESPACE
 from saml2.metadata import create_metadata_string
 from saml2.authn_context import requested_authn_context
+from saml2.samlp import RequesterID
+from saml2.samlp import Scoping
 
 import satosa.logging_util as lu
 import satosa.util as util
 from satosa.base import SAMLBaseModule
 from satosa.base import SAMLEIDASBaseModule
+from satosa.base import STATE_KEY as STATE_KEY_BASE
 from satosa.context import Context
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
@@ -266,9 +268,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                 context, self.config, self.sp.config
             )
         if self.config.get(SAMLBackend.KEY_SEND_REQUESTER_ID):
-            kwargs["scoping"] = samlp.Scoping(requester_id=[samlp.RequesterID()])
-            requesterID = context.state.state_dict['SATOSA_BASE']['requester']
-            kwargs["scoping"].requester_id[0].text = requesterID
+            requester = context.state.state_dict[STATE_KEY_BASE]['requester']
+            kwargs["scoping"] = Scoping(requester_id=[RequesterID(text=requester)])
 
         try:
             binding, destination = self.sp.pick_binding(
