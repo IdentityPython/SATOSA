@@ -93,7 +93,7 @@ class OpenIDConnectFrontend(FrontendModule):
             cdb,
             Userinfo(self.user_db),
             extra_scopes=extra_scopes,
-            id_token_lifetime=self.config["provider"].get("id_token_lifetime", 600),
+            id_token_lifetime=self.config["provider"].get("id_token_lifetime", 3600),
         )
 
     def _init_authorization_state(self):

@@ -442,7 +442,7 @@ The configuration parameters available:
     * `access_token_lifetime`: how long access tokens should be valid, see [default](https://github.com/SUNET/pyop#token-lifetimes)
     * `refresh_token_lifetime`: how long refresh tokens should be valid, if not specified no refresh tokens will be issued (which is [default](https://github.com/SUNET/pyop#token-lifetimes))
     * `refresh_token_threshold`: how long before expiration refresh tokens should be refreshed, if not specified refresh tokens will never be refreshed (which is [default](https://github.com/SUNET/pyop#token-lifetimes))
-    * `id_token_lifetime`: the lifetime of the ID token in seconds, see [default](https://github.com/SUNET/pyop#token-lifetimes)
+    * `id_token_lifetime`: the lifetime of the ID token in seconds - the default is set to 1hr (3600 seconds) (see [default](https://github.com/SUNET/pyop#token-lifetimes))
 
 The other parameters should be left with their default values.
 
@@ -692,5 +692,4 @@ set SATOSA_CONFIG=/home/user/proxy_conf.yaml
 ## Using Apache HTTP Server and mod\_wsgi
 
 See the [auxiliary documentation for running using mod\_wsgi](mod_wsgi.md).
-
 

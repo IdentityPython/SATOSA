@@ -14,4 +14,4 @@ config:
       foo_scope:
       - bar_claim
       - baz_claim
-    id_token_lifetime: 600
+    id_token_lifetime: 3600
