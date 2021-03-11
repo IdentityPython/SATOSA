@@ -91,6 +91,7 @@ class Consent(ResponseMicroService):
             "attr": internal_response.attributes,
             "id": id_hash,
             "redirect_endpoint": "%s/consent%s" % (self.base_url, self.endpoint),
+            "requester": internal_response.requester,
             "requester_name": internal_response.requester_name,
         }
         if self.locked_attr:
