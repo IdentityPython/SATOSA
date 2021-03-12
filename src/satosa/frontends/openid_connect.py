@@ -118,7 +118,15 @@ class OpenIDConnectFrontend(FrontendModule):
         return AuthorizationState(HashBasedSubjectIdentifierFactory(sub_hash_salt), authz_code_db, access_token_db,
                                   refresh_token_db, sub_db, **token_lifetimes)
 
-    def handle_authn_response(self, context, internal_resp, extra_id_token_claims=None):
+    def _get_extra_id_token_claims(self, user_id, client_id):
+        if "extra_id_token_claims" in self.config["provider"]:
+            config = self.config["provider"]["extra_id_token_claims"].get(client_id, [])
+            if type(config) is list and len(config) > 0:
+                requested_claims = {k: None for k in config}
+                return self.provider.userinfo.get_claims_for(user_id, requested_claims)
+        return {}
+
+    def handle_authn_response(self, context, internal_resp):
         """
         See super class method satosa.frontends.base.FrontendModule#handle_authn_response
         :type context: satosa.context.Context
@@ -133,7 +141,8 @@ class OpenIDConnectFrontend(FrontendModule):
         auth_resp = self.provider.authorize(
             auth_req,
             internal_resp.subject_id,
-            extra_id_token_claims=extra_id_token_claims,
+            extra_id_token_claims=lambda user_id, client_id:
+                self._get_extra_id_token_claims(user_id, client_id),
         )
 
         del context.state[self.name]
@@ -360,7 +369,10 @@ class OpenIDConnectFrontend(FrontendModule):
         """
         headers = {"Authorization": context.request_authorization}
         try:
-            response = self.provider.handle_token_request(urlencode(context.request), headers)
+            response = self.provider.handle_token_request(
+                urlencode(context.request),
+                headers,
+                lambda user_id, client_id: self._get_extra_id_token_claims(user_id, client_id))
             return Response(response.to_json(), content="application/json")
         except InvalidClientAuthentication as e:
             logline = "invalid client authentication at token endpoint"
