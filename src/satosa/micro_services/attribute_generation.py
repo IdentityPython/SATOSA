@@ -127,7 +127,10 @@ you don't care which value is used in a template.
         context = dict()
 
         for attr_name, values in attributes.items():
-            context[attr_name] = MustachAttrValue(attr_name, values)
+            context[attr_name] = MustachAttrValue(
+                attr_name,
+                values if values is not None else []
+            )
 
         recipes = get_dict_defaults(self.synthetic_attributes, requester, provider)
         for attr_name, fmt in recipes.items():
