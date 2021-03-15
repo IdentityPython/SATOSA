@@ -63,3 +63,20 @@ class TestAddSyntheticAttributes:
         assert("kaka1" in resp.attributes['kaka'])
         assert("a@example.com" in resp.attributes['eppn'])
         assert("b@example.com" in resp.attributes['eppn'])
+
+    def test_generate_mustache_empty_attribute(self):
+        synthetic_attributes = {
+           "": {"default": {"a0": "{{kaka.first}}#{{eppn.scope}}"}}
+        }
+        authz_service = self.create_syn_service(synthetic_attributes)
+        resp = InternalData(auth_info=AuthenticationInformation())
+        resp.attributes = {
+            "kaka": ["kaka1", "kaka2"],
+            "eppn": None,
+        }
+        ctx = Context()
+        ctx.state = dict()
+        authz_service.process(ctx, resp)
+        assert("kaka1#" in resp.attributes['a0'])
+        assert("kaka1" in resp.attributes['kaka'])
+        assert("kaka2" in resp.attributes['kaka'])
