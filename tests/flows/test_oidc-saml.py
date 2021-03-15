@@ -32,6 +32,7 @@ def oidc_frontend_config(signing_key_path, mongodb_instance):
             "issuer": "https://proxy-op.example.com",
             "signing_key_path": signing_key_path,
             "provider": {"response_types_supported": ["id_token"]},
+            "client_db_uri": mongodb_instance.get_uri(),  # use mongodb for integration testing
             "db_uri": mongodb_instance.get_uri()  # use mongodb for integration testing
         }
     }
