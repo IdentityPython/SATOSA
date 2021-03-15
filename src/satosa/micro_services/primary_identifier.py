@@ -250,13 +250,14 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
             logger.debug(logline)
             data.attributes = {}
 
-        # Set the primary identifier attribute to the value found.
-        data.attributes[primary_identifier] = primary_identifier_val
-        msg = "{} Setting attribute {} to value {}".format(
-            logprefix, primary_identifier, primary_identifier_val
-        )
-        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-        logger.debug(logline)
+        if primary_identifier:
+            # Set the primary identifier attribute to the value found.
+            data.attributes[primary_identifier] = primary_identifier_val
+            msg = "{} Setting attribute {} to value {}".format(
+                logprefix, primary_identifier, primary_identifier_val
+            )
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
 
         msg = "{} returning data.attributes {}".format(logprefix, str(data.attributes))
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
