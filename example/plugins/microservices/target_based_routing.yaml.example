@@ -1,0 +1,12 @@
+module: satosa.micro_services.custom_routing.DecideBackendByTargetIdP
+name: TargetRouter
+config:
+  default_backend: Saml2
+
+  # the regex that will intercept http requests to be handled with this microservice
+  endpoint_paths:
+    - ".*/disco"
+
+  target_mapping:
+    "http://idpspid.testunical.it:8088": "spidSaml2" # map SAML entity with entity id 'target_id' to backend name
+    "http://eidas.testunical.it:8081/saml2/metadata": "eidasSaml2"
