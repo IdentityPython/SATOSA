@@ -15,3 +15,7 @@ config:
       - bar_claim
       - baz_claim
     id_token_lifetime: 3600
+    extra_id_token_claims:
+      foo_client:
+        - bar_claim
+        - baz_claim
