@@ -65,6 +65,13 @@ def unpack_request(environ, content_length=0):
     return data
 
 
+def unpack_http_headers(environ):
+    headers = ('REQUEST_METHOD', 'PATH_INFO', 'REQUEST_URI',
+               'QUERY_STRING', 'SERVER_NAME', 'REMOTE_ADDR',
+               'HTTP_HOST', 'HTTP_USER_AGENT', 'HTTP_ACCEPT_LANGUAGE')
+    return {k:v for k,v in environ.items() if k in headers}
+
+
 class ToBytesMiddleware(object):
     """Converts a message to bytes to be sent by WSGI server."""
 
@@ -109,6 +116,7 @@ class WsgiApplication(SATOSABase):
         body = io.BytesIO(environ['wsgi.input'].read(content_length))
         environ['wsgi.input'] = body
         context.request = unpack_request(environ, content_length)
+        context._http_headers = unpack_http_headers(environ)
         environ['wsgi.input'].seek(0)
 
         context.cookie = environ.get("HTTP_COOKIE", "")
