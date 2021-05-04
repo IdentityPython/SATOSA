@@ -17,7 +17,7 @@ apt-get install libffi-dev libssl-dev xmlsec1
 ````
 
 ### <a name="install_instructions" style="color:#000000">Instructions</a>
-1. Download the SATOSA proxy project as a [compressed archive](https://github.com/SUNET/SATOSA/releases)
+1. Download the SATOSA proxy project as a [compressed archive](https://github.com/IdentityPython/SATOSA/releases)
    and unpack it to `<satosa_path>`.
 
 1. Install the application:
@@ -440,11 +440,11 @@ The configuration parameters available:
     * `client_registration_supported` (default: `No`): boolean whether [dynamic client registration is supported](https://openid.net/specs/openid-connect-registration-1_0.html).
         If dynamic client registration is not supported all clients must exist in the MongoDB instance configured by the `db_uri` in the `"clients"` collection of the `"satosa"` database.
         The registration info must be stored using the client id as a key, and use the parameter names of a [OIDC Registration Response](https://openid.net/specs/openid-connect-registration-1_0.html#RegistrationResponse).
-    * `authorization_code_lifetime`: how long authorization codes should be valid, see [default](https://github.com/SUNET/pyop#token-lifetimes)
-    * `access_token_lifetime`: how long access tokens should be valid, see [default](https://github.com/SUNET/pyop#token-lifetimes)
-    * `refresh_token_lifetime`: how long refresh tokens should be valid, if not specified no refresh tokens will be issued (which is [default](https://github.com/SUNET/pyop#token-lifetimes))
-    * `refresh_token_threshold`: how long before expiration refresh tokens should be refreshed, if not specified refresh tokens will never be refreshed (which is [default](https://github.com/SUNET/pyop#token-lifetimes))
-    * `id_token_lifetime`: the lifetime of the ID token in seconds - the default is set to 1hr (3600 seconds) (see [default](https://github.com/SUNET/pyop#token-lifetimes))
+    * `authorization_code_lifetime`: how long authorization codes should be valid, see [default](https://github.com/IdentityPython/pyop#token-lifetimes)
+    * `access_token_lifetime`: how long access tokens should be valid, see [default](https://github.com/IdentityPython/pyop#token-lifetimes)
+    * `refresh_token_lifetime`: how long refresh tokens should be valid, if not specified no refresh tokens will be issued (which is [default](https://github.com/IdentityPython/pyop#token-lifetimes))
+    * `refresh_token_threshold`: how long before expiration refresh tokens should be refreshed, if not specified refresh tokens will never be refreshed (which is [default](https://github.com/IdentityPython/pyop#token-lifetimes))
+    * `id_token_lifetime`: the lifetime of the ID token in seconds - the default is set to 1hr (3600 seconds) (see [default](https://github.com/IdentityPython/pyop#token-lifetimes))
 
 The other parameters should be left with their default values.
 
