@@ -181,6 +181,8 @@ Common configuration parameters:
 | `entityid_endpoint` | bool | `true` | whether `entityid` should be used as a URL that serves the metadata xml document
 | `acr_mapping` | dict | `None` | custom Authentication Context Class Reference
 
+#### <a name="saml_metadata" style="color:#000000">Metadata</a>
+
 The metadata could be loaded in multiple ways in the table above it's loaded from a static
 file by using the key "local". It's also possible to load read the metadata from a remote URL.
 
@@ -203,7 +205,7 @@ see the
 [documentation of the underlying library pysaml2](https://github.com/rohe/pysaml2/blob/master/docs/howto/config.rst).
 
 
-##### Providing `AuthnContextClassRef`
+#### Providing `AuthnContextClassRef`
 
 SAML2 frontends and backends can provide a custom (configurable) *Authentication Context Class Reference*.
 For the frontend this is defined in the `AuthnStatement` of the authentication response, while,
@@ -231,7 +233,7 @@ provider will be preserved, and when using a OAuth or OpenID Connect backend, th
             "https://accounts.google.com": LoA1
 
 
-#### Frontend
+#### <a name="saml_frontend" style="color:#000000">Frontend</a>
 
 The SAML2 frontend act as a SAML Identity Provider (IdP), accepting
 authentication requests from SAML Service Providers (SP). The default
@@ -299,7 +301,7 @@ config:
                 exclude: ["givenName"]
 ```
 
-#### Policy
+##### Policy
 
 Some settings related to how a SAML response is formed can be overriden on a per-instance or a per-SP
 basis. This example summarizes the most common settings (hopefully self-explanatory) with their defaults:
@@ -322,7 +324,7 @@ in the yaml structure. The most specific key takes presedence. If no policy over
 the defaults above are used.
 
 
-#### Backend
+#### <a name="saml_backend" style="color:#000000">Backend</a>
 The SAML2 backend act as a SAML Service Provider (SP), making authentication
 requests to SAML Identity Providers (IdP). The default configuration file can be
 found [here](../example/plugins/backends/saml2_backend.yaml.example).
@@ -404,7 +406,7 @@ config:
 
 ### <a name="openid_plugin" style="color:#000000">OpenID Connect plugins</a>
 
-#### Backend
+#### <a name="openid_backend" style="color:#000000">Backend</a>
 The OpenID Connect backend acts as an OpenID Connect Relying Party (RP), making
 authentication requests to OpenID Connect Provider (OP). The default
 configuration file can be found [here](../example/plugins/backends/openid_backend.yaml.example).
@@ -417,7 +419,7 @@ and make sure to provide the redirect URI, constructed as described in the
 section about Google configuration below, in the static registration.
 
 
-#### Frontend
+#### <a name="openid_frontend" style="color:#000000">Frontend</a>
 The OpenID Connect frontend acts as and OpenID Connect Provider (OP), accepting requests from OpenID
 Connect Relying Parties (RPs). The default configuration file can be found
 [here](../example/plugins/frontends/openid_connect_frontend.yaml.example).
@@ -663,7 +665,7 @@ methods:
 * Request micro services must inherit `satosa.micro_services.base.RequestMicroService`.
 * Request micro services must inherit `satosa.micro_services.base.ResponseMicroService`.
 
-# <a name="saml_metadata" style="color:#000000">Generate proxy metadata</a>
+# <a name="saml_proxy_metadata" style="color:#000000">Generate proxy metadata</a>
 
 The proxy metadata is generated based on the front-/backend plugins listed in `proxy_conf.yaml`
 using the `satosa-saml-metadata` (installed globally by SATOSA installation).
