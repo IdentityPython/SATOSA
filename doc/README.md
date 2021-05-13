@@ -459,14 +459,14 @@ Connect Relying Parties (RPs). The default configuration file can be found
 [here](../example/plugins/frontends/openid_connect_frontend.yaml.example).
 
 As opposed to the other plugins, this plugin is NOT stateless (due to the nature of OpenID Connect using any other
-flow than "Implicit Flow"). However, the frontend supports using a MongoDB instance as its backend storage, so as long
+flow than "Implicit Flow"). However, the frontend supports using a MongoDB or Redis instance as its backend storage, so as long
 that's reachable from all machines it should not be a problem.
 
 The configuration parameters available:
 * `signing_key_path`: path to a RSA Private Key file (PKCS#1). MUST be configured.
-* `db_uri`: connection URI to MongoDB instance where the data will be persisted, if it's not specified all data will only
+* `db_uri`: connection URI to MongoDB or Redis instance where the data will be persisted, if it's not specified all data will only
    be stored in-memory (not suitable for production use).
-* `client_db_uri`: connection URI to MongoDB instance where the client data will be persistent, if it's not specified the clients list will be received from the `client_db_path`.
+* `client_db_uri`: connection URI to MongoDB or Redis instance where the client data will be persistent, if it's not specified the clients list will be received from the `client_db_path`.
 * `client_db_path`: path to a file containing the client database in json format. It will only be used if `client_db_uri` is not set. If `client_db_uri` and `client_db_path` are not set, clients will only be stored in-memory (not suitable for production use).
 * `sub_hash_salt`: salt which is hashed into the `sub` claim. If it's not specified, SATOSA will generate a random salt on each startup, which means that users will get new `sub` value after every restart.
 * `provider`: provider configuration information. MUST be configured, the following configuration are supported:
@@ -474,7 +474,7 @@ The configuration parameters available:
     * `subject_types_supported` (default: `[pairwise]`): list of all supported subject identifier types, see [Section 8 of OIDC Core](http://openid.net/specs/openid-connect-core-1_0.html#SubjectIDTypes)
     * `scopes_supported` (default: `[openid]`): list of all supported scopes, see [Section 5.4 of OIDC Core](http://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims)
     * `client_registration_supported` (default: `No`): boolean whether [dynamic client registration is supported](https://openid.net/specs/openid-connect-registration-1_0.html).
-        If dynamic client registration is not supported all clients must exist in the MongoDB instance configured by the `db_uri` in the `"clients"` collection of the `"satosa"` database.
+        If dynamic client registration is not supported all clients must exist in the MongoDB or Redis instance configured by the `db_uri` in the `"clients"` collection of the `"satosa"` database.
         The registration info must be stored using the client id as a key, and use the parameter names of a [OIDC Registration Response](https://openid.net/specs/openid-connect-registration-1_0.html#RegistrationResponse).
     * `authorization_code_lifetime`: how long authorization codes should be valid, see [default](https://github.com/IdentityPython/pyop#token-lifetimes)
     * `access_token_lifetime`: how long access tokens should be valid, see [default](https://github.com/IdentityPython/pyop#token-lifetimes)

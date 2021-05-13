@@ -16,7 +16,7 @@ from pyop.authz_state import AuthorizationState
 from pyop.exceptions import (InvalidAuthenticationRequest, InvalidClientRegistrationRequest,
                              InvalidClientAuthentication, OAuthError, BearerTokenError, InvalidAccessToken)
 from pyop.provider import Provider
-from pyop.storage import MongoWrapper
+from pyop.storage import StorageBase
 from pyop.subject_identifier import HashBasedSubjectIdentifierFactory
 from pyop.userinfo import Userinfo
 from pyop.util import should_fragment_encode
@@ -81,13 +81,22 @@ class OpenIDConnectFrontend(FrontendModule):
         client_db_uri = self.config.get("client_db_uri")
         cdb_file = self.config.get("client_db_path")
         if client_db_uri:
-            cdb = MongoWrapper(client_db_uri, "satosa", "clients")
+            cdb = StorageBase.from_uri(
+                client_db_uri, db_name="satosa", collection="clients"
+            )
         elif cdb_file:
             with open(cdb_file) as f:
                 cdb = json.loads(f.read())
         else:
             cdb = {}
-        self.user_db = MongoWrapper(db_uri, "satosa", "authz_codes") if db_uri else {}
+
+        #XXX What is the correct ttl for user_db? Is it the same as authz_code_db?
+        self.user_db = (
+            StorageBase.from_uri(db_uri, db_name="satosa", collection="authz_codes")
+            if db_uri
+            else {}
+        )
+
         self.provider = Provider(
             self.signing_key,
             capabilities,
@@ -102,10 +111,28 @@ class OpenIDConnectFrontend(FrontendModule):
         sub_hash_salt = self.config.get("sub_hash_salt", rndstr(16))
         db_uri = self.config.get("db_uri")
         if db_uri:
-            authz_code_db = MongoWrapper(db_uri, "satosa", "authz_codes")
-            access_token_db = MongoWrapper(db_uri, "satosa", "access_tokens")
-            refresh_token_db = MongoWrapper(db_uri, "satosa", "refresh_tokens")
-            sub_db = MongoWrapper(db_uri, "satosa", "subject_identifiers")
+            authz_code_db = StorageBase.from_uri(
+                db_uri,
+                db_name="satosa",
+                collection="authz_codes",
+                ttl=self.config["provider"].get("authorization_code_lifetime", 600),
+            )
+            access_token_db = StorageBase.from_uri(
+                db_uri,
+                db_name="satosa",
+                collection="access_tokens",
+                ttl=self.config["provider"].get("access_token_lifetime", 3600),
+            )
+            refresh_token_db = StorageBase.from_uri(
+                db_uri,
+                db_name="satosa",
+                collection="refresh_tokens",
+                ttl=self.config["provider"].get("refresh_token_lifetime", None),
+            )
+            #XXX what is the correct TTL for sub_db?
+            sub_db = StorageBase.from_uri(
+                db_uri, db_name="satosa", collection="subject_identifiers"
+            )
         else:
             authz_code_db = None
             access_token_db = None
