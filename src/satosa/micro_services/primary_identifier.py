@@ -54,7 +54,7 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
 
             # Get the values asserted by the IdP for the configured list of attribute names for this candidate
             # and substitute None if the IdP did not assert any value for a configured attribute.
-            values = [ attributes.get(attribute_name, [None])[0] for attribute_name in candidate['attribute_names'] ]
+            values = [ attributes.get(attribute_name, [None])[0] for attribute_name in candidate['attribute_names'] if attribute_name != 'name_id' ]
             msg = "{} Found candidate values {}".format(logprefix, values)
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline)
