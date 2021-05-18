@@ -1,4 +1,4 @@
-module: PrimaryIdentifier
+module: satosa.micro_services.primary_identifier.PrimaryIdentifier
 name: PrimaryIdentifier
 config:
     # The ordered identifier candidates are searched in order
