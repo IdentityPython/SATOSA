@@ -7,7 +7,7 @@ config:
   # the authenticating IdP, or the entityID of the CO virtual IdP.
   # The key "default" specifies the default configuration
   default:
-      ldap_url: ldaps://ldap.example.org
+      ldap_url: "ldaps://ldap.example.org"
       bind_dn: cn=admin,dc=example,dc=org
       # Obtain bind password from environment variable LDAP_BIND_PASSWORD.
       bind_password: !ENV LDAP_BIND_PASSWORD
@@ -114,7 +114,7 @@ config:
     user_id_from_attrs:
       - uid
 
-  https://federation-proxy.my.edu/satosa/idp/proxy/some_co
+  https://federation-proxy.my.edu/satosa/idp/proxy/some_co:
     search_base: ou=People,o=some_co,dc=example,dc=org
 
   # The microservice may be configured to ignore a particular entityID.
