@@ -31,7 +31,7 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
         super().__init__(*args, **kwargs)
         self.config = config
 
-    def constructPrimaryIdentifier(self, data, ordered_identifier_candidates, clear_input_attributes=False):
+    def constructPrimaryIdentifier(self, data, ordered_identifier_candidates):
         """
         Construct and return a primary identifier value from the
         data asserted by the IdP using the ordered list of candidates
@@ -120,18 +120,6 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
 
             # Concatenate all values to create the primary identifier.
             value = ''.join(values)
-
-            # Clear input attributes if so configured.
-            if clear_input_attributes:
-                attributes_to_clear = [attribute_name for attribute_name in candidate['attribute_names'] if attribute_name != 'name_id']
-                msg = "{} Clearing values for these input attributes: {}".format(
-                    logprefix, attributes_to_clear
-                )
-                logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-                logger.debug(logline)
-                for attribute in attributes_to_clear:
-                    del data.attributes[attribute]
-
             break
 
         return value
@@ -237,7 +225,7 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
         msg = "{} Constructing primary identifier".format(logprefix)
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.debug(logline)
-        primary_identifier_val = self.constructPrimaryIdentifier(data, ordered_identifier_candidates, clear_input_attributes)
+        primary_identifier_val = self.constructPrimaryIdentifier(data, ordered_identifier_candidates)
 
         if not primary_identifier_val:
             msg = "{} No primary identifier found".format(logprefix)
@@ -258,6 +246,15 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
         msg = "{} Found primary identifier: {}".format(logprefix, primary_identifier_val)
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.info(logline)
+
+        # Clear input attributes if so configured.
+        if clear_input_attributes:
+            msg = "{} Clearing values for these input attributes: {}".format(
+                logprefix, data.attribute_names
+            )
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
+            data.attributes = {}
 
         if primary_identifier:
             # Set the primary identifier attribute to the value found.
