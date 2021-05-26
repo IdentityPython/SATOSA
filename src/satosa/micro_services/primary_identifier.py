@@ -205,7 +205,7 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
                 clear_input_attributes = False
             if 'replace_subject_id' in config:
                 replace_subject_id = config['replace_subject_id']
-            elif 'clear_input_attributes' in self.config:
+            elif 'replace_subject_id' in self.config:
                 replace_subject_id = self.config['replace_subject_id']
             else:
                 replace_subject_id = False
