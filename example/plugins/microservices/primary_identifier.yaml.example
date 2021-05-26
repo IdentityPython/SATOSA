@@ -1,4 +1,4 @@
-module: PrimaryIdentifier
+module: satosa.micro_services.primary_identifier.PrimaryIdentifier
 name: PrimaryIdentifier
 config:
     # The ordered identifier candidates are searched in order
@@ -34,6 +34,8 @@ config:
     # Whether or not to clear the input attributes after setting the
     # primary identifier value.
     clear_input_attributes: no
+    # Whether to replace subject_id with the constructed primary identifier
+    replace_subject_id: no
     # If defined redirect to this page if no primary identifier can
     # be found.
     on_error: https://my.org/errors/no_primary_identifier
