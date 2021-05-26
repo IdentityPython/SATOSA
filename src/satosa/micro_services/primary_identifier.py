@@ -250,7 +250,7 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
         # Clear input attributes if so configured.
         if clear_input_attributes:
             msg = "{} Clearing values for these input attributes: {}".format(
-                logprefix, data.attribute_names
+                logprefix, data.attributes.keys()
             )
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline)
