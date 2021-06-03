@@ -788,6 +788,10 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
     KEY_ORGANIZATION = 'organization'
     KEY_ORGANIZATION_KEYS = ['display_name', 'name', 'url']
 
+    def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name):
+        self.has_multiple_backends = False
+        super().__init__(auth_req_callback_func, internal_attributes, config, base_url, name)
+
     def handle_authn_request(self, context, binding_in):
         """
         See super class
@@ -984,6 +988,9 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         :return: config with updated entity ID
         """
         base_entity_id = config['entityid']
+        # If not using template for entityId and does not has multiple backends, then for backward compatibility append co_name at end
+        if "<co_name>" not in base_entity_id and not self.has_multiple_backends:
+            base_entity_id = "{}/{}".format(base_entity_id, "<co_name>")
 
         replace = [
             ("<backend_name>", quote_plus(backend_name)),
@@ -1110,10 +1117,22 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         :param backend_names: A list of backend names
         :return: A list of url and endpoint function pairs
         """
+
+        # Throw exception if there is possibility of duplicate entity ids when using co_names with multiple backends
+        self.has_multiple_backends = len(backend_names) > 1
+        co_names = self._co_names_from_config()
+        all_entity_ids = []
+        for backend_name in backend_names:
+            for co_name in co_names:
+                all_entity_ids.append(self._add_entity_id(copy.deepcopy(self.idp_config), co_name, backend_name)['entityid'])
+
+        if len(all_entity_ids) != len(set(all_entity_ids)):
+            raise ValueError("Duplicate entities ids would be created for co-frontends, please make sure to make entity ids unique. "
+                             "You can use <backend_name> and <co_name> to achieve it. See example yaml file.")
+
         # Create a regex pattern that will match any of the CO names. We
         # escape special characters like '+' and '.' that are valid
         # characters in an URL encoded string.
-        co_names = self._co_names_from_config()
         url_encoded_co_names = [re.escape(quote_plus(name)) for name in
                                 co_names]
         co_name_pattern = "|".join(url_encoded_co_names)

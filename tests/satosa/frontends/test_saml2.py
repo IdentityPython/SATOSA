@@ -1,6 +1,7 @@
 """
 Tests for the SAML frontend module src/frontends/saml2.py.
 """
+import copy
 import itertools
 import re
 from collections import Counter
@@ -28,7 +29,6 @@ from satosa.frontends.saml2 import subject_type_to_saml_nameid_format
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from satosa.state import State
-from satosa.context import Context
 from tests.users import USERS
 from tests.util import FakeSP, create_metadata_from_config_dict
 
@@ -298,14 +298,14 @@ class TestSAMLFrontend:
         ]
     )
     def test_respect_sp_entity_categories(
-        self,
-        context,
-        entity_category,
-        entity_category_module,
-        expected_attributes,
-        idp_conf,
-        sp_conf,
-        internal_response
+            self,
+            context,
+            entity_category,
+            entity_category_module,
+            expected_attributes,
+            idp_conf,
+            sp_conf,
+            internal_response
     ):
         idp_metadata_str = create_metadata_from_config_dict(idp_conf)
         idp_conf["service"]["idp"]["policy"]["default"]["entity_categories"] = [entity_category_module]
@@ -365,7 +365,7 @@ class TestSAMLFrontend:
         assert idp_conf["entityid"] in resp.message
 
     def test_custom_attribute_release_with_less_attributes_than_entity_category(
-        self, context, idp_conf, sp_conf, internal_response
+            self, context, idp_conf, sp_conf, internal_response
     ):
         idp_metadata_str = create_metadata_from_config_dict(idp_conf)
         idp_conf["service"]["idp"]["policy"]["default"]["entity_categories"] = ["swamid"]
@@ -387,8 +387,8 @@ class TestSAMLFrontend:
         internal_response.requester = sp_conf["entityid"]
         resp = self.get_auth_response(samlfrontend, context, internal_response, sp_conf, idp_metadata_str)
         assert len(resp.ava.keys()) == (
-            len(expected_attributes)
-            - len(custom_attributes[internal_response.auth_info.issuer][internal_response.requester]["exclude"])
+                len(expected_attributes)
+                - len(custom_attributes[internal_response.auth_info.issuer][internal_response.requester]["exclude"])
         )
 
 
@@ -431,6 +431,7 @@ class TestSAMLMirrorFrontend:
 
 class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
     BACKEND = "test_backend"
+    BACKEND_1 = "test_backend_1"
     CO = "MESS"
     CO_O = "organization"
     CO_C = "countryname"
@@ -442,7 +443,7 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
         CO_C: ["US"],
         CO_CO: ["United States"],
         CO_NOREDUORGACRONYM: ["MESS"]
-        }
+    }
     KEY_SSO = "single_sign_on_service"
 
     @pytest.fixture
@@ -471,10 +472,10 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
         # endpoints, and the collaborative organization configuration to
         # create the configuration for the frontend.
         conf = {
-                "idp_config": idp_conf,
-                "endpoints": ENDPOINTS,
-                "collaborative_organizations": [collab_org]
-               }
+            "idp_config": idp_conf,
+            "endpoints": ENDPOINTS,
+            "collaborative_organizations": [collab_org]
+        }
 
         # Use a richer set of internal attributes than what is provided
         # for the parent class so that we can test for the static SAML
@@ -504,10 +505,13 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
         that would be available during a SAML flow and that would include
         a path and target_backend that indicates the CO.
         """
-        context.path = "{}/{}/sso/redirect".format(self.BACKEND, self.CO)
-        context.target_backend = self.BACKEND
+        return self._make_context(context, self.BACKEND, self.CO)
 
-        return context
+    def _make_context(self, context, backend, co_name):
+        _context = copy.deepcopy(context)
+        _context.path = "{}/{}/sso/redirect".format(backend, co_name)
+        _context.target_backend = backend
+        return _context
 
     def test_create_state_data(self, frontend, context, idp_conf):
         frontend._create_co_virtual_idp(context)
@@ -542,6 +546,17 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
         assert idp_server.config.entityid == expected_entityid
         assert all(sso in sso_endpoints for sso in expected_endpoints)
 
+    def test_create_co_virtual_idp_with_entity_id_templates(self, frontend, context):
+        frontend.idp_config['entityid'] = "{}/Saml2IDP/proxy.xml".format(BASE_URL)
+        expected_entity_id = "{}/Saml2IDP/proxy.xml/{}".format(BASE_URL, self.CO)
+        idp_server = frontend._create_co_virtual_idp(context)
+        assert idp_server.config.entityid == expected_entity_id
+
+        frontend.idp_config['entityid'] = "{}/<backend_name>/idp/<co_name>".format(BASE_URL)
+        expected_entity_id = "{}/{}/idp/{}".format(BASE_URL, context.target_backend, self.CO)
+        idp_server = frontend._create_co_virtual_idp(context)
+        assert idp_server.config.entityid == expected_entity_id
+
     def test_register_endpoints(self, frontend, context):
         idp_server = frontend._create_co_virtual_idp(context)
         url_map = frontend.register_endpoints([self.BACKEND])
@@ -551,6 +566,28 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
         compiled_regex = [re.compile(regex) for regex, _ in url_map]
 
         for endpoint in all_idp_endpoints:
+            assert any(pat.match(endpoint) for pat in compiled_regex)
+
+    def test_register_endpoints_throws_error_in_case_duplicate_entity_ids(self, frontend):
+        with pytest.raises(ValueError):
+            frontend.register_endpoints([self.BACKEND, self.BACKEND_1])
+
+    def test_register_endpoints_with_metadata_endpoints(self, frontend, context):
+        frontend.idp_config['entityid'] = "{}/<backend_name>/idp/<co_name>".format(BASE_URL)
+        frontend.config['entityid_endpoint'] = True
+        idp_server_1 = frontend._create_co_virtual_idp(context)
+        context_2 = self._make_context(context, self.BACKEND_1, self.CO)
+        idp_server_2 = frontend._create_co_virtual_idp(context_2)
+
+        url_map = frontend.register_endpoints([self.BACKEND, self.BACKEND_1])
+        expected_idp_endpoints = [urlparse(endpoint[0]).path[1:] for server in [idp_server_1, idp_server_2]
+                                  for endpoint in server.config._idp_endpoints[self.KEY_SSO]]
+        for server in [idp_server_1, idp_server_2]:
+            expected_idp_endpoints.append(urlparse(server.config.entityid).path[1:])
+
+        compiled_regex = [re.compile(regex) for regex, _ in url_map]
+
+        for endpoint in expected_idp_endpoints:
             assert any(pat.match(endpoint) for pat in compiled_regex)
 
     def test_co_static_attributes(self, frontend, context, internal_response,
@@ -563,9 +600,8 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
         # and then use those to dynamically update the ipd_conf fixture.
         co_name = frontend._get_co_name(context)
         backend_name = context.target_backend
-        idp_conf = frontend._add_endpoints_to_config(idp_conf, co_name,
-                                                     backend_name)
-        idp_conf = frontend._add_entity_id(idp_conf, co_name)
+        idp_conf = frontend._add_endpoints_to_config(idp_conf, co_name, backend_name)
+        idp_conf = frontend._add_entity_id(idp_conf, co_name, backend_name)
 
         # Use a utility function to serialize the idp_conf IdP configuration
         # fixture to a string and then dynamically update the sp_conf
@@ -597,9 +633,9 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
             "name_id_policy": NameIDPolicy(format=NAMEID_FORMAT_TRANSIENT),
             "in_response_to": None,
             "destination": sp_config.endpoint(
-                            "assertion_consumer_service",
-                            binding=BINDING_HTTP_REDIRECT
-                            )[0],
+                "assertion_consumer_service",
+                binding=BINDING_HTTP_REDIRECT
+            )[0],
             "sp_entity_id": sp_conf["entityid"],
             "binding": BINDING_HTTP_REDIRECT
         }
@@ -616,42 +652,42 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
 class TestSubjectTypeToSamlNameIdFormat:
     def test_should_default_to_persistent(self):
         assert (
-            subject_type_to_saml_nameid_format("unmatched")
-            == NAMEID_FORMAT_PERSISTENT
+                subject_type_to_saml_nameid_format("unmatched")
+                == NAMEID_FORMAT_PERSISTENT
         )
 
     def test_should_map_persistent(self):
         assert (
-            subject_type_to_saml_nameid_format(NAMEID_FORMAT_PERSISTENT)
-            == NAMEID_FORMAT_PERSISTENT
+                subject_type_to_saml_nameid_format(NAMEID_FORMAT_PERSISTENT)
+                == NAMEID_FORMAT_PERSISTENT
         )
 
     def test_should_map_transient(self):
         assert (
-            subject_type_to_saml_nameid_format(NAMEID_FORMAT_TRANSIENT)
-            == NAMEID_FORMAT_TRANSIENT
+                subject_type_to_saml_nameid_format(NAMEID_FORMAT_TRANSIENT)
+                == NAMEID_FORMAT_TRANSIENT
         )
 
     def test_should_map_emailaddress(self):
         assert (
-            subject_type_to_saml_nameid_format(NAMEID_FORMAT_EMAILADDRESS)
-            == NAMEID_FORMAT_EMAILADDRESS
+                subject_type_to_saml_nameid_format(NAMEID_FORMAT_EMAILADDRESS)
+                == NAMEID_FORMAT_EMAILADDRESS
         )
 
     def test_should_map_unspecified(self):
         assert (
-            subject_type_to_saml_nameid_format(NAMEID_FORMAT_UNSPECIFIED)
-            == NAMEID_FORMAT_UNSPECIFIED
+                subject_type_to_saml_nameid_format(NAMEID_FORMAT_UNSPECIFIED)
+                == NAMEID_FORMAT_UNSPECIFIED
         )
 
     def test_should_map_public(self):
         assert (
-            subject_type_to_saml_nameid_format("public")
-            == NAMEID_FORMAT_PERSISTENT
+                subject_type_to_saml_nameid_format("public")
+                == NAMEID_FORMAT_PERSISTENT
         )
 
     def test_should_map_pairwise(self):
         assert (
-            subject_type_to_saml_nameid_format("pairwise")
-            == NAMEID_FORMAT_TRANSIENT
+                subject_type_to_saml_nameid_format("pairwise")
+                == NAMEID_FORMAT_TRANSIENT
         )
