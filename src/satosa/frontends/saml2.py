@@ -64,6 +64,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
     KEY_CUSTOM_ATTR_RELEASE = 'custom_attribute_release'
     KEY_ENDPOINTS = 'endpoints'
     KEY_IDP_CONFIG = 'idp_config'
+    KEY_METADATA = 'metadata'
 
     def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name):
         self._validate_config(config)
@@ -113,12 +114,18 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         :type backend_names: list[str]
         :rtype: list[(str, ((satosa.context.Context, Any) -> satosa.response.Response, Any))]
         """
+        url_map = []
+
+        if self.enable_metadata_reload():
+            url_map.append(
+                ("^%s/%s$" % (self.name, "reload-metadata"), self._reload_metadata))
+
         self.idp_config = self._build_idp_config_endpoints(
             self.config[self.KEY_IDP_CONFIG], backend_names)
         # Create the idp
         idp_config = IdPConfig().load(copy.deepcopy(self.idp_config))
         self.idp = Server(config=idp_config)
-        return self._register_endpoints(backend_names)
+        return self._register_endpoints(backend_names) + url_map
 
     def _create_state_data(self, context, resp_args, relay_state):
         """
@@ -483,6 +490,16 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         metadata_string = create_metadata_string(None, self.idp.config, 4, None, None, None, None,
                                                  None).decode("utf-8")
         return Response(metadata_string, content="text/xml")
+
+    def _reload_metadata(self, context):
+        """
+        Reload SAML metadata
+        """
+        logger.debug("Reloading metadata")
+        res = self.idp.reload_metadata(copy.deepcopy(self.config[SAMLFrontend.KEY_IDP_CONFIG][SAMLFrontend.KEY_METADATA]))
+        message = "Metadata reload %s" % ("OK" if res else "failed")
+        status = "200 OK" if res else "500 FAILED"
+        return Response(message=message, status=status)
 
     def _register_endpoints(self, providers):
         """

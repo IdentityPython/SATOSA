@@ -19,6 +19,7 @@ config:
   #  domain: .example.com
 
   entityid_endpoint: true
+  enable_metadata_reload: no
 
   idp_config:
     organization: {display_name: Example Identities, name: Example Identities Org., url: 'http://www.example.com'}
