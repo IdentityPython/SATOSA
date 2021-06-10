@@ -261,6 +261,7 @@ class SATOSABase(object):
 
 class SAMLBaseModule(object):
     KEY_ENTITYID_ENDPOINT = 'entityid_endpoint'
+    KEY_ENABLE_METADATA_RELOAD = 'enable_metadata_reload'
     KEY_ATTRIBUTE_PROFILE = 'attribute_profile'
     KEY_ACR_MAPPING = 'acr_mapping'
     VALUE_ATTRIBUTE_PROFILE_DEFAULT = 'saml'
@@ -274,6 +275,15 @@ class SAMLBaseModule(object):
 
     def expose_entityid_endpoint(self):
         value = self.config.get(self.KEY_ENTITYID_ENDPOINT, False)
+        return bool(value)
+
+    def enable_metadata_reload(self):
+        """
+        Check whether metadata reload has been enabled in config
+
+        return: bool
+        """
+        value = self.config.get(self.KEY_ENABLE_METADATA_RELOAD, False)
         return bool(value)
 
 
