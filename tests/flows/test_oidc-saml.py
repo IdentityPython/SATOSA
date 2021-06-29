@@ -92,7 +92,7 @@ class TestOIDCToSAML:
 
         # make auth resp to proxy
         authn_resp_req = urlparse(url).path + "?" + urlencode(authn_resp)
-        authn_resp = test_client.get("/" + authn_resp_req)
+        authn_resp = test_client.get(authn_resp_req)
         assert authn_resp.status == "303 See Other"
 
         # verify auth resp from proxy
