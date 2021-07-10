@@ -3,6 +3,13 @@ name: Saml2
 config:
   idp_blacklist_file: /path/to/blacklist.json
 
+  acr_mapping:
+    "": default-LoA
+    "https://accounts.google.com": LoA1
+
+  # disco_srv must be defined if there is more than one IdP in the metadata specified above
+  disco_srv: http://disco.example.com
+
   entityid_endpoint: true
   mirror_force_authn: no
   memorize_idp: no
@@ -59,5 +66,3 @@ config:
         # include a Format attribute in the NameIDPolicy.
         # name_id_format: 'None'
         name_id_format_allow_create: true
-  # disco_srv must be defined if there is more than one IdP in the metadata specified above
-  disco_srv: http://disco.example.com
