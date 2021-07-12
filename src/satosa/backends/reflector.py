@@ -1,16 +1,12 @@
 """
 A reflector backend module for the satosa proxy
 """
-import logging
+from datetime import datetime
 
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from satosa.metadata_creation.description import MetadataDescription
 from satosa.backends.base import BackendModule
-
-import time
-
-logger = logging.getLogger(__name__)
 
 
 class ReflectorBackend(BackendModule):
@@ -45,7 +41,7 @@ class ReflectorBackend(BackendModule):
         :rtype: satosa.response.Response
         """
 
-        timestamp = int(time.time())
+        timestamp = datetime.utcnow().timestamp()
         auth_info = AuthenticationInformation(
             'reflector', timestamp, 'reflector',
         )
