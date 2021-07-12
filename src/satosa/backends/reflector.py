@@ -14,6 +14,8 @@ class ReflectorBackend(BackendModule):
     A reflector backend module
     """
 
+    ENTITY_ID = ORG_NAME = AUTH_CLASS_REF = SUBJECT_ID = "reflector"
+
     def __init__(self, outgoing, internal_attributes, config, base_url, name):
         """
         :type outgoing:
@@ -43,14 +45,16 @@ class ReflectorBackend(BackendModule):
 
         timestamp = datetime.utcnow().timestamp()
         auth_info = AuthenticationInformation(
-            'reflector', timestamp, 'reflector',
+            auth_class_ref=ReflectorBackend.AUTH_CLASS_REF,
+            timestamp=timestamp,
+            issuer=ReflectorBackend.ENTITY_ID,
         )
 
         internal_resp = InternalData(
             auth_info=auth_info,
             attributes={},
             subject_type=None,
-            subject_id='reflector',
+            subject_id=ReflectorBackend.SUBJECT_ID,
         )
 
         return self.auth_callback_func(context, internal_resp)
@@ -69,8 +73,12 @@ class ReflectorBackend(BackendModule):
         :rtype: satosa.metadata_creation.description.MetadataDescription
         """
         entity_descriptions = []
-        description = MetadataDescription(urlsafe_b64encode('reflector'.encode("utf-8")).decode("utf-8"))
-        description.organization = 'reflector'
+        description = MetadataDescription(
+            urlsafe_b64encode(ReflectorBackend.ENTITY_ID.encode("utf-8")).decode(
+                "utf-8"
+            )
+        )
+        description.organization = ReflectorBackend.ORG_NAME
 
         entity_descriptions.append(description)
         return entity_descriptions
