@@ -1,13 +1,17 @@
 from base64 import urlsafe_b64encode
+from unittest import TestCase
 
 import pytest
 
 from satosa.context import Context
+from satosa.state import State
 from satosa.exception import SATOSAError, SATOSAConfigurationError, SATOSAStateError
 from satosa.internal import InternalData
 from satosa.micro_services.custom_routing import DecideIfRequesterIsAllowed
+from satosa.micro_services.custom_routing import DecideBackendByDiscoIdP
 from satosa.micro_services.custom_routing import DecideBackendByTargetIdP
 from satosa.micro_services.custom_routing import CustomRoutingError
+
 
 TARGET_ENTITY = "entity1"
 
@@ -160,61 +164,92 @@ class TestDecideIfRequesterIsAllowed:
             decide_service.process(context, req)
 
 
-class TestDecideBackendByTargetIdP:
-    rules = {
-        'default_backend': 'Saml2',
-        'endpoint_paths': ['.*/disco'],
-        'target_mapping': {'http://idpspid.testunical.it:8088': 'spidSaml2'}
-    }
+class TestDecideBackendByTargetIdP(TestCase):
+    def setUp(self):
+        context = Context()
+        context.state = State()
 
-    def create_decide_service(self, rules):
-        decide_service = DecideBackendByTargetIdP(
-                config=rules,
-                name="test_decide_service",
-                base_url="https://satosa.example.com"
+        config = {
+            'default_backend': 'default_backend',
+            'target_mapping': {
+                'mapped_idp.example.org': 'mapped_backend',
+            },
+            'disco_endpoints': [
+                '.*/disco',
+            ],
+        }
+
+        plugin = DecideBackendByTargetIdP(
+            config=config,
+            name='test_decide_service',
+            base_url='https://satosa.example.org',
         )
-        decide_service.next = lambda ctx, data: data
-        return decide_service
+        plugin.next = lambda ctx, data: (ctx, data)
+
+        self.config = config
+        self.context = context
+        self.plugin = plugin
+
+    def test_when_target_is_not_set_do_skip(self):
+        data = InternalData(requester='test_requester')
+        newctx, newdata = self.plugin.process(self.context, data)
+        assert not newctx.target_backend
+
+    def test_when_target_is_not_mapped_choose_default_backend(self):
+        self.context.decorate(Context.KEY_TARGET_ENTITYID, 'idp.example.org')
+        data = InternalData(requester='test_requester')
+        newctx, newdata = self.plugin.process(self.context, data)
+        assert newctx.target_backend == 'default_backend'
+
+    def test_when_target_is_mapped_choose_mapping_backend(self):
+        self.context.decorate(Context.KEY_TARGET_ENTITYID, 'mapped_idp.example.org')
+        data = InternalData(requester='test_requester')
+        data.requester = 'somebody else'
+        newctx, newdata = self.plugin.process(self.context, data)
+        assert newctx.target_backend == 'mapped_backend'
 
 
-    def test_missing_state(self, target_context):
-        decide_service = self.create_decide_service(self.rules)
-        target_context.request = {
-            'entityID': 'http://idpspid.testunical.it:8088',
+class TestDecideBackendByDiscoIdP(TestCase):
+    def setUp(self):
+        context = Context()
+        context.state = State()
+
+        config = {
+            'default_backend': 'default_backend',
+            'target_mapping': {
+                'mapped_idp.example.org': 'mapped_backend',
+            },
+            'disco_endpoints': [
+                '.*/disco',
+            ],
         }
-        req = InternalData(requester="test_requester")
-        req.requester = "somebody else"
-        assert decide_service.process(target_context, req)
 
-        with pytest.raises(SATOSAStateError):
-            decide_service.backend_by_entityid(target_context)
+        plugin = DecideBackendByDiscoIdP(
+            config=config,
+            name='test_decide_service',
+            base_url='https://satosa.example.org',
+        )
+        plugin.next = lambda ctx, data: (ctx, data)
 
+        self.config = config
+        self.context = context
+        self.plugin = plugin
 
-    def test_unmatching_target(self, target_context):
-        """
-            It would rely on the default backend
-        """
-        decide_service = self.create_decide_service(self.rules)
-        target_context.request = {
-            'entityID': 'unknow-entity-id',
+    def test_when_target_is_not_set_raise_error(self):
+        self.context.request = {}
+        with pytest.raises(CustomRoutingError):
+            self.plugin._handle_disco_response(self.context)
+
+    def test_when_target_is_not_mapped_choose_default_backend(self):
+        self.context.request = {
+            'entityID': 'idp.example.org',
         }
-        target_context.state['ROUTER'] = 'Saml2'
+        newctx, newdata = self.plugin._handle_disco_response(self.context)
+        assert newctx.target_backend == 'default_backend'
 
-        req = InternalData(requester="test_requester")
-        assert decide_service.process(target_context, req)
-
-        res = decide_service.backend_by_entityid(target_context)
-        assert isinstance(res, InternalData)
-
-    def test_matching_target(self, target_context):
-        decide_service = self.create_decide_service(self.rules)
-        target_context.request = {
-            'entityID': 'http://idpspid.testunical.it:8088-entity-id'
+    def test_when_target_is_mapped_choose_mapping_backend(self):
+        self.context.request = {
+            'entityID': 'mapped_idp.example.org',
         }
-        target_context.state['ROUTER'] = 'Saml2'
-
-        req = InternalData(requester="test_requester")
-        req.requester = "somebody else"
-        assert decide_service.process(target_context, req)
-        res = decide_service.backend_by_entityid(target_context)
-        assert isinstance(res, InternalData)
+        newctx, newdata = self.plugin._handle_disco_response(self.context)
+        assert newctx.target_backend == 'mapped_backend'

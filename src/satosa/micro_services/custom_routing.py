@@ -22,22 +22,55 @@ class CustomRoutingError(SATOSAError):
 
 class DecideBackendByTargetIdP(RequestMicroService):
     """
-    Select which backend should be used based on who is the SAML IDP
+    Select target backend based on the target issuer.
     """
 
     def __init__(self, config:dict, *args, **kwargs):
         """
         Constructor.
+
         :param config: microservice configuration loaded from yaml file
         :type config: Dict[str, Dict[str, str]]
         """
         super().__init__(*args, **kwargs)
+
         self.target_mapping = config['target_mapping']
-        self.endpoint_paths = config['endpoint_paths']
         self.default_backend = config['default_backend']
 
-        if not isinstance(self.endpoint_paths, list):
-            raise SATOSAConfigurationError()
+    def process(self, context:Context, data:InternalData):
+        """
+        Set context.target_backend based on the target issuer (context.target_entity_id)
+
+        :param context: request context
+        :param data: the internal request
+        """
+        target_issuer = context.get_decoration(Context.KEY_TARGET_ENTITYID)
+        if not target_issuer:
+            return super().process(context, data)
+
+        target_backend = (
+            self.target_mapping.get(target_issuer)
+            or self.default_backend
+        )
+
+        report = {
+            'msg': 'decided target backend by target issuer',
+            'target_issuer': target_issuer,
+            'target_backend': target_backend,
+        }
+        logger.info(report)
+
+        context.target_backend = target_backend
+        return super().process(context, data)
+
+
+class DecideBackendByDiscoIdP(DecideBackendByTargetIdP):
+    def __init__(self, config:dict, *args, **kwargs):
+        super().__init__(config, *args, **kwargs)
+
+        self.disco_endpoints = config['disco_endpoints']
+        if not isinstance(self.disco_endpoints, list):
+            raise CustomRoutingError('disco_endpoints must be a list of str')
 
     def register_endpoints(self):
         """
@@ -54,69 +87,20 @@ class DecideBackendByTargetIdP(RequestMicroService):
                  [(regexp, Callable[[satosa.context.Context], satosa.response.Response]), ...]
         """
 
-        # this intercepts disco response
         return [
-            (path , self.backend_by_entityid)
-            for path in self.endpoint_paths
+            (path , self._handle_disco_response)
+            for path in self.disco_endpoints
         ]
 
-    def _get_request_entity_id(self, context):
-        return (
-            context.get_decoration(Context.KEY_TARGET_ENTITYID) or
-            context.request.get('entityID')
-        )
+    def _handle_disco_response(self, context:Context):
+        target_issuer_from_disco = context.request.get('entityID')
+        if not target_issuer_from_disco:
+            raise CustomRoutingError('no valid entity_id in the disco response')
 
-    def _get_backend(self, context:Context, entity_id:str) -> str:
-        """
-        returns the Target Backend to use
-        """
-        return (
-            self.target_mapping.get(entity_id) or
-            self.default_backend
-        )
-
-    def process(self, context:Context, data:dict):
-        """
-        Will modify the context.target_backend attribute based on the target entityid.
-        :param context: request context
-        :param data: the internal request
-        """
-        entity_id = self._get_request_entity_id(context)
-        if entity_id:
-            self._rewrite_context(entity_id, context)
-        return super().process(context, data)
-
-    def _rewrite_context(self, entity_id:str, context:Context) -> None:
-        tr_backend = self._get_backend(context, entity_id)
-        context.decorate(Context.KEY_TARGET_ENTITYID, entity_id)
-        context.target_frontend = context.target_frontend or context.state.get('ROUTER')
-        native_backend = context.target_backend
-        msg = (f'Found DecideBackendByTarget ({self.name} microservice) '
-               f'redirecting {entity_id} from {native_backend} '
-               f'backend to {tr_backend}')
-        logger.info(msg)
-        context.target_backend = tr_backend
-
-    def backend_by_entityid(self, context:Context):
-        entity_id = self._get_request_entity_id(context)
-
-        if entity_id:
-            self._rewrite_context(entity_id, context)
-        else:
-            raise CustomRoutingError(
-                f"{self.__class__.__name__} "
-                "can't find any valid entity_id in the context."
-            )
-
-        if not context.state.get('ROUTER'):
-            raise SATOSAStateError(
-                f"{self.__class__.__name__} "
-                "can't find any valid state in the context."
-            )
-
-        data_serialized = context.state.get(self.name, {}).get("internal", {})
+        context.decorate(Context.KEY_TARGET_ENTITYID, target_issuer_from_disco)
+        data_serialized = context.state.get(self.name, {}).get('internal', {})
         data = InternalData.from_dict(data_serialized)
-        return super().process(context, data)
+        return self.process(context, data)
 
 
 class DecideBackendByRequester(RequestMicroService):
