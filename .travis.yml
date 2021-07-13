@@ -14,7 +14,7 @@ install:
   - pip install tox-travis
 
 script:
-  - tox
+  - tox -r
 
 jobs:
   allow_failures:
