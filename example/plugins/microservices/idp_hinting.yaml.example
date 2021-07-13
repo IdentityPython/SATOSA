@@ -1,0 +1,6 @@
+module: satosa.micro_services.idp_hinting.IdpHinting
+name: IdpHinting
+config:
+  allowed_params:
+    - idp_hinting
+    - idp_hint
