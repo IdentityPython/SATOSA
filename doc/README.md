@@ -28,6 +28,32 @@ apt-get install libffi-dev libssl-dev xmlsec1
 
 Alternatively the application can be installed directly from PyPI (`pip install satosa`), or the [Docker image](https://hub.docker.com/r/satosa/) can be used.
 
+
+### <a name="install_instructions" style="color:#000000">External micro-services</a>
+
+Micro-services act like plugins and can be developed by anyone. Other people
+that have been working with the SaToSa proxy, have built extentions mainly in
+the form of additional micro-services that can be shared and used by anyone.
+
+DAASI International have been a long-time user of this software and have made
+their extentions available, licensed under Apache2.0. You can find the
+extensions using the following URL:
+
+- https://gitlab.daasi.de/didmos2/didmos2-auth/-/tree/master/src/didmos_oidc/satosa/micro_services
+
+The extentions include:
+
+- SCIM attribute store to fetch attributes via SCIM API (instead of LDAP)
+- Authoritzation module for blocking services if necessary group memberships or
+  attributes are missing in the identity (for service providers that do not
+  evaluate attributes themselves)
+- Backend chooser with Django UI for letting the user choose between any
+  existing SATOSA backend
+- Integration of MFA via PrivacyIDEA
+
+and more.
+
+
 # Configuration
 SATOSA is configured using YAML.
 
