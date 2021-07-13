@@ -8,8 +8,7 @@ from satosa.state import State
 from satosa.exception import SATOSAError, SATOSAConfigurationError, SATOSAStateError
 from satosa.internal import InternalData
 from satosa.micro_services.custom_routing import DecideIfRequesterIsAllowed
-from satosa.micro_services.custom_routing import DecideBackendByDiscoIdP
-from satosa.micro_services.custom_routing import DecideBackendByTargetIdP
+from satosa.micro_services.custom_routing import DecideBackendByTargetIssuer
 from satosa.micro_services.custom_routing import CustomRoutingError
 
 
@@ -164,7 +163,7 @@ class TestDecideIfRequesterIsAllowed:
             decide_service.process(context, req)
 
 
-class TestDecideBackendByTargetIdP(TestCase):
+class TestDecideBackendByTargetIssuer(TestCase):
     def setUp(self):
         context = Context()
         context.state = State()
@@ -174,12 +173,9 @@ class TestDecideBackendByTargetIdP(TestCase):
             'target_mapping': {
                 'mapped_idp.example.org': 'mapped_backend',
             },
-            'disco_endpoints': [
-                '.*/disco',
-            ],
         }
 
-        plugin = DecideBackendByTargetIdP(
+        plugin = DecideBackendByTargetIssuer(
             config=config,
             name='test_decide_service',
             base_url='https://satosa.example.org',
@@ -206,50 +202,4 @@ class TestDecideBackendByTargetIdP(TestCase):
         data = InternalData(requester='test_requester')
         data.requester = 'somebody else'
         newctx, newdata = self.plugin.process(self.context, data)
-        assert newctx.target_backend == 'mapped_backend'
-
-
-class TestDecideBackendByDiscoIdP(TestCase):
-    def setUp(self):
-        context = Context()
-        context.state = State()
-
-        config = {
-            'default_backend': 'default_backend',
-            'target_mapping': {
-                'mapped_idp.example.org': 'mapped_backend',
-            },
-            'disco_endpoints': [
-                '.*/disco',
-            ],
-        }
-
-        plugin = DecideBackendByDiscoIdP(
-            config=config,
-            name='test_decide_service',
-            base_url='https://satosa.example.org',
-        )
-        plugin.next = lambda ctx, data: (ctx, data)
-
-        self.config = config
-        self.context = context
-        self.plugin = plugin
-
-    def test_when_target_is_not_set_raise_error(self):
-        self.context.request = {}
-        with pytest.raises(CustomRoutingError):
-            self.plugin._handle_disco_response(self.context)
-
-    def test_when_target_is_not_mapped_choose_default_backend(self):
-        self.context.request = {
-            'entityID': 'idp.example.org',
-        }
-        newctx, newdata = self.plugin._handle_disco_response(self.context)
-        assert newctx.target_backend == 'default_backend'
-
-    def test_when_target_is_mapped_choose_mapping_backend(self):
-        self.context.request = {
-            'entityID': 'mapped_idp.example.org',
-        }
-        newctx, newdata = self.plugin._handle_disco_response(self.context)
         assert newctx.target_backend == 'mapped_backend'
