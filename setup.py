@@ -15,7 +15,7 @@ setup(
     packages=find_packages('src/'),
     package_dir={'': 'src'},
     install_requires=[
-        "pyop >= 3.0.1",
+        "pyop >= 3.2.0",
         "pysaml2 >= 6.5.1",
         "pycryptodomex",
         "requests",
@@ -27,7 +27,9 @@ setup(
         "cookies-samesite-compat",
     ],
     extras_require={
-        "ldap": ["ldap3"]
+        "ldap": ["ldap3"],
+        "pyop_mongo": ["pyop[mongo]"],
+        "pyop_redis": ["pyop[redis]"],
     },
     zip_safe=False,
     classifiers=[
