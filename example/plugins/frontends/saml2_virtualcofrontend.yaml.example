@@ -2,7 +2,7 @@ module: satosa.frontends.saml2.SAMLVirtualCoFrontend
 name: Saml2IDP
 config:
   collaborative_organizations:
-    # The encodeable name for the CO will be URL encoded and used 
+    # The encodeable name for the CO will be URL encoded and used
     # both for the entityID and the SSO endpoints of the virtual IdP.
     # The entityID has the form
     #
@@ -12,7 +12,7 @@ config:
     #
     # {base}/{backend}/{co_name}/{path}
     #
-    - encodedable_name: MESS
+    - encodeable_name: MESS
       # If organization and contact_person details appear they
       # will override the same from the base configuration in
       # the generated metadata for the CO IdP.
@@ -23,7 +23,7 @@ config:
       contact_person:
         - contact_type: technical
           email_address: help@messproject.org
-          given_name MESS Technical Support
+          given_name: MESS Technical Support
       # SAML attributes and static values about the CO to be asserted for each user.
       # The key is the SATOSA internal attribute name.
       co_static_saml_attributes:

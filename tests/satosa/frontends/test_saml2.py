@@ -75,7 +75,7 @@ class TestSAMLFrontend:
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
 
-        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf))
         destination, auth_req = fakesp.make_auth_req(
             samlfrontend.idp_config["entityid"],
             nameid_format,
@@ -94,7 +94,7 @@ class TestSAMLFrontend:
         return samlfrontend
 
     def get_auth_response(self, samlfrontend, context, internal_response, sp_conf, idp_metadata_str):
-        sp_config = SPConfig().load(sp_conf, metadata_construction=False)
+        sp_config = SPConfig().load(sp_conf)
         resp_args = {
             "name_id_policy": NameIDPolicy(format=NAMEID_FORMAT_TRANSIENT),
             "in_response_to": None,
@@ -150,7 +150,7 @@ class TestSAMLFrontend:
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
 
-        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf))
         resp = fakesp.parse_authn_request_response(resp_dict["SAMLResponse"][0],
                                                    BINDING_HTTP_REDIRECT)
         for key in resp.ava:
@@ -189,7 +189,7 @@ class TestSAMLFrontend:
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
 
-        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf))
         resp = fakesp.parse_authn_request_response(resp_dict["SAMLResponse"][0],
                                                    BINDING_HTTP_REDIRECT)
 
@@ -213,7 +213,7 @@ class TestSAMLFrontend:
         resp = samlfrontend.handle_authn_response(context, internal_response)
         resp_dict = parse_qs(urlparse(resp.message).query)
 
-        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf))
         resp = fakesp.parse_authn_request_response(
                            resp_dict["SAMLResponse"][0], BINDING_HTTP_REDIRECT)
 
@@ -285,17 +285,28 @@ class TestSAMLFrontend:
         authn_context_class_ref = resp.assertion.authn_statement[0].authn_context.authn_context_class_ref
         assert authn_context_class_ref.text == expected_loa
 
-    @pytest.mark.parametrize("entity_category, entity_category_module, expected_attributes", [
-        ([""], "swamid", swamid.RELEASE[""]),
-        ([COCO], "edugain", edugain.RELEASE[""] + edugain.RELEASE[COCO]),
-        ([RESEARCH_AND_SCHOLARSHIP], "refeds", refeds.RELEASE[""] + refeds.RELEASE[RESEARCH_AND_SCHOLARSHIP]),
-        ([RESEARCH_AND_EDUCATION, EU], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, EU)]),
-        ([RESEARCH_AND_EDUCATION, HEI], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, HEI)]),
-        ([RESEARCH_AND_EDUCATION, NREN], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, NREN)]),
-        ([SFS_1993_1153], "swamid", swamid.RELEASE[""] + swamid.RELEASE[SFS_1993_1153]),
-    ])
-    def test_respect_sp_entity_categories(self, context, entity_category, entity_category_module, expected_attributes,
-                                          idp_conf, sp_conf, internal_response):
+    @pytest.mark.parametrize(
+        "entity_category, entity_category_module, expected_attributes",
+        [
+            ([""], "swamid", swamid.RELEASE[""]),
+            ([COCO], "edugain", edugain.RELEASE[""] + edugain.RELEASE[COCO]),
+            ([RESEARCH_AND_SCHOLARSHIP], "refeds", refeds.RELEASE[""] + refeds.RELEASE[RESEARCH_AND_SCHOLARSHIP]),
+            ([RESEARCH_AND_EDUCATION, EU], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, EU)]),
+            ([RESEARCH_AND_EDUCATION, HEI], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, HEI)]),
+            ([RESEARCH_AND_EDUCATION, NREN], "swamid", swamid.RELEASE[""] + swamid.RELEASE[(RESEARCH_AND_EDUCATION, NREN)]),
+            ([SFS_1993_1153], "swamid", swamid.RELEASE[""] + swamid.RELEASE[SFS_1993_1153]),
+        ]
+    )
+    def test_respect_sp_entity_categories(
+        self,
+        context,
+        entity_category,
+        entity_category_module,
+        expected_attributes,
+        idp_conf,
+        sp_conf,
+        internal_response
+    ):
         idp_metadata_str = create_metadata_from_config_dict(idp_conf)
         idp_conf["service"]["idp"]["policy"]["default"]["entity_categories"] = [entity_category_module]
         if all(entity_category):  # don't insert empty entity category
@@ -303,10 +314,18 @@ class TestSAMLFrontend:
         if entity_category == [COCO]:
             sp_conf["service"]["sp"]["required_attributes"] = expected_attributes
 
-        expected_attributes_in_all_entity_categories = list(
-            itertools.chain(swamid.RELEASE[""], edugain.RELEASE[COCO], refeds.RELEASE[RESEARCH_AND_SCHOLARSHIP],
-                            swamid.RELEASE[(RESEARCH_AND_EDUCATION, EU)], swamid.RELEASE[(RESEARCH_AND_EDUCATION, HEI)],
-                            swamid.RELEASE[(RESEARCH_AND_EDUCATION, NREN)], swamid.RELEASE[SFS_1993_1153]))
+        expected_attributes_in_all_entity_categories = set(
+            itertools.chain(
+                swamid.RELEASE[""],
+                edugain.RELEASE[""],
+                edugain.RELEASE[COCO],
+                refeds.RELEASE[RESEARCH_AND_SCHOLARSHIP],
+                swamid.RELEASE[(RESEARCH_AND_EDUCATION, EU)],
+                swamid.RELEASE[(RESEARCH_AND_EDUCATION, HEI)],
+                swamid.RELEASE[(RESEARCH_AND_EDUCATION, NREN)],
+                swamid.RELEASE[SFS_1993_1153],
+            )
+        )
         attribute_mapping = {}
         for expected_attribute in expected_attributes_in_all_entity_categories:
             attribute_mapping[expected_attribute.lower()] = {"saml": [expected_attribute]}
@@ -345,8 +364,9 @@ class TestSAMLFrontend:
         assert headers["Content-Type"] == "text/xml"
         assert idp_conf["entityid"] in resp.message
 
-    def test_custom_attribute_release_with_less_attributes_than_entity_category(self, context, idp_conf, sp_conf,
-                                                                                internal_response):
+    def test_custom_attribute_release_with_less_attributes_than_entity_category(
+        self, context, idp_conf, sp_conf, internal_response
+    ):
         idp_metadata_str = create_metadata_from_config_dict(idp_conf)
         idp_conf["service"]["idp"]["policy"]["default"]["entity_categories"] = ["swamid"]
         sp_conf["entity_category"] = [SFS_1993_1153]
@@ -364,8 +384,12 @@ class TestSAMLFrontend:
         samlfrontend = self.setup_for_authn_req(context, idp_conf, sp_conf, internal_attributes=internal_attributes,
                                                 extra_config=dict(custom_attribute_release=custom_attributes))
 
+        internal_response.requester = sp_conf["entityid"]
         resp = self.get_auth_response(samlfrontend, context, internal_response, sp_conf, idp_metadata_str)
-        assert len(resp.ava.keys()) == 0
+        assert len(resp.ava.keys()) == (
+            len(expected_attributes)
+            - len(custom_attributes[internal_response.auth_info.issuer][internal_response.requester]["exclude"])
+        )
 
 
 class TestSAMLMirrorFrontend:
@@ -541,14 +565,14 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
         backend_name = context.target_backend
         idp_conf = frontend._add_endpoints_to_config(idp_conf, co_name,
                                                      backend_name)
-        idp_conf = frontend._add_entity_id(context, idp_conf, co_name)
+        idp_conf = frontend._add_entity_id(idp_conf, co_name)
 
         # Use a utility function to serialize the idp_conf IdP configuration
         # fixture to a string and then dynamically update the sp_conf
         # SP configuration fixture with the metadata.
         idp_metadata_str = create_metadata_from_config_dict(idp_conf)
         sp_conf["metadata"]["inline"].append(idp_metadata_str)
-        sp_config = SPConfig().load(sp_conf, metadata_construction=False)
+        sp_config = SPConfig().load(sp_conf)
 
         # Use the updated sp_config fixture to generate a fake SP and then
         # use the fake SP to generate an authentication request aimed at the

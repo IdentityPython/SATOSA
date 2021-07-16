@@ -1,5 +1,5 @@
 os: linux
-dist: xenial
+dist: bionic
 language: python
 
 services:
@@ -14,7 +14,7 @@ install:
   - pip install tox-travis
 
 script:
-  - tox
+  - tox -r
 
 jobs:
   allow_failures:
@@ -135,7 +135,7 @@ jobs:
         - docker push "$DOCKER_TAG_LATEST"
 
     - stage: Deploy new release on GitHub
-      if: type = push AND branch = master AND tag IS present
+      if: type = push AND tag IS present
       before_install: skip
       install: skip
       script: skip
@@ -147,7 +147,7 @@ jobs:
             tags: true
 
     - stage: Deploy new release on PyPI
-      if: type = push AND branch = master AND tag IS present
+      if: type = push AND tag IS present
       before_install: skip
       install: skip
       script: skip

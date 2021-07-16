@@ -1,11 +1,16 @@
 from base64 import urlsafe_b64encode
+from unittest import TestCase
 
 import pytest
 
 from satosa.context import Context
-from satosa.exception import SATOSAError, SATOSAConfigurationError
+from satosa.state import State
+from satosa.exception import SATOSAError, SATOSAConfigurationError, SATOSAStateError
 from satosa.internal import InternalData
 from satosa.micro_services.custom_routing import DecideIfRequesterIsAllowed
+from satosa.micro_services.custom_routing import DecideBackendByTargetIssuer
+from satosa.micro_services.custom_routing import CustomRoutingError
+
 
 TARGET_ENTITY = "entity1"
 
@@ -156,3 +161,45 @@ class TestDecideIfRequesterIsAllowed:
         req = InternalData(requester="test_requester")
         with pytest.raises(SATOSAError):
             decide_service.process(context, req)
+
+
+class TestDecideBackendByTargetIssuer(TestCase):
+    def setUp(self):
+        context = Context()
+        context.state = State()
+
+        config = {
+            'default_backend': 'default_backend',
+            'target_mapping': {
+                'mapped_idp.example.org': 'mapped_backend',
+            },
+        }
+
+        plugin = DecideBackendByTargetIssuer(
+            config=config,
+            name='test_decide_service',
+            base_url='https://satosa.example.org',
+        )
+        plugin.next = lambda ctx, data: (ctx, data)
+
+        self.config = config
+        self.context = context
+        self.plugin = plugin
+
+    def test_when_target_is_not_set_do_skip(self):
+        data = InternalData(requester='test_requester')
+        newctx, newdata = self.plugin.process(self.context, data)
+        assert not newctx.target_backend
+
+    def test_when_target_is_not_mapped_choose_default_backend(self):
+        self.context.decorate(Context.KEY_TARGET_ENTITYID, 'idp.example.org')
+        data = InternalData(requester='test_requester')
+        newctx, newdata = self.plugin.process(self.context, data)
+        assert newctx.target_backend == 'default_backend'
+
+    def test_when_target_is_mapped_choose_mapping_backend(self):
+        self.context.decorate(Context.KEY_TARGET_ENTITYID, 'mapped_idp.example.org')
+        data = InternalData(requester='test_requester')
+        data.requester = 'somebody else'
+        newctx, newdata = self.plugin.process(self.context, data)
+        assert newctx.target_backend == 'mapped_backend'

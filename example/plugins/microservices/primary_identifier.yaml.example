@@ -1,0 +1,53 @@
+module: satosa.micro_services.primary_identifier.PrimaryIdentifier
+name: PrimaryIdentifier
+config:
+    # The ordered identifier candidates are searched in order
+    # to find a candidate primary identifier. The search ends
+    # when the first candidate is found. The identifier or attribute
+    # names are the internal SATOSA names for the attributes as
+    # defined in internal_attributes.yaml. The configuration below
+    # would search in order for eduPersonUniqueID, eduPersonPrincipalName
+    # combined with a SAML2 Persistent NameID, eduPersonPrincipalName
+    # combined with eduPersonTargetedId, eduPersonPrincipalName,
+    # SAML 2 Persistent NameID, and finally eduPersonTargetedId.
+    ordered_identifier_candidates:
+        - attribute_names: [epuid]
+        # The line below combines, if found, eduPersonPrincipalName and SAML 2
+        # persistent NameID to create a primary identifier.
+        - attribute_names: [eppn, name_id]
+          name_id_format: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
+        # The line below combines, if found, eduPersonPrincipalName and
+        # eduPersonTargetedId to create a primary identifier.
+        - attribute_names: [eppn, edupersontargetedid]
+        - attribute_names: [eppn]
+        - attribute_names: [name_id]
+          name_id_format: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
+          # The line below addes the IdP entityID to the value for the SAML2 
+          # Persistent NameID to ensure the value is fully scoped.
+          add_scope: issuer_entityid
+        - attribute_names: [edupersontargetedid]
+          add_scope: issuer_entityid
+    # The internal SATOSA attribute into which to place the primary
+    # identifier value once found from the above configured ordered
+    # candidates.
+    primary_identifier: uid
+    # Whether or not to clear the input attributes after setting the
+    # primary identifier value.
+    clear_input_attributes: no
+    # Whether to replace subject_id with the constructed primary identifier
+    replace_subject_id: no
+    # If defined redirect to this page if no primary identifier can
+    # be found.
+    on_error: https://my.org/errors/no_primary_identifier
+
+    # The microservice may be configured per entityID.
+    # The configuration key is the entityID of the requesting SP,
+    # or the authenticating IdP. An SP configuration overrides an IdP
+    # configuration when there is a conflict.
+    "https://my.org/idp/shibboleth":
+        ordered_identifier_candidates:
+          - attribute_names: [eppn]
+
+    "https://service.my.org/sp/shibboleth":
+        ordered_identifier_candidates:
+          - attribute_names: [mail]

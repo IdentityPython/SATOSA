@@ -1,0 +1,8 @@
+module: satosa.micro_services.custom_routing.DecideBackendByTargetIssuer
+name: TargetRouter
+config:
+  default_backend: Saml2
+
+  target_mapping:
+    "http://idpspid.testunical.it:8088": "spidSaml2" # map SAML entity with entity id 'target_id' to backend name
+    "http://eidas.testunical.it:8081/saml2/metadata": "eidasSaml2"

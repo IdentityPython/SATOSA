@@ -116,7 +116,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         self.idp_config = self._build_idp_config_endpoints(
             self.config[self.KEY_IDP_CONFIG], backend_names)
         # Create the idp
-        idp_config = IdPConfig().load(copy.deepcopy(self.idp_config), metadata_construction=False)
+        idp_config = IdPConfig().load(copy.deepcopy(self.idp_config))
         self.idp = Server(config=idp_config)
         return self._register_endpoints(backend_names)
 
@@ -247,6 +247,11 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
                 idp, idp_policy, requester, context.state
             )
 
+        authn_context_class_ref_nodes = getattr(
+            authn_req.requested_authn_context, 'authn_context_class_ref', []
+        )
+        authn_context = [ref.text for ref in authn_context_class_ref_nodes]
+        context.decorate(Context.KEY_AUTHN_CONTEXT_CLASS_REF, authn_context)
         context.decorate(Context.KEY_METADATA_STORE, self.idp.metadata)
         return self.auth_req_callback_func(context, internal_req)
 
@@ -285,9 +290,14 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         idp_policy = idp.config.getattr("policy", "idp")
         attributes = {}
         if idp_policy:
-            approved_attributes = self._get_approved_attributes(idp, idp_policy, internal_response.requester,
-                                                                context.state)
-            attributes = {k: v for k, v in internal_response.attributes.items() if k in approved_attributes}
+            approved_attributes = self._get_approved_attributes(
+                idp, idp_policy, internal_response.requester, context.state
+            )
+            attributes = {
+                k: v
+                for k, v in internal_response.attributes.items()
+                if k in approved_attributes
+            }
 
         return attributes
 
@@ -352,56 +362,73 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.debug(logline)
 
-        policies = self.idp_config.get(
-            'service', {}).get('idp', {}).get('policy', {})
+        idp_conf = self.idp_config.get('service', {}).get('idp', {})
+        policies = idp_conf.get('policy', {})
         sp_policy = policies.get('default', {})
         sp_policy.update(policies.get(sp_entity_id, {}))
 
         sign_assertion = sp_policy.get('sign_assertion', False)
         sign_response = sp_policy.get('sign_response', True)
-        sign_alg = sp_policy.get('sign_alg', 'SIG_RSA_SHA256')
-        digest_alg = sp_policy.get('digest_alg', 'DIGEST_SHA256')
         encrypt_assertion = sp_policy.get('encrypt_assertion', False)
         encrypted_advice_attributes = sp_policy.get('encrypted_advice_attributes', False)
+
+        signing_algorithm = idp_conf.get('signing_algorithm')
+        digest_algorithm = idp_conf.get('digest_algorithm')
+        sign_alg_attr = sp_policy.get('sign_alg', 'SIG_RSA_SHA256')
+        digest_alg_attr = sp_policy.get('digest_alg', 'DIGEST_SHA256')
 
         # Construct arguments for method create_authn_response
         # on IdP Server instance
         args = {
-            'identity'      : ava,
-            'name_id'       : name_id,
-            'authn'         : auth_info,
-            'sign_response' : sign_response,
+            # Add the SP details
+            **resp_args,
+            # AuthnResponse data
+            'identity': ava,
+            'name_id': name_id,
+            'authn': auth_info,
+            'sign_response': sign_response,
             'sign_assertion': sign_assertion,
             'encrypt_assertion': encrypt_assertion,
-            'encrypted_advice_attributes': encrypted_advice_attributes
+            'encrypted_advice_attributes': encrypted_advice_attributes,
         }
 
-        # Add the SP details
-        args.update(**resp_args)
+        args['sign_alg'] = signing_algorithm
+        if not args['sign_alg']:
+            try:
+                args['sign_alg'] = getattr(xmldsig, sign_alg_attr)
+            except AttributeError as e:
+                msg = "Unsupported sign algorithm {}".format(sign_alg_attr)
+                logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                logger.error(logline)
+                raise Exception(msg) from e
 
-        try:
-            args['sign_alg'] = getattr(xmldsig, sign_alg)
-        except AttributeError as e:
-            msg = "Unsupported sign algorithm {}".format(sign_alg)
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.error(logline)
-            raise Exception(msg) from e
-        else:
-            msg = "signing with algorithm {}".format(args['sign_alg'])
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.debug(logline)
+        msg = "signing with algorithm {}".format(args['sign_alg'])
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
 
-        try:
-            args['digest_alg'] = getattr(xmldsig, digest_alg)
-        except AttributeError as e:
-            msg = "Unsupported digest algorithm {}".format(digest_alg)
+        args['digest_alg'] = digest_algorithm
+        if not args['digest_alg']:
+            try:
+                args['digest_alg'] = getattr(xmldsig, digest_alg_attr)
+            except AttributeError as e:
+                msg = "Unsupported digest algorithm {}".format(digest_alg_attr)
+                logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                logger.error(logline)
+                raise Exception(msg) from e
+
+        msg = "using digest algorithm {}".format(args['digest_alg'])
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
+
+        if sign_alg_attr or digest_alg_attr:
+            msg = (
+                "sign_alg and digest_alg are deprecated; "
+                "instead, use signing_algorithm and digest_algorithm "
+                "under the service/idp configuration path "
+                "(not under policy/default)."
+            )
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.error(logline)
-            raise Exception(msg) from e
-        else:
-            msg = "using digest algorithm {}".format(args['digest_alg'])
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.debug(logline)
+            logger.warning(msg)
 
         resp = idp.create_authn_response(**args)
         http_args = idp.apply_binding(
@@ -632,7 +659,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         """
         target_entity_id = context.target_entity_id_from_path()
         idp_conf_file = self._load_endpoints_to_config(context.target_backend, target_entity_id)
-        idp_config = IdPConfig().load(idp_conf_file, metadata_construction=False)
+        idp_config = IdPConfig().load(idp_conf_file)
         return Server(config=idp_config)
 
     def _load_idp_dynamic_entity_id(self, state):
@@ -648,7 +675,7 @@ class SAMLMirrorFrontend(SAMLFrontend):
         # Change the idp entity id dynamically
         idp_config_file = copy.deepcopy(self.idp_config)
         idp_config_file["entityid"] = "{}/{}".format(self.idp_config["entityid"], state[self.name]["target_entity_id"])
-        idp_config = IdPConfig().load(idp_config_file, metadata_construction=False)
+        idp_config = IdPConfig().load(idp_config_file)
         return Server(config=idp_config)
 
     def handle_authn_request(self, context, binding_in):
@@ -914,7 +941,7 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
 
         return config
 
-    def _add_entity_id(self, context, config, co_name):
+    def _add_entity_id(self, config, co_name):
         """
         Use the CO name to construct the entity ID for the virtual IdP
         for the CO and add it to the config. Also add it to the
@@ -938,7 +965,6 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         base_entity_id = config['entityid']
         co_entity_id = "{}/{}".format(base_entity_id, quote_plus(co_name))
         config['entityid'] = co_entity_id
-        context.decorate(self.KEY_CO_ENTITY_ID, co_entity_id)
 
         return config
 
@@ -1021,15 +1047,15 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         # and the entityID for the CO virtual IdP.
         backend_name = context.target_backend
         idp_config = copy.deepcopy(self.idp_config)
-        idp_config = self._add_endpoints_to_config(idp_config,
-                                                   co_name,
-                                                   backend_name)
-        idp_config = self._add_entity_id(context, idp_config, co_name)
+        idp_config = self._add_endpoints_to_config(
+            idp_config, co_name, backend_name
+        )
+        idp_config = self._add_entity_id(idp_config, co_name)
+        context.decorate(self.KEY_CO_ENTITY_ID, idp_config['entityid'])
 
         # Use the overwritten IdP config to generate a pysaml2 config object
         # and from it a server object.
-        pysaml2_idp_config = IdPConfig().load(idp_config,
-                                              metadata_construction=False)
+        pysaml2_idp_config = IdPConfig().load(idp_config)
 
         server = Server(config=pysaml2_idp_config)
 

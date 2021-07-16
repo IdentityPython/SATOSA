@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def _create_entity_descriptor(entity_config):
-    cnf = Config().load(copy.deepcopy(entity_config), metadata_construction=True)
+    cnf = Config().load(copy.deepcopy(entity_config))
     return entity_descriptor(cnf)
 
 

@@ -84,6 +84,7 @@ MAP = {
         DEF+'info': 'info',
         DEF+'initials': 'initials',
         DEF+'internationaliSDNNumber': 'internationaliSDNNumber',
+        DEF+'isMemberOf': 'isMemberOf',
         DEF+'janetMailbox': 'janetMailbox',
         DEF+'jpegPhoto': 'jpegPhoto',
         DEF+'knowledgeInformation': 'knowledgeInformation',

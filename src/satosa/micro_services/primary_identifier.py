@@ -54,7 +54,7 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
 
             # Get the values asserted by the IdP for the configured list of attribute names for this candidate
             # and substitute None if the IdP did not assert any value for a configured attribute.
-            values = [ attributes.get(attribute_name, [None])[0] for attribute_name in candidate['attribute_names'] ]
+            values = [ attributes.get(attribute_name, [None])[0] for attribute_name in candidate['attribute_names'] if attribute_name != 'name_id' ]
             msg = "{} Found candidate values {}".format(logprefix, values)
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline)
@@ -191,6 +191,12 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
                 clear_input_attributes = self.config['clear_input_attributes']
             else:
                 clear_input_attributes = False
+            if 'replace_subject_id' in config:
+                replace_subject_id = config['replace_subject_id']
+            elif 'replace_subject_id' in self.config:
+                replace_subject_id = self.config['replace_subject_id']
+            else:
+                replace_subject_id = False
             if 'ignore' in config:
                 ignore = True
             else:
@@ -244,19 +250,29 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
         # Clear input attributes if so configured.
         if clear_input_attributes:
             msg = "{} Clearing values for these input attributes: {}".format(
-                logprefix, data.attribute_names
+                logprefix, data.attributes.keys()
             )
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline)
             data.attributes = {}
 
-        # Set the primary identifier attribute to the value found.
-        data.attributes[primary_identifier] = primary_identifier_val
-        msg = "{} Setting attribute {} to value {}".format(
-            logprefix, primary_identifier, primary_identifier_val
-        )
-        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-        logger.debug(logline)
+        if primary_identifier:
+            # Set the primary identifier attribute to the value found.
+            data.attributes[primary_identifier] = primary_identifier_val
+            msg = "{} Setting attribute {} to value {}".format(
+                logprefix, primary_identifier, primary_identifier_val
+            )
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
+
+        # Replace subject_id with the constructed primary identifier if so configured.
+        if replace_subject_id:
+            msg = "{} Setting subject_id to value {}".format(
+                logprefix, primary_identifier_val
+            )
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
+            data.subject_id = primary_identifier_val
 
         msg = "{} returning data.attributes {}".format(logprefix, str(data.attributes))
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)

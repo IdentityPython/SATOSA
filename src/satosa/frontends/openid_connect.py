@@ -77,9 +77,10 @@ class OpenIDConnectFrontend(FrontendModule):
 
         authz_state = self._init_authorization_state()
         db_uri = self.config.get("db_uri")
+        client_db_uri = self.config.get("client_db_uri")
         cdb_file = self.config.get("client_db_path")
-        if db_uri:
-            cdb = MongoWrapper(db_uri, "satosa", "clients")
+        if client_db_uri:
+            cdb = MongoWrapper(client_db_uri, "satosa", "clients")
         elif cdb_file:
             with open(cdb_file) as f:
                 cdb = json.loads(f.read())
@@ -93,6 +94,7 @@ class OpenIDConnectFrontend(FrontendModule):
             cdb,
             Userinfo(self.user_db),
             extra_scopes=extra_scopes,
+            id_token_lifetime=self.config["provider"].get("id_token_lifetime", 3600),
         )
 
     def _init_authorization_state(self):
@@ -117,7 +119,15 @@ class OpenIDConnectFrontend(FrontendModule):
         return AuthorizationState(HashBasedSubjectIdentifierFactory(sub_hash_salt), authz_code_db, access_token_db,
                                   refresh_token_db, sub_db, **token_lifetimes)
 
-    def handle_authn_response(self, context, internal_resp, extra_id_token_claims=None):
+    def _get_extra_id_token_claims(self, user_id, client_id):
+        if "extra_id_token_claims" in self.config["provider"]:
+            config = self.config["provider"]["extra_id_token_claims"].get(client_id, [])
+            if type(config) is list and len(config) > 0:
+                requested_claims = {k: None for k in config}
+                return self.provider.userinfo.get_claims_for(user_id, requested_claims)
+        return {}
+
+    def handle_authn_response(self, context, internal_resp):
         """
         See super class method satosa.frontends.base.FrontendModule#handle_authn_response
         :type context: satosa.context.Context
@@ -128,11 +138,14 @@ class OpenIDConnectFrontend(FrontendModule):
         auth_req = self._get_authn_request_from_state(context.state)
 
         claims = self.converter.from_internal("openid", internal_resp.attributes)
+        # Filter unset claims
+        claims = {k: v for k, v in claims.items() if v}
         self.user_db[internal_resp.subject_id] = dict(combine_claim_values(claims.items()))
         auth_resp = self.provider.authorize(
             auth_req,
             internal_resp.subject_id,
-            extra_id_token_claims=extra_id_token_claims,
+            extra_id_token_claims=lambda user_id, client_id:
+                self._get_extra_id_token_claims(user_id, client_id),
         )
 
         del context.state[self.name]
@@ -359,7 +372,10 @@ class OpenIDConnectFrontend(FrontendModule):
         """
         headers = {"Authorization": context.request_authorization}
         try:
-            response = self.provider.handle_token_request(urlencode(context.request), headers)
+            response = self.provider.handle_token_request(
+                urlencode(context.request),
+                headers,
+                lambda user_id, client_id: self._get_extra_id_token_claims(user_id, client_id))
             return Response(response.to_json(), content="application/json")
         except InvalidClientAuthentication as e:
             logline = "invalid client authentication at token endpoint"

@@ -2,12 +2,60 @@ import logging
 from base64 import urlsafe_b64encode
 
 from satosa.context import Context
+from satosa.internal import InternalData
+
 from .base import RequestMicroService
 from ..exception import SATOSAConfigurationError
 from ..exception import SATOSAError
 
 
 logger = logging.getLogger(__name__)
+
+
+class CustomRoutingError(SATOSAError):
+    """SATOSA exception raised by CustomRouting rules"""
+    pass
+
+
+class DecideBackendByTargetIssuer(RequestMicroService):
+    """
+    Select target backend based on the target issuer.
+    """
+
+    def __init__(self, config:dict, *args, **kwargs):
+        """
+        Constructor.
+
+        :param config: microservice configuration loaded from yaml file
+        :type config: Dict[str, Dict[str, str]]
+        """
+        super().__init__(*args, **kwargs)
+
+        self.target_mapping = config['target_mapping']
+        self.default_backend = config['default_backend']
+
+    def process(self, context:Context, data:InternalData):
+        """Set context.target_backend based on the target issuer"""
+
+        target_issuer = context.get_decoration(Context.KEY_TARGET_ENTITYID)
+        if not target_issuer:
+            logger.info('skipping backend decision because no target_issuer was found')
+            return super().process(context, data)
+
+        target_backend = (
+            self.target_mapping.get(target_issuer)
+            or self.default_backend
+        )
+
+        report = {
+            'msg': 'decided target backend by target issuer',
+            'target_issuer': target_issuer,
+            'target_backend': target_backend,
+        }
+        logger.info(report)
+
+        context.target_backend = target_backend
+        return super().process(context, data)
 
 
 class DecideBackendByRequester(RequestMicroService):

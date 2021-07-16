@@ -71,6 +71,21 @@ class TestOpenIDConnectFrontend(object):
 
         return config
 
+    @pytest.fixture
+    def frontend_config_with_extra_id_token_claims(self, signing_key_path):
+        config = {
+            "signing_key_path": signing_key_path,
+            "provider": {
+                "response_types_supported": ["code", "id_token", "code id_token token"],
+                "scopes_supported": ["openid", "email"],
+                "extra_id_token_claims": {
+                    CLIENT_ID: ["email"],
+                }
+            },
+        }
+
+        return config
+
     def create_frontend(self, frontend_config):
         # will use in-memory storage
         instance = OpenIDConnectFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
@@ -408,6 +423,27 @@ class TestOpenIDConnectFrontend(object):
         assert parsed["access_token"]
         assert parsed["expires_in"] == token_lifetime
         assert parsed["id_token"]
+
+    def test_token_endpoint_with_extra_claims(self, context, frontend_config_with_extra_id_token_claims, authn_req):
+        frontend = self.create_frontend(frontend_config_with_extra_id_token_claims)
+
+        user_id = "test_user"
+        self.insert_client_in_client_db(frontend, authn_req["redirect_uri"])
+        self.insert_user_in_user_db(frontend, user_id)
+        authn_req["response_type"] = "code"
+        authn_resp = frontend.provider.authorize(authn_req, user_id)
+
+        context.request = AccessTokenRequest(redirect_uri=authn_req["redirect_uri"], code=authn_resp["code"]).to_dict()
+        credentials = "{}:{}".format(CLIENT_ID, CLIENT_SECRET)
+        basic_auth = urlsafe_b64encode(credentials.encode("utf-8")).decode("utf-8")
+        context.request_authorization = "Basic {}".format(basic_auth)
+
+        response = frontend.token_endpoint(context)
+        parsed = AccessTokenResponse().deserialize(response.message, "json")
+        assert parsed["access_token"]
+
+        id_token = IdToken().from_jwt(parsed["id_token"], key=[frontend.signing_key])
+        assert id_token["email"] == "test@example.com"
 
     def test_token_endpoint_issues_refresh_tokens_if_configured(self, context, frontend_config, authn_req):
         frontend_config["provider"]["refresh_token_lifetime"] = 60 * 60 * 24 * 365

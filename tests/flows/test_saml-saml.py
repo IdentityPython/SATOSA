@@ -28,7 +28,7 @@ class TestSAMLToSAML:
         # config test SP
         frontend_metadata_str = str(frontend_metadata[frontend_config["name"]][0])
         sp_conf["metadata"]["inline"].append(frontend_metadata_str)
-        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf))
 
         # create auth req
         destination, req_args = fakesp.make_auth_req(frontend_metadata[frontend_config["name"]][0].entity_id)
@@ -41,7 +41,7 @@ class TestSAMLToSAML:
         # config test IdP
         backend_metadata_str = str(backend_metadata[saml_backend_config["name"]][0])
         idp_conf["metadata"]["inline"].append(backend_metadata_str)
-        fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf, metadata_construction=False))
+        fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf))
 
         # create auth resp
         req_params = dict(parse_qsl(urlparse(proxied_auth_req.data.decode("utf-8")).query))
@@ -54,7 +54,7 @@ class TestSAMLToSAML:
 
         # make auth resp to proxy
         authn_resp_req = urlparse(url).path + "?" + urlencode(authn_resp)
-        authn_resp = test_client.get("/" + authn_resp_req)
+        authn_resp = test_client.get(authn_resp_req)
         assert authn_resp.status == "303 See Other"
 
         # verify auth resp from proxy

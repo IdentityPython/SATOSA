@@ -17,7 +17,7 @@ apt-get install libffi-dev libssl-dev xmlsec1
 ````
 
 ### <a name="install_instructions" style="color:#000000">Instructions</a>
-1. Download the SATOSA proxy project as a [compressed archive](https://github.com/SUNET/SATOSA/releases)
+1. Download the SATOSA proxy project as a [compressed archive](https://github.com/IdentityPython/SATOSA/releases)
    and unpack it to `<satosa_path>`.
 
 1. Install the application:
@@ -27,6 +27,32 @@ apt-get install libffi-dev libssl-dev xmlsec1
    ```
 
 Alternatively the application can be installed directly from PyPI (`pip install satosa`), or the [Docker image](https://hub.docker.com/r/satosa/) can be used.
+
+
+### <a name="install_instructions" style="color:#000000">External micro-services</a>
+
+Micro-services act like plugins and can be developed by anyone. Other people
+that have been working with the SaToSa proxy, have built extentions mainly in
+the form of additional micro-services that can be shared and used by anyone.
+
+DAASI International have been a long-time user of this software and have made
+their extentions available, licensed under Apache2.0. You can find the
+extensions using the following URL:
+
+- https://gitlab.daasi.de/didmos2/didmos2-auth/-/tree/master/src/didmos_oidc/satosa/micro_services
+
+The extentions include:
+
+- SCIM attribute store to fetch attributes via SCIM API (instead of LDAP)
+- Authoritzation module for blocking services if necessary group memberships or
+  attributes are missing in the identity (for service providers that do not
+  evaluate attributes themselves)
+- Backend chooser with Django UI for letting the user choose between any
+  existing SATOSA backend
+- Integration of MFA via PrivacyIDEA
+
+and more.
+
 
 # Configuration
 SATOSA is configured using YAML.
@@ -181,6 +207,8 @@ Common configuration parameters:
 | `entityid_endpoint` | bool | `true` | whether `entityid` should be used as a URL that serves the metadata xml document
 | `acr_mapping` | dict | `None` | custom Authentication Context Class Reference
 
+#### <a name="saml_metadata" style="color:#000000">Metadata</a>
+
 The metadata could be loaded in multiple ways in the table above it's loaded from a static
 file by using the key "local". It's also possible to load read the metadata from a remote URL.
 
@@ -193,18 +221,17 @@ Metadata from local file:
 
 Metadata from remote URL:
 
-    "metadata": {
-        "remote":
-            - url:https://kalmar2.org/simplesaml/module.php/aggregator/?id=kalmarcentral2&set=saml2
-              cert:null
-    }
+    "metadata":
+        remote:
+            - url: "https://kalmar2.org/simplesaml/module.php/aggregator/?id=kalmarcentral2&set=saml2"
+              cert: null
 
 For more detailed information on how you could customize the SAML entities,
 see the
 [documentation of the underlying library pysaml2](https://github.com/rohe/pysaml2/blob/master/docs/howto/config.rst).
 
 
-##### Providing `AuthnContextClassRef`
+#### Providing `AuthnContextClassRef`
 
 SAML2 frontends and backends can provide a custom (configurable) *Authentication Context Class Reference*.
 For the frontend this is defined in the `AuthnStatement` of the authentication response, while,
@@ -232,7 +259,7 @@ provider will be preserved, and when using a OAuth or OpenID Connect backend, th
             "https://accounts.google.com": LoA1
 
 
-#### Frontend
+#### <a name="saml_frontend" style="color:#000000">Frontend</a>
 
 The SAML2 frontend act as a SAML Identity Provider (IdP), accepting
 authentication requests from SAML Service Providers (SP). The default
@@ -300,24 +327,22 @@ config:
                 exclude: ["givenName"]
 ```
 
-#### Policy
+##### Policy
 
 Some settings related to how a SAML response is formed can be overriden on a per-instance or a per-SP
 basis. This example summarizes the most common settings (hopefully self-explanatory) with their defaults:
 
 ```yaml
 config:
-    idp_config:
-        service:
-            idp:
-                policy:
-                    default:
-                        sign_response: True
-                        sign_assertion: False
-                        sign_alg: "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
-                        digest_alg: "http://www.w3.org/2001/04/xmlenc#sha256"
-                    <sp entityID>:
-                        ...
+  idp_config:
+    service:
+      idp:
+        policy:
+          default:
+            sign_response: True
+            sign_assertion: False
+          <sp entityID>:
+            ...
 ```
 
 Overrides per SP entityID is possible by using the entityID as a key instead of the "default" key
@@ -325,7 +350,7 @@ in the yaml structure. The most specific key takes presedence. If no policy over
 the defaults above are used.
 
 
-#### Backend
+#### <a name="saml_backend" style="color:#000000">Backend</a>
 The SAML2 backend act as a SAML Service Provider (SP), making authentication
 requests to SAML Identity Providers (IdP). The default configuration file can be
 found [here](../example/plugins/backends/saml2_backend.yaml.example).
@@ -407,7 +432,7 @@ config:
 
 ### <a name="openid_plugin" style="color:#000000">OpenID Connect plugins</a>
 
-#### Backend
+#### <a name="openid_backend" style="color:#000000">Backend</a>
 The OpenID Connect backend acts as an OpenID Connect Relying Party (RP), making
 authentication requests to OpenID Connect Provider (OP). The default
 configuration file can be found [here](../example/plugins/backends/openid_backend.yaml.example).
@@ -420,7 +445,7 @@ and make sure to provide the redirect URI, constructed as described in the
 section about Google configuration below, in the static registration.
 
 
-#### Frontend
+#### <a name="openid_frontend" style="color:#000000">Frontend</a>
 The OpenID Connect frontend acts as and OpenID Connect Provider (OP), accepting requests from OpenID
 Connect Relying Parties (RPs). The default configuration file can be found
 [here](../example/plugins/frontends/openid_connect_frontend.yaml.example).
@@ -433,6 +458,9 @@ The configuration parameters available:
 * `signing_key_path`: path to a RSA Private Key file (PKCS#1). MUST be configured.
 * `db_uri`: connection URI to MongoDB instance where the data will be persisted, if it's not specified all data will only
    be stored in-memory (not suitable for production use).
+* `client_db_uri`: connection URI to MongoDB instance where the client data will be persistent, if it's not specified the clients list will be received from the `client_db_path`.
+* `client_db_path`: path to a file containing the client database in json format. It will only be used if `client_db_uri` is not set. If `client_db_uri` and `client_db_path` are not set, clients will only be stored in-memory (not suitable for production use).
+* `sub_hash_salt`: salt which is hashed into the `sub` claim. If it's not specified, SATOSA will generate a random salt on each startup, which means that users will get new `sub` value after every restart.
 * `provider`: provider configuration information. MUST be configured, the following configuration are supported:
     * `response_types_supported` (default: `[id_token]`): list of all supported response types, see [Section 3 of OIDC Core](http://openid.net/specs/openid-connect-core-1_0.html#Authentication).
     * `subject_types_supported` (default: `[pairwise]`): list of all supported subject identifier types, see [Section 8 of OIDC Core](http://openid.net/specs/openid-connect-core-1_0.html#SubjectIDTypes)
@@ -440,10 +468,11 @@ The configuration parameters available:
     * `client_registration_supported` (default: `No`): boolean whether [dynamic client registration is supported](https://openid.net/specs/openid-connect-registration-1_0.html).
         If dynamic client registration is not supported all clients must exist in the MongoDB instance configured by the `db_uri` in the `"clients"` collection of the `"satosa"` database.
         The registration info must be stored using the client id as a key, and use the parameter names of a [OIDC Registration Response](https://openid.net/specs/openid-connect-registration-1_0.html#RegistrationResponse).
-    * `authorization_code_lifetime`: how long authorization codes should be valid, see [default](https://github.com/SUNET/pyop#token-lifetimes)
-    * `access_token_lifetime`: how long access tokens should be valid, see [default](https://github.com/SUNET/pyop#token-lifetimes)
-    * `refresh_token_lifetime`: how long refresh tokens should be valid, if not specified no refresh tokens will be issued (which is [default](https://github.com/SUNET/pyop#token-lifetimes))
-    * `refresh_token_threshold`: how long before expiration refresh tokens should be refreshed, if not specified refresh tokens will never be refreshed (which is [default](https://github.com/SUNET/pyop#token-lifetimes))
+    * `authorization_code_lifetime`: how long authorization codes should be valid, see [default](https://github.com/IdentityPython/pyop#token-lifetimes)
+    * `access_token_lifetime`: how long access tokens should be valid, see [default](https://github.com/IdentityPython/pyop#token-lifetimes)
+    * `refresh_token_lifetime`: how long refresh tokens should be valid, if not specified no refresh tokens will be issued (which is [default](https://github.com/IdentityPython/pyop#token-lifetimes))
+    * `refresh_token_threshold`: how long before expiration refresh tokens should be refreshed, if not specified refresh tokens will never be refreshed (which is [default](https://github.com/IdentityPython/pyop#token-lifetimes))
+    * `id_token_lifetime`: the lifetime of the ID token in seconds - the default is set to 1hr (3600 seconds) (see [default](https://github.com/IdentityPython/pyop#token-lifetimes))
 
 The other parameters should be left with their default values.
 
@@ -568,6 +597,18 @@ the string `"foo:bar"`:
         "attr1": "foo:bar"
 ```
 
+#### Apply a Attribute Policy
+
+Attributes delivered from the target provider can be filtered based on a list of allowed attributes per requester
+using the `AttributePolicy` class:
+```yaml
+attribute_policy:
+    <requester>:
+        allowed:
+            - attr1
+            - attr2
+```
+
 #### Route to a specific backend based on the requester
 To choose which backend (essentially choosing target provider) to use based on the requester, use the
 `DecideBackendByRequester` class which implements that special routing behavior. See the
@@ -648,9 +689,9 @@ methods:
 * Frontends must inherit `satosa.frontends.base.FrontendModule`.
 * Backends must inherit `satosa.backends.base.BackendModule`.
 * Request micro services must inherit `satosa.micro_services.base.RequestMicroService`.
-* Request micro services must inherit `satosa.micro_services.base.ResponseMicroService`.
+* Response micro services must inherit `satosa.micro_services.base.ResponseMicroService`.
 
-# <a name="saml_metadata" style="color:#000000">Generate proxy metadata</a>
+# <a name="saml_proxy_metadata" style="color:#000000">Generate proxy metadata</a>
 
 The proxy metadata is generated based on the front-/backend plugins listed in `proxy_conf.yaml`
 using the `satosa-saml-metadata` (installed globally by SATOSA installation).
@@ -693,5 +734,4 @@ set SATOSA_CONFIG=/home/user/proxy_conf.yaml
 ## Using Apache HTTP Server and mod\_wsgi
 
 See the [auxiliary documentation for running using mod\_wsgi](mod_wsgi.md).
-
 

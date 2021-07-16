@@ -18,6 +18,7 @@ class Context(object):
     KEY_TARGET_ENTITYID = 'target_entity_id'
     KEY_FORCE_AUTHN = 'force_authn'
     KEY_MEMORIZED_IDP = 'memorized_idp'
+    KEY_AUTHN_CONTEXT_CLASS_REF = 'authn_context_class_ref'
 
     def __init__(self):
         self._path = None

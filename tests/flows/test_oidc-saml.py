@@ -32,6 +32,7 @@ def oidc_frontend_config(signing_key_path, mongodb_instance):
             "issuer": "https://proxy-op.example.com",
             "signing_key_path": signing_key_path,
             "provider": {"response_types_supported": ["id_token"]},
+            "client_db_uri": mongodb_instance.get_uri(),  # use mongodb for integration testing
             "db_uri": mongodb_instance.get_uri()  # use mongodb for integration testing
         }
     }
@@ -78,7 +79,7 @@ class TestOIDCToSAML:
         # config test IdP
         backend_metadata_str = str(backend_metadata[saml_backend_config["name"]][0])
         idp_conf["metadata"]["inline"].append(backend_metadata_str)
-        fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf, metadata_construction=False))
+        fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf))
 
         # create auth resp
         req_params = dict(parse_qsl(urlparse(proxied_auth_req.data.decode("utf-8")).query))
@@ -91,7 +92,7 @@ class TestOIDCToSAML:
 
         # make auth resp to proxy
         authn_resp_req = urlparse(url).path + "?" + urlencode(authn_resp)
-        authn_resp = test_client.get("/" + authn_resp_req)
+        authn_resp = test_client.get(authn_resp_req)
         assert authn_resp.status == "303 See Other"
 
         # verify auth resp from proxy

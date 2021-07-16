@@ -32,7 +32,7 @@ class TestSAMLToOIDC:
         # config test SP
         frontend_metadata_str = str(frontend_metadata[frontend_config["name"]][0])
         sp_conf["metadata"]["inline"].append(frontend_metadata_str)
-        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf))
 
         # create auth req
         destination, req_args = fakesp.make_auth_req(frontend_metadata[frontend_config["name"]][0].entity_id)

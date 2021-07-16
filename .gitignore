@@ -4,9 +4,6 @@ _build
 *.pyc
 *.log*
 
-example/*
-!example/plugins
-
 *.xml
 *.db
 *static/

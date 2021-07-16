@@ -119,7 +119,7 @@ class TestSAMLBackend:
     def test_full_flow(self, context, idp_conf, sp_conf):
         test_state_key = "test_state_key_456afgrh"
         response_binding = BINDING_HTTP_REDIRECT
-        fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf, metadata_construction=False))
+        fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf))
 
         context.state[test_state_key] = "my_state"
 
@@ -182,8 +182,8 @@ class TestSAMLBackend:
 
     def test_authn_response(self, context, idp_conf, sp_conf):
         response_binding = BINDING_HTTP_REDIRECT
-        fakesp = FakeSP(SPConfig().load(sp_conf, metadata_construction=False))
-        fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf, metadata_construction=False))
+        fakesp = FakeSP(SPConfig().load(sp_conf))
+        fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf))
         destination, request_params = fakesp.make_auth_req(idp_conf["entityid"])
         url, auth_resp = fakeidp.handle_auth_req(request_params["SAMLRequest"], request_params["RelayState"],
                                                  BINDING_HTTP_REDIRECT,
@@ -203,10 +203,10 @@ class TestSAMLBackend:
     def test_authn_response_no_name_id(self, context, idp_conf, sp_conf):
         response_binding = BINDING_HTTP_REDIRECT
 
-        fakesp_conf = SPConfig().load(sp_conf, metadata_construction=False)
+        fakesp_conf = SPConfig().load(sp_conf)
         fakesp = FakeSP(fakesp_conf)
 
-        fakeidp_conf = IdPConfig().load(idp_conf, metadata_construction=False)
+        fakeidp_conf = IdPConfig().load(idp_conf)
         fakeidp = FakeIdP(USERS, config=fakeidp_conf)
 
         destination, request_params = fakesp.make_auth_req(
