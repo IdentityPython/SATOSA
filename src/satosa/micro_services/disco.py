@@ -17,6 +17,13 @@ class DiscoToTargetIssuer(RequestMicroService):
         if not isinstance(self.disco_endpoints, list) or not self.disco_endpoints:
             raise DiscoToTargetIssuerError('disco_endpoints must be a list of str')
 
+    def process(self, context:Context, data:InternalData):
+        context.state[self.name] = {
+            'target_frontend': context.target_frontend,
+            'internal_data': data.to_dict(),
+        }
+        return super().process(context, data)
+
     def register_endpoints(self):
         """
         URL mapping of additional endpoints this micro service needs to register for callbacks.
@@ -42,7 +49,10 @@ class DiscoToTargetIssuer(RequestMicroService):
         if not target_issuer:
             raise DiscoToTargetIssuerError('no valid entity_id in the disco response')
 
+        target_frontend = context.state.get(self.name, {}).get('target_frontend')
         data_serialized = context.state.get(self.name, {}).get('internal_data', {})
         data = InternalData.from_dict(data_serialized)
+
+        context.target_frontend = target_frontend
         context.decorate(Context.KEY_TARGET_ENTITYID, target_issuer)
         return super().process(context, data)
