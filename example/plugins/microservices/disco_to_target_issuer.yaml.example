@@ -1,0 +1,6 @@
+module: satosa.micro_services.disco.DiscoToTargetIssuer
+name: DiscoToTargetIssuer
+config:
+  # the regex that will intercept http requests to be handled with this microservice
+  disco_endpoints:
+    - ".*/disco"
