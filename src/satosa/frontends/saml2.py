@@ -64,7 +64,6 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
     KEY_CUSTOM_ATTR_RELEASE = 'custom_attribute_release'
     KEY_ENDPOINTS = 'endpoints'
     KEY_IDP_CONFIG = 'idp_config'
-    KEY_METADATA = 'metadata'
 
     def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name):
         self._validate_config(config)
@@ -496,7 +495,9 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         Reload SAML metadata
         """
         logger.debug("Reloading metadata")
-        res = self.idp.reload_metadata(copy.deepcopy(self.config[SAMLFrontend.KEY_IDP_CONFIG][SAMLFrontend.KEY_METADATA]))
+        res = self.idp.reload_metadata(
+            copy.deepcopy(self.config[SAMLFrontend.KEY_IDP_CONFIG]['metadata'])
+        )
         message = "Metadata reload %s" % ("OK" if res else "failed")
         status = "200 OK" if res else "500 FAILED"
         return Response(message=message, status=status)

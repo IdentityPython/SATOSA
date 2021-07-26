@@ -82,7 +82,6 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
     KEY_SAML_DISCOVERY_SERVICE_URL = 'saml_discovery_service_url'
     KEY_SAML_DISCOVERY_SERVICE_POLICY = 'saml_discovery_service_policy'
     KEY_SP_CONFIG = 'sp_config'
-    KEY_METADATA = 'metadata'
     KEY_SEND_REQUESTER_ID = 'send_requester_id'
     KEY_MIRROR_FORCE_AUTHN = 'mirror_force_authn'
     KEY_MEMORIZE_IDP = 'memorize_idp'
@@ -491,7 +490,9 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         Reload SAML metadata
         """
         logger.debug("Reloading metadata")
-        res = self.sp.reload_metadata(copy.deepcopy(self.config[SAMLBackend.KEY_SP_CONFIG][SAMLBackend.KEY_METADATA]))
+        res = self.sp.reload_metadata(
+            copy.deepcopy(self.config[SAMLBackend.KEY_SP_CONFIG]['metadata'])
+        )
         message = "Metadata reload %s" % ("OK" if res else "failed")
         status = "200 OK" if res else "500 FAILED"
         return Response(message=message, status=status)
