@@ -1,6 +1,6 @@
 import responses
 from werkzeug.test import Client
-from werkzeug.wrappers import BaseResponse
+from werkzeug.wrappers import Response
 
 from satosa.proxy_server import make_app
 from satosa.satosa_config import SATOSAConfig
@@ -15,7 +15,7 @@ class TestAccountLinking:
         satosa_config_dict["MICRO_SERVICES"].insert(0, account_linking_module_config)
 
         # application
-        test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), BaseResponse)
+        test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), Response)
 
         # incoming auth req
         http_resp = test_client.get("/{}/{}/request".format(satosa_config_dict["BACKEND_MODULES"][0]["name"],

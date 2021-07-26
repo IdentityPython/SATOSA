@@ -5,7 +5,7 @@ from oic.oic.message import IdToken
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.config import SPConfig
 from werkzeug.test import Client
-from werkzeug.wrappers import BaseResponse
+from werkzeug.wrappers import Response
 
 from satosa.metadata_creation.saml_metadata import create_entity_descriptors
 from satosa.proxy_server import make_app
@@ -27,7 +27,7 @@ class TestSAMLToOIDC:
         frontend_metadata, backend_metadata = create_entity_descriptors(SATOSAConfig(satosa_config_dict))
 
         # application
-        test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), BaseResponse)
+        test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), Response)
 
         # config test SP
         frontend_metadata_str = str(frontend_metadata[frontend_config["name"]][0])

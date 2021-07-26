@@ -9,7 +9,7 @@ from pyop.storage import MongoWrapper
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.config import IdPConfig
 from werkzeug.test import Client
-from werkzeug.wrappers import BaseResponse
+from werkzeug.wrappers import Response
 
 from satosa.metadata_creation.saml_metadata import create_entity_descriptors
 from satosa.proxy_server import make_app
@@ -60,7 +60,7 @@ class TestOIDCToSAML:
         _, backend_metadata = create_entity_descriptors(SATOSAConfig(satosa_config_dict))
 
         # application
-        test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), BaseResponse)
+        test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), Response)
 
         # get frontend OP config info
         provider_config = json.loads(test_client.get("/.well-known/openid-configuration").data.decode("utf-8"))

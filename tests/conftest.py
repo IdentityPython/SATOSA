@@ -441,7 +441,7 @@ class MongoTemporaryInstance(object):
         return 'mongodb://localhost:{port!s}'.format(port=self.port)
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def mongodb_instance():
     tmp_db = MongoTemporaryInstance()
     yield tmp_db
