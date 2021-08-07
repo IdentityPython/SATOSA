@@ -65,11 +65,17 @@ def unpack_request(environ, content_length=0):
     return data
 
 
-def unpack_http_headers(environ):
-    headers = ('REQUEST_METHOD', 'PATH_INFO', 'REQUEST_URI',
-               'QUERY_STRING', 'SERVER_NAME', 'REMOTE_ADDR',
-               'HTTP_HOST', 'HTTP_USER_AGENT', 'HTTP_ACCEPT_LANGUAGE')
-    return {k:v for k,v in environ.items() if k in headers}
+def collect_http_headers(environ):
+    headers = {
+        header_name: header_value
+        for header_name, header_value in environ.items()
+        if (
+            header_name.startswith("HTTP_")
+            or header_name.startswith("REMOTE_")
+            or header_name.startswith("SERVER_")
+        )
+    }
+    return headers
 
 
 class ToBytesMiddleware(object):
@@ -116,7 +122,9 @@ class WsgiApplication(SATOSABase):
         body = io.BytesIO(environ['wsgi.input'].read(content_length))
         environ['wsgi.input'] = body
         context.request = unpack_request(environ, content_length)
-        context._http_headers = unpack_http_headers(environ)
+        context.request_uri = environ.get("REQUEST_URI")
+        context.request_method = environ.get("REQUEST_METHOD")
+        context.http_headers = collect_http_headers(environ)
         environ['wsgi.input'].seek(0)
 
         context.cookie = environ.get("HTTP_COOKIE", "")

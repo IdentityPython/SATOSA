@@ -1,5 +1,4 @@
 import logging
-from urllib.parse import parse_qs
 
 from .base import RequestMicroService
 from ..exception import SATOSAConfigurationError
@@ -42,15 +41,17 @@ class IdpHinting(RequestMicroService):
         :param data: the internal request
         """
         target_entity_id = context.get_decoration(context.KEY_TARGET_ENTITYID)
-        qs_raw = context._http_headers['QUERY_STRING']
-        if target_entity_id or not qs_raw:
+        query_string = context.request
+
+        an_issuer_is_already_selected = bool(target_entity_id)
+        query_string_is_missing = not query_string
+        if an_issuer_is_already_selected or query_string_is_missing:
             return super().process(context, data)
 
-        qs = parse_qs(qs_raw)
         hints = (
             entity_id
             for param in self.idp_hint_param_names
-            for entity_id in qs.get(param, [None])
+            for entity_id in query_string.get(param, [])
             if entity_id
         )
         hint = next(hints, None)
