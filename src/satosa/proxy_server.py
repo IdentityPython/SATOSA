@@ -3,7 +3,7 @@ import json
 import logging
 import logging.config
 import sys
-from urllib.parse import parse_qsl
+from urllib.parse import parse_qsl as _parse_query_string
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 
@@ -18,16 +18,19 @@ from saml2.s_utils import UnknownSystemEntity
 logger = logging.getLogger(__name__)
 
 
+def parse_query_string(data):
+    query_param_pairs = _parse_query_string(data)
+    query_param_dict = dict(query_param_pairs)
+    return query_param_dict
+
+
 def unpack_get(environ):
     """
     Unpacks a redirect request query string.
     :param environ: whiskey application environment.
     :return: A dictionary with parameters.
     """
-    if "QUERY_STRING" in environ:
-        return dict(parse_qsl(environ["QUERY_STRING"]))
-
-    return None
+    return parse_query_string(environ.get("QUERY_STRING"))
 
 
 def unpack_post(environ, content_length):
@@ -39,7 +42,7 @@ def unpack_post(environ, content_length):
     post_body = environ['wsgi.input'].read(content_length).decode("utf-8")
     data = None
     if "application/x-www-form-urlencoded" in environ["CONTENT_TYPE"]:
-        data = dict(parse_qsl(post_body))
+        data = parse_query_string(post_body)
     elif "application/json" in environ["CONTENT_TYPE"]:
         data = json.loads(post_body)
 
