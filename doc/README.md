@@ -29,7 +29,7 @@ apt-get install libffi-dev libssl-dev xmlsec1
 Alternatively the application can be installed directly from PyPI (`pip install satosa`), or the [Docker image](https://hub.docker.com/r/satosa/) can be used.
 
 
-### <a name="install_instructions" style="color:#000000">External micro-services</a>
+### <a name="install_external" style="color:#000000">External micro-services</a>
 
 Micro-services act like plugins and can be developed by anyone. Other people
 that have been working with the SaToSa proxy, have built extentions mainly in
