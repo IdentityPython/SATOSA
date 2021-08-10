@@ -16,7 +16,7 @@ from .frontends.base import FrontendModule
 from .micro_services.base import (MicroService, RequestMicroService, ResponseMicroService)
 
 logger = logging.getLogger(__name__)
-
+names = []
 
 @contextmanager
 def prepend_to_import_path(import_paths):
