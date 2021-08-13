@@ -614,6 +614,14 @@ To choose which backend (essentially choosing target provider) to use based on t
 `DecideBackendByRequester` class which implements that special routing behavior. See the
 [example configuration](../example/plugins/microservices/requester_based_routing.yaml.example).
 
+#### Route to a specific backend based on the target entity id
+Use the `DecideBackendByTargetIssuer` class which implements that special routing behavior. See the
+[example configuration](../example/plugins/microservices/target_based_routing.yaml.example).
+
+If a Discovery Service have been used and the target entity id is selected by users,
+ also use `DiscoToTargetIssuer` together with `DecideBackendByTargetIssuer`
+ to get the expected result. See the [example configuration](../example/plugins/microservices/disco_to_target_issuer.yaml.example).
+
 #### Filter authentication requests to target SAML entities
 If using the `SAMLMirrorFrontend` module and some of the target providers should support some additional SP's, the
 `DecideIfRequesterIsAllowed` micro service can be used. It provides a rules mechanism to describe which SP's are
@@ -679,6 +687,15 @@ persistent NameID may also be obtained from attributes returned from the LDAP di
 LDAP microservice install the extra necessary dependencies with `pip install satosa[ldap]` and then see the
 [example config](../example/plugins/microservices/ldap_attribute_store.yaml.example).
 
+#### Minimal support for IdP Hinting
+
+It's possible to hint an IdP to SaToSa using `IdpHinting` microservice. See the
+ [example configuration](../example/plugins/microservices/idp_hinting.yaml.example).
+
+With this feature an SP can send an hint about the IdP to avoid the discovery
+ service page to the users, using a url parameter. Example
+ `https://[...]?[...]&idphint=https://that.idp.entity.id"`
+
 ### Custom plugins
 
 It's possible to write custom plugins which can be loaded by SATOSA. They have to be contained in a Python module,
@@ -734,4 +751,3 @@ set SATOSA_CONFIG=/home/user/proxy_conf.yaml
 ## Using Apache HTTP Server and mod\_wsgi
 
 See the [auxiliary documentation for running using mod\_wsgi](mod_wsgi.md).
-
