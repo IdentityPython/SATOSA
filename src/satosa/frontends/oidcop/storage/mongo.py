@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 import pymongo
@@ -52,6 +53,7 @@ class Mongodb(SatosaOidcStorage):
         ses_man_dump = session_manager.dump()
         _db = ses_man_dump["db"]
         data = {
+            'expires_at': 0,
             'sub': "",
             'client_id': "",
             'grant_id': "",
@@ -61,7 +63,6 @@ class Mongodb(SatosaOidcStorage):
             'access_token': "",
             'id_token': "",
             'refresh_token': "",
-            'expires_at': 0,
             'claims' : claims or {},
             'dump': _db,
             'key': ses_man_dump["key"],
@@ -86,7 +87,8 @@ class Mongodb(SatosaOidcStorage):
             elif field_name == 'client_id':
                 data['grant_id'] = v[1]['subordinate'][0]
             elif field_name == 'grant_id':
-                data['expires_at'] = v[1]['expires_at']
+                _exp_time = datetime.datetime.fromtimestamp(v[1]['expires_at'])
+                data['expires_at'] = _exp_time
                 data['revoked'] = v[1]['revoked']
                 # data['sub'] = v[1]['sub']
                 data['sid'] = k
