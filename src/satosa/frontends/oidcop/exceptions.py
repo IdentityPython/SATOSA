@@ -1,2 +1,0 @@
-class InconsinstentSessionDump(Exception):
-    pass

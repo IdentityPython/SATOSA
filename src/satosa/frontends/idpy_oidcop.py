@@ -33,8 +33,6 @@ from satosa.internal import InternalData
 
 from urllib.parse import urlparse
 
-from .oidcop.exceptions import InconsinstentSessionDump
-
 IGNORED_HEADERS = ["cookie", "user-agent"]
 logger = logging.getLogger(__name__)
 
