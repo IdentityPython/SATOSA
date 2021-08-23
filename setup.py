@@ -28,6 +28,7 @@ setup(
     ],
     extras_require={
         "ldap": ["ldap3"],
+        "oidcop": ["pymongo >= 3.11"],
         "pyop_mongo": ["pyop[mongo]"],
         "pyop_redis": ["pyop[redis]"],
     },

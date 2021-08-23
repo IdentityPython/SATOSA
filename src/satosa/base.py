@@ -99,7 +99,6 @@ class SATOSABase(object):
 
         if self.request_micro_services:
             return self.request_micro_services[0].process(context, internal_request)
-
         return self._auth_req_finish(context, internal_request)
 
     def _auth_req_finish(self, context, internal_request):
@@ -137,12 +136,18 @@ class SATOSABase(object):
         internal_response.requester = context.state[STATE_KEY]["requester"]
 
         # If configured construct the user id from attribute values.
-        if "user_id_from_attrs" in self.config["INTERNAL_ATTRIBUTES"]:
-            subject_id = [
-                "".join(internal_response.attributes[attr]) for attr in
-                self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"]
-            ]
-            internal_response.subject_id = "".join(subject_id)
+        try:
+            if "user_id_from_attrs" in self.config["INTERNAL_ATTRIBUTES"]:
+                subject_id = [
+                    "".join(internal_response.attributes[attr]) for attr in
+                    self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"]
+                ]
+                internal_response.subject_id = "".join(subject_id)
+        except KeyError as err:
+            msg = f"Attribute processing error: {err}"
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline, exc_info=True)
+            raise SATOSAConfigurationError("Error") from err
 
         if self.response_micro_services:
             return self.response_micro_services[0].process(
