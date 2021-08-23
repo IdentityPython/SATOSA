@@ -4,7 +4,7 @@ name: OIDC
 config:
     domain: &domain localhost
     server_name: *domain
-    base_url: &base_url https://localhost:10000
+    base_url: &base_url <base_url>
 
     storage:
         class: "satosa.frontends.oidcop.storage.mongo.Mongodb"
