@@ -2,45 +2,50 @@
 The OpenID Connect frontend module for the satosa proxy
 """
 import base64
-import json
-import oidcmsg
 import logging
 import os
+from urllib.parse import urlencode
 
+import oidcmsg
+from oidcmsg.oauth2 import ResponseMessage
+from oidcmsg.oidc import AccessTokenRequest
+from oidcmsg.oidc import AuthorizationErrorResponse
+from oidcmsg.oidc import AuthorizationRequest
 from oidcop.authn_event import create_authn_event
 from oidcop.exception import InvalidClient
 from oidcop.exception import UnAuthorizedClient
 from oidcop.exception import UnknownClient
-from oidcmsg.oidc import AuthorizationErrorResponse
 from oidcop.oidc.token import Token
-from oidcmsg.oauth2 import ResponseMessage
-from oidcmsg.oidc import AccessTokenRequest
-from oidcmsg.oidc import AuthorizationRequest
-from urllib.parse import urlencode, urlparse
 
+from satosa.context import Context
+from satosa.internal import InternalData
+import satosa.logging_util as lu
 from .base import FrontendModule
 from .oidcop.application import oidcop_application as oidcop_app
 from .oidcop.claims import *
-from .oidcop.user_info import SatosaOidcUserInfo
-from ..response import BadRequest, Created
-from ..response import SeeOther, JsonResponse, Response
-from ..response import Unauthorized
-from ..util import rndstr
-
-import satosa.logging_util as lu
-from satosa.context import Context
-from satosa.internal import InternalData
-
-from urllib.parse import urlparse
+from ..response import JsonResponse
+from ..response import Response
+from ..response import SeeOther
 
 IGNORED_HEADERS = ["cookie", "user-agent"]
 logger = logging.getLogger(__name__)
+
+
+class ExtendedContext(Context):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.http_headers = {}
+        self.request_method = ''
+        self.request_uri = ''
+        self.request_authorization = ''
 
 
 class OidcOpUtils(object):
     """
     Interoperability class between satosa and oidcop
     """
+    def __init__(self):
+        self.app = None
 
     def _fill_cdb_by_client_id(self, client_id):
         client = self.app.storage.get_client_by_id(client_id)
@@ -52,7 +57,7 @@ class OidcOpUtils(object):
             f"Loaded oidcop client from {self.app.storage}: {client}"
         )
 
-    def _fill_cdb_from_request(self, context: Context) -> None:
+    def _fill_cdb_from_request(self, context: ExtendedContext) -> None:
         """
             gets client_id from local storage and updates the client DB
         """
@@ -64,7 +69,7 @@ class OidcOpUtils(object):
             logger.warning(_msg)
             raise InvalidClient(_msg)
 
-    def _get_http_headers(self, context: Context):
+    def _get_http_headers(self, context: ExtendedContext):
         """
         aligns parameters for oidcop interoperability needs
         """
@@ -98,7 +103,7 @@ class OidcOpUtils(object):
             }
         return http_headers
 
-    def store_session_to_db(self, claims = None):
+    def store_session_to_db(self, claims=None):
         sman = self.app.server.server_get('endpoint_context').session_manager
         self.app.storage.store_session_to_db(sman, claims)
         logger.debug(f"Stored oidcop session to db: {sman.dump()}")
@@ -107,15 +112,16 @@ class OidcOpUtils(object):
         if isinstance(parse_req, oidcmsg.oidc.AuthorizationRequest):
             return
         sman = self.app.server.server_get('endpoint_context').session_manager
-        self.app.storage.load_session_from_db(parse_req, http_headers, sman)
+        claims = self.app.storage.load_session_from_db(parse_req, http_headers, sman)
         logger.debug(f"Loaded oidcop session from db: {sman.dump()}")
+        return claims
 
     def _flush_inmem_session(self):
         """
         each OAuth2/OIDC request loads an oidcop session in memory
         this method will simply free the memory from any loaded session
         """
-        _ec = self.app.server.server_get('endpoint_context')
+        _ec = self.app.server.endpoint_context
         _ec.cdb = {}
         sman = _ec.session_manager
         sman.flush()
@@ -148,6 +154,8 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
     def __init__(self, auth_req_callback_func, internal_attributes, conf, base_url, name):
         super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
         self.app = oidcop_app(conf)
+        # Why not
+        # self.config = self.app.server.conf
         self.config = self.app.srv_config
         jwks_public_path = self.config['keys']['public_path']
         with open(jwks_public_path) as f:
@@ -165,7 +173,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         """
         url_map = [
             (v['path'], getattr(self, f"{k}_endpoint"))
-            for k,v in self.config.endpoint.items()
+            for k, v in self.config.endpoint.items()
         ]
 
         # add jwks.json webpath
@@ -191,7 +199,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
             self.jwks_public
         )
 
-    def provider_info_endpoint(self, context: Context):
+    def provider_info_endpoint(self, context: ExtendedContext):
         """
         Construct the provider configuration information
         served at /.well-known/openid-configuration.
@@ -211,14 +219,14 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         info = endpoint.do_response(request=context.request, **proc_req)
         return JsonResponse(info['response'])
 
-    def handle_error(self, msg: str = None, excp: str = None, status: str = "403"):
+    def handle_error(self, msg: str = None, excp: Exception = None, status: str = "403"):
         _msg = f'Something went wrong ... {excp or ""}'
         msg = msg or _msg
         logger.error(msg)
         response = JsonResponse(msg, status=status)
         return self.send_response(response)
 
-    def _parse_request(self, endpoint, context: Context, http_headers: dict = None):
+    def _parse_request(self, endpoint, context: ExtendedContext, http_headers: dict = None):
         """
         Returns a parsed OAuth2/OIDC request,
         used by Authorization, Token, Userinfo and Introspection enpoints views
@@ -263,14 +271,14 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
             }, status="400")
             return self.send_response(response)
 
-    def _log_request(self, context, msg:str, level:str = 'debug'):
+    def _log_request(self, context: ExtendedContext, msg: str, level: str = 'debug'):
         _msg = f"{msg}: {context.request}"
         logline = lu.LOG_FMT.format(
             id=lu.get_session_id(context.state), message=msg
         )
         getattr(logger, level)(logline)
 
-    def _handle_authn_request(self, context: Context, endpoint):
+    def _handle_authn_request(self, context: ExtendedContext, endpoint):
         """
         Parse and verify the authentication request into an internal request.
         :type context: satosa.context.Context
@@ -326,7 +334,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
 
         # TODO - additional filter here?
         # _approved_attributes = self._get_approved_attributes(
-                # _claims_supported, authn_req
+        # _claims_supported, authn_req
         # )
 
         internal_req.attributes = self.converter.to_internal_filter(
@@ -339,7 +347,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         context.internal_data = internal_req
         return internal_req
 
-    def handle_authn_request(self, context: Context):
+    def handle_authn_request(self, context: ExtendedContext):
         """
         Handle an authentication request and pass it on to the backend.
         :type context: satosa.context.Context
@@ -348,13 +356,14 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         :param context: the current context
         :return: HTTP response to the client
         """
-        internal_req = self._handle_authn_request(context)
-        self._flush_inmem_session(response)
+        endpoint = self.app.server.endpoint['authorization']
+        internal_req = self._handle_authn_request(context, endpoint)
+        self._flush_inmem_session()
         if not isinstance(internal_req, InternalData):
             return self.send_response(internal_req)
         return self.auth_req_callback_func(context, internal_req)
 
-    def authorization_endpoint(self, context: Context):
+    def authorization_endpoint(self, context: ExtendedContext):
         """
         OAuth2 / OIDC Authorization endpoint
         Checks client_id and handles the authorization request
@@ -371,15 +380,15 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
 
         return self.auth_req_callback_func(context, internal_req)
 
-    def _handle_backend_response(self, context, internal_resp):
+    def _handle_backend_response(self, context: ExtendedContext, internal_resp):
         """
         Called by handle_authn_response, once a backend made its work
         :type context: satosa.context.Context
-        :type internal_res: satosa.internal.InternalData
         :rtype: satosa.response.Response
 
         :param context: the current context
         :param internal_resp: satosa internal data
+        :type internal_resp: satosa.internal.InternalData
         :return: HTTP response to the client
         """
         http_headers = self._get_http_headers(context)
@@ -388,7 +397,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
 
         # the same of authz_request ...
         # parse_req = self._parse_request(
-            # endpoint, context, http_headers
+        # endpoint, context, http_headers
         # )
         parse_req = AuthorizationRequest().from_urlencoded(urlencode(oidc_req))
         proc_req = self._process_request(context, endpoint, parse_req, http_headers)
@@ -431,9 +440,9 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
                                          authn_event=authn_event)
         except ValueError as excp:
             # TODO - cover with unit test and add some satosa logging ...
-            return self.handle_error(excp = excp)
+            return self.handle_error(excp=excp)
         except Exception as excp:
-            return self.handle_error(excp = excp)
+            return self.handle_error(excp=excp)
 
         if isinstance(_args, ResponseMessage) and 'error' in _args:
             return self.send_response(JsonResponse(_args, status="400"))
@@ -454,7 +463,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
             resp = Response(info_response)
         elif _response_placement == 'url':
             data = _args['response_args'].to_dict()
-            redirect_url = info_response+f'{urlencode(data)}'
+            redirect_url = info_response + f'{urlencode(data)}'
             logger.debug(f'Redirect to: {redirect_url}')
             resp = SeeOther(redirect_url)
         else:
@@ -463,11 +472,11 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
 
         return resp
 
-    def handle_authn_response(self, context: Context, internal_resp):
+    def handle_authn_response(self, context: ExtendedContext, internal_resp):
         """
         See super class method satosa.frontends.base.FrontendModule#handle_authn_response
         :type context: satosa.context.Context
-        :type internal_response: satosa.internal.InternalData
+        :type internal_resp: satosa.internal.InternalData
         :rtype satosa.response.SeeOther
         """
         _claims = self.converter.from_internal("openid", internal_resp.attributes)
@@ -481,10 +490,10 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         # TODO - why should we have to delete it?
         del context.state[self.name]
 
-        self.store_session_to_db(claims = combined_claims)
+        self.store_session_to_db(claims=combined_claims)
         return self.send_response(response)
 
-    def token_endpoint(self, context: Context):
+    def token_endpoint(self, context: ExtendedContext):
         """
         Handle token requests (served at /token).
         :type context: satosa.context.Context
@@ -513,7 +522,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         response = JsonResponse(proc_req['response_args'])
         return self.send_response(response)
 
-    def userinfo_endpoint(self, context: Context):
+    def userinfo_endpoint(self, context: ExtendedContext):
         self._log_request(context, "Userinfo endpoint request")
         endpoint = self.app.server.endpoint['userinfo']
         http_headers = self._get_http_headers(context)
@@ -528,7 +537,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         # Load claims
         claims = {}
         sman = ec.session_manager
-        for k,v in sman.dump()['db'].items():
+        for k, v in sman.dump()['db'].items():
             if v[0] == 'oidcop.session.grant.Grant':
                 sid = k
                 claims = self.app.storage.get_claims_from_sid(sid)
