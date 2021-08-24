@@ -4,7 +4,7 @@ import logging
 import pymongo
 
 from . base import SatosaOidcStorage
-
+from oidcop.session.manager import SessionManager
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class Mongodb(SatosaOidcStorage):
             self.client = pymongo.MongoClient(
                 self.url, **self.connection_params)
 
-    def get_client_by_id(self, client_id):
+    def get_client_by_id(self, client_id:str):
         self._connect()
         res = self.client_db.find(
             {'client_id': client_id}
@@ -49,7 +49,7 @@ class Mongodb(SatosaOidcStorage):
             # it returns the first one
             return res.next()
 
-    def store_session_to_db(self, session_manager, claims):
+    def store_session_to_db(self, session_manager:SessionManager, claims:dict):
         ses_man_dump = session_manager.dump()
         _db = ses_man_dump["db"]
         data = {
@@ -102,9 +102,8 @@ class Mongodb(SatosaOidcStorage):
                     data[attr] = iss_tokens.get(token_type, "")
 
         logger.debug(f"Stored oidcop session data to MongoDB: {data}")
-        self._connect()
 
-        # TODO: get/update or create
+        self._connect()
         q = {'grant_id': data['grant_id']}
         grant = self.session_db.find(q)
         if grant.count():
@@ -114,8 +113,9 @@ class Mongodb(SatosaOidcStorage):
         else:
             self.session_db.insert(data, check_keys=False)
 
-
-    def load_session_from_db(self, parse_req, http_headers, session_manager, **kwargs):
+    def load_session_from_db(
+            self, parse_req, http_headers:dict,
+            session_manager:SessionManager, **kwargs) -> dict:
         data = {}
         _q = {}
         http_authz = http_headers.get('headers', {}).get('authorization')
@@ -141,6 +141,7 @@ class Mongodb(SatosaOidcStorage):
             )
             return data
 
+        self._connect()
         res = self.session_db.find(_q)
         if res.count():
             _data = res.next()
@@ -151,7 +152,7 @@ class Mongodb(SatosaOidcStorage):
             session_manager.load(data)
         return data
 
-    def get_claims_from_sid(self, sid):
+    def get_claims_from_sid(self, sid:str):
         res = self.session_db.find({'sid': sid})
         if res.count():
             return res.next()['claims']
