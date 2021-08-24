@@ -15,7 +15,6 @@ class SatosaAuthnMethod(UserAuthnMethod):
         :return:
         """
         # raise NotImplementedError
-        pass
 
     def verify(self, *args, **kwargs):
         """
@@ -23,4 +22,3 @@ class SatosaAuthnMethod(UserAuthnMethod):
         :return: username of the authenticated user
         """
         # raise NotImplementedError
-        pass

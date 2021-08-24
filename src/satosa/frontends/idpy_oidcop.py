@@ -35,34 +35,31 @@ class ExtendedContext(Context):
     def __init__(self, **kwargs):
         super().__init__()
         self.http_headers = {}
-        self.request_method = ''
-        self.request_uri = ''
-        self.request_authorization = ''
+        self.request_method = ""
+        self.request_uri = ""
+        self.request_authorization = ""
 
 
 class OidcOpUtils(object):
     """
     Interoperability class between satosa and oidcop
     """
+
     def __init__(self):
         self.app = None
 
     def _fill_cdb_by_client_id(self, client_id):
         client = self.app.storage.get_client_by_id(client_id)
         if client:
-            self.app.server.server_get('endpoint_context').cdb = {
-                client_id: client
-            }
-        logger.debug(
-            f"Loaded oidcop client from {self.app.storage}: {client}"
-        )
+            self.app.server.server_get("endpoint_context").cdb = {client_id: client}
+        logger.debug(f"Loaded oidcop client from {self.app.storage}: {client}")
 
     def _fill_cdb_from_request(self, context: ExtendedContext) -> None:
         """
-            gets client_id from local storage and updates the client DB
+        gets client_id from local storage and updates the client DB
         """
-        client_id = context.request.get('client_id')
-        _msg = f'Client {client_id} not found!'
+        client_id = context.request.get("client_id")
+        _msg = f"Client {client_id} not found!"
         if client_id:
             self._fill_cdb_by_client_id(client_id)
         else:
@@ -74,14 +71,11 @@ class OidcOpUtils(object):
         aligns parameters for oidcop interoperability needs
         """
         _cookies = []
-        for i in context.cookie.split(';'):
-            splitted = i.split('=')
+        for i in context.cookie.split(";"):
+            splitted = i.split("=")
             if len(splitted) > 1:
                 _cookies.append(
-                    {
-                        "name": splitted[0].strip(),
-                        "value": splitted[1].strip()
-                    }
+                    {"name": splitted[0].strip(), "value": splitted[1].strip()}
                 )
 
         http_headers = {
@@ -94,24 +88,22 @@ class OidcOpUtils(object):
             "url": context.request_uri,
         }
         if _cookies:
-            http_headers['cookie'] = _cookies
+            http_headers["cookie"] = _cookies
 
         # for token and userinfo endpoint ... but also for authz endpoint sometimes
-        if getattr(context, 'request_authorization', None):
-            http_headers['headers'] = {
-                "authorization": context.request_authorization
-            }
+        if getattr(context, "request_authorization", None):
+            http_headers["headers"] = {"authorization": context.request_authorization}
         return http_headers
 
     def store_session_to_db(self, claims=None):
-        sman = self.app.server.server_get('endpoint_context').session_manager
+        sman = self.app.server.server_get("endpoint_context").session_manager
         self.app.storage.store_session_to_db(sman, claims)
         logger.debug(f"Stored oidcop session to db: {sman.dump()}")
 
     def load_session_from_db(self, parse_req, http_headers):
         # if isinstance(parse_req, oidcmsg.oidc.AuthorizationRequest):
-            # return {}
-        sman = self.app.server.server_get('endpoint_context').session_manager
+        # return {}
+        sman = self.app.server.server_get("endpoint_context").session_manager
         claims = self.app.storage.load_session_from_db(parse_req, http_headers, sman)
         logger.debug(f"Loaded oidcop session from db: {sman.dump()}")
         return claims
@@ -130,16 +122,17 @@ class OidcOpUtils(object):
         """
         actions to perform before an endpoint handles a new http request
         """
+        self._flush_inmem_session()
         # things to do over an endpoint, if needed
         # endpoint ... things ...
 
         # loads session from db
         data = self.load_session_from_db(parse_req, http_headers)
         # detect client_id and fill client inmemory database
-        if data.get('client_id'):
-            self._fill_cdb_by_client_id(data['client_id'])
-        elif parse_req.get('client_id'):
-            self._fill_cdb_by_client_id(parse_req['client_id'])
+        if data.get("client_id"):
+            self._fill_cdb_by_client_id(data["client_id"])
+        elif parse_req.get("client_id"):
+            self._fill_cdb_by_client_id(parse_req["client_id"])
 
     def send_response(self, response):
         self._flush_inmem_session()
@@ -151,13 +144,15 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
     OpenID Connect frontend module based on idpy oidcop
     """
 
-    def __init__(self, auth_req_callback_func, internal_attributes, conf, base_url, name):
+    def __init__(
+        self, auth_req_callback_func, internal_attributes, conf, base_url, name
+    ):
         super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
         self.app = oidcop_app(conf)
         # Why not
         # self.config = self.app.server.conf
         self.config = self.app.srv_config
-        jwks_public_path = self.config['keys']['public_path']
+        jwks_public_path = self.config["keys"]["public_path"]
         with open(jwks_public_path) as f:
             self.jwks_public = f.read()
 
@@ -172,15 +167,13 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         :raise ValueError: if more than one backend is configured
         """
         url_map = [
-            (v['path'], getattr(self, f"{k}_endpoint"))
+            (v["path"], getattr(self, f"{k}_endpoint"))
             for k, v in self.config.endpoint.items()
         ]
 
         # add jwks.json webpath
-        uri_path = self.config['keys']['uri_path']
-        url_map.append(
-            (uri_path, self.jwks_endpoint)
-        )
+        uri_path = self.config["keys"]["uri_path"]
+        url_map.append((uri_path, self.jwks_endpoint))
 
         logger.debug(f"Loaded OIDC Provider endpoints: {url_map}")
         self.endpoints = url_map
@@ -195,9 +188,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         :param context: the current context
         :return: HTTP response to the client
         """
-        return JsonResponse(
-            self.jwks_public
-        )
+        return JsonResponse(self.jwks_public)
 
     def provider_info_endpoint(self, context: ExtendedContext):
         """
@@ -209,7 +200,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         :param context: the current context
         :return: HTTP response to the client
         """
-        endpoint = self.app.server.endpoint['provider_config']
+        endpoint = self.app.server.endpoint["provider_config"]
         logger.info(f'Request at the "{endpoint.name}" endpoint')
         http_headers = self._get_http_headers(context)
 
@@ -217,16 +208,20 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         proc_req = endpoint.process_request(parse_req, http_info=http_headers)
 
         info = endpoint.do_response(request=context.request, **proc_req)
-        return JsonResponse(info['response'])
+        return JsonResponse(info["response"])
 
-    def handle_error(self, msg: str = None, excp: Exception = None, status: str = "403"):
+    def handle_error(
+        self, msg: str = None, excp: Exception = None, status: str = "403"
+    ):
         _msg = f'Something went wrong ... {excp or ""}'
         msg = msg or _msg
         logger.error(msg)
         response = JsonResponse(msg, status=status)
         return self.send_response(response)
 
-    def _parse_request(self, endpoint, context: ExtendedContext, http_headers: dict = None):
+    def _parse_request(
+        self, endpoint, context: ExtendedContext, http_headers: dict = None
+    ):
         """
         Returns a parsed OAuth2/OIDC request,
         used by Authorization, Token, Userinfo and Introspection enpoints views
@@ -245,10 +240,13 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
                 _req = AccessTokenRequest(**parse_req)
             except Exception as err:
                 logger.error(err)
-                response = JsonResponse({
-                    'error': 'invalid_request',
-                    'error_description': str(err),
-                }, status="400")
+                response = JsonResponse(
+                    {
+                        "error": "invalid_request",
+                        "error_description": str(err),
+                    },
+                    status="400",
+                )
                 return self.send_response(response)
         else:
             _req = parse_req
@@ -258,24 +256,25 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
             return proc_req
         except (InvalidClient, UnknownClient, UnAuthorizedClient) as err:
             logger.error(err)
-            response = JsonResponse({
-                'error': 'unauthorized_client',
-                'error_description': str(err)
-            }, status="400")
+            response = JsonResponse(
+                {"error": "unauthorized_client", "error_description": str(err)},
+                status="400",
+            )
             return self.send_response(response)
         except Exception as err:
             logger.error(err)
-            response = JsonResponse({
-                'error': 'invalid_request',
-                'error_description': str(err),
-            }, status="400")
+            response = JsonResponse(
+                {
+                    "error": "invalid_request",
+                    "error_description": str(err),
+                },
+                status="400",
+            )
             return self.send_response(response)
 
-    def _log_request(self, context: ExtendedContext, msg: str, level: str = 'debug'):
+    def _log_request(self, context: ExtendedContext, msg: str, level: str = "debug"):
         _msg = f"{msg}: {context.request}"
-        logline = lu.LOG_FMT.format(
-            id=lu.get_session_id(context.state), message=msg
-        )
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         getattr(logger, level)(logline)
 
     def _handle_authn_request(self, context: ExtendedContext, endpoint):
@@ -287,23 +286,18 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         :param context: the current context
         :return: the internal request
         """
-        self._log_request(context, "Authn req from client")
+        self._log_request(context, "OIDC Authorization request from client")
 
         http_headers = self._get_http_headers(context)
-        parse_req = self._parse_request(
-            endpoint, context, http_headers=http_headers
-        )
-        # useless here
-        # self._prepare_oidcendpoint(parse_req, endpoint, http_headers)
+        parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
         proc_req = self._process_request(context, endpoint, parse_req, http_headers)
         if isinstance(proc_req, JsonResponse):
             return proc_req
 
         # TODO - some tests and specialized exceptions here ...
         try:
-            info = endpoint.do_response(
-                request=context.request, **proc_req
-            )
+            info = endpoint.do_response(request=context.request, **proc_req)
+            # response = info['response']
         except Exception as excp:
             # TODO logging and error handling
             # something to be done with the help of unit test
@@ -312,11 +306,10 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
             # and JsonResponse for other flows ...
             self.handle_error(excp=excp)
 
-        # response = info['response']
         context.state[self.name] = {"oidc_request": context.request}
 
-        client_id = parse_req.get('client_id')
-        _client_conf = endpoint.server_get('endpoint_context').cdb[client_id]
+        client_id = parse_req.get("client_id")
+        _client_conf = endpoint.server_get("endpoint_context").cdb[client_id]
         client_name = _client_conf.get("client_name")
         subject_type = _client_conf.get("subject_type", "pairwise")
 
@@ -331,7 +324,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
             requester_name=requester_name,
         )
 
-        _claims_supported = self.config['capabilities']['claims_supported']
+        _claims_supported = self.config["capabilities"]["claims_supported"]
 
         # TODO - additional filter here?
         # _approved_attributes = self._get_approved_attributes(
@@ -357,9 +350,10 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         :param context: the current context
         :return: HTTP response to the client
         """
-        endpoint = self.app.server.endpoint['authorization']
+        endpoint = self.app.server.endpoint["authorization"]
+        self._prepare_oidcendpoint(parse_req, endpoint, http_headers)
+
         internal_req = self._handle_authn_request(context, endpoint)
-        self._flush_inmem_session()
         if not isinstance(internal_req, InternalData):
             return self.send_response(internal_req)
         return self.auth_req_callback_func(context, internal_req)
@@ -372,7 +366,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         self._log_request(context, "Authorization endpoint request")
         self._fill_cdb_from_request(context)
 
-        endpoint = self.app.server.endpoint['authorization']
+        endpoint = self.app.server.endpoint["authorization"]
         http_headers = self._get_http_headers(context)
 
         internal_req = self._handle_authn_request(context, endpoint)
@@ -393,10 +387,10 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         :return: HTTP response to the client
         """
         http_headers = self._get_http_headers(context)
-        oidc_req = context.state[self.name]['oidc_request']
-        endpoint = self.app.server.endpoint['authorization']
+        oidc_req = context.state[self.name]["oidc_request"]
+        endpoint = self.app.server.endpoint["authorization"]
 
-        # the same of authz_request ...
+        # the same of AuthorizationRequest() ...
         # parse_req = self._parse_request(
         # endpoint, context, http_headers
         # )
@@ -409,7 +403,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         if isinstance(proc_req, JsonResponse):
             return self.send_response(proc_req)
 
-        client_id = parse_req['client_id']
+        client_id = parse_req["client_id"]
         sub = internal_resp.subject_id
 
         authn_event = create_authn_event(
@@ -421,7 +415,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         )
 
         _ec = endpoint.server_get("endpoint_context")
-        _token_usage_rules = _ec.authn_broker.get_method_by_id('user')
+        _token_usage_rules = _ec.authn_broker.get_method_by_id("user")
 
         session_manager = _ec.session_manager
         _session_id = session_manager.create_session(
@@ -429,7 +423,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
             auth_req=parse_req,
             user_id=sub,
             client_id=client_id,
-            token_usage_rules=_token_usage_rules
+            token_usage_rules=_token_usage_rules,
         )
 
         try:
@@ -437,42 +431,45 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
             #  - oidcmsg.oidc.AuthorizationResponse
             #  - session_id
             #  - cookie (only need for logout -> not yet supported by Satosa)
-            _args = endpoint.authz_part2(user=sub,
-                                         session_id=_session_id,
-                                         request=parse_req,
-                                         authn_event=authn_event)
+            _args = endpoint.authz_part2(
+                user=sub,
+                session_id=_session_id,
+                request=parse_req,
+                authn_event=authn_event,
+            )
         except ValueError as excp:
             # TODO - cover with unit test and add some satosa logging ...
             return self.handle_error(excp=excp)
         except Exception as excp:
             return self.handle_error(excp=excp)
 
-        if isinstance(_args, ResponseMessage) and 'error' in _args:
+        if isinstance(_args, ResponseMessage) and "error" in _args:
             return self.send_response(JsonResponse(_args, status="400"))
-        elif isinstance(_args.get('response_args'), AuthorizationErrorResponse):
-            rargs = _args.get('response_args')
+        elif isinstance(_args.get("response_args"), AuthorizationErrorResponse):
+            rargs = _args.get("response_args")
             logger.error(rargs)
             response = JsonResponse(rargs.to_json(), status="400")
             return self.send_response(response)
 
         info = endpoint.do_response(request=parse_req, **proc_req)
-        info_response = info['response']
+        info_response = info["response"]
         _response_placement = info.get(
-            'response_placement', endpoint.response_placement
+            "response_placement", endpoint.response_placement
         )
-        if _response_placement == 'body':
+        if _response_placement == "body":
             # TODO - not yet tested!
-            logger.debug(f'Response [Body]: {info_response}')
+            logger.debug(f"Response [Body]: {info_response}")
             resp = Response(info_response)
-        elif _response_placement == 'url':
-            data = _args['response_args'].to_dict()
-            redirect_url = info_response + f'{urlencode(data)}'
-            logger.debug(f'Redirect to: {redirect_url}')
+        elif _response_placement == "url":
+            data = _args["response_args"].to_dict()
+            redirect_url = info_response + f"{urlencode(data)}"
+            logger.debug(f"Redirect to: {redirect_url}")
             resp = SeeOther(redirect_url)
         else:
             self._flush_inmem_session()
             raise NotImplementedError()
 
+        # I don't flush inmem db because it will be flushed by handle_authn_response
         return resp
 
     def handle_authn_response(self, context: ExtendedContext, internal_resp):
@@ -485,9 +482,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         _claims = self.converter.from_internal("openid", internal_resp.attributes)
         # Filter unset claims - TODO - less code here ...
         claims = {k: v for k, v in _claims.items() if v}
-        combined_claims = dict(
-            [i for i in combine_claim_values(claims.items())]
-        )
+        combined_claims = dict([i for i in combine_claim_values(claims.items())])
 
         response = self._handle_backend_response(context, internal_resp)
         # TODO - why should we have to delete it?
@@ -506,15 +501,13 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         :return: HTTP response to the client
         """
         self._log_request(context, "Token endpoint request")
-        endpoint = self.app.server.endpoint['token']
+        endpoint = self.app.server.endpoint["token"]
         http_headers = self._get_http_headers(context)
 
         raw_request = AccessTokenRequest().from_urlencoded(urlencode(context.request))
         self._prepare_oidcendpoint(raw_request, endpoint, http_headers)
 
-        parse_req = self._parse_request(
-            endpoint, context, http_headers=http_headers
-        )
+        parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
 
         proc_req = self._process_request(context, endpoint, parse_req, http_headers)
         if isinstance(proc_req, JsonResponse):
@@ -522,26 +515,25 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
 
         # better return jwt or jwe here!
         self.store_session_to_db()
-        response = JsonResponse(proc_req['response_args'])
+        response = JsonResponse(proc_req["response_args"])
         return self.send_response(response)
 
     def userinfo_endpoint(self, context: ExtendedContext):
         self._log_request(context, "Userinfo endpoint request")
-        endpoint = self.app.server.endpoint['userinfo']
+        endpoint = self.app.server.endpoint["userinfo"]
         http_headers = self._get_http_headers(context)
 
         self._prepare_oidcendpoint({}, endpoint, http_headers)
 
-        parse_req = self._parse_request(
-            endpoint, context, http_headers=http_headers)
+        parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
         self._prepare_oidcendpoint(parse_req, endpoint, http_headers)
 
-        ec = endpoint.server_get('endpoint_context')
+        ec = endpoint.server_get("endpoint_context")
         # Load claims
         claims = {}
         sman = ec.session_manager
-        for k, v in sman.dump()['db'].items():
-            if v[0] == 'oidcop.session.grant.Grant':
+        for k, v in sman.dump()["db"].items():
+            if v[0] == "oidcop.session.grant.Grant":
                 sid = k
                 claims = self.app.storage.get_claims_from_sid(sid)
                 break
@@ -562,7 +554,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
             return self.send_response(proc_req)
 
         # better return jwt or jwe here!
-        response = JsonResponse(proc_req['response_args'])
+        response = JsonResponse(proc_req["response_args"])
 
         self.store_session_to_db()
         return self.send_response(response)

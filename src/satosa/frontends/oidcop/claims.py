@@ -42,7 +42,6 @@ combine_values_by_claim = defaultdict(
 
 def combine_claim_values(claim_items):
     claims = (
-        (name, combine_values_by_claim[name](values))
-        for name, values in claim_items
+        (name, combine_values_by_claim[name](values)) for name, values in claim_items
     )
     return claims
