@@ -101,7 +101,7 @@ class Mongodb(SatosaOidcStorage):
                 for token_type,attr in self.token_attr_map.items():
                     data[attr] = iss_tokens.get(token_type, "")
 
-        logger.debug(data)
+        logger.debug(f"Stored oidcop session data to MongoDB: {data}")
         self._connect()
 
         # TODO: get/update or create
@@ -118,7 +118,6 @@ class Mongodb(SatosaOidcStorage):
     def load_session_from_db(self, parse_req, http_headers, session_manager, **kwargs):
         data = {}
         _q = {}
-        res = None
         http_authz = http_headers.get('headers', {}).get('authorization')
 
         if parse_req.get('grant_type') == 'authorization_code':
@@ -137,10 +136,10 @@ class Mongodb(SatosaOidcStorage):
             }
 
         if not _q:
-            logger.info(
+            logger.warning(
                 f"load_session_from_db can't find any active session from: {parse_req}"
             )
-            return
+            return data
 
         res = self.session_db.find(_q)
         if res.count():
@@ -150,7 +149,7 @@ class Mongodb(SatosaOidcStorage):
             data['db'] = _data['dump']
             session_manager.flush()
             session_manager.load(data)
-            return data
+        return data
 
     def get_claims_from_sid(self, sid):
         res = self.session_db.find({'sid': sid})

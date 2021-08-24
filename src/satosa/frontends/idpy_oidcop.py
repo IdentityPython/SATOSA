@@ -109,8 +109,8 @@ class OidcOpUtils(object):
         logger.debug(f"Stored oidcop session to db: {sman.dump()}")
 
     def load_session_from_db(self, parse_req, http_headers):
-        if isinstance(parse_req, oidcmsg.oidc.AuthorizationRequest):
-            return
+        # if isinstance(parse_req, oidcmsg.oidc.AuthorizationRequest):
+            # return {}
         sman = self.app.server.server_get('endpoint_context').session_manager
         claims = self.app.storage.load_session_from_db(parse_req, http_headers, sman)
         logger.debug(f"Loaded oidcop session from db: {sman.dump()}")
@@ -136,7 +136,7 @@ class OidcOpUtils(object):
         # loads session from db
         data = self.load_session_from_db(parse_req, http_headers)
         # detect client_id and fill client inmemory database
-        if data:
+        if data.get('client_id'):
             self._fill_cdb_by_client_id(data['client_id'])
         elif parse_req.get('client_id'):
             self._fill_cdb_by_client_id(parse_req['client_id'])
@@ -293,7 +293,8 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         parse_req = self._parse_request(
             endpoint, context, http_headers=http_headers
         )
-        self._prepare_oidcendpoint(parse_req, endpoint, http_headers)
+        # useless here
+        # self._prepare_oidcendpoint(parse_req, endpoint, http_headers)
         proc_req = self._process_request(context, endpoint, parse_req, http_headers)
         if isinstance(proc_req, JsonResponse):
             return proc_req
@@ -401,7 +402,9 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         # )
         parse_req = AuthorizationRequest().from_urlencoded(urlencode(oidc_req))
         proc_req = self._process_request(context, endpoint, parse_req, http_headers)
-        self._prepare_oidcendpoint(parse_req, endpoint, http_headers)
+
+        # not needed for authz requests
+        # self._prepare_oidcendpoint(parse_req, endpoint, http_headers)
 
         if isinstance(proc_req, JsonResponse):
             return self.send_response(proc_req)
