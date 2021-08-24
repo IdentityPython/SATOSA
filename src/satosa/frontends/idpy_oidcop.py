@@ -45,7 +45,7 @@ class OidcOpUtils(object):
     def _fill_cdb_by_client_id(self, client_id):
         client = self.app.storage.get_client_by_id(client_id)
         if client:
-            self.app.server.endpoint_context.cdb = {
+            self.app.server.server_get('endpoint_context').cdb = {
                 client_id: client
             }
         logger.debug(
@@ -99,14 +99,14 @@ class OidcOpUtils(object):
         return http_headers
 
     def store_session_to_db(self, claims = None):
-        sman = self.app.server.endpoint_context.session_manager
+        sman = self.app.server.server_get('endpoint_context').session_manager
         self.app.storage.store_session_to_db(sman, claims)
         logger.debug(f"Stored oidcop session to db: {sman.dump()}")
 
     def load_session_from_db(self, parse_req, http_headers):
         if isinstance(parse_req, oidcmsg.oidc.AuthorizationRequest):
             return
-        sman = self.app.server.endpoint_context.session_manager
+        sman = self.app.server.server_get('endpoint_context').session_manager
         self.app.storage.load_session_from_db(parse_req, http_headers, sman)
         logger.debug(f"Loaded oidcop session from db: {sman.dump()}")
 
@@ -115,8 +115,9 @@ class OidcOpUtils(object):
         each OAuth2/OIDC request loads an oidcop session in memory
         this method will simply free the memory from any loaded session
         """
-        self.app.server.endpoint_context.cdb = {}
-        sman = self.app.server.endpoint_context.session_manager
+        _ec = self.app.server.server_get('endpoint_context')
+        _ec.cdb = {}
+        sman = _ec.session_manager
         sman.flush()
 
     def _prepare_oidcendpoint(self, parse_req, endpoint, http_headers):
@@ -407,10 +408,10 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
             # authn_time=auth_args['iat']
         )
 
-        _token_usage_rules = endpoint.server_get(
-            "endpoint_context").authn_broker.get_method_by_id('user')
+        _ec = endpoint.server_get("endpoint_context")
+        _token_usage_rules = _ec.authn_broker.get_method_by_id('user')
 
-        session_manager = self.app.server.endpoint_context.session_manager
+        session_manager = _ec.session_manager
         _session_id = session_manager.create_session(
             authn_event=authn_event,
             auth_req=parse_req,
@@ -523,9 +524,10 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
             endpoint, context, http_headers=http_headers)
         self._prepare_oidcendpoint(parse_req, endpoint, http_headers)
 
+        ec = endpoint.server_get('endpoint_context')
         # Load claims
         claims = {}
-        sman = self.app.server.endpoint_context.session_manager
+        sman = ec.session_manager
         for k,v in sman.dump()['db'].items():
             if v[0] == 'oidcop.session.grant.Grant':
                 sid = k
@@ -536,7 +538,6 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
                 "UserInfo endoint: Can't find any suitable sid from session_manager"
             )
         # That's a patchy runtime definition of userinfo db configuration
-        ec = endpoint.server_get('endpoint_context')
         ec.userinfo.load(claims)
         # end load claims
 
