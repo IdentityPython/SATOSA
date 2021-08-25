@@ -48,23 +48,24 @@ class OidcOpUtils(object):
     def __init__(self):
         self.app = None
 
-    def _fill_cdb_by_client_id(self, client_id):
-        client = self.app.storage.get_client_by_id(client_id)
-        if client:
-            self.app.server.server_get("endpoint_context").cdb = {client_id: client}
-        logger.debug(f"Loaded oidcop client from {self.app.storage}: {client}")
-
-    def _fill_cdb_from_request(self, context: ExtendedContext) -> None:
+    def _load_cdb(self, context: ExtendedContext, client_id:str = None) -> dict:
         """
         gets client_id from local storage and updates the client DB
         """
-        client_id = context.request.get("client_id")
+        client_id = client_id or context.request.get("client_id")
+        client = {}
+        _ec = self.app.server.server_get("endpoint_context")
         _msg = f"Client {client_id} not found!"
         if client_id:
-            self._fill_cdb_by_client_id(client_id)
+            client = self.app.storage.get_client_by_id(client_id)
+            _ec.cdb = {client_id : client}
+            logger.debug(f"Loaded oidcop client from {self.app.storage}: {client}")
         else:
+            _ec.cdb = {}
             logger.warning(_msg)
             raise InvalidClient(_msg)
+        return client
+
 
     def _get_http_headers(self, context: ExtendedContext):
         """
@@ -116,34 +117,30 @@ class OidcOpUtils(object):
         logger.debug(f"Loaded oidcop session from db: {sman.dump()}")
         return claims
 
-    def _flush_inmem_session(self):
+    def _flush_endpoint_context_memory(self):
         """
         each OAuth2/OIDC request loads an oidcop session in memory
         this method will simply free the memory from any loaded session
         """
-        _ec = self.app.server.endpoint_context
-        _ec.cdb = {}
+        _ec = self.app.server.server_get("endpoint_context")
         sman = _ec.session_manager
         sman.flush()
 
-    def _prepare_oidcendpoint(self, parse_req, endpoint, http_headers):
+    def _load_session(self, parse_req, endpoint, http_headers):
         """
         actions to perform before an endpoint handles a new http request
         """
-        self._flush_inmem_session()
+        self._flush_endpoint_context_memory()
         # things to do over an endpoint, if needed
         # endpoint ... things ...
 
         # loads session from db
         data = self.load_session_from_db(parse_req, http_headers)
-        # detect client_id and fill client inmemory database
         if data.get("client_id"):
-            self._fill_cdb_by_client_id(data["client_id"])
-        elif parse_req.get("client_id"):
-            self._fill_cdb_by_client_id(parse_req["client_id"])
+            self._load_cdb(client_id = sdata["client_id"])
 
     def send_response(self, response):
-        self._flush_inmem_session()
+        self._flush_endpoint_context_memory()
         return response
 
 
@@ -238,7 +235,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         parse_req = endpoint.parse_request(context.request, http_info=http_headers)
         return parse_req
 
-    def _process_request(self, context: Context, endpoint, parse_req, http_headers):
+    def _process_request(self, endpoint, context: Context, parse_req, http_headers):
         """
         Processes an OAuth2/OIDC request
         used by Authorization, Token, Userinfo and Introspection enpoints views
@@ -297,14 +294,14 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         self._log_request(context, "OIDC Authorization request from client")
 
         http_headers = self._get_http_headers(context)
-        self._fill_cdb_from_request(context)
+        self._load_cdb(context)
         parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
         if isinstance(parse_req, oidcmsg.oidc.AuthorizationErrorResponse):
             logger.debug(f"{context.request}, {parse_req._dict}")
             return self.send_response(parse_req._dict)
 
-        self._prepare_oidcendpoint(parse_req, endpoint, http_headers)
-        proc_req = self._process_request(context, endpoint, parse_req, http_headers)
+        self._load_session(parse_req, endpoint, http_headers)
+        proc_req = self._process_request(endpoint, context, parse_req, http_headers)
         if isinstance(proc_req, JsonResponse):
             return proc_req
 
@@ -376,7 +373,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         Checks client_id and handles the authorization request
         """
         self._log_request(context, "Authorization endpoint request")
-        self._fill_cdb_from_request(context)
+        self._load_cdb(context)
 
         endpoint = self.app.server.endpoint["authorization"]
         http_headers = self._get_http_headers(context)
@@ -401,16 +398,12 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         http_headers = self._get_http_headers(context)
         oidc_req = context.state[self.name]["oidc_request"]
         endpoint = self.app.server.endpoint["authorization"]
+        self._load_cdb(context, client_id = oidc_req['client_id'])
 
-        # the same of AuthorizationRequest() ...
-        # parse_req = self._parse_request(
-        # endpoint, context, http_headers
-        # )
+        # not using self._parse_request cause of "Missing required attribute 'response_type'"
         parse_req = AuthorizationRequest().from_urlencoded(urlencode(oidc_req))
-        proc_req = self._process_request(context, endpoint, parse_req, http_headers)
-
-        # not needed for authz requests
-        # self._prepare_oidcendpoint(parse_req, endpoint, http_headers)
+        self._load_session(parse_req, endpoint, http_headers)
+        proc_req = self._process_request(endpoint, context, parse_req, http_headers)
 
         if isinstance(proc_req, JsonResponse):
             return self.send_response(proc_req)
@@ -478,7 +471,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
             logger.debug(f"Redirect to: {redirect_url}")
             resp = SeeOther(redirect_url)
         else:
-            self._flush_inmem_session()
+            self._flush_endpoint_context_memory()
             raise NotImplementedError()
 
         # I don't flush inmem db because it will be flushed by handle_authn_response
@@ -500,6 +493,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         # TODO - why should we have to delete it?
         del context.state[self.name]
 
+        # store oidc session with user claims
         self.store_session_to_db(claims=combined_claims)
         return self.send_response(response)
 
@@ -517,11 +511,12 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         http_headers = self._get_http_headers(context)
 
         raw_request = AccessTokenRequest().from_urlencoded(urlencode(context.request))
-        self._prepare_oidcendpoint(raw_request, endpoint, http_headers)
+        self._load_cdb(context)
+        self._load_session(raw_request, endpoint, http_headers)
+        # in token endpoint we cannot parse a request without having loaded cdb and session
 
         parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
-
-        proc_req = self._process_request(context, endpoint, parse_req, http_headers)
+        proc_req = self._process_request(endpoint, context, parse_req, http_headers)
         if isinstance(proc_req, JsonResponse):
             return self.send_response(proc_req)
 
@@ -535,10 +530,10 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         endpoint = self.app.server.endpoint["userinfo"]
         http_headers = self._get_http_headers(context)
 
-        self._prepare_oidcendpoint({}, endpoint, http_headers)
+        # everything depends by bearer access token here
+        self._load_session({}, endpoint, http_headers)
 
         parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
-        self._prepare_oidcendpoint(parse_req, endpoint, http_headers)
 
         ec = endpoint.server_get("endpoint_context")
         # Load claims
@@ -557,7 +552,7 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         ec.userinfo.load(claims)
         # end load claims
 
-        proc_req = self._process_request(context, endpoint, parse_req, http_headers)
+        proc_req = self._process_request(endpoint, context, parse_req, http_headers)
         # flush as soon as possible, otherwise in case of an exception it would be
         # stored in the object ... until a next .load would happen ...
         ec.userinfo.flush()
