@@ -148,3 +148,11 @@ class Mongodb(SatosaOidcStorage):
         res = self.session_db.find({"sid": sid})
         if res.count():
             return res.next()["claims"]
+
+    def insert_client(self, client_data:dict):
+        self._connect()
+        client_id = client_data['client_id']
+        if self.get_client_by_id(client_id):
+            logger.warning(f"OIDC Client {client_id} already present in the client db")
+            return
+        self.client_db.insert(client_data)

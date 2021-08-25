@@ -4,8 +4,10 @@ import pytest
 
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
+from satosa.context import Context
 from satosa.frontends.idpy_oidcop import OidcOpFrontend
-
+from unittest.mock import Mock
+from urllib.parse import urlparse, parse_qsl
 
 CLIENT_1_ID = 'jbxedfmfyc'
 CLIENT_1_PASSWD = '19cc69b70d0108f630e52f72f7a3bd37ba4e11678ad1a7434e9818e1'
@@ -16,7 +18,7 @@ CLIENT_CONF = {
         'client_id': CLIENT_1_ID,
         'client_salt': '6flfsj0Z',
         'registration_access_token': CLIENT_1_RAT,
-        'registration_client_uri': 'https://127.0.0.1:8000/registration_api?client_id=jbxedfmfyc',
+        'registration_client_uri': f'https://127.0.0.1:8000/registration_api?client_id={CLIENT_1_ID}',
         'client_id_issued_at': datetime.datetime.utcnow(),
         'client_secret': CLIENT_1_PASSWD,
         'client_secret_expires_at': (datetime.datetime.utcnow() + datetime.timedelta(days=1)).timestamp(),
@@ -50,8 +52,8 @@ OIDCOP_CONF = {
     },
     "db_name": "oidcop",
     "collections": {
-      "session": "session",
-      "client": "client"
+      "session": "session_test",
+      "client": "client_test"
     }
   },
   "default_target_backend": "spidSaml2",
@@ -332,33 +334,68 @@ INTERNAL_ATTRIBUTES = {
     "attributes": {"mail": {"saml": ["email"], "openid": ["email"]}}
 }
 
+CLIENT_AUTHN_REQUEST = {
+    'redirect_uri': 'https://127.0.0.1:8090/authz_cb/satosa',
+    'scope': 'openid profile email address phone',
+    'response_type': 'code',
+    'nonce': '8FBvLJrlNlp64BR9BAUcP48P',
+    'state': 'TBE6uB954uMeFYb7Iw2MAgE1FfWkgvWO',
+    'code_challenge': 'W-Wr0SA2lQgTEKrJm_t-RFzQtaY_-wXxrCp5PnanTe0',
+    'code_challenge_method': 'S256',
+    'client_id': 'jbxedfmfyc'
+}
+
 
 class TestOidcOpFrontend(object):
 
-    def create_frontend(self, frontend_config):
+    def create_frontend(self, frontend_config=OIDCOP_CONF):
         # will use in-memory storage
-        instance = OidcOpFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
+        frontend = OidcOpFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
                                   frontend_config, BASE_URL, "oidc_frontend")
-        instance.register_endpoints(["foo_backend"])
-        return instance
+        frontend.register_endpoints(["foo_backend"])
+        return frontend
 
-    def test_init(self):
-        instance = self.create_frontend(OIDCOP_CONF)
+    @pytest.fixture
+    def frontend(self):
+        return self.create_frontend(OIDCOP_CONF)
 
-    def auth_req(self, **kwargs):
+    def get_authn_req(self, **kwargs):
         """ produces default or customized oidc autz requests """
         if not kwargs:
             kwargs = dict(
                 client_id=CLIENT_1_ID, state="my_state", scope="openid",
                 response_type="code", redirect_uri=CLIENT_RED_URL,
-               nonce="nonce"
+                nonce="nonce"
             )
         req = AuthorizationRequest(**kwargs)
         return req
 
-    # def insert_client_in_client_db(self, frontend, **kwargs):
-        # client_conf = copy.deepcopy(CLIENT_CONF)
-        # client_conf.update(kwargs)
+    @pytest.fixture
+    def authn_req(self):
+        return self.get_authn_req()
 
-        # frontend.app.storage.get_client_by_id(client_id)
-        # frontend ...
+    def insert_client_in_client_db(self, frontend, **kwargs):
+        client_conf = copy.deepcopy(CLIENT_CONF)
+        client_conf.update(kwargs)
+
+        frontend.app.storage.insert_client(client_conf)
+        client = frontend.app.storage.get_client_by_id(
+                    client_conf['client_id'])
+        return client
+
+    def prepare_call(self, context, frontend, authn_req):
+        frontend.auth_req_callback_func = lambda x, y: x
+        client = self.insert_client_in_client_db(frontend)
+        context.request = authn_req.to_dict()
+        return client
+
+    def test_authorization_endpoint(self, context, frontend, authn_req):
+        client = self.prepare_call(context, frontend, authn_req)
+        assert client['client_id'] == authn_req['client_id']
+        res = frontend.authorization_endpoint(context)
+        assert isinstance(res, Context)
+
+    def test_handle_authn_request(self, context, frontend, authn_req):
+        client = self.prepare_call(context, frontend, authn_req)
+        res = frontend.handle_authn_request(context)
+        assert isinstance(res, Context)

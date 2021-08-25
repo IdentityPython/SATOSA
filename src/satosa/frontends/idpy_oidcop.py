@@ -71,28 +71,36 @@ class OidcOpUtils(object):
         aligns parameters for oidcop interoperability needs
         """
         _cookies = []
-        for i in context.cookie.split(";"):
-            splitted = i.split("=")
-            if len(splitted) > 1:
-                _cookies.append(
-                    {"name": splitted[0].strip(), "value": splitted[1].strip()}
-                )
+        http_headers = {}
+        if getattr(context, 'cookie', None):
+            for i in context.cookie.split(";"):
+                splitted = i.split("=")
+                if len(splitted) > 1:
+                    _cookies.append(
+                        {
+                         "name": splitted[0].strip(),
+                         "value": splitted[1].strip()
+                        }
+                    )
 
-        http_headers = {
-            "headers": {
-                k.lower(): v
-                for k, v in context.http_headers.items()
-                if k not in IGNORED_HEADERS
-            },
-            "method": context.request_method,
-            "url": context.request_uri,
-        }
+        if getattr(context, 'http_headers', None):
+            http_headers = {
+                "headers": {
+                    k.lower(): v
+                    for k, v in context.http_headers.items()
+                    if k not in IGNORED_HEADERS
+                },
+                "method": context.request_method,
+                "url": context.request_uri,
+            }
         if _cookies:
             http_headers["cookie"] = _cookies
 
         # for token and userinfo endpoint ... but also for authz endpoint sometimes
         if getattr(context, "request_authorization", None):
-            http_headers["headers"] = {"authorization": context.request_authorization}
+            http_headers["headers"] = {
+                "authorization": context.request_authorization
+            }
         return http_headers
 
     def store_session_to_db(self, claims=None):
@@ -289,7 +297,13 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         self._log_request(context, "OIDC Authorization request from client")
 
         http_headers = self._get_http_headers(context)
+        self._fill_cdb_from_request(context)
         parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
+        if isinstance(parse_req, oidcmsg.oidc.AuthorizationErrorResponse):
+            logger.debug(f"{context.request}, {parse_req._dict}")
+            return self.send_response(parse_req._dict)
+
+        self._prepare_oidcendpoint(parse_req, endpoint, http_headers)
         proc_req = self._process_request(context, endpoint, parse_req, http_headers)
         if isinstance(proc_req, JsonResponse):
             return proc_req
@@ -351,8 +365,6 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         :return: HTTP response to the client
         """
         endpoint = self.app.server.endpoint["authorization"]
-        self._prepare_oidcendpoint(parse_req, endpoint, http_headers)
-
         internal_req = self._handle_authn_request(context, endpoint)
         if not isinstance(internal_req, InternalData):
             return self.send_response(internal_req)
