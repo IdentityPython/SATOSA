@@ -10,6 +10,7 @@ import oidcmsg
 from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationErrorResponse
+from oidcmsg.oidc import TokenErrorResponse
 from oidcmsg.oidc import AuthorizationRequest
 from oidcop.authn_event import create_authn_event
 from oidcop.exception import InvalidClient
@@ -279,12 +280,14 @@ class OidcOpEndpoints(OidcOpUtils):
         raw_request = AccessTokenRequest().from_urlencoded(urlencode(context.request))
         self._load_cdb(context)
         self._load_session(raw_request, endpoint, http_headers)
-        # in token endpoint we cannot parse a request without having loaded cdb and session
+        # in token endpoint we cannot parse a request without having loaded cdb and session first
 
         parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
         proc_req = self._process_request(endpoint, context, parse_req, http_headers)
-        if isinstance(proc_req, JsonResponse):
+        if isinstance(proc_req, JsonResponse): # pragma: no cover
             return self.send_response(proc_req)
+        elif isinstance(proc_req, TokenErrorResponse):
+            return self.send_response(JsonResponse(proc_req.to_dict(), status="403"))
 
         # better return jwt or jwe here!
         self.store_session_to_db()
@@ -310,9 +313,9 @@ class OidcOpEndpoints(OidcOpUtils):
                 sid = k
                 claims = self.app.storage.get_claims_from_sid(sid)
                 break
-        else:
+        else: # pragma: no cover
             logger.warning(
-                "UserInfo endoint: Can't find any suitable sid from session_manager"
+                "UserInfo endoint: Can't find any suitable sid/claims from stored session"
             )
         # That's a patchy runtime definition of userinfo db configuration
         ec.userinfo.load(claims)
@@ -323,7 +326,7 @@ class OidcOpEndpoints(OidcOpUtils):
         # stored in the object ... until a next .load would happen ...
         ec.userinfo.flush()
 
-        if isinstance(proc_req, JsonResponse):
+        if isinstance(proc_req, JsonResponse): # pragma: no cover
             return self.send_response(proc_req)
 
         # better return jwt or jwe here!
@@ -407,17 +410,14 @@ class OidcOpFrontend(FrontendModule, OidcOpEndpoints):
 
         self._load_session(parse_req, endpoint, http_headers)
         proc_req = self._process_request(endpoint, context, parse_req, http_headers)
-        if isinstance(proc_req, JsonResponse):
+        if isinstance(proc_req, JsonResponse): # pragma: no cover
             return proc_req
 
-        # TODO - some tests and specialized exceptions here ...
         try:
             info = endpoint.do_response(request=context.request, **proc_req)
             # response = info['response']
         except Exception as excp:
-            # TODO logging and error handling
-            # something to be done with the help of unit test
-
+            # TODO - something to be done with the help of unit test
             # this should be for humans if auth code flow
             # and JsonResponse for other flows ...
             self.handle_error(excp=excp)
@@ -428,10 +428,9 @@ class OidcOpFrontend(FrontendModule, OidcOpEndpoints):
         _client_conf = endpoint.server_get("endpoint_context").cdb[client_id]
         client_name = _client_conf.get("client_name")
         subject_type = _client_conf.get("subject_type", "pairwise")
-
         if client_name:
             requester_name = [{"lang": "en", "text": client_name}]
-        else:
+        else: # pragma: no cover
             requester_name = None
 
         internal_req = InternalData(
@@ -491,7 +490,7 @@ class OidcOpFrontend(FrontendModule, OidcOpEndpoints):
         self._load_session(parse_req, endpoint, http_headers)
         proc_req = self._process_request(endpoint, context, parse_req, http_headers)
 
-        if isinstance(proc_req, JsonResponse):
+        if isinstance(proc_req, JsonResponse): # pragma: no cover
             return self.send_response(proc_req)
 
         client_id = parse_req["client_id"]
@@ -528,15 +527,15 @@ class OidcOpFrontend(FrontendModule, OidcOpEndpoints):
                 request=parse_req,
                 authn_event=authn_event,
             )
-        except ValueError as excp:
+        except ValueError as excp: # pragma: no cover
             # TODO - cover with unit test and add some satosa logging ...
             return self.handle_error(excp=excp)
-        except Exception as excp:
+        except Exception as excp: # pragma: no cover
             return self.handle_error(excp=excp)
 
-        if isinstance(_args, ResponseMessage) and "error" in _args:
+        if isinstance(_args, ResponseMessage) and "error" in _args: # pragma: no cover
             return self.send_response(JsonResponse(_args, status="400"))
-        elif isinstance(_args.get("response_args"), AuthorizationErrorResponse):
+        elif isinstance(_args.get("response_args"), AuthorizationErrorResponse): # pragma: no cover
             rargs = _args.get("response_args")
             logger.error(rargs)
             response = JsonResponse(rargs.to_json(), status="400")
@@ -556,7 +555,7 @@ class OidcOpFrontend(FrontendModule, OidcOpEndpoints):
             redirect_url = info_response + f"{urlencode(data)}"
             logger.debug(f"Redirect to: {redirect_url}")
             resp = SeeOther(redirect_url)
-        else:
+        else: # pragma: no cover
             self._flush_endpoint_context_memory()
             raise NotImplementedError()
 
@@ -571,7 +570,6 @@ class OidcOpFrontend(FrontendModule, OidcOpEndpoints):
         :rtype satosa.response.SeeOther
         """
         _claims = self.converter.from_internal("openid", internal_resp.attributes)
-        # Filter unset claims - TODO - less code here ...
         claims = {k: v for k, v in _claims.items() if v}
         combined_claims = dict([i for i in combine_claim_values(claims.items())])
 

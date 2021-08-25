@@ -3,14 +3,17 @@ import datetime
 import json
 import pytest
 
+from base64 import urlsafe_b64encode
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import AuthorizationResponse
+from oidcop.exception import UnAuthorizedClient
 
 from saml2.authn_context import PASSWORD
 from satosa.attribute_mapping import AttributeMapper
 from satosa.context import Context
 from satosa.frontends.idpy_oidcop import OidcOpFrontend
+from satosa.frontends.oidcop.storage.mongo import Mongodb
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from tests.users import USERS
@@ -26,6 +29,7 @@ CLIENT_RED_URL = 'https://127.0.0.1:8090/authz_cb/satosa'
 CLIENT_1_SESLOGOUT = 'https://127.0.0.1:8090/session_logout/satosa'
 CLIENT_CONF = {
         'client_id': CLIENT_1_ID,
+        'client_name': "ciro",
         'client_salt': '6flfsj0Z',
         'registration_access_token': CLIENT_1_RAT,
         'registration_client_uri': f'https://127.0.0.1:8000/registration_api?client_id={CLIENT_1_ID}',
@@ -35,6 +39,7 @@ CLIENT_CONF = {
         'application_type': 'web',
         'contacts': ['ops@example.com'],
         'token_endpoint_auth_method': 'client_secret_basic',
+        # TODO for jwe and rfc7523
         # 'jwks_uri': 'https://127.0.0.1:8099/static/jwks.json',
         'redirect_uris': [(CLIENT_RED_URL, {})],
         'post_logout_redirect_uris': [(CLIENT_1_SESLOGOUT, None)],
@@ -43,7 +48,7 @@ CLIENT_CONF = {
         'allowed_scopes': ['openid', 'profile', 'email', 'offline_access']
 }
 
-BASE_URL = "https://localhost:10000"
+BASE_URL = "https://idpy.oidc.provid.er"
 OIDCOP_CONF = {
   "domain": "localhost",
   "server_name": "localhost",
@@ -51,13 +56,13 @@ OIDCOP_CONF = {
   "storage": {
     "class": "satosa.frontends.oidcop.storage.mongo.Mongodb",
     "kwargs": {
-      "url": "mongodb://172.21.0.3:27017/oidcop",
+      "url": "mongodb://127.0.0.1:27017/oidcop",
       "connection_params": {
-        "username": "satosa",
-        "password": "thatpassword",
-        "connectTimeoutMS": 5000,
-        "socketTimeoutMS": 5000,
-        "serverSelectionTimeoutMS": 5000
+        # "username": "satosa",
+        # "password": "thatpassword",
+        "connectTimeoutMS": 2000,
+        "socketTimeoutMS": 2000,
+        "serverSelectionTimeoutMS": 2000
       }
     },
     "db_name": "oidcop",
@@ -345,20 +350,25 @@ INTERNAL_ATTRIBUTES = {
 }
 
 CLIENT_AUTHN_REQUEST = {
-    'redirect_uri': 'https://127.0.0.1:8090/authz_cb/satosa',
+    'redirect_uri': CLIENT_RED_URL,
     'scope': 'openid profile email address phone',
     'response_type': 'code',
-    'nonce': '8FBvLJrlNlp64BR9BAUcP48P',
-    'state': 'TBE6uB954uMeFYb7Iw2MAgE1FfWkgvWO',
-    'code_challenge': 'W-Wr0SA2lQgTEKrJm_t-RFzQtaY_-wXxrCp5PnanTe0',
-    'code_challenge_method': 'S256',
-    'client_id': 'jbxedfmfyc'
+    'nonce': 'my_nonce',
+    'state': 'my_state',
+    # TODO
+    # 'code_challenge': 'W-Wr0SA2lQgTEKrJm_t-RFzQtaY_-wXxrCp5PnanTe0',
+    # 'code_challenge_method': 'S256',
+    'client_id': CLIENT_1_ID
 }
 
 
 class TestOidcOpFrontend(object):
 
-    def create_frontend(self, frontend_config=OIDCOP_CONF):
+    def create_frontend(self, mongodb_instance, frontend_config=OIDCOP_CONF):
+        # monkey patch
+        def monkey_mongo(obj):
+            obj.client = mongodb_instance
+
         # will use in-memory storage
         frontend = OidcOpFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
                                   frontend_config, BASE_URL, "oidc_frontend")
@@ -366,8 +376,8 @@ class TestOidcOpFrontend(object):
         return frontend
 
     @pytest.fixture
-    def frontend(self):
-        return self.create_frontend(OIDCOP_CONF)
+    def frontend(self, mongodb_instance):
+        return self.create_frontend(mongodb_instance, OIDCOP_CONF)
 
     def test_jwks_endpoint(self, context, frontend):
         res = frontend.jwks_endpoint(context)
@@ -383,13 +393,11 @@ class TestOidcOpFrontend(object):
 
     def get_authn_req(self, **kwargs):
         """ produces default or customized oidc autz requests """
-        if not kwargs:
-            kwargs = dict(
-                client_id=CLIENT_1_ID, state="my_state", scope="openid",
-                response_type="code", redirect_uri=CLIENT_RED_URL,
-                nonce="nonce"
-            )
-        req = AuthorizationRequest(**kwargs)
+        data = copy.deepcopy(CLIENT_AUTHN_REQUEST)
+        if kwargs:
+            data.update(kwargs)
+
+        req = AuthorizationRequest(**data)
         return req
 
     @pytest.fixture
@@ -422,11 +430,25 @@ class TestOidcOpFrontend(object):
         res = frontend.handle_authn_request(context)
         assert isinstance(res, Context)
 
+    def test_handle_authn_request_faulty(self, context, frontend, authn_req):
+        client = self.prepare_call(context, frontend, authn_req)
+
+        context.request = {'scope': 'email', 'response_type': 'code', 'client_id': CLIENT_1_ID}
+        res = frontend.handle_authn_request(context)
+        assert res['error_description'] == "Missing required attribute 'redirect_uri'"
+
+        context.request['redirect_uri'] = CLIENT_RED_URL
+        res = frontend.handle_authn_request(context)
+        assert res['error_description'] == 'openid not in scope'
+
+        context.request['scope'] = 'openid'
+        res = frontend.handle_authn_request(context)
+        # now's good :)
+
     def setup_for_authn_response(self, context, frontend, auth_req):
         context.state[frontend.name] = {"oidc_request": auth_req.to_dict()}
-
         auth_info = AuthenticationInformation(
-            PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml"
+            PASSWORD, "2021-09-30T12:21:37Z", "unittest_idp.xml"
         )
         internal_response = InternalData(auth_info=auth_info)
         internal_response.attributes = AttributeMapper(
@@ -436,7 +458,7 @@ class TestOidcOpFrontend(object):
 
         return internal_response
 
-    def test_handle_authn_response(self, context, frontend, authn_req):
+    def test_handle_authn_response_authcode_flow(self, context, frontend, authn_req):
         self.insert_client_in_client_db(frontend, redirect_uri = authn_req["redirect_uri"])
         internal_response = self.setup_for_authn_response(context, frontend, authn_req)
         http_resp = frontend.handle_authn_response(context, internal_response)
@@ -450,3 +472,69 @@ class TestOidcOpFrontend(object):
         assert resp["scope"] == authn_req["scope"]
         assert resp["code"]
         assert frontend.name not in context.state
+
+        # Test Token endpoint
+        context.request = {
+            'grant_type': 'authorization_code',
+            'redirect_uri': CLIENT_RED_URL,
+            'client_id': CLIENT_AUTHN_REQUEST['client_id'],
+            'state': CLIENT_AUTHN_REQUEST['state'],
+            'code': resp["code"],
+            # TODO
+            # 'code_verifier': 'ySfTlMpTEZPYU7H0XQZ75b3B568R5kkMkGRuRpQHOr1KNC9oimGnWygexLJuTyyT'
+        }
+
+        credentials = f"{CLIENT_1_ID}:{CLIENT_1_PASSWD}"
+        basic_auth = urlsafe_b64encode(credentials.encode("utf-8")).decode("utf-8")
+        context.request_authorization = f"Basic {basic_auth}"
+
+        token_resp = frontend.token_endpoint(context)
+
+        _token_resp = json.loads(token_resp.message)
+        assert _token_resp.get('access_token')
+        assert _token_resp.get('id_token')
+
+        # Test UserInfo endpoint
+        context.request = {}
+        context.request_authorization = f"{_token_resp['token_type']} {_token_resp['access_token']}"
+        userinfo_resp = frontend.userinfo_endpoint(context)
+
+        _userinfo_resp = json.loads(userinfo_resp.message)
+        assert _userinfo_resp.get("sub")
+
+    def test_fault_token_endpoint(self, context, frontend):
+        # Test Token endpoint
+        context.request = {
+            'grant_type': 'authorization_code',
+            'redirect_uri': CLIENT_RED_URL,
+            'client_id': CLIENT_AUTHN_REQUEST['client_id'],
+            'state': CLIENT_AUTHN_REQUEST['state'],
+            'code': "FAKE-CODE",
+            # TODO
+            # 'code_verifier': 'ySfTlMpTEZPYU7H0XQZ75b3B568R5kkMkGRuRpQHOr1KNC9oimGnWygexLJuTyyT'
+        }
+        # and missing credentials ... just to test the exception in satosa
+        # for security checks see oidcop tests
+
+        # here fails client auth
+        with pytest.raises(UnAuthorizedClient):
+            token_resp = frontend.token_endpoint(context)
+
+        # insert the client and miss client auth Basic
+        self.insert_client_in_client_db(frontend)
+        with pytest.raises(UnAuthorizedClient):
+            token_resp = frontend.token_endpoint(context)
+
+        # put also auth basic
+        credentials = f"{CLIENT_1_ID}:{CLIENT_1_PASSWD}"
+        basic_auth = urlsafe_b64encode(credentials.encode("utf-8")).decode("utf-8")
+        context.request_authorization = f"Basic {basic_auth}"
+        token_resp = frontend.token_endpoint(context)
+        assert token_resp.status == '403'
+        assert json.loads(token_resp.message)['error_description'] == 'Missing code'
+
+    def teardown(self):
+        """ Clean up mongo """
+        frontend = self.create_frontend(OIDCOP_CONF)
+        frontend.app.storage.client_db.drop()
+        frontend.app.storage.session_db.drop()
