@@ -139,91 +139,6 @@ class OidcOpUtils(object):
         if data.get("client_id"):
             self._load_cdb(client_id = sdata["client_id"])
 
-    def send_response(self, response):
-        self._flush_endpoint_context_memory()
-        return response
-
-
-class OidcOpFrontend(FrontendModule, OidcOpUtils):
-    """
-    OpenID Connect frontend module based on idpy oidcop
-    """
-
-    def __init__(
-        self, auth_req_callback_func, internal_attributes, conf, base_url, name
-    ):
-        super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
-        self.app = oidcop_app(conf)
-        # Why not
-        # self.config = self.app.server.conf
-        self.config = self.app.srv_config
-        jwks_public_path = self.config["keys"]["public_path"]
-        with open(jwks_public_path) as f:
-            self.jwks_public = f.read()
-
-        # registered endpoints will be filled by self.register_endpoints
-        self.endpoints = None
-
-    def register_endpoints(self, backend_names):
-        """
-        See super class satosa.frontends.base.FrontendModule
-        :type backend_names: list[str]
-        :rtype: list[(str, ((satosa.context.Context, Any) -> satosa.response.Response, Any))]
-        :raise ValueError: if more than one backend is configured
-        """
-        url_map = [
-            (v["path"], getattr(self, f"{k}_endpoint"))
-            for k, v in self.config.endpoint.items()
-        ]
-
-        # add jwks.json webpath
-        uri_path = self.config["keys"]["uri_path"]
-        url_map.append((uri_path, self.jwks_endpoint))
-
-        logger.debug(f"Loaded OIDC Provider endpoints: {url_map}")
-        self.endpoints = url_map
-        return url_map
-
-    def jwks_endpoint(self, context: Context):
-        """
-        Construct the JWKS document (served at /jwks).
-        :type context: satosa.context.Context
-        :rtype: oic.utils.http_util.Response
-
-        :param context: the current context
-        :return: HTTP response to the client
-        """
-        return JsonResponse(self.jwks_public)
-
-    def provider_info_endpoint(self, context: ExtendedContext):
-        """
-        Construct the provider configuration information
-        served at /.well-known/openid-configuration.
-        :type context: satosa.context.Context
-        :rtype: oic.utils.http_util.Response
-
-        :param context: the current context
-        :return: HTTP response to the client
-        """
-        endpoint = self.app.server.endpoint["provider_config"]
-        logger.info(f'Request at the "{endpoint.name}" endpoint')
-        http_headers = self._get_http_headers(context)
-
-        parse_req = endpoint.parse_request(context.request, http_info=http_headers)
-        proc_req = endpoint.process_request(parse_req, http_info=http_headers)
-
-        info = endpoint.do_response(request=context.request, **proc_req)
-        return JsonResponse(info["response"])
-
-    def handle_error(
-        self, msg: str = None, excp: Exception = None, status: str = "403"
-    ):
-        _msg = f'Something went wrong ... {excp or ""}'
-        msg = msg or _msg
-        logger.error(msg)
-        response = JsonResponse(msg, status=status)
-        return self.send_response(response)
-
     def _parse_request(
         self, endpoint, context: ExtendedContext, http_headers: dict = None
     ):
@@ -281,6 +196,192 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         _msg = f"{msg}: {context.request}"
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         getattr(logger, level)(logline)
+
+    def handle_error(
+        self, msg: str = None, excp: Exception = None, status: str = "403"
+    ):
+        _msg = f'Something went wrong ... {excp or ""}'
+        msg = msg or _msg
+        logger.error(msg)
+        response = JsonResponse(msg, status=status)
+        return self.send_response(response)
+
+    def send_response(self, response):
+        self._flush_endpoint_context_memory()
+        return response
+
+class OidcOpEndpoints(OidcOpUtils):
+    def jwks_endpoint(self, context: Context):
+        """
+        Construct the JWKS document (served at /jwks).
+        :type context: satosa.context.Context
+        :rtype: oic.utils.http_util.Response
+
+        :param context: the current context
+        :return: HTTP response to the client
+        """
+        return JsonResponse(self.jwks_public)
+
+    def provider_info_endpoint(self, context: ExtendedContext):
+        """
+        Construct the provider configuration information
+        served at /.well-known/openid-configuration.
+        :type context: satosa.context.Context
+        :rtype: oic.utils.http_util.Response
+
+        :param context: the current context
+        :return: HTTP response to the client
+        """
+        endpoint = self.app.server.endpoint["provider_config"]
+        logger.info(f'Request at the "{endpoint.name}" endpoint')
+        http_headers = self._get_http_headers(context)
+
+        parse_req = endpoint.parse_request(context.request, http_info=http_headers)
+        proc_req = endpoint.process_request(parse_req, http_info=http_headers)
+
+        info = endpoint.do_response(request=context.request, **proc_req)
+        return JsonResponse(info["response"])
+
+    def authorization_endpoint(self, context: ExtendedContext):
+        """
+        OAuth2 / OIDC Authorization endpoint
+        Checks client_id and handles the authorization request
+        """
+        self._log_request(context, "Authorization endpoint request")
+        self._load_cdb(context)
+
+        endpoint = self.app.server.endpoint["authorization"]
+        http_headers = self._get_http_headers(context)
+
+        internal_req = self._handle_authn_request(context, endpoint)
+        if not isinstance(internal_req, InternalData):
+            return self.send_response(internal_req)
+
+        return self.auth_req_callback_func(context, internal_req)
+
+    def token_endpoint(self, context: ExtendedContext):
+        """
+        Handle token requests (served at /token).
+        :type context: satosa.context.Context
+        :rtype: oic.utils.http_util.Response
+
+        :param context: the current context
+        :return: HTTP response to the client
+        """
+        self._log_request(context, "Token endpoint request")
+        endpoint = self.app.server.endpoint["token"]
+        http_headers = self._get_http_headers(context)
+
+        raw_request = AccessTokenRequest().from_urlencoded(urlencode(context.request))
+        self._load_cdb(context)
+        self._load_session(raw_request, endpoint, http_headers)
+        # in token endpoint we cannot parse a request without having loaded cdb and session
+
+        parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
+        proc_req = self._process_request(endpoint, context, parse_req, http_headers)
+        if isinstance(proc_req, JsonResponse):
+            return self.send_response(proc_req)
+
+        # better return jwt or jwe here!
+        self.store_session_to_db()
+        response = JsonResponse(proc_req["response_args"])
+        return self.send_response(response)
+
+    def userinfo_endpoint(self, context: ExtendedContext):
+        self._log_request(context, "Userinfo endpoint request")
+        endpoint = self.app.server.endpoint["userinfo"]
+        http_headers = self._get_http_headers(context)
+
+        # everything depends by bearer access token here
+        self._load_session({}, endpoint, http_headers)
+
+        parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
+
+        ec = endpoint.server_get("endpoint_context")
+        # Load claims
+        claims = {}
+        sman = ec.session_manager
+        for k, v in sman.dump()["db"].items():
+            if v[0] == "oidcop.session.grant.Grant":
+                sid = k
+                claims = self.app.storage.get_claims_from_sid(sid)
+                break
+        else:
+            logger.warning(
+                "UserInfo endoint: Can't find any suitable sid from session_manager"
+            )
+        # That's a patchy runtime definition of userinfo db configuration
+        ec.userinfo.load(claims)
+        # end load claims
+
+        proc_req = self._process_request(endpoint, context, parse_req, http_headers)
+        # flush as soon as possible, otherwise in case of an exception it would be
+        # stored in the object ... until a next .load would happen ...
+        ec.userinfo.flush()
+
+        if isinstance(proc_req, JsonResponse):
+            return self.send_response(proc_req)
+
+        # better return jwt or jwe here!
+        response = JsonResponse(proc_req["response_args"])
+
+        self.store_session_to_db()
+        return self.send_response(response)
+
+    def client_registration_endpoint(self, context: Context):
+        """
+        Handle the OIDC dynamic client registration.
+        :type context: satosa.context.Context
+        :rtype: oic.utils.http_util.Response
+
+        :param context: the current context
+        :return: HTTP response to the client
+        """
+        raise NotImplementedError()
+
+    def introspection_endpoint(self, context: Context):
+        raise NotImplementedError()
+
+
+class OidcOpFrontend(FrontendModule, OidcOpEndpoints):
+    """
+    OpenID Connect frontend module based on idpy oidcop
+    """
+
+    def __init__(
+        self, auth_req_callback_func, internal_attributes, conf, base_url, name
+    ):
+        super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
+        self.app = oidcop_app(conf)
+        # Why not
+        # self.config = self.app.server.conf
+        self.config = self.app.srv_config
+        jwks_public_path = self.config["keys"]["public_path"]
+        with open(jwks_public_path) as f:
+            self.jwks_public = f.read()
+
+        # registered endpoints will be filled by self.register_endpoints
+        self.endpoints = None
+
+    def register_endpoints(self, backend_names):
+        """
+        See super class satosa.frontends.base.FrontendModule
+        :type backend_names: list[str]
+        :rtype: list[(str, ((satosa.context.Context, Any) -> satosa.response.Response, Any))]
+        :raise ValueError: if more than one backend is configured
+        """
+        url_map = [
+            (v["path"], getattr(self, f"{k}_endpoint"))
+            for k, v in self.config.endpoint.items()
+        ]
+
+        # add jwks.json webpath
+        uri_path = self.config["keys"]["uri_path"]
+        url_map.append((uri_path, self.jwks_endpoint))
+
+        logger.debug(f"Loaded OIDC Provider endpoints: {url_map}")
+        self.endpoints = url_map
+        return url_map
 
     def _handle_authn_request(self, context: ExtendedContext, endpoint):
         """
@@ -365,23 +466,6 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         internal_req = self._handle_authn_request(context, endpoint)
         if not isinstance(internal_req, InternalData):
             return self.send_response(internal_req)
-        return self.auth_req_callback_func(context, internal_req)
-
-    def authorization_endpoint(self, context: ExtendedContext):
-        """
-        OAuth2 / OIDC Authorization endpoint
-        Checks client_id and handles the authorization request
-        """
-        self._log_request(context, "Authorization endpoint request")
-        self._load_cdb(context)
-
-        endpoint = self.app.server.endpoint["authorization"]
-        http_headers = self._get_http_headers(context)
-
-        internal_req = self._handle_authn_request(context, endpoint)
-        if not isinstance(internal_req, InternalData):
-            return self.send_response(internal_req)
-
         return self.auth_req_callback_func(context, internal_req)
 
     def _handle_backend_response(self, context: ExtendedContext, internal_resp):
@@ -496,86 +580,3 @@ class OidcOpFrontend(FrontendModule, OidcOpUtils):
         # store oidc session with user claims
         self.store_session_to_db(claims=combined_claims)
         return self.send_response(response)
-
-    def token_endpoint(self, context: ExtendedContext):
-        """
-        Handle token requests (served at /token).
-        :type context: satosa.context.Context
-        :rtype: oic.utils.http_util.Response
-
-        :param context: the current context
-        :return: HTTP response to the client
-        """
-        self._log_request(context, "Token endpoint request")
-        endpoint = self.app.server.endpoint["token"]
-        http_headers = self._get_http_headers(context)
-
-        raw_request = AccessTokenRequest().from_urlencoded(urlencode(context.request))
-        self._load_cdb(context)
-        self._load_session(raw_request, endpoint, http_headers)
-        # in token endpoint we cannot parse a request without having loaded cdb and session
-
-        parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
-        proc_req = self._process_request(endpoint, context, parse_req, http_headers)
-        if isinstance(proc_req, JsonResponse):
-            return self.send_response(proc_req)
-
-        # better return jwt or jwe here!
-        self.store_session_to_db()
-        response = JsonResponse(proc_req["response_args"])
-        return self.send_response(response)
-
-    def userinfo_endpoint(self, context: ExtendedContext):
-        self._log_request(context, "Userinfo endpoint request")
-        endpoint = self.app.server.endpoint["userinfo"]
-        http_headers = self._get_http_headers(context)
-
-        # everything depends by bearer access token here
-        self._load_session({}, endpoint, http_headers)
-
-        parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
-
-        ec = endpoint.server_get("endpoint_context")
-        # Load claims
-        claims = {}
-        sman = ec.session_manager
-        for k, v in sman.dump()["db"].items():
-            if v[0] == "oidcop.session.grant.Grant":
-                sid = k
-                claims = self.app.storage.get_claims_from_sid(sid)
-                break
-        else:
-            logger.warning(
-                "UserInfo endoint: Can't find any suitable sid from session_manager"
-            )
-        # That's a patchy runtime definition of userinfo db configuration
-        ec.userinfo.load(claims)
-        # end load claims
-
-        proc_req = self._process_request(endpoint, context, parse_req, http_headers)
-        # flush as soon as possible, otherwise in case of an exception it would be
-        # stored in the object ... until a next .load would happen ...
-        ec.userinfo.flush()
-
-        if isinstance(proc_req, JsonResponse):
-            return self.send_response(proc_req)
-
-        # better return jwt or jwe here!
-        response = JsonResponse(proc_req["response_args"])
-
-        self.store_session_to_db()
-        return self.send_response(response)
-
-    def client_registration_endpoint(self, context: Context):
-        """
-        Handle the OIDC dynamic client registration.
-        :type context: satosa.context.Context
-        :rtype: oic.utils.http_util.Response
-
-        :param context: the current context
-        :return: HTTP response to the client
-        """
-        raise NotImplementedError()
-
-    def introspection_endpoint(self, context: Context):
-        raise NotImplementedError()
