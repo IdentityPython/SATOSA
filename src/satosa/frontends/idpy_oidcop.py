@@ -31,7 +31,7 @@ IGNORED_HEADERS = ["cookie", "user-agent"]
 logger = logging.getLogger(__name__)
 
 
-class ExtendedContext(Context):
+class ExtendedContext(Context): # pragma: no cover
     def __init__(self, **kwargs):
         super().__init__()
         self.http_headers = {}
@@ -45,7 +45,7 @@ class OidcOpUtils(object):
     Interoperability class between satosa and oidcop
     """
 
-    def __init__(self):
+    def __init__(self): # pragma: no cover
         self.app = None
 
     def _load_cdb(self, context: ExtendedContext, client_id:str = None) -> dict:
@@ -60,7 +60,7 @@ class OidcOpUtils(object):
             client = self.app.storage.get_client_by_id(client_id)
             _ec.cdb = {client_id : client}
             logger.debug(f"Loaded oidcop client from {self.app.storage}: {client}")
-        else:
+        else: # pragma: no cover
             _ec.cdb = {}
             logger.warning(_msg)
             raise InvalidClient(_msg)
@@ -73,16 +73,20 @@ class OidcOpUtils(object):
         """
         _cookies = []
         http_headers = {}
-        if getattr(context, 'cookie', None):
-            for i in context.cookie.split(";"):
-                splitted = i.split("=")
-                if len(splitted) > 1:
-                    _cookies.append(
-                        {
-                         "name": splitted[0].strip(),
-                         "value": splitted[1].strip()
-                        }
-                    )
+
+        # actually cookies are not used
+        # if getattr(context, 'cookie', None):
+            # for i in context.cookie.split(";"):
+                # splitted = i.split("=")
+                # if len(splitted) > 1:
+                    # _cookies.append(
+                        # {
+                         # "name": splitted[0].strip(),
+                         # "value": splitted[1].strip()
+                        # }
+                    # )
+        # if _cookies:
+            # http_headers["cookie"] = _cookies
 
         if getattr(context, 'http_headers', None):
             http_headers = {
@@ -94,10 +98,8 @@ class OidcOpUtils(object):
                 "method": context.request_method,
                 "url": context.request_uri,
             }
-        if _cookies:
-            http_headers["cookie"] = _cookies
 
-        # for token and userinfo endpoint ... but also for authz endpoint sometimes
+        # for token and userinfo endpoint ... but also for authz endpoint if needed
         if getattr(context, "request_authorization", None):
             http_headers["headers"] = {
                 "authorization": context.request_authorization
@@ -211,6 +213,8 @@ class OidcOpUtils(object):
         return response
 
 class OidcOpEndpoints(OidcOpUtils):
+    """ Handles all the oidc endpoint """
+
     def jwks_endpoint(self, context: Context):
         """
         Construct the JWKS document (served at /jwks).
@@ -328,7 +332,7 @@ class OidcOpEndpoints(OidcOpUtils):
         self.store_session_to_db()
         return self.send_response(response)
 
-    def client_registration_endpoint(self, context: Context):
+    def client_registration_endpoint(self, context: Context): # pragma: no cover
         """
         Handle the OIDC dynamic client registration.
         :type context: satosa.context.Context
@@ -339,7 +343,7 @@ class OidcOpEndpoints(OidcOpUtils):
         """
         raise NotImplementedError()
 
-    def introspection_endpoint(self, context: Context):
+    def introspection_endpoint(self, context: Context): # pragma: no cover
         raise NotImplementedError()
 
 
@@ -442,14 +446,12 @@ class OidcOpFrontend(FrontendModule, OidcOpEndpoints):
         # _approved_attributes = self._get_approved_attributes(
         # _claims_supported, authn_req
         # )
-
         internal_req.attributes = self.converter.to_internal_filter(
             "openid", _claims_supported
         )
 
         # TODO - have a default backend, otherwise exception here ...
         context.target_backend = self.app.default_target_backend
-
         context.internal_data = internal_req
         return internal_req
 

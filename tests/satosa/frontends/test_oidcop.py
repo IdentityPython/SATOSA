@@ -1,13 +1,23 @@
 import copy
 import datetime
+import json
 import pytest
 
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
+from oidcmsg.oidc import AuthorizationResponse
+
+from saml2.authn_context import PASSWORD
+from satosa.attribute_mapping import AttributeMapper
 from satosa.context import Context
 from satosa.frontends.idpy_oidcop import OidcOpFrontend
-from unittest.mock import Mock
+from satosa.internal import AuthenticationInformation
+from satosa.internal import InternalData
+from tests.users import USERS
+from tests.users import OIDC_USERS
+
 from urllib.parse import urlparse, parse_qsl
+
 
 CLIENT_1_ID = 'jbxedfmfyc'
 CLIENT_1_PASSWD = '19cc69b70d0108f630e52f72f7a3bd37ba4e11678ad1a7434e9818e1'
@@ -359,6 +369,18 @@ class TestOidcOpFrontend(object):
     def frontend(self):
         return self.create_frontend(OIDCOP_CONF)
 
+    def test_jwks_endpoint(self, context, frontend):
+        res = frontend.jwks_endpoint(context)
+        assert res._status == "200 OK"
+        msg = json.loads(res.message)
+        assert msg.get('keys')
+
+    def test_provider_info_endpoint(self, context, frontend):
+        res = frontend.provider_info_endpoint(context)
+        assert res._status == "200 OK"
+        msg = json.loads(res.message)
+        assert msg.get('token_endpoint_auth_methods_supported')
+
     def get_authn_req(self, **kwargs):
         """ produces default or customized oidc autz requests """
         if not kwargs:
@@ -399,3 +421,32 @@ class TestOidcOpFrontend(object):
         client = self.prepare_call(context, frontend, authn_req)
         res = frontend.handle_authn_request(context)
         assert isinstance(res, Context)
+
+    def setup_for_authn_response(self, context, frontend, auth_req):
+        context.state[frontend.name] = {"oidc_request": auth_req.to_dict()}
+
+        auth_info = AuthenticationInformation(
+            PASSWORD, "2015-09-30T12:21:37Z", "unittest_idp.xml"
+        )
+        internal_response = InternalData(auth_info=auth_info)
+        internal_response.attributes = AttributeMapper(
+            frontend.internal_attributes
+        ).to_internal("saml", USERS["testuser1"])
+        internal_response.subject_id = USERS["testuser1"]["eduPersonTargetedID"][0]
+
+        return internal_response
+
+    def test_handle_authn_response(self, context, frontend, authn_req):
+        self.insert_client_in_client_db(frontend, redirect_uri = authn_req["redirect_uri"])
+        internal_response = self.setup_for_authn_response(context, frontend, authn_req)
+        http_resp = frontend.handle_authn_response(context, internal_response)
+        assert http_resp.message.startswith(authn_req["redirect_uri"])
+
+        # TODO - test also implicit flow (please!)
+        assert http_resp.status == '303 See Other'
+        _res = urlparse(http_resp.message).query
+        resp = AuthorizationResponse().from_urlencoded(_res)
+
+        assert resp["scope"] == authn_req["scope"]
+        assert resp["code"]
+        assert frontend.name not in context.state
