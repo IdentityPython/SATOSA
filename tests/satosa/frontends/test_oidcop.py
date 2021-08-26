@@ -552,6 +552,23 @@ class TestOidcOpFrontend(object):
         client = frontend._load_cdb(context)
         assert client
 
+    def test_handle_authn_response_hibrid_flow(self, context, frontend, authn_req):
+        response_type = "code id_token token".split(' ')
+        self.insert_client_in_client_db(
+            frontend,
+            response_types = response_type,
+            redirect_uri = authn_req["redirect_uri"]
+        )
+
+        authn_req['response_type'] = response_type
+        internal_response = self.setup_for_authn_response(context, frontend, authn_req)
+        http_resp = frontend.handle_authn_response(context, internal_response)
+
+        res = dict(parse_qsl(urlparse(http_resp.message).query))
+        assert res.get('access_token')
+        assert res.get('id_token')
+        assert res.get('code')
+
     def teardown(self):
         """ Clean up mongo """
         frontend = self.create_frontend(OIDCOP_CONF)
