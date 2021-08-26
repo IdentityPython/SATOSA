@@ -131,13 +131,15 @@ class Mongodb(SatosaOidcStorage):
             _q = {
                 "access_token": parse_req['token'],
             }
-
+        elif parse_req.get('grant_type') == 'refresh_token':
+            _q = {
+                "refresh_token": parse_req['refresh_token'],
+            }
         if not _q:
             logger.warning(
                 f"load_session_from_db can't find any active session from: {parse_req}"
             )
             return data
-
         self._connect()
         res = self.session_db.find(_q)
         if res.count():

@@ -129,8 +129,6 @@ class OidcOpUtils(object):
         logger.debug(f"Stored oidcop session to db: {sman.dump()}")
 
     def load_session_from_db(self, parse_req, http_headers):
-        # if isinstance(parse_req, oidcmsg.oidc.AuthorizationRequest):
-        # return {}
         sman = self.app.server.server_get("endpoint_context").session_manager
         claims = self.app.storage.load_session_from_db(parse_req, http_headers, sman)
         logger.debug(f"Loaded oidcop session from db: {sman.dump()}")

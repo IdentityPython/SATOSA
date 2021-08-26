@@ -463,8 +463,6 @@ class TestOidcOpFrontend(object):
         internal_response = self.setup_for_authn_response(context, frontend, authn_req)
         http_resp = frontend.handle_authn_response(context, internal_response)
         assert http_resp.message.startswith(authn_req["redirect_uri"])
-
-        # TODO - test also implicit flow (please!)
         assert http_resp.status == '303 See Other'
         _res = urlparse(http_resp.message).query
         resp = AuthorizationResponse().from_urlencoded(_res)
@@ -472,7 +470,6 @@ class TestOidcOpFrontend(object):
         assert resp["scope"] == authn_req["scope"]
         assert resp["code"]
         assert frontend.name not in context.state
-
         # Test Token endpoint
         context.request = {
             'grant_type': 'authorization_code',
@@ -557,9 +554,8 @@ class TestOidcOpFrontend(object):
         self.insert_client_in_client_db(
             frontend,
             response_types = response_type,
-            redirect_uri = authn_req["redirect_uri"]
+            redirect_uri = authn_req["redirect_uri"],
         )
-
         authn_req['response_type'] = response_type
         internal_response = self.setup_for_authn_response(context, frontend, authn_req)
         http_resp = frontend.handle_authn_response(context, internal_response)
@@ -568,6 +564,61 @@ class TestOidcOpFrontend(object):
         assert res.get('access_token')
         assert res.get('id_token')
         assert res.get('code')
+
+    def test_refresh_token(self, context, frontend, authn_req):
+        response_type = "code".split(' ')
+        scope = ["openid", "offline_access"]
+        self.insert_client_in_client_db(
+            frontend,
+            response_types = response_type,
+            redirect_uri = authn_req["redirect_uri"],
+            scope = scope
+        )
+
+        authn_req['response_type'] = response_type
+        authn_req['scope'] = ["openid", "offline_access"]
+        internal_response = self.setup_for_authn_response(context, frontend, authn_req)
+        http_resp = frontend.handle_authn_response(context, internal_response)
+        assert http_resp.message.startswith(authn_req["redirect_uri"])
+
+        assert http_resp.status == '303 See Other'
+        _res = urlparse(http_resp.message).query
+        resp = AuthorizationResponse().from_urlencoded(_res)
+
+        assert resp["scope"] == authn_req["scope"]
+        assert resp["code"]
+        assert frontend.name not in context.state
+
+        context.request = {
+            'grant_type': 'authorization_code',
+            'redirect_uri': CLIENT_RED_URL,
+            'client_id': CLIENT_AUTHN_REQUEST['client_id'],
+            'state': CLIENT_AUTHN_REQUEST['state'],
+            'code': resp["code"],
+            # TODO
+            # 'code_verifier': 'ySfTlMpTEZPYU7H0XQZ75b3B568R5kkMkGRuRpQHOr1KNC9oimGnWygexLJuTyyT'
+        }
+
+        credentials = f"{CLIENT_1_ID}:{CLIENT_1_PASSWD}"
+        basic_auth = urlsafe_b64encode(credentials.encode("utf-8")).decode("utf-8")
+        _basic_auth = f"Basic {basic_auth}"
+        context.request_authorization = _basic_auth
+
+        token_resp = frontend.token_endpoint(context)
+        res = json.loads(token_resp.message)
+        assert res.get('refresh_token')
+
+        # test refresh token
+        context.request = {
+            "grant_type" : "refresh_token",
+            "client_id" : CLIENT_1_ID,
+            "client_secret" : CLIENT_1_PASSWD,
+            "refresh_token" : res.get('refresh_token')
+        }
+        refresh_resp = frontend.token_endpoint(context)
+        _res = json.loads(refresh_resp.message)
+        assert _res.get('refresh_token')
+        assert _res.get('access_token')
 
     def teardown(self):
         """ Clean up mongo """
