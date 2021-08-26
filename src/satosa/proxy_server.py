@@ -128,6 +128,7 @@ class WsgiApplication(SATOSABase):
         context.request_uri = environ.get("REQUEST_URI")
         context.request_method = environ.get("REQUEST_METHOD")
         context.http_headers = collect_http_headers(environ)
+        context.qs_params = parse_query_string(environ.get("QUERY_STRING"))
         environ['wsgi.input'].seek(0)
 
         context.cookie = environ.get("HTTP_COOKIE", "")
