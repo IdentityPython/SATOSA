@@ -486,7 +486,8 @@ class TestOidcOpFrontend(object):
 
         credentials = f"{CLIENT_1_ID}:{CLIENT_1_PASSWD}"
         basic_auth = urlsafe_b64encode(credentials.encode("utf-8")).decode("utf-8")
-        context.request_authorization = f"Basic {basic_auth}"
+        _basic_auth = f"Basic {basic_auth}"
+        context.request_authorization = _basic_auth
 
         token_resp = frontend.token_endpoint(context)
 
@@ -496,11 +497,21 @@ class TestOidcOpFrontend(object):
 
         # Test UserInfo endpoint
         context.request = {}
-        context.request_authorization = f"{_token_resp['token_type']} {_token_resp['access_token']}"
+        _access_token = _token_resp['access_token']
+        context.request_authorization = f"{_token_resp['token_type']} {_access_token}"
         userinfo_resp = frontend.userinfo_endpoint(context)
 
         _userinfo_resp = json.loads(userinfo_resp.message)
         assert _userinfo_resp.get("sub")
+
+        # Test token introspection endpoint
+        context.request = {
+         'token': _access_token,
+         'token_type_hint': 'access_token'
+        }
+        context.request_authorization = _basic_auth
+        introspection_resp = frontend.introspection_endpoint(context)
+        assert json.loads(introspection_resp.message).get('sub')
 
     def test_fault_token_endpoint(self, context, frontend):
         # Test Token endpoint
@@ -517,13 +528,13 @@ class TestOidcOpFrontend(object):
         # for security checks see oidcop tests
 
         # here fails client auth
-        with pytest.raises(UnAuthorizedClient):
-            token_resp = frontend.token_endpoint(context)
+        token_resp = frontend.token_endpoint(context)
+        assert 'error' in token_resp.message
 
         # insert the client and miss client auth Basic
         self.insert_client_in_client_db(frontend)
-        with pytest.raises(UnAuthorizedClient):
-            token_resp = frontend.token_endpoint(context)
+        token_resp = frontend.token_endpoint(context)
+        assert 'error' in token_resp.message
 
         # put also auth basic
         credentials = f"{CLIENT_1_ID}:{CLIENT_1_PASSWD}"
@@ -531,7 +542,15 @@ class TestOidcOpFrontend(object):
         context.request_authorization = f"Basic {basic_auth}"
         token_resp = frontend.token_endpoint(context)
         assert token_resp.status == '403'
-        assert json.loads(token_resp.message)['error_description'] == 'Missing code'
+        assert json.loads(token_resp.message)['error'] == 'unauthorized_client'
+
+    def test_load_cdb_basicauth(self, context, frontend):
+        self.insert_client_in_client_db(frontend)
+        credentials = f"{CLIENT_1_ID}:{CLIENT_1_PASSWD}"
+        basic_auth = urlsafe_b64encode(credentials.encode("utf-8")).decode("utf-8")
+        context.request_authorization = f"Basic {basic_auth}"
+        client = frontend._load_cdb(context)
+        assert client
 
     def teardown(self):
         """ Clean up mongo """

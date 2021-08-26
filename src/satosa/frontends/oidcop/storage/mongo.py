@@ -1,3 +1,4 @@
+import base64
 import datetime
 import logging
 import pymongo
@@ -110,21 +111,25 @@ class Mongodb(SatosaOidcStorage):
     ) -> dict:
         data = {}
         _q = {}
-        http_authz = http_headers.get("headers", {}).get("authorization")
+        http_authz = http_headers.get("headers", {}).get("authorization", {})
+        if "Basic " in http_authz:
+            # we want only bearer and dpop here!
+            http_authz = None
 
         if parse_req.get("grant_type") == "authorization_code":
+            # here for auth code flow and token endpoint only
             _q = {
                 "authorization_code": parse_req["code"],
                 "client_id": parse_req.get("client_id"),
             }
-        elif parse_req.get("access_token"):
-            _q = {
-                "access_token": parse_req["access_token"],
-                "client_id": parse_req.get("client_id"),
-            }
         elif http_authz:
+            # here for userinfo endpoint
             _q = {
                 "access_token": http_authz.replace("Bearer ", ""),
+            }
+        elif parse_req.get('token'):
+            _q = {
+                "access_token": parse_req['token'],
             }
 
         if not _q:
@@ -156,3 +161,21 @@ class Mongodb(SatosaOidcStorage):
             logger.warning(f"OIDC Client {client_id} already present in the client db")
             return
         self.client_db.insert(client_data)
+
+    def get_client_by_basic_auth(self, request_authorization:str):
+        cred = base64.b64decode(
+                request_authorization.replace('Basic ', '').encode()
+        )
+        if not cred:
+            return
+
+        cred = cred.decode().split(':')
+        if len(cred) == 2:
+            client_id = cred[0]
+            client_secret = cred[1]
+            res = self.client_db.find(
+                {"client_id": client_id,
+                 "client_secret": client_secret}
+            )
+            if res.count():
+                return res.next()
