@@ -187,7 +187,10 @@ class OidcOpUtils(object):
         Processes an OAuth2/OIDC request
         used by Authorization, Token, Userinfo and Introspection enpoints views
         """
-        if isinstance(endpoint, Token):
+        if isinstance(parse_req, JsonResponse):
+            return self.send_response(parse_req)
+
+        elif isinstance(endpoint, Token):
             try:
                 _req = AccessTokenRequest(**parse_req)
             except Exception as err:
@@ -202,17 +205,6 @@ class OidcOpUtils(object):
                 return self.send_response(response)
         else:
             _req = parse_req
-
-        if hasattr(parse_req, 'message') and 'error' in json.loads(parse_req.message):
-            return self.send_response(
-                    JsonResponse(
-                    {
-                        "error": "invalid_request",
-                        "error_description": str(parse_req.message),
-                    },
-                    status="403",
-                )
-            )
 
         try:
             proc_req = endpoint.process_request(_req, http_info=http_headers)
@@ -325,8 +317,6 @@ class OidcOpEndpoints(OidcOpUtils):
         # in token endpoint we cannot parse a request without having loaded cdb and session first
 
         parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
-        if isinstance(parse_req, JsonResponse): # pragma: no cover
-            return self.send_response(parse_req)
         proc_req = self._process_request(endpoint, context, parse_req, http_headers)
         if isinstance(proc_req, JsonResponse): # pragma: no cover
             return self.send_response(proc_req)
@@ -347,8 +337,6 @@ class OidcOpEndpoints(OidcOpUtils):
         self._load_session({}, endpoint, http_headers)
 
         parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
-        if isinstance(parse_req, JsonResponse): # pragma: no cover
-            return self.send_response(parse_req)
 
         ec = endpoint.server_get("endpoint_context")
         # Load claims
@@ -401,9 +389,6 @@ class OidcOpEndpoints(OidcOpUtils):
         self._load_session(context.request, endpoint, http_headers)
 
         parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
-        if isinstance(parse_req, JsonResponse): # pragma: no cover
-            return self.send_response(parse_req)
-
         proc_req = self._process_request(endpoint, context, parse_req, http_headers)
         if isinstance(proc_req, JsonResponse): # pragma: no cover
             return self.send_response(proc_req)
