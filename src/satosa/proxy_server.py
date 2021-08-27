@@ -1,14 +1,15 @@
-import io
 import json
 import logging
 import logging.config
 import sys
+from io import BytesIO
 from urllib.parse import parse_qsl as _parse_query_string
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 
 import satosa
 import satosa.logging_util as lu
+
 from .base import SATOSABase
 from .context import Context
 from .response import ServiceError, NotFound
@@ -68,6 +69,15 @@ def unpack_request(environ, content_length=0):
     return data
 
 
+def collect_server_headers(environ):
+    headers = {
+        header_name: header_value
+        for header_name, header_value in environ.items()
+        if header_name.startswith("SERVER_")
+    }
+    return headers
+
+
 def collect_http_headers(environ):
     headers = {
         header_name: header_value
@@ -75,7 +85,6 @@ def collect_http_headers(environ):
         if (
             header_name.startswith("HTTP_")
             or header_name.startswith("REMOTE_")
-            or header_name.startswith("SERVER_")
         )
     }
     return headers
@@ -119,19 +128,21 @@ class WsgiApplication(SATOSABase):
         context.path = path
 
         # copy wsgi.input stream to allow it to be re-read later by satosa plugins
-        # see: http://stackoverflow.com/
-        #      questions/1783383/how-do-i-copy-wsgi-input-if-i-want-to-process-post-data-more-than-once
+        # see: http://stackoverflow.com/questions/1783383/how-do-i-copy-wsgi-input-if-i-want-to-process-post-data-more-than-once
         content_length = int(environ.get('CONTENT_LENGTH', '0') or '0')
-        body = io.BytesIO(environ['wsgi.input'].read(content_length))
+        body = BytesIO(environ['wsgi.input'].read(content_length))
         environ['wsgi.input'] = body
+
         context.request = unpack_request(environ, content_length)
         context.request_uri = environ.get("REQUEST_URI")
         context.request_method = environ.get("REQUEST_METHOD")
+        context.qs_params = parse_query_string(environ.get("QUERY_STRING"))
+        context.server = collect_server_headers(environ)
         context.http_headers = collect_http_headers(environ)
-        environ['wsgi.input'].seek(0)
+        context.cookie = context.http_headers.get("HTTP_COOKIE", "")
+        context.request_authorization = context.http_headers.get("HTTP_AUTHORIZATION", "")
 
-        context.cookie = environ.get("HTTP_COOKIE", "")
-        context.request_authorization = environ.get("HTTP_AUTHORIZATION", "")
+        environ['wsgi.input'].seek(0)
 
         try:
             resp = self.run(context)

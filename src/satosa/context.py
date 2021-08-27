@@ -23,12 +23,18 @@ class Context(object):
     def __init__(self):
         self._path = None
         self.request = None
+        self.request_uri = None
+        self.request_method = None
+        self.qs_params = None
+        self.server = None
+        self.http_headers = None
+        self.cookie = None
+        self.request_authorization = None
         self.target_backend = None
         self.target_frontend = None
         self.target_micro_service = None
         # This dict is a data carrier between frontend and backend modules.
         self.internal_data = {}
-        self.cookie = None
         self.state = None
 
     @property

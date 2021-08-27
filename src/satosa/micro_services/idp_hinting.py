@@ -41,18 +41,18 @@ class IdpHinting(RequestMicroService):
         :param data: the internal request
         """
         target_entity_id = context.get_decoration(context.KEY_TARGET_ENTITYID)
-        query_string = context.request
+        qs_params = context.qs_params
 
-        an_issuer_is_already_selected = bool(target_entity_id)
-        query_string_is_missing = not query_string
-        if an_issuer_is_already_selected or query_string_is_missing:
+        issuer_is_already_selected = bool(target_entity_id)
+        query_string_is_missing = not qs_params
+        if issuer_is_already_selected or query_string_is_missing:
             return super().process(context, data)
 
         hints = (
             entity_id
-            for param in self.idp_hint_param_names
-            for entity_id in query_string.get(param, [])
-            if entity_id
+            for param_name in self.idp_hint_param_names
+            for qs_param_name, entity_id in qs_params
+            if param_name == qs_param_name
         )
         hint = next(hints, None)
 
