@@ -26,6 +26,7 @@ class Context(object):
         self.request_uri = None
         self.request_method = None
         self.qs_params = None
+        self.server = None
         self.http_headers = None
         self.cookie = None
         self.request_authorization = None
