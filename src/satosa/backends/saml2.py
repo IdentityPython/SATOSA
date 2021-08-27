@@ -404,7 +404,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         )
 
         # The SAML response may not include a NameID.
-        subject = response.get_subject()
+        subject = response.get_subject(keys=self.encryption_keys)
         name_id = subject.text if subject else None
         name_id_format = subject.format if subject else None
 
