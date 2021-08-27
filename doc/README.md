@@ -636,9 +636,12 @@ To choose which backend (essentially choosing target provider) to use based on t
 Use the `DecideBackendByTargetIssuer` class which implements that special routing behavior. See the
 [example configuration](../example/plugins/microservices/target_based_routing.yaml.example).
 
-If a Discovery Service have been used and the target entity id is selected by users,
- also use `DiscoToTargetIssuer` together with `DecideBackendByTargetIssuer`
- to get the expected result. See the [example configuration](../example/plugins/microservices/disco_to_target_issuer.yaml.example).
+#### Route to a specific backend based on the discovery service response
+
+If a Discovery Service is in use and a target entity id is selected by users, you may want to use the
+`DiscoToTargetIssuer` class together with `DecideBackendByTargetIssuer` to be able to select a
+backend (essentially choosing target provider) based on the response from the discovery service.
+See the [example configuration](../example/plugins/microservices/disco_to_target_issuer.yaml.example).
 
 #### Filter authentication requests to target SAML entities
 
@@ -709,14 +712,15 @@ persistent NameID may also be obtained from attributes returned from the LDAP di
 LDAP microservice install the extra necessary dependencies with `pip install satosa[ldap]` and then see the
 [example config](../example/plugins/microservices/ldap_attribute_store.yaml.example).
 
-#### Minimal support for IdP Hinting
+#### Support for IdP Hinting
 
-It's possible to hint an IdP to SaToSa using `IdpHinting` microservice. See the
- [example configuration](../example/plugins/microservices/idp_hinting.yaml.example).
+It's possible to hint an IdP to SaToSa using the `IdpHinting` micro-service.
 
-With this feature an SP can send an hint about the IdP to avoid the discovery
- service page to the users, using a url parameter. Example
- `https://[...]?[...]&idphint=https://that.idp.entity.id"`
+With this feature an SP can send a hint about the IdP that should be used, in order to skip the discovery service.
+The hint as a parameter in the query string of the request.
+The hint query parameter value must be the entityID of the IdP.
+The hint query parameter name is specified in the micro-service configuation.
+See the [example configuration](../example/plugins/microservices/idp_hinting.yaml.example).
 
 ### Custom plugins
 
