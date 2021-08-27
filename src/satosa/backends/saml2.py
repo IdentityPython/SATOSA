@@ -10,7 +10,7 @@ from base64 import urlsafe_b64encode
 from urllib.parse import urlparse
 
 from saml2 import BINDING_HTTP_REDIRECT
-from saml2.client_base import Base
+from saml2.client import Saml2Client
 from saml2.config import SPConfig
 from saml2.extension.mdui import NAMESPACE as UI_NAMESPACE
 from saml2.metadata import create_metadata_string
@@ -109,7 +109,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         self.config = self.init_config(config)
 
         sp_config = SPConfig().load(copy.deepcopy(config[SAMLBackend.KEY_SP_CONFIG]))
-        self.sp = Base(sp_config)
+        self.sp = Saml2Client(sp_config)
 
         self.discosrv = config.get(SAMLBackend.KEY_DISCO_SRV)
         self.encryption_keys = []
@@ -272,27 +272,19 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             kwargs["scoping"] = Scoping(requester_id=[RequesterID(text=requester)])
 
         try:
-            binding, destination = self.sp.pick_binding(
-                "single_sign_on_service", None, "idpsso", entity_id=entity_id
-            )
-            msg = "binding: {}, destination: {}".format(binding, destination)
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.debug(logline)
-
             acs_endp, response_binding = self.sp.config.getattr("endpoints", "sp")["assertion_consumer_service"][0]
-            req_id, req = self.sp.create_authn_request(
-                destination, binding=response_binding, **kwargs
-            )
             relay_state = util.rndstr()
-            ht_args = self.sp.apply_binding(binding, "%s" % req, destination, relay_state=relay_state)
-            msg = "ht_args: {}".format(ht_args)
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.debug(logline)
-        except Exception as exc:
+            req_id, binding, http_info = self.sp.prepare_for_negotiated_authenticate(
+                entityid=entity_id,
+                response_binding=response_binding,
+                relay_state=relay_state,
+                **kwargs,
+            )
+        except Exception as e:
             msg = "Failed to construct the AuthnRequest for state"
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline, exc_info=True)
-            raise SATOSAAuthenticationError(context.state, "Failed to construct the AuthnRequest") from exc
+            raise SATOSAAuthenticationError(context.state, "Failed to construct the AuthnRequest") from e
 
         if self.sp.config.getattr('allow_unsolicited', 'sp') is False:
             if req_id in self.outstanding_queries:
@@ -300,10 +292,10 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                 logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
                 logger.debug(logline)
                 raise SATOSAAuthenticationError(context.state, msg)
-            self.outstanding_queries[req_id] = req
+            self.outstanding_queries[req_id] = req_id
 
         context.state[self.name] = {"relay_state": relay_state}
-        return make_saml_response(binding, ht_args)
+        return make_saml_response(binding, http_info)
 
     def authn_response(self, context, binding):
         """
