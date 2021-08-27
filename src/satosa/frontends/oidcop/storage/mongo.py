@@ -109,6 +109,13 @@ class Mongodb(SatosaOidcStorage):
     def load_session_from_db(
         self, parse_req, http_headers: dict, session_manager: SessionManager, **kwargs
     ) -> dict:
+        """
+        This method detects some usefull elements for doing a lookup in the session storage
+        then loads the session inmemory
+
+        It doesn't want to do any validation but only loading a session inmemory
+        Security validation will be made later by oidcop in process_request
+        """
         data = {}
         _q = {}
         http_authz = http_headers.get("headers", {}).get("authorization", {})
@@ -135,7 +142,7 @@ class Mongodb(SatosaOidcStorage):
             _q = {
                 "refresh_token": parse_req['refresh_token'],
             }
-        if not _q:
+        else:
             logger.warning(
                 f"load_session_from_db can't find any active session from: {parse_req}"
             )

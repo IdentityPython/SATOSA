@@ -4,7 +4,12 @@ import json
 import pytest
 
 from base64 import urlsafe_b64encode
+from cryptojwt.key_jar import KeyJar
+from cryptojwt.jwk.jwk import key_from_jwk_dict
+from cryptojwt.tools import keyconv
+
 from oidcmsg.oidc import AccessTokenRequest
+from oidcmsg.oidc import AuthnToken
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import AuthorizationResponse
 from oidcop.exception import UnAuthorizedClient
@@ -27,6 +32,28 @@ CLIENT_1_PASSWD = '19cc69b70d0108f630e52f72f7a3bd37ba4e11678ad1a7434e9818e1'
 CLIENT_1_RAT = 'z3PCMmC1HZ1QmXeXGOQMJpWQNQynM4xY'
 CLIENT_RED_URL = 'https://127.0.0.1:8090/authz_cb/satosa'
 CLIENT_1_SESLOGOUT = 'https://127.0.0.1:8090/session_logout/satosa'
+
+# unused because we cannot have private_key_jwt/RFC7523 in satosa
+CLIENT_JWK_DICT = {'keys': [{'kty': 'RSA',
+   'use': 'sig',
+   'kid': 'OWIzN25HNmY0d0VTNWtMeEstTFU3endZbm9ucjhwTVhfLUdwajU1QS1NMA',
+   'n': 'ytqcNOfMII7NT1n4AhG8nWBvNuJ7gfBXdOjde-iPIy0OiXj6CeuXZXdaUsWeUElG3yw03IRyGs6Q1sh1_b3kFTjrfMhj7nX50ZWucZJCO0MLtsPqOfjKCiyOJjb4rSDhDrM2PxNJ_eXEuFzUVB5CPCK2GvKzPBZJvtYmGDnaf0CDH2XcWfUeyrFip2zvJ4wrrb4l-hqngPLhAyNaV3QtzbbXJtQTNPlHYghC_prVj18onHsC68fxQg7OfHmPQq9DVZs24rAb6rqxI0PJwSVbUA89gGjuytQAQEFKzR4AR9bfhZBj6H3X5sOcFg8xg-iOBmQxx7vM_5Dxu1sTIvykFQ',
+   'e': 'AQAB',
+   'd': 'cQeQhHYoKngHdFCYPWbupu5F6doWoZdu08ixKMqzfxErCXSsNfzc1f_EB1zv0qKR5-Z06e6uubshv1vhSuqU_TJDHLt32zZHZf22PrgVSXoZO9Q8XeL_iN28sxRsSeOJI6y97DVuRBfUHjozYU-e7m0U9T0Im9F7c-dVQKhz0_T6JNr_swwatlL4lrIIc-sAWbTZp30ef8QNze48twxtrhf-NcNIft0GF_jLN3PdQrSe7DmEv6BxSHDG2IKOT-KjmoehkKtc0UTP-465GXFKDQZiMjf7nHh7zdqRCJXPDoS9YFpQFGWvH89p5thBACVMpTOgM3t3eXwUODhwTuXB_Q',
+   'p': '-7RuaUjObNfd3iKppj5oSbecRpAa_x_vq5zM6Q0qs0PLyJz6wZRGAvg4pmQFwvGskqOBFXcOPWH4WmmvM6YzuPajIoCMLEojQltmBVaoc-IIo9B7Wry6PXrLjmc-2aFOyECYt8QMkVMC7zcswfA1xy-_gNlXCrA40MLSa6MXv5c',
+   'q': 'zlDGTW163TMtXvkah1MvDi9w8qfDHZ9L3iQYhZjvooXIyaRCwQP24EwfYdOeXt1PpKdLbI3ZdeWcjAaqpqJCb-X9BXS_H2KNQkMKqhrKYwrlLEyYkGKsgFTB8Kx1-dgzszV2awR4NJImhl4WdhudUbnD9HDhkOouCICYPeYpbzM'},
+  {'kty': 'EC',
+   'use': 'sig',
+   'kid': 'TjNnM3libWFDMjBpeU5WWmZjVkFqdUFCc0dWd3h2eFNGOW1MSk5VYTVUYw',
+   'crv': 'P-256',
+   'x': 'AWSp7rX1Obb_D7HZhkjAjND721VZaYp5OuJvc0kxSVE',
+   'y': 'X1l4LMpq8dI4idQXUPScuarbyz_a0gq0DjHZhdWWiAw',
+   'd': 'd2SBLs_LZIxt2U_sdcjTCLLoMYWli_HYkZ0YIDe2SvE'}]
+}
+# unused because we cannot have private_key_jwt/RFC7523 in satosa
+CLIENT_RSA_KEY = key_from_jwk_dict(CLIENT_JWK_DICT['keys'][0])
+
+
 CLIENT_CONF = {
         'client_id': CLIENT_1_ID,
         'client_name': "ciro",
@@ -41,6 +68,7 @@ CLIENT_CONF = {
         'token_endpoint_auth_method': 'client_secret_basic',
         # TODO for jwe and rfc7523
         # 'jwks_uri': 'https://127.0.0.1:8099/static/jwks.json',
+        #'jwks': CLIENT_RSA_KEY.serialize(),
         'redirect_uris': [(CLIENT_RED_URL, {})],
         'post_logout_redirect_uris': [(CLIENT_1_SESLOGOUT, None)],
         'response_types': ['code'],
@@ -565,6 +593,22 @@ class TestOidcOpFrontend(object):
         assert res.get('id_token')
         assert res.get('code')
 
+    def test_handle_authn_response_implicit_flow(self, context, frontend, authn_req):
+        response_type = "id_token token".split(' ')
+        self.insert_client_in_client_db(
+            frontend,
+            response_types = response_type,
+            redirect_uri = authn_req["redirect_uri"],
+        )
+        authn_req['response_type'] = response_type
+        internal_response = self.setup_for_authn_response(context, frontend, authn_req)
+        http_resp = frontend.handle_authn_response(context, internal_response)
+
+        res = dict(parse_qsl(urlparse(http_resp.message).query))
+        assert res.get('access_token')
+        assert res.get('id_token')
+
+
     def test_refresh_token(self, context, frontend, authn_req):
         response_type = "code".split(' ')
         scope = ["openid", "offline_access"]
@@ -619,6 +663,39 @@ class TestOidcOpFrontend(object):
         _res = json.loads(refresh_resp.message)
         assert _res.get('refresh_token')
         assert _res.get('access_token')
+
+    # def test_private_key_jwt_token_endpoint(self, context, frontend):
+        # """
+        # Unused because we cannot have private_key_jwt/RFC7523 in satosa
+        # client/rp is a machine, while auth code flow needs an human user
+
+        # in satosa the user MUST call the authorization endpoint
+        # """
+        # client_assertion_data = {
+            # "iss": CLIENT_1_ID,
+            # "sub": CLIENT_1_ID,
+            # "aud": [f"{BASE_URL}/OIDC/token"],
+            # "jti": "my-opaque-jti-value",
+            # "exp": (datetime.datetime.now() + datetime.timedelta(days=1)).timestamp(),
+            # "iat": datetime.datetime.now().timestamp()
+
+        # }
+        # _private_key_jwt = AuthnToken(**client_assertion_data)
+        # client_assertion = _private_key_jwt.to_jwt(key=[CLIENT_RSA_KEY], algorithm='RS256')
+
+        # ## Test Token endpoint
+        # context.request = {
+            # 'grant_type': 'authorization_code',
+            # 'redirect_uri': CLIENT_RED_URL,
+            # 'state': CLIENT_AUTHN_REQUEST['state'],
+            # 'code': "FAKE-CODE",
+            # "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+            # "client_assertion": client_assertion
+        # }
+        # self.insert_client_in_client_db(frontend)
+        # token_resp = frontend.token_endpoint(context)
+        # breakpoint()
+
 
     def teardown(self):
         """ Clean up mongo """
