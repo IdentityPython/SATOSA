@@ -108,26 +108,37 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         super().__init__(outgoing, internal_attributes, base_url, name)
         self.config = self.init_config(config)
 
-        sp_config = SPConfig().load(copy.deepcopy(config[SAMLBackend.KEY_SP_CONFIG]))
-        self.sp = Saml2Client(sp_config)
-
         self.discosrv = config.get(SAMLBackend.KEY_DISCO_SRV)
         self.encryption_keys = []
         self.outstanding_queries = {}
         self.idp_blacklist_file = config.get('idp_blacklist_file', None)
 
-        sp_keypairs = sp_config.getattr('encryption_keypairs', '')
-        sp_key_file = sp_config.getattr('key_file', '')
-        if sp_keypairs:
-            key_file_paths = [pair['key_file'] for pair in sp_keypairs]
-        elif sp_key_file:
-            key_file_paths = [sp_key_file]
-        else:
-            key_file_paths = []
+        sp_config = SPConfig().load(copy.deepcopy(config[SAMLBackend.KEY_SP_CONFIG]))
 
+        # if encryption_keypairs is defined, use those keys for decryption
+        # else, if key_file and cert_file are defined, use them for decryption
+        # otherwise, do not use any decryption key.
+        # ensure the choice is reflected back in the configuration.
+        sp_conf_encryption_keypairs = sp_config.getattr('encryption_keypairs', '')
+        sp_conf_key_file = sp_config.getattr('key_file', '')
+        sp_conf_cert_file = sp_config.getattr('cert_file', '')
+        sp_keypairs = (
+            sp_conf_encryption_keypairs
+            if sp_conf_encryption_keypairs
+            else [{'key_file': sp_conf_key_file, 'cert_file': sp_conf_cert_file}]
+            if sp_conf_key_file and sp_conf_cert_file
+            else []
+        )
+        sp_config.setattr('', 'encryption_keypairs', sp_keypairs)
+
+        # load the encryption keys
+        key_file_paths = [pair['key_file'] for pair in sp_keypairs]
         for p in key_file_paths:
             with open(p) as key_file:
                 self.encryption_keys.append(key_file.read())
+
+        # finally, initialize the client object
+        self.sp = Saml2Client(sp_config)
 
     def get_idp_entity_id(self, context):
         """
