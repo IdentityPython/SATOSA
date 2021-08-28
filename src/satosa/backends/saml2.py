@@ -384,15 +384,18 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         # The response may have been encrypted by the IdP so if we have an
         # encryption key, try it.
         if self.encryption_keys:
-            response.parse_assertion(self.encryption_keys)
+            response.parse_assertion(keys=self.encryption_keys)
 
-        authn_info = response.authn_info()[0]
-        auth_class_ref = authn_info[0]
-        timestamp = response.assertion.authn_statement[0].authn_instant
         issuer = response.response.issuer.text
-
+        authn_context_ref, authenticating_authorities, authn_instant = next(
+            iter(response.authn_info()), [None, None, None]
+        )
+        authenticating_authority = next(iter(authenticating_authorities), None)
         auth_info = AuthenticationInformation(
-            auth_class_ref, timestamp, issuer,
+            auth_class_ref=authn_context_ref,
+            timestamp=authn_instant,
+            authority=authenticating_authority,
+            issuer=issuer,
         )
 
         # The SAML response may not include a NameID.

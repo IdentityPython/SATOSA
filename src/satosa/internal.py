@@ -85,7 +85,13 @@ class AuthenticationInformation(_Datafy):
     """
 
     def __init__(
-        self, auth_class_ref=None, timestamp=None, issuer=None, *args, **kwargs
+        self,
+        auth_class_ref=None,
+        timestamp=None,
+        issuer=None,
+        authority=None,
+        *args,
+        **kwargs,
     ):
         """
         Initiate the data carrier
@@ -102,6 +108,7 @@ class AuthenticationInformation(_Datafy):
         self.auth_class_ref = auth_class_ref
         self.timestamp = timestamp
         self.issuer = issuer
+        self.authority = authority
 
 
 class InternalData(_Datafy):
