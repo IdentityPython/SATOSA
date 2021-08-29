@@ -140,6 +140,7 @@ config:
               release:
               - username
             path: OIDC/introspection
+          # uncomment this for dynamic client registration
           #registration:
             #class: oidcop.oidc.registration.Registration
             #kwargs:
@@ -149,12 +150,12 @@ config:
                 #kwargs: {}
               #client_secret_expiration_time: 432000
             #path: OIDC/registration
-          #registration_read:
-            #class: oidcop.oidc.read_registration.RegistrationRead
-            #kwargs:
-              #client_authn_method:
-              #- bearer_header
-            #path: OIDC/registration_read
+          registration_read:
+            class: oidcop.oidc.read_registration.RegistrationRead
+            kwargs:
+              client_authn_method:
+              - bearer_header
+            path: OIDC/registration_read
           # TODO - Logout in SATOSA haven't been implemented
           #end_session:
             #class: oidcop.oidc.session.Session
