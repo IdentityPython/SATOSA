@@ -12,6 +12,7 @@ from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthnToken
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import AuthorizationResponse
+from oidcmsg.oidc import RegistrationRequest
 from oidcop.exception import UnAuthorizedClient
 
 from saml2.authn_context import PASSWORD
@@ -33,7 +34,7 @@ CLIENT_1_RAT = 'z3PCMmC1HZ1QmXeXGOQMJpWQNQynM4xY'
 CLIENT_RED_URL = 'https://127.0.0.1:8090/authz_cb/satosa'
 CLIENT_1_SESLOGOUT = 'https://127.0.0.1:8090/session_logout/satosa'
 
-# unused because we cannot have private_key_jwt/RFC7523 in satosa
+# unused because actually we can't have private_key_jwt/RFC7523 in satosa
 CLIENT_JWK_DICT = {'keys': [{'kty': 'RSA',
    'use': 'sig',
    'kid': 'OWIzN25HNmY0d0VTNWtMeEstTFU3endZbm9ucjhwTVhfLUdwajU1QS1NMA',
@@ -50,7 +51,7 @@ CLIENT_JWK_DICT = {'keys': [{'kty': 'RSA',
    'y': 'X1l4LMpq8dI4idQXUPScuarbyz_a0gq0DjHZhdWWiAw',
    'd': 'd2SBLs_LZIxt2U_sdcjTCLLoMYWli_HYkZ0YIDe2SvE'}]
 }
-# unused because we cannot have private_key_jwt/RFC7523 in satosa
+# unused because actually we can't have private_key_jwt/RFC7523 in satosa
 CLIENT_RSA_KEY = key_from_jwk_dict(CLIENT_JWK_DICT['keys'][0])
 
 
@@ -261,6 +262,18 @@ OIDCOP_CONF = {
           },
           "path": "OIDC/introspection"
         },
+        "registration": {
+            "class": "oidcop.oidc.registration.Registration",
+            "kwargs": {
+              "client_authn_method": None,
+              "client_id_generator": {
+                "class": "oidcop.oidc.registration.random_client_id",
+                "kwargs": {}
+               },
+              "client_secret_expiration_time": 432000
+            },
+            "path": "OIDC/registration"
+        },
         "registration_read": {
             "class": "oidcop.oidc.read_registration.RegistrationRead",
             "kwargs": {
@@ -396,6 +409,32 @@ CLIENT_AUTHN_REQUEST = {
     # 'code_challenge_method': 'S256',
     'client_id': CLIENT_1_ID
 }
+
+msg = {
+    "application_type": "web",
+    "redirect_uris": [
+        "https://client.example.org/callback",
+        "https://client.example.org/callback2",
+    ],
+    "client_name": "My Example",
+    "client_name#ja-Jpan-JP": "クライアント名",
+    "subject_type": "pairwise",
+    "token_endpoint_auth_method": "client_secret_basic",
+    "jwks_uri": "https://client.example.org/my_public_keys.jwks",
+    "userinfo_encrypted_response_alg": "RSA-OAEP",
+    "userinfo_encrypted_response_enc": "A128CBC-HS256",
+    "contacts": ["ve7jtb@example.org", "mary@example.org"],
+    "request_uris": [
+        "https://client.example.org/rf.txt#qpXaRLh_n93TT",
+        "https://client.example.org/rf.txt",
+    ],
+    "post_logout_redirect_uris": [
+        "https://rp.example.com/pl?foo=bar",
+        "https://rp.example.com/pl",
+    ],
+}
+
+CLI_REQ = RegistrationRequest(**msg)
 
 
 class TestOidcOpFrontend(object):
@@ -703,6 +742,15 @@ class TestOidcOpFrontend(object):
         # self.insert_client_in_client_db(frontend)
         # token_resp = frontend.token_endpoint(context)
         # breakpoint()
+
+    def test_client_registration_endpoint(self, context, frontend, authn_req):
+        # just to test reserved client_id
+        self.insert_client_in_client_db(frontend)
+
+        context.request = CLI_REQ.to_dict()
+        http_resp = frontend.registration_endpoint(context)
+        _resp = json.loads(http_resp.message)
+        assert _resp['client_id']
 
     def test_client_registration_read_endpoint(self, context, frontend, authn_req):
         self.insert_client_in_client_db(frontend)

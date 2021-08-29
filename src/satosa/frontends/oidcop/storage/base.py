@@ -17,3 +17,6 @@ class SatosaOidcStorage(object):
 
     def get_client_by_basic_auth(self, request_authorization:str):
         raise NotImplementedError()
+
+    def get_registered_clients_id(self):
+        raise NotImplementedError()

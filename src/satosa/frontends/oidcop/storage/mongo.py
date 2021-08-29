@@ -1,4 +1,5 @@
 import base64
+import copy
 import datetime
 import logging
 import pymongo
@@ -164,12 +165,13 @@ class Mongodb(SatosaOidcStorage):
             return res.next()["claims"]
 
     def insert_client(self, client_data:dict):
+        _client_data = copy.deepcopy(client_data)
         self._connect()
-        client_id = client_data['client_id']
+        client_id = _client_data['client_id']
         if self.get_client_by_id(client_id):
             logger.warning(f"OIDC Client {client_id} already present in the client db")
             return
-        self.client_db.insert(client_data)
+        self.client_db.insert(_client_data)
 
     def get_client_by_basic_auth(self, request_authorization:str):
         cred = base64.b64decode(
@@ -188,3 +190,7 @@ class Mongodb(SatosaOidcStorage):
             )
             if res.count():
                 return res.next()
+
+    def get_registered_clients_id(self):
+        res = self.client_db.distinct('client_id')
+        return res

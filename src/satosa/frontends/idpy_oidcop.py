@@ -18,6 +18,7 @@ from oidcop.authn_event import create_authn_event
 from oidcop.exception import InvalidClient
 from oidcop.exception import UnAuthorizedClient
 from oidcop.exception import UnknownClient
+from oidcop.oidc.registration import random_client_id
 from oidcop.oidc.token import Token
 
 from satosa.context import Context
@@ -404,7 +405,7 @@ class OidcOpEndpoints(OidcOpUtils):
         response = JsonResponse(proc_req["response_args"].to_dict())
         return self.send_response(response)
 
-    def registration_endpoint(self, context: Context): # pragma: no cover
+    def registration_endpoint(self, context: Context):
         """
         Handle the OIDC dynamic client registration.
         :type context: satosa.context.Context
@@ -413,7 +414,20 @@ class OidcOpEndpoints(OidcOpUtils):
         :param context: the current context
         :return: HTTP response to the client
         """
-        raise NotImplementedError()
+        self._log_request(context, "Client Registration endpoint request")
+        http_headers = self._get_http_headers(context)
+        endpoint = self.app.server.endpoint["registration"]
+        parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
+        proc_req = self._process_request(endpoint, context, parse_req, http_headers)
+        if isinstance(proc_req, JsonResponse): # pragma: no cover
+            return self.send_response(proc_req)
+        # store client to storage
+        client_data = context.request
+        client_data['client_id'] = random_client_id(
+            reserved=self.app.storage.get_registered_clients_id()
+        )
+        self.app.storage.insert_client(client_data)
+        return JsonResponse(client_data)
 
     def introspection_endpoint(self, context: Context):
         self._log_request(context, "Token Introspection endpoint request")
