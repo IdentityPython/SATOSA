@@ -60,7 +60,7 @@ CLIENT_CONF = {
         'client_salt': '6flfsj0Z',
         'registration_access_token': CLIENT_1_RAT,
         'registration_client_uri': f'https://127.0.0.1:8000/registration_api?client_id={CLIENT_1_ID}',
-        'client_id_issued_at': datetime.datetime.utcnow(),
+        'client_id_issued_at': datetime.datetime.utcnow().timestamp(),
         'client_secret': CLIENT_1_PASSWD,
         'client_secret_expires_at': (datetime.datetime.utcnow() + datetime.timedelta(days=1)).timestamp(),
         'application_type': 'web',
@@ -260,7 +260,15 @@ OIDCOP_CONF = {
             ]
           },
           "path": "OIDC/introspection"
-        }
+        },
+        "registration_read": {
+            "class": "oidcop.oidc.read_registration.RegistrationRead",
+            "kwargs": {
+              "client_authn_method": [
+               "bearer_header"
+               ]},
+            "path": "OIDC/registration_read"
+        },
       },
       "httpc_params": {
         "verify": False
@@ -696,6 +704,15 @@ class TestOidcOpFrontend(object):
         # token_resp = frontend.token_endpoint(context)
         # breakpoint()
 
+    def test_client_registration_read_endpoint(self, context, frontend, authn_req):
+        self.insert_client_in_client_db(frontend)
+        _bearer_auth = f"Bearer {CLIENT_1_RAT}"
+        context.request_authorization = _bearer_auth
+        context.request = {'client_id': CLIENT_1_ID}
+        http_resp = frontend.registration_read_endpoint(context)
+        _resp = json.loads(http_resp.message)
+        assert _resp['client_id'] == CLIENT_1_ID
+        assert _resp['client_secret'] == CLIENT_1_PASSWD
 
     def teardown(self):
         """ Clean up mongo """

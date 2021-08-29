@@ -71,7 +71,7 @@ class OidcOpUtils(object):
                         context.request_authorization
             ) or {}
             client_id = client.get("client_id")
-        elif context.request.get('client_assertion'): # pragma: no cover
+        elif context.request and context.request.get('client_assertion'): # pragma: no cover
             # this is not a validation just a client detection
             # validation is demanded later to oidcop parse_request
 
@@ -99,6 +99,15 @@ class OidcOpUtils(object):
             )
         else: # pragma: no cover
             logger.info(f'Cannot find "{client_id}" in client DB')
+
+        # TODO - consider to handle also basic auth for clients ...
+        # BUT specs are against!
+        # https://openid.net/specs/openid-connect-registration-1_0.html#ReadRequest
+        _rat = client.get('registration_access_token')
+        if _rat:
+            _ec.registration_access_token[_rat] = client['client_id']
+        else:
+            _ec.registration_access_token = {}
         return client
 
 
@@ -369,7 +378,33 @@ class OidcOpEndpoints(OidcOpUtils):
         self.store_session_to_db()
         return self.send_response(response)
 
-    def client_registration_endpoint(self, context: Context): # pragma: no cover
+    def registration_read_endpoint(self, context: Context):
+        """
+        The Client Configuration Endpoint is an OAuth 2.0 Protected Resource
+        that MAY be provisioned by the server for a specific Client to be able
+        to view its registered information.
+
+        The Client MUST use its Registration Access Token in all calls
+        to this endpoint as an OAuth 2.0 Bearer Token
+        :type context: satosa.context.Context
+        :rtype: oic.utils.http_util.Response
+
+        :param context: the current context
+        :return: HTTP response to the client
+        """
+        self._log_request(context, "Client Registration Read endpoint request")
+        client = self._load_cdb(context)
+        http_headers = self._get_http_headers(context)
+        endpoint = self.app.server.endpoint["registration_read"]
+        parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
+        proc_req = self._process_request(endpoint, context, parse_req, http_headers)
+        if isinstance(proc_req, JsonResponse): # pragma: no cover
+            return self.send_response(proc_req)
+        # better return jwt or jwe here!
+        response = JsonResponse(proc_req["response_args"].to_dict())
+        return self.send_response(response)
+
+    def registration_endpoint(self, context: Context): # pragma: no cover
         """
         Handle the OIDC dynamic client registration.
         :type context: satosa.context.Context
@@ -385,7 +420,6 @@ class OidcOpEndpoints(OidcOpUtils):
         endpoint = self.app.server.endpoint["introspection"]
         http_headers = self._get_http_headers(context)
 
-        # self._load_cdb(context)
         self._load_session(context.request, endpoint, http_headers)
 
         parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
