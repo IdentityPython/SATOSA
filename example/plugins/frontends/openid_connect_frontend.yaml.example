@@ -2,6 +2,7 @@ module: satosa.frontends.openid_connect.OpenIDConnectFrontend
 name: OIDC
 config:
   signing_key_path: frontend.key
+  signing_key_id: frontend.key1
   db_uri: mongodb://db.example.com # optional: only support MongoDB, will default to in-memory storage if not specified
   client_db_path: /path/to/your/cdb.json
   sub_hash_salt: randomSALTvalue # if not specified, it is randomly generated on every startup

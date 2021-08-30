@@ -44,7 +44,8 @@ class OpenIDConnectFrontend(FrontendModule):
         super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
 
         self.config = conf
-        self.signing_key = RSAKey(key=rsa_load(conf["signing_key_path"]), use="sig", alg="RS256")
+        self.signing_key = RSAKey(key=rsa_load(conf["signing_key_path"]), use="sig", alg="RS256",
+                                  kid=conf.get("signing_key_id", ""))
 
     def _create_provider(self, endpoint_baseurl):
         response_types_supported = self.config["provider"].get("response_types_supported", ["id_token"])
@@ -239,6 +240,10 @@ class OpenIDConnectFrontend(FrontendModule):
         for k in {"signing_key_path", "provider"}:
             if k not in config:
                 raise ValueError("Missing configuration parameter '{}' for OpenID Connect frontend.".format(k))
+
+        if "signing_key_id" in config and type(config["signing_key_id"]) is not str:
+            raise ValueError(
+                "The configuration parameter 'signing_key_id' is not defined as a string for OpenID Connect frontend.")
 
     def _get_authn_request_from_state(self, state):
         """
