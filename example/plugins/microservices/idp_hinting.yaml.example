@@ -4,3 +4,4 @@ config:
   allowed_params:
     - idp_hinting
     - idp_hint
+    - idphint
