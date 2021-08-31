@@ -51,10 +51,9 @@ class IdpHinting(RequestMicroService):
         hints = (
             entity_id
             for param_name in self.idp_hint_param_names
-            for qs_param_name, entity_id in qs_params
+            for qs_param_name, entity_id in qs_params.items()
             if param_name == qs_param_name
         )
         hint = next(hints, None)
-
         context.decorate(context.KEY_TARGET_ENTITYID, hint)
         return super().process(context, data)
