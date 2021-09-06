@@ -1,5 +1,5 @@
 import re
-import pystache
+from chevron import render as render_mustache
 
 from .base import ResponseMicroService
 from ..util import get_dict_defaults
@@ -136,7 +136,7 @@ you don't care which value is used in a template.
         for attr_name, fmt in recipes.items():
             syn_attributes[attr_name] = [
                 value
-                for token in re.split("[;\n]+", pystache.render(fmt, context))
+                for token in re.split("[;\n]+", render_mustache(fmt, context))
                 for value in [token.strip().strip(';')]
                 if value
             ]

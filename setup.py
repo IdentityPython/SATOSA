@@ -23,7 +23,7 @@ setup(
         "gunicorn",
         "Werkzeug",
         "click",
-        "pystache",
+        "chevron",
         "cookies-samesite-compat",
     ],
     extras_require={
