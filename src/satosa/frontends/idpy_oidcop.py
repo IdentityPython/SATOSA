@@ -100,6 +100,7 @@ class OidcOpUtils(object):
             )
         else: # pragma: no cover
             logger.info(f'Cannot find "{client_id}" in client DB')
+            raise UnknownClient(client_id)
 
         # TODO - consider to handle also basic auth for clients ...
         # BUT specs are against!

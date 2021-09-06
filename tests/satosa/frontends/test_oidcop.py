@@ -63,7 +63,7 @@ CLIENT_CONF = {
         'registration_client_uri': f'https://127.0.0.1:8000/registration_api?client_id={CLIENT_1_ID}',
         'client_id_issued_at': datetime.datetime.utcnow().timestamp(),
         'client_secret': CLIENT_1_PASSWD,
-        'client_secret_expires_at': (datetime.datetime.utcnow() + datetime.timedelta(days=1)).timestamp(),
+        'client_secret_expires_at': (datetime.datetime.utcnow() + datetime.timedelta(days=365)).timestamp(),
         'application_type': 'web',
         'contacts': ['ops@example.com'],
         'token_endpoint_auth_method': 'client_secret_basic',
@@ -746,7 +746,6 @@ class TestOidcOpFrontend(object):
     def test_client_registration_endpoint(self, context, frontend, authn_req):
         # just to test reserved client_id
         self.insert_client_in_client_db(frontend)
-
         context.request = CLI_REQ.to_dict()
         http_resp = frontend.registration_endpoint(context)
         _resp = json.loads(http_resp.message)
@@ -761,6 +760,52 @@ class TestOidcOpFrontend(object):
         _resp = json.loads(http_resp.message)
         assert _resp['client_id'] == CLIENT_1_ID
         assert _resp['client_secret'] == CLIENT_1_PASSWD
+
+
+    def test_handle_authn_authcode_steal_two_clients(self, context, frontend, authn_req):
+        # client 1
+        self.insert_client_in_client_db(frontend, redirect_uri = authn_req["redirect_uri"])
+
+        # client 2
+        self.insert_client_in_client_db(
+            frontend,
+            client_id="client_2",
+            redirect_uri = authn_req["redirect_uri"]+'/that-uri'
+        )
+
+
+        internal_response = self.setup_for_authn_response(context, frontend, authn_req)
+        http_resp = frontend.handle_authn_response(context, internal_response)
+        assert http_resp.message.startswith(authn_req["redirect_uri"])
+        assert http_resp.status == '303 See Other'
+        _res = urlparse(http_resp.message).query
+        resp = AuthorizationResponse().from_urlencoded(_res)
+
+        assert resp["scope"] == authn_req["scope"]
+        assert resp["code"]
+        assert frontend.name not in context.state
+
+
+        # imagine that client2 steals the auth code and uses it to Token endpoint
+        context.request = {
+            'grant_type': 'authorization_code',
+            'redirect_uri': CLIENT_RED_URL,
+            'client_id': "client_2",
+            'state': CLIENT_AUTHN_REQUEST['state'],
+            'code': resp["code"],
+            # TODO
+            # 'code_verifier': 'ySfTlMpTEZPYU7H0XQZ75b3B568R5kkMkGRuRpQHOr1KNC9oimGnWygexLJuTyyT'
+        }
+
+        credentials = f"client_2:{CLIENT_1_PASSWD}"
+        basic_auth = urlsafe_b64encode(credentials.encode("utf-8")).decode("utf-8")
+        _basic_auth = f"Basic {basic_auth}"
+        context.request_authorization = _basic_auth
+
+        token_resp = frontend.token_endpoint(context)
+        _token_resp = json.loads(token_resp.message)
+        assert _token_resp.get('error') == "unauthorized_client"
+
 
     def teardown(self):
         """ Clean up mongo """

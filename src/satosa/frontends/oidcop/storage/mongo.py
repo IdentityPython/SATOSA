@@ -46,6 +46,8 @@ class Mongodb(SatosaOidcStorage):
         if res.count():
             # it returns the first one
             return res.next()
+        else:
+            return {}
 
     def store_session_to_db(self, session_manager: SessionManager, claims: dict):
         ses_man_dump = session_manager.dump()
