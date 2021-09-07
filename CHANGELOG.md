@@ -1,6 +1,6 @@
 # Changelog
 
-## 8.0.0 (2021-08-08)
+## 8.0.0 (2021-09-07)
 
 This is a breaking release, if you were using the openid_connect frontend. To
 keep compatibility:
