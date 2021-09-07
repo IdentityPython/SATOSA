@@ -1,5 +1,100 @@
 # Changelog
 
+## 8.0.0 (2021-08-08)
+
+This is a breaking release, if you were using the openid_connect frontend. To
+keep compatibility:
+
+1. Install the proxy with `pip install satosa[pyop_mongo]` in order to fetch
+   the right dependencies.
+2. If you were not using the `client_db_path` option then set the new option
+   `client_db_uri` to the value of `db_uri`.
+
+- The internal data now hold the authenticating authority as part of the
+  AuthenticationInformation object
+  (`satosa.internal::AuthenticationInformation::authority`).
+- The Context object now holds a dictionary of query string params
+  (`context.qs_params`).
+- The Context object now holds a dictionary of http headers
+  (`context.http_headers`).
+- The Context object now holds a dictionary of server headers
+  (`context.server_headers`).
+- The Context object now holds the request method (`context.request_method`).
+- The Context object now holds the request uri (`context.request_uri`).
+- The Context object now holds a dictionary of http headers.
+- frontends: the openid_connect frontend has a new configuration option
+  `signing_key_id` to set the `kid` field on the jwks endpoint.
+- frontends: the openid_connect frontend dependency `pyop` has been updated
+  to work with both Redis and MongoDB. This changed how its dependencies are
+  set. This is reflected in this package's new extras that can be set to
+  `pyop_mongo` (to preserve the previous behaviour), or `pyop_redis`.
+- frontends: the openid_connect frontend filters out unset claims.
+- frontends: the openid_connect frontend has a new option
+  `extra_id_token_claims` to define in the config per client which extra claims
+  should be added to the ID Token to also work with those clients.
+- frontends: the openid_connect frontend has a new option `client_db_uri` to
+  specify a database connection string for the client database. If unset,
+  `client_db_path` will be used to load the clients from a file.
+  Previously, the option `db_uri` was used to set the client database string.
+  If you were relying on this behaviour, add the `client_db_uri` option with
+  the same value as `db_uri`.
+- frontends: document the `client_db_path` option for openid_connect
+- frontends: the openid_connect frontend has a new configuration option
+  `id_token_lifetime` to set the lifetime of the ID token in seconds.
+- frontends: the saml2 frontend has a new option `enable_metadata_reload` to
+  expose an endpoint (`/<module_name>/reload-metadata`) that allows external
+  triggers to reload the frontend's metadata. This setting is disabled by
+  default. It is up to the user to protect the endpoint if enabled. This
+  feature requires pysaml2 > 7.0.1
+- backends: the saml2 backend derives the encryption keys based on the
+  `encryption_keypairs` configuration option, otherwise falling back to
+  the `key_file` and `cert_file` pair. This is now reflected in the internal
+  pysaml2 configuration.
+- backends: the saml2 backend `sp` property is now of type
+  `saml2.client::Saml2Client` instead of `saml2.client_base::Base`. This allows
+  us to call the higer level method
+  `saml2.client::Saml2Client::prepare_for_negotiated_authenticate` instead of
+  `saml2.client_base::Base::create_authn_request` to properly behave when
+  needing to sign the AuthnRequest using the Redirect binding.
+- backends: the saml2 backend has a new option `enable_metadata_reload` to
+  expose an endpoint (`/<module_name>/reload-metadata`) that allows external
+  triggers to reload the backend's metadata. This setting is disabled by
+  default. It is up to the user to protect the endpoint if enabled. This
+  feature requires pysaml2 > 7.0.1
+- backends: new ReflectorBackend to help with frontend debugging easier and
+  developing quicker.
+- backends: the saml2 backend has a new configuration option
+  `send_requester_id` to specify whether Scoping/RequesterID element should be
+  part of the AuthnRequest.
+- micro-services: new DecideBackendByTargetIssuer micro-service, to select
+  a target backend based on the target issuer.
+- micro-services: new DiscoToTargetIssuer micro-service, to set the discovery
+  protocol response to be the target issuer.
+- micro-services: new IdpHinting micro-service, to detect if an idp-hinting
+  feature has been requested and set the target entityID. Enabling this
+  micro-service will result in skipping the discovery service and using the
+  specified entityID as the IdP to be used. The IdP entityID is expected to be
+  specified as a query-param value on the authentication request.
+- micro-services: new AttributePolicy micro-service, which is able to force
+  attribute policies for requester by limiting results to a predefined set of
+  allowed attributes.
+- micro-services: the PrimaryIdentifier micro-service has a new option
+  `replace_subject_id` to specify whether to replace the `subject_id` with the
+  constructed primary identifier.
+- micro-services: PrimaryIdentifier is set only if there is a value.
+- micro-services: AddSyntheticAttributes has various small fixes.
+- micro-services: ScopeExtractorProcessor can handle string values.
+- dependencies: the `pystache` package has been replaced by `chevron`, as
+  `pystache` seems to be abandoned and will not work with python v3.10 and
+  `setuptools` v58 or newer. This package is a dependency of the
+  `satosa.micro_services.attribute_generation.AddSyntheticAttributes`
+  micro-service.
+- tests: MongoDB flags have been updated to cater for deprecated flags.
+- docs: updated with information about the newly added micro-services.
+- docs: various typo fixes.
+- docs: various example configuration fixes.
+
+
 ## 7.0.3 (2021-01-21)
 
 - dependencies: Set minimum pysaml2 version to v6.5.1 to fix internal XML
