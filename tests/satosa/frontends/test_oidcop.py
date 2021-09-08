@@ -770,9 +770,8 @@ class TestOidcOpFrontend(object):
         self.insert_client_in_client_db(
             frontend,
             client_id="client_2",
-            redirect_uri = authn_req["redirect_uri"]+'/that-uri'
+            redirect_uri = authn_req["redirect_uri"]
         )
-
 
         internal_response = self.setup_for_authn_response(context, frontend, authn_req)
         http_resp = frontend.handle_authn_response(context, internal_response)
