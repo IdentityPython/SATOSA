@@ -1,0 +1,12 @@
+module: satosa.micro_services.attribute_policy.AttributePolicy
+name: AttributePolicy
+config:
+    attribute_policy:
+        <requester>:
+            allowed:
+                - mail
+                - name
+                - givenname
+                - surname
+
+
