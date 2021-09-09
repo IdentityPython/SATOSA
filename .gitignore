@@ -13,3 +13,4 @@ _build
 build/
 dist/
 .coverage
+env/*

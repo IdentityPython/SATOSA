@@ -2,6 +2,8 @@
 Response objects used in satosa
 """
 
+import json
+
 
 class Response(object):
     """
@@ -113,3 +115,16 @@ class Unauthorized(Response):
 
     def __init__(self, message, headers=None, content=None):
         super().__init__(message, headers=headers, content=content)
+
+
+class JsonResponse(Response):
+    _content_type = "application/json"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if isinstance(self.message, list):
+            self.message = self.message[0]
+
+        if type(self.message) in (list, dict):
+            self.message = json.dumps(self.message)

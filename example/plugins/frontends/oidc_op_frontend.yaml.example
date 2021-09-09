@@ -1,0 +1,258 @@
+module: satosa.frontends.idpy_oidcop.OidcOpFrontend
+name: OIDC
+
+config:
+    domain: &domain localhost
+    server_name: *domain
+    base_url: &base_url <base_url>
+
+    storage:
+        class: "satosa.frontends.oidcop.storage.mongo.Mongodb"
+        kwargs:
+            url: mongodb://172.21.0.3:27017/oidcop
+            connection_params:
+                username: satosa
+                password: thatpassword
+                connectTimeoutMS: 5000
+                socketTimeoutMS: 5000
+                serverSelectionTimeoutMS: 5000
+        db_name: oidcop
+        collections:
+            # type: collection name
+            session: session
+            client: client
+
+
+    default_target_backend: spidSaml2
+    salt_size: 8
+
+    op:
+      server_info:
+        add_on:
+          claims:
+            function: oidcop.oidc.add_on.custom_scopes.add_custom_scopes
+            kwargs:
+              research_and_scholarship:
+              - name
+              - given_name
+              - family_name
+              - email
+              - email_verified
+              - sub
+              - iss
+              - eduperson_scoped_affiliation
+          pkce:
+            function: oidcop.oidc.add_on.pkce.add_pkce_support
+            kwargs:
+              code_challenge_method: S256 S384 S512
+              essential: false
+        authentication:
+          user:
+            acr: urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword
+            class: satosa.frontends.oidcop.user_authn.SatosaAuthnMethod
+        authz:
+          class: oidcop.authz.AuthzHandling
+          kwargs:
+            grant_config:
+              expires_in: 43200
+              usage_rules:
+                access_token: {}
+                authorization_code:
+                  max_usage: 1
+                  supports_minting:
+                  - access_token
+                  - refresh_token
+                  - id_token
+                refresh_token:
+                  supports_minting:
+                  - access_token
+                  - refresh_token
+        capabilities:
+          grant_types_supported:
+          - authorization_code
+          - urn:ietf:params:oauth:grant-type:jwt-bearer
+          - refresh_token
+          subject_types_supported:
+          - public
+          - pairwise
+        endpoint:
+          provider_info:
+            class: oidcop.oidc.provider_config.ProviderConfiguration
+            kwargs:
+              client_authn_method: null
+            path: .well-known/openid-configuration
+          authorization:
+            class: oidcop.oidc.authorization.Authorization
+            kwargs:
+              claims_parameter_supported: true
+              client_authn_method: null
+              request_object_encryption_alg_values_supported: &id001
+              - RSA-OAEP
+              - RSA-OAEP-256
+              - A192KW
+              - A256KW
+              - ECDH-ES
+              - ECDH-ES+A128KW
+              - ECDH-ES+A192KW
+              - ECDH-ES+A256KW
+              request_parameter_supported: true
+              request_uri_parameter_supported: true
+              response_modes_supported:
+              - query
+              - fragment
+              - form_post
+              response_types_supported:
+              - code
+            path: OIDC/authorization
+          token:
+            class: oidcop.oidc.token.Token
+            kwargs:
+              client_authn_method:
+              - client_secret_post
+              - client_secret_basic
+              - client_secret_jwt
+              - private_key_jwt
+            path: OIDC/token
+          userinfo:
+            class: oidcop.oidc.userinfo.UserInfo
+            kwargs:
+              claim_types_supported:
+              - normal
+              - aggregated
+              - distributed
+              userinfo_encryption_alg_values_supported: *id001
+              userinfo_signing_alg_values_supported: &id002
+              - RS256
+              - RS512
+              - ES256
+              - ES512
+              - PS256
+              - PS512
+            path: OIDC/userinfo
+          introspection:
+            class: oidcop.oauth2.introspection.Introspection
+            kwargs:
+              client_authn_method:
+              - client_secret_post
+              - client_secret_basic
+              - client_secret_jwt
+              - private_key_jwt
+              release:
+              - username
+            path: OIDC/introspection
+          # uncomment this for dynamic client registration
+          #registration:
+            #class: oidcop.oidc.registration.Registration
+            #kwargs:
+              #client_authn_method: null
+              #client_id_generator:
+                #class: oidcop.oidc.registration.random_client_id
+                #kwargs: {}
+              #client_secret_expiration_time: 432000
+            #path: OIDC/registration
+          registration_read:
+            class: oidcop.oidc.read_registration.RegistrationRead
+            kwargs:
+              client_authn_method:
+              - bearer_header
+            path: OIDC/registration_read
+          # TODO - Logout in SATOSA haven't been implemented
+          #end_session:
+            #class: oidcop.oidc.session.Session
+            #kwargs:
+              #backchannel_logout_session_supported: true
+              #backchannel_logout_supported: true
+              #frontchannel_logout_session_supported: true
+              #frontchannel_logout_supported: true
+              #logout_verify_url: verify_logout
+              #post_logout_uri_path: post_logout
+              #signing_alg: ES256
+            #path: OIDC/session
+        httpc_params:
+          verify: false
+        issuer: *base_url
+        keys:
+          key_defs:
+          - type: RSA
+            use:
+            - sig
+          - crv: P-256
+            type: EC
+            use:
+            - sig
+          private_path: data/oidc_op/private/jwks.json
+          public_path: data/static/jwks.json
+          read_only: false
+          uri_path: OIDC/jwks.json
+        login_hint2acrs:
+          class: oidcop.login_hint.LoginHint2Acrs
+          kwargs:
+            scheme_map:
+              email:
+              - urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword
+        session_params:
+          password: __password_used_to_encrypt_access_token_sid_value
+          salt: 'salt involved in session sub hash '
+          sub_func:
+            pairwise:
+              class: oidcop.session.manager.PairWiseID
+              kwargs:
+                salt: CHANGE_ME_OR_LET_IT_BE_RANDOMIC
+            public:
+              class: oidcop.session.manager.PublicID
+              kwargs:
+                salt: CHANGE_ME_OR_LET_IT_BE_RANDOMIC
+        template_dir: templates
+        token_handler_args:
+          code:
+            kwargs:
+              lifetime: 600
+          id_token:
+            class: oidcop.token.id_token.IDToken
+            kwargs:
+              id_token_encryption_alg_values_supported: *id001
+              id_token_encryption_enc_values_supported:
+              - A128CBC-HS256
+              - A192CBC-HS384
+              - A256CBC-HS512
+              - A128GCM
+              - A192GCM
+              - A256GCM
+              id_token_signing_alg_values_supported: *id002
+          jwks_file: data/oidc_op/private/token_jwks.json
+          refresh:
+            kwargs:
+              lifetime: 86400
+          token:
+            class: oidcop.token.jwt_token.JWTToken
+            kwargs:
+              lifetime: 3600
+        userinfo:
+          class: satosa.frontends.oidcop.user_info.SatosaOidcUserInfo
+          #kwargs:
+            #whatever:
+              #key: value
+        # until SATOSA won't support logout the oidcop cookies are quite useless
+        #cookie_handler:
+          #class: oidcop.cookie_handler.CookieHandler
+          #kwargs:
+            #flags:
+              #httponly: true
+              #samesite: None
+              #secure: true
+            #keys:
+              #key_defs:
+              #- kid: enc
+                #type: OCT
+                #use:
+                #- enc
+              #- kid: sig
+                #type: OCT
+                #use:
+                #- sig
+              #private_path: data/oidc_op/private/cookie_jwks.json
+              #read_only: false
+            #name:
+              #register: oidc_op_rp
+              #session: oidc_op
+              #session_management: sman
