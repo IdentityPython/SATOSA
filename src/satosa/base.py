@@ -10,7 +10,7 @@ from saml2.s_utils import UnknownSystemEntity
 from satosa import util
 from .context import Context
 from .exception import SATOSAConfigurationError
-from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
+from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError, SATOSAUnknownErrorRedirectUrl
 from .plugin_loader import load_backends, load_frontends
 from .plugin_loader import load_request_microservices, load_response_microservices
 from .routing import ModuleRouter, SATOSANoBoundEndpointError
@@ -263,12 +263,21 @@ class SATOSABase(object):
             msg = "configuration error: unknown system entity " + str(err)
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.error(logline, exc_info=False)
-            raise
+            raise UnknownSystemEntity(("Unknown System Entity ID - please check "
+                                       "requester entity ID, "
+                                       "AssertionConsumerService definitions "
+                                       "and other possible mismatches between "
+                                       "Service Provider Metadata and its AuthnRequest."))
         except Exception as err:
             msg = "Uncaught exception"
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.error(logline, exc_info=True)
-            raise SATOSAUnknownError("Unknown error") from err
+            redirect_url = self.config.get("UNKNOW_ERROR_REDIRECT_PAGE")
+            if redirect_url:
+                raise SATOSAUnknownErrorRedirectUrl((redirect_url, logline))
+            else:
+                raise SATOSAUnknownError("Unknown error") from err
+             
         return resp
 
 
