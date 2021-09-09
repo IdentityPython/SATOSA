@@ -199,13 +199,13 @@ class SATOSABase(object):
             state = cookie_to_state(
                 context.cookie,
                 self.config["COOKIE_STATE_NAME"],
-                self.config["STATE_ENCRYPTION_KEY"],
+                self.config["STATE_ENCRYPTION_KEY"]
             )
         except SATOSAStateError as e:
             state = State()
         finally:
             context.state = state
-            msg = "Loaded state {state} from cookie {cookie}".format(state=state, cookie=context.cookie)
+            msg = f"Loaded state {state} from cookie {context.cookie}"
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.info(logline)
 
@@ -220,8 +220,15 @@ class SATOSABase(object):
         :param context: Session context
         """
 
-        cookie = state_to_cookie(context.state, self.config["COOKIE_STATE_NAME"], "/",
-                                 self.config["STATE_ENCRYPTION_KEY"])
+        cookie = state_to_cookie(context.state,
+                                 self.config["COOKIE_STATE_NAME"],
+                                 "/",
+                                 self.config["STATE_ENCRYPTION_KEY"],
+                                 self.config.get("COOKIE_DOMAIN"),
+                                 self.config.get("COOKIE_SECURE", True),
+                                 self.config.get("COOKIE_HTTPONLY", True),
+                                 self.config.get("COOKIE_MAX_AGE", "")
+                                 )
         resp.headers.append(tuple(cookie.output().split(": ", 1)))
 
     def run(self, context):
