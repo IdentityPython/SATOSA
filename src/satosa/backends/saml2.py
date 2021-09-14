@@ -225,11 +225,11 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         )
         return SeeOther(loc)
 
-    def construct_requested_authn_context(self, entity_id):
-        if not self.acr_mapping:
-            return None
-
-        acr_entry = util.get_dict_defaults(self.acr_mapping, entity_id)
+    def construct_requested_authn_context(self, entity_id, *, target_accr=None):
+        acr_entry = (
+            target_accr
+            or util.get_dict_defaults(self.acr_mapping or {}, entity_id)
+        )
         if not acr_entry:
             return None
 
@@ -241,7 +241,9 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         authn_context = requested_authn_context(
             acr_entry['class_ref'], comparison=acr_entry.get(
-                'comparison', self.VALUE_ACR_COMPARISON_DEFAULT))
+                'comparison', self.VALUE_ACR_COMPARISON_DEFAULT
+            )
+        )
 
         return authn_context
 
@@ -271,7 +273,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                     raise SATOSAAuthenticationError(context.state, "Selected IdP is blacklisted for this backend")
 
         kwargs = {}
-        authn_context = self.construct_requested_authn_context(entity_id)
+        target_accr = context.state.get(Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF)
+        authn_context = self.construct_requested_authn_context(entity_id, target_accr=target_accr)
         if authn_context:
             kwargs["requested_authn_context"] = authn_context
         if self.config.get(SAMLBackend.KEY_MIRROR_FORCE_AUTHN):
