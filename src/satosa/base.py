@@ -185,7 +185,7 @@ class SATOSABase(object):
                 err_id=error.error_id, state=state
             )
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.error(logline, error.state, exc_info=True)
+            logger.error(logline, exc_info=True)
             return self._handle_satosa_authentication_error(error)
 
     def _load_state(self, context):
