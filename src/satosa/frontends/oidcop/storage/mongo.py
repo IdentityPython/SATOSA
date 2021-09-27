@@ -27,16 +27,20 @@ class Mongodb(SatosaOidcStorage):
         self.storage_conf = storage_conf
         self.url = url
         self.connection_params = connection_params
-        self.client = None
-        self._connect()
 
-        self.db = getattr(self.client, storage_conf["db_name"])
-        self.client_db = self.db[storage_conf["collections"]["client"]]
-        self.session_db = self.db[storage_conf["collections"]["session"]]
+        # this must be fork safe :)
+        self.client = None
+        self.db = None
+        self.client_db = None
+        self.session_db = None
+
 
     def _connect(self):
         if not self.client or not self.client.server_info():
             self.client = pymongo.MongoClient(self.url, **self.connection_params)
+            self.db = getattr(self.client, self.storage_conf["db_name"])
+            self.client_db = self.db[self.storage_conf["collections"]["client"]]
+            self.session_db = self.db[self.storage_conf["collections"]["session"]]
 
     def get_client_by_id(self, client_id: str):
         self._connect()
@@ -150,6 +154,7 @@ class Mongodb(SatosaOidcStorage):
                 f"load_session_from_db can't find any active session from: {parse_req}"
             )
             return data
+
         self._connect()
         res = self.session_db.find(_q)
         if res.count():
@@ -162,6 +167,7 @@ class Mongodb(SatosaOidcStorage):
         return data
 
     def get_claims_from_sid(self, sid: str):
+        self._connect()
         res = self.session_db.find({"sid": sid})
         if res.count():
             return res.next()["claims"]
@@ -186,6 +192,8 @@ class Mongodb(SatosaOidcStorage):
         if len(cred) == 2:
             client_id = cred[0]
             client_secret = cred[1]
+
+            self._connect()
             res = self.client_db.find(
                 {"client_id": client_id,
                  "client_secret": client_secret}
@@ -194,5 +202,6 @@ class Mongodb(SatosaOidcStorage):
                 return res.next()
 
     def get_registered_clients_id(self):
+        self._connect()
         res = self.client_db.distinct('client_id')
         return res
