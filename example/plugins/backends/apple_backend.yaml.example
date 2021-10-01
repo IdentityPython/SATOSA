@@ -25,5 +25,4 @@ config:
       - ['Apple Inc.', 'en']
     ui_info:
       display_name:
-        - lang: en
-          text: 'Sign in with Apple'
+        - ['Sign in with Apple', 'en']
