@@ -99,7 +99,15 @@ class Mongodb(SatosaOidcStorage):
                     iss_tokens[k] = i[k]["value"]
 
                 for token_type, attr in self.token_attr_map.items():
-                    data[attr] = iss_tokens.get(token_type, "")
+                    token_value = iss_tokens.get(token_type)
+                    if token_value:
+                        data[attr] = token_value
+
+        # Security / Safe operation
+        # a null access_token cannot be stored, never!
+        if 'access_token' in data and not data.get('access_token'):
+            data.pop("access_token")
+            logger.warning(f"Removed null access_token from {data}")
 
         logger.debug(f"Stored oidcop session data to MongoDB: {data}")
 
