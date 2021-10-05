@@ -25,6 +25,8 @@ setup(
         "click",
         "chevron",
         "cookies-samesite-compat",
+        "oidcop",
+        "pymongo",
     ],
     extras_require={
         "ldap": ["ldap3"],
