@@ -320,15 +320,9 @@ class OidcOpEndpoints(OidcOpUtils):
 
         raw_request = AccessTokenRequest().from_urlencoded(urlencode(context.request))
 
-        # only for private_key_jwt here, otherwise client would be taken from _load_session
-        # but still useless, because satosa cannot accept request to token endpoint if a previous
-        # session wasn't initialized in the authorization endpoint (_handle_authn_response) and
-        # an human interaction have been done!
-        # self._load_cdb(context)
-
+        self._load_cdb(context)
         self._load_session(raw_request, endpoint, http_headers)
         # in token endpoint we cannot parse a request without having loaded cdb and session first
-
         parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
         proc_req = self._process_request(endpoint, context, parse_req, http_headers)
         if isinstance(proc_req, JsonResponse): # pragma: no cover
