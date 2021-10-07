@@ -108,4 +108,4 @@ class GitHubBackend(_OAuthBackend):
         r = requests.get(url, headers=headers)
         ret = r.json()
         ret['id'] = str(ret['id'])
-        return r.json()
+        return ret
