@@ -318,15 +318,26 @@ class OidcOpEndpoints(OidcOpUtils):
         endpoint = self.app.server.endpoint["token"]
         http_headers = self._get_http_headers(context)
 
-        raw_request = AccessTokenRequest().from_urlencoded(urlencode(context.request))
+        try:
+            self._load_cdb(context)
+        except UnknownClient as e:
+            return self.send_response(JsonResponse(
+                    {'error': 'unauthorized_client',
+                     'error_description': 'unknown client'}
+                )
+            )
 
-        self._load_cdb(context)
+        raw_request = AccessTokenRequest().from_urlencoded(urlencode(context.request))
         self._load_session(raw_request, endpoint, http_headers)
         # in token endpoint we cannot parse a request without having loaded cdb and session first
         parse_req = self._parse_request(endpoint, context, http_headers=http_headers)
         proc_req = self._process_request(endpoint, context, parse_req, http_headers)
         if isinstance(proc_req, JsonResponse): # pragma: no cover
             return self.send_response(proc_req)
+        elif isinstance(proc_req, TokenErrorResponse):
+            return self.send_response(
+                JsonResponse(proc_req.to_dict(), status= "403")
+            )
 
         # better return jwt or jwe here!
         self.store_session_to_db()

@@ -614,7 +614,7 @@ class TestOidcOpFrontend(object):
         context.request_authorization = f"Basic {basic_auth}"
         token_resp = frontend.token_endpoint(context)
         assert token_resp.status == '403'
-        assert json.loads(token_resp.message)['error'] == 'unauthorized_client'
+        assert json.loads(token_resp.message)['error'] == 'invalid_grant'
 
     def test_load_cdb_basicauth(self, context, frontend):
         self.insert_client_in_client_db(frontend)
@@ -803,11 +803,13 @@ class TestOidcOpFrontend(object):
 
         token_resp = frontend.token_endpoint(context)
         _token_resp = json.loads(token_resp.message)
-        assert _token_resp.get('error') == "unauthorized_client"
+        assert _token_resp.get('error') == "invalid_grant"
 
 
     def teardown(self):
         """ Clean up mongo """
         frontend = self.create_frontend(OIDCOP_CONF)
-        frontend.app.storage.client_db.drop()
-        frontend.app.storage.session_db.drop()
+        if frontend.app.storage.client_db:
+            frontend.app.storage.client_db.drop()
+        if frontend.app.storage.session_db:
+            frontend.app.storage.session_db.drop()
