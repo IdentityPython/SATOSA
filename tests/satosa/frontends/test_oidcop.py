@@ -105,21 +105,6 @@ OIDCOP_CONF = {
   "op": {
     "server_info": {
       "add_on": {
-        "claims": {
-          "function": "oidcop.oidc.add_on.custom_scopes.add_custom_scopes",
-          "kwargs": {
-            "research_and_scholarship": [
-              "name",
-              "given_name",
-              "family_name",
-              "email",
-              "email_verified",
-              "sub",
-              "iss",
-              "eduperson_scoped_affiliation"
-            ]
-          }
-        },
         "pkce": {
           "function": "oidcop.oidc.add_on.pkce.add_pkce_support",
           "kwargs": {
@@ -168,7 +153,9 @@ OIDCOP_CONF = {
         "subject_types_supported": [
           "public",
           "pairwise"
-        ]
+        ],
+        "scopes_supported": ["openid", "profile", "offline_access"],
+        "claims_supported": ["sub", "given_name", "birthdate", "email"]
       },
       "endpoint": {
         "provider_info": {
@@ -400,14 +387,15 @@ INTERNAL_ATTRIBUTES = {
 
 CLIENT_AUTHN_REQUEST = {
     'redirect_uri': CLIENT_RED_URL,
-    'scope': 'openid profile email address phone',
+    'scope': 'openid profile email offline_access',
     'response_type': 'code',
     'nonce': 'my_nonce',
     'state': 'my_state',
     # TODO
     # 'code_challenge': 'W-Wr0SA2lQgTEKrJm_t-RFzQtaY_-wXxrCp5PnanTe0',
     # 'code_challenge_method': 'S256',
-    'client_id': CLIENT_1_ID
+    'client_id': CLIENT_1_ID,
+    "prompt": "consent" # required for scope offline_access
 }
 
 msg = {
