@@ -404,7 +404,11 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         authn_context_ref, authenticating_authorities, authn_instant = next(
             iter(response.authn_info()), [None, None, None]
         )
-        authenticating_authority = next(iter(authenticating_authorities), None)
+        authenticating_authority = (
+            authenticating_authorities[-1]
+            if authenticating_authorities
+            else None
+        )
         auth_info = AuthenticationInformation(
             auth_class_ref=authn_context_ref,
             timestamp=authn_instant,
