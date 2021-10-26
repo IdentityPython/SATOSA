@@ -297,11 +297,17 @@ class OpenIDConnectFrontend(FrontendModule):
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             error_url = e.to_error_url()
+            if "redirect_uri" in context.request:
+                redirect_uri = context.request["redirect_uri"]
+            else:
+                redirect_uri = False
 
             if error_url:
-                return SeeOther(error_url)
+                return BadRequest("Something went wrong: {}. Not redirecting to external URL {}.".format(str(e), error_url))
+            elif redirect_uri:
+                return BadRequest("Something went wrong: {}. Not redirecting to external URL {}.".format(str(e), redirect_uri))
             else:
-                return BadRequest("Something went wrong: {}".format(str(e)))
+                return BadRequest("Something went wrong: {}.".format(str(e)))
 
         client_id = authn_req["client_id"]
         context.state[self.name] = {"oidc_request": request}
