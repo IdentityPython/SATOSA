@@ -1,6 +1,7 @@
 **/.DS_Store
 _build
 .idea
+*.iml
 *.pyc
 *.log*
 
@@ -13,3 +14,4 @@ _build
 build/
 dist/
 .coverage
+venv/

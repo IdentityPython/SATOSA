@@ -448,7 +448,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :param context: The current context
         :return: response with metadata
         """
-        msg = "Sending metadata response"
+        msg = "Sending metadata response for entityId = {}".format(self.sp.config.entityid)
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.debug(logline)
 
@@ -488,6 +488,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                     ("^%s$" % parsed_endp.path[1:], self.disco_response))
 
         if self.expose_entityid_endpoint():
+            logger.debug("Exposing backend entity endpoint = {}".format(self.sp.config.entityid))
             parsed_entity_id = urlparse(self.sp.config.entityid)
             url_map.append(("^{0}".format(parsed_entity_id.path[1:]),
                             self._metadata_endpoint))

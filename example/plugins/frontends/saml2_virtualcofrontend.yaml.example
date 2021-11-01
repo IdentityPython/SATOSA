@@ -49,7 +49,12 @@ config:
     metadata:
       local: [sp.xml]
 
-    entityid: <base_url>/<name>/proxy.xml
+    # Available placeholders to use while constructing entityid,
+    # <backend_name>: Backend name
+    # <co_name>: collaborative_organizations encodeable_name
+    # <base_url>: Base url of installation
+    # <name>: Name of this virtual co-frontend
+    entityid: <base_url>/<backend_name>/idp/<co_name>
     accepted_time_diff: 60
     service:
       idp:
