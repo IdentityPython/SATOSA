@@ -13,6 +13,7 @@ from uuid import uuid4
 
 from lzma import LZMACompressor
 from lzma import LZMADecompressor
+from lzma import LZMAError
 
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
@@ -186,15 +187,27 @@ class State(UserDict):
             raise ValueError("If an 'urlstate_data' is supplied 'encrypt_key' must be specified.")
 
         if urlstate_data:
-            urlstate_data = urlstate_data.encode("utf-8")
-            urlstate_data = base64.urlsafe_b64decode(urlstate_data)
-            lzma = LZMADecompressor()
-            urlstate_data = lzma.decompress(urlstate_data)
-            urlstate_data = _AESCipher(encryption_key).decrypt(urlstate_data)
-            lzma = LZMADecompressor()
-            urlstate_data = lzma.decompress(urlstate_data)
-            urlstate_data = urlstate_data.decode("UTF-8")
-            urlstate_data = json.loads(urlstate_data)
+            try:
+                urlstate_data_bytes = urlstate_data.encode("utf-8")
+                urlstate_data_b64decoded = base64.urlsafe_b64decode(urlstate_data_bytes)
+                lzma = LZMADecompressor()
+                urlstate_data_decompressed = lzma.decompress(urlstate_data_b64decoded)
+                urlstate_data_decrypted = _AESCipher(encryption_key).decrypt(
+                    urlstate_data_decompressed
+                )
+                lzma = LZMADecompressor()
+                urlstate_data_decrypted_decompressed = lzma.decompress(urlstate_data_decrypted)
+                urlstate_data_obj = json.loads(urlstate_data_decrypted_decompressed)
+            except Exception as e:
+                error_context = {
+                    "message": "Failed to load state data. Reinitializing empty state.",
+                    "reason": str(e),
+                    "urlstate_data": urlstate_data,
+                }
+                logger.warning(error_context)
+                urlstate_data = {}
+            else:
+                urlstate_data = urlstate_data_obj
 
         session_id = (
             urlstate_data[_SESSION_ID_KEY]
