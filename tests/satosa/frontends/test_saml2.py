@@ -298,14 +298,14 @@ class TestSAMLFrontend:
         ]
     )
     def test_respect_sp_entity_categories(
-            self,
-            context,
-            entity_category,
-            entity_category_module,
-            expected_attributes,
-            idp_conf,
-            sp_conf,
-            internal_response
+        self,
+        context,
+        entity_category,
+        entity_category_module,
+        expected_attributes,
+        idp_conf,
+        sp_conf,
+        internal_response
     ):
         idp_metadata_str = create_metadata_from_config_dict(idp_conf)
         idp_conf["service"]["idp"]["policy"]["default"]["entity_categories"] = [entity_category_module]
@@ -365,7 +365,7 @@ class TestSAMLFrontend:
         assert idp_conf["entityid"] in resp.message
 
     def test_custom_attribute_release_with_less_attributes_than_entity_category(
-            self, context, idp_conf, sp_conf, internal_response
+        self, context, idp_conf, sp_conf, internal_response
     ):
         idp_metadata_str = create_metadata_from_config_dict(idp_conf)
         idp_conf["service"]["idp"]["policy"]["default"]["entity_categories"] = ["swamid"]
@@ -387,8 +387,8 @@ class TestSAMLFrontend:
         internal_response.requester = sp_conf["entityid"]
         resp = self.get_auth_response(samlfrontend, context, internal_response, sp_conf, idp_metadata_str)
         assert len(resp.ava.keys()) == (
-                len(expected_attributes)
-                - len(custom_attributes[internal_response.auth_info.issuer][internal_response.requester]["exclude"])
+            len(expected_attributes)
+            - len(custom_attributes[internal_response.auth_info.issuer][internal_response.requester]["exclude"])
         )
 
 
@@ -442,7 +442,7 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
         CO_O: ["Medium Energy Synchrotron Source"],
         CO_C: ["US"],
         CO_CO: ["United States"],
-        CO_NOREDUORGACRONYM: ["MESS"]
+        CO_NOREDUORGACRONYM: ["MESS"],
     }
     KEY_SSO = "single_sign_on_service"
 
@@ -474,7 +474,7 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
         conf = {
             "idp_config": idp_conf,
             "endpoints": ENDPOINTS,
-            "collaborative_organizations": [collab_org]
+            "collaborative_organizations": [collab_org],
         }
 
         # Use a richer set of internal attributes than what is provided
@@ -652,42 +652,40 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
 class TestSubjectTypeToSamlNameIdFormat:
     def test_should_default_to_persistent(self):
         assert (
-                subject_type_to_saml_nameid_format("unmatched")
-                == NAMEID_FORMAT_PERSISTENT
+            subject_type_to_saml_nameid_format("unmatched")
+            == NAMEID_FORMAT_PERSISTENT
         )
 
     def test_should_map_persistent(self):
         assert (
-                subject_type_to_saml_nameid_format(NAMEID_FORMAT_PERSISTENT)
-                == NAMEID_FORMAT_PERSISTENT
+            subject_type_to_saml_nameid_format(NAMEID_FORMAT_PERSISTENT)
+            == NAMEID_FORMAT_PERSISTENT
         )
 
     def test_should_map_transient(self):
         assert (
-                subject_type_to_saml_nameid_format(NAMEID_FORMAT_TRANSIENT)
-                == NAMEID_FORMAT_TRANSIENT
+            subject_type_to_saml_nameid_format(NAMEID_FORMAT_TRANSIENT)
+            == NAMEID_FORMAT_TRANSIENT
         )
 
     def test_should_map_emailaddress(self):
         assert (
-                subject_type_to_saml_nameid_format(NAMEID_FORMAT_EMAILADDRESS)
-                == NAMEID_FORMAT_EMAILADDRESS
+            subject_type_to_saml_nameid_format(NAMEID_FORMAT_EMAILADDRESS)
+            == NAMEID_FORMAT_EMAILADDRESS
         )
 
     def test_should_map_unspecified(self):
         assert (
-                subject_type_to_saml_nameid_format(NAMEID_FORMAT_UNSPECIFIED)
-                == NAMEID_FORMAT_UNSPECIFIED
+            subject_type_to_saml_nameid_format(NAMEID_FORMAT_UNSPECIFIED)
+            == NAMEID_FORMAT_UNSPECIFIED
         )
 
     def test_should_map_public(self):
         assert (
-                subject_type_to_saml_nameid_format("public")
-                == NAMEID_FORMAT_PERSISTENT
+            subject_type_to_saml_nameid_format("public") == NAMEID_FORMAT_PERSISTENT
         )
 
     def test_should_map_pairwise(self):
         assert (
-                subject_type_to_saml_nameid_format("pairwise")
-                == NAMEID_FORMAT_TRANSIENT
+            subject_type_to_saml_nameid_format("pairwise") == NAMEID_FORMAT_TRANSIENT
         )

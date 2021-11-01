@@ -1210,4 +1210,3 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         # authentication request dynamically create an IdP instance.
         self.idp = self._create_co_virtual_idp(context, co_name=co_name)
         return super()._metadata_endpoint(context=context);
-

@@ -64,7 +64,7 @@ def sp_conf(cert_and_key):
 
 @pytest.fixture
 def idp_conf(cert_and_key):
-    idp_base = BASE_URL
+    idp_base = "http://idp.example.com"
 
     idpconfig = {
         "entityid": "{}/{}/proxy.xml".format(idp_base, "Saml2IDP"),
