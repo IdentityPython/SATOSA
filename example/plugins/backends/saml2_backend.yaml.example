@@ -18,6 +18,8 @@ config:
   enable_metadata_reload: no
 
   sp_config:
+    name: "SP Name"
+    description: "SP Description"
     key_file: backend.key
     cert_file: backend.crt
     organization: {display_name: Example Identities, name: Example Identities Org., url: 'http://www.example.com'}
