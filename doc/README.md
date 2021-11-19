@@ -380,8 +380,8 @@ parameter `disco_srv`, must be specified if the metadata given to the backend mo
 
 ```yaml
 config:
+  disco_srv: http://disco.example.com
   sp_config: [...]
-    disco_srv: http://disco.example.com
 ```
 
 ##### Mirror the SAML ForceAuthn option
