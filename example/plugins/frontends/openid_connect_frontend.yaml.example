@@ -3,9 +3,35 @@ name: OIDC
 config:
   signing_key_path: frontend.key
   signing_key_id: frontend.key1
-  db_uri: mongodb://db.example.com # optional: only support MongoDB, will default to in-memory storage if not specified
+
+  # Defines the database connection URI for the databases:
+  # - authz_code_db
+  # - access_token_db
+  # - refresh_token_db
+  # - sub_db
+  # - user_db
+  #
+  # supported storage backends:
+  # - In-memory dictionary
+  # - MongoDB (e.g. mongodb://db.example.com)
+  # - Redis (e.g. redis://example/0)
+  # - Stateless (eg. stateless://user:encryptionkey?alg=aes256)
+  #
+  # This configuration is optional.
+  # By default, the in-memory storage is used.
+  db_uri: mongodb://db.example.com
+
+  # Where to store clients.
+  #
+  # If client_db_uri is set, the database connection is used.
+  # Otherwise, if client_db_path is set, the JSON file is used.
+  # By default, an in-memory dictionary is used.
+  client_db_uri: mongodb://db.example.com
   client_db_path: /path/to/your/cdb.json
-  sub_hash_salt: randomSALTvalue # if not specified, it is randomly generated on every startup
+
+  # if not specified, it is randomly generated on every startup
+  sub_hash_salt: randomSALTvalue
+
   provider:
     client_registration_supported: Yes
     response_types_supported: ["code", "id_token token"]
