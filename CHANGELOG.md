@@ -1,5 +1,17 @@
 # Changelog
 
+## 8.0.1 (2022-02-22)
+
+- Reinitialize state if error occurs while loading state
+- VirtualCoFrontend: Expose metadata endpoint and fix duplicate entity ids with multiple backends
+- saml-backend: Allow request micro-services to affect the authn-context-class-ref
+- saml-backend: Keep the last authority from the authenticating authority list
+- minor fixes to the Apple and GitHub backends
+- micro_services: example config for attribute_policy
+- deps: bump minimum pyop version to 3.3.1
+- docs: fixes for example files and config options
+
+
 ## 8.0.0 (2021-09-07)
 
 This is a breaking release, if you were using the openid_connect frontend. To
