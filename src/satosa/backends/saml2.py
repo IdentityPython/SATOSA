@@ -623,6 +623,14 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                     ui_info_desc.add_display_name(name["text"], name["lang"])
                 for logo in ui_info.get("logo", []):
                     ui_info_desc.add_logo(logo["text"], logo["width"], logo["height"], logo.get("lang"))
+                for keywords in ui_info.get("keywords", []):
+                    ui_info_desc.add_keywords(keywords.get("text", []), keywords.get("lang"))
+                for information_url in ui_info.get("information_url", []):
+                    ui_info_desc.add_information_url(information_url.get("text"), information_url.get("lang"))
+                for privacy_statement_url in ui_info.get("privacy_statement_url", []):
+                    ui_info_desc.add_privacy_statement_url(
+                        privacy_statement_url.get("text"), privacy_statement_url.get("lang")
+                    )
                 description.ui_info = ui_info_desc
 
             entity_descriptions.append(description)

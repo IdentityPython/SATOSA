@@ -319,6 +319,14 @@ def get_metadata_desc_for_oauth_backend(entity_id, config):
                 ui_description.add_display_name(name[0], name[1])
             for logo in ui_info.get("logo", []):
                 ui_description.add_logo(logo["image"], logo["width"], logo["height"], logo["lang"])
+            for keywords in ui_info.get("keywords", []):
+                ui_description.add_keywords(keywords.get("text", []), keywords.get("lang"))
+            for information_url in ui_info.get("information_url", []):
+                ui_description.add_information_url(information_url.get("text"), information_url.get("lang"))
+            for privacy_statement_url in ui_info.get("privacy_statement_url", []):
+                ui_description.add_information_url(
+                    privacy_statement_url.get("text"), privacy_statement_url.get("lang")
+                )
 
             description.ui_info = ui_description
 
