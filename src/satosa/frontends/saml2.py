@@ -101,6 +101,19 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         """
         return self._handle_authn_request(context, binding_in, self.idp)
 
+    def handle_logout_request(self, context, binding_in):
+        """
+        This method is bound to the starting endpoint of the logout.
+
+        :type context: satosa.context.Context
+        :type binding_in: str
+
+        :param contxt: The current context
+        :param binding_in: The binding type (http post, http redirect, ..)
+        :return: response
+        """
+        return NotImplementedError()
+
     def handle_backend_error(self, exception):
         """
         See super class satosa.frontends.base.FrontendModule
@@ -560,8 +573,14 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
                     valid_providers = "{}|^{}".format(valid_providers, provider)
                 valid_providers = valid_providers.lstrip("|")
                 parsed_endp = urlparse(endp)
-                url_map.append(("(%s)/%s$" % (valid_providers, parsed_endp.path),
-                                functools.partial(self.handle_authn_request, binding_in=binding)))
+                if endp_category == "single_sign_on_service":
+                    url_map.append(("(%s)/%s$" % (valid_providers, parsed_endp.path),
+                                    functools.partial(self.handle_authn_request, binding_in=binding)))
+                elif endp_category == "single_logout_service":
+                    url_map.append(("(%s)/%s$" % (valid_providers, parsed_endp.path),
+                                    functools.partial(self.handle_logout_request, binding_in=binding)))
+                else:
+                    raise NotImplementedError()
 
         if self.expose_entityid_endpoint():
             logger.debug("Exposing frontend entity endpoint = {}".format(self.idp.config.entityid))
