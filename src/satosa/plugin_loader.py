@@ -27,46 +27,55 @@ def prepend_to_import_path(import_paths):
     del sys.path[0:len(import_paths)]  # restore sys.path
 
 
-def load_backends(config, callback, internal_attributes):
+def load_backends(config, auth_callback, logout_callback, internal_attributes):
     """
     Load all backend modules specified in the config
 
     :type config: satosa.satosa_config.SATOSAConfig
-    :type callback:
+    :type auth_callback:
+    (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
+    :type logout_callback:
     (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
     :type internal_attributes: dict[string, dict[str, str | list[str]]]
     :rtype: Sequence[satosa.backends.base.BackendModule]
 
     :param config: The configuration of the satosa proxy
-    :param callback: Function that will be called by the backend after the authentication is done.
+    :param auth_callback: Function that will be called by the backend after the authentication is done.
+    :param logout_callback: Function that will be called by the backend after logout is done.
     :return: A list of backend modules
     """
     backend_modules = _load_plugins(
         config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
         config["BACKEND_MODULES"],
         backend_filter, config["BASE"],
-        internal_attributes, callback)
+        internal_attributes, auth_callback,
+        logout_callback
+        )
     logger.info("Setup backends: {}".format([backend.name for backend in backend_modules]))
     return backend_modules
 
 
-def load_frontends(config, callback, internal_attributes):
+def load_frontends(config, auth_callback, logout_callback, internal_attributes):
     """
     Load all frontend modules specified in the config
 
     :type config: satosa.satosa_config.SATOSAConfig
-    :type callback:
+    :type auth_callback:
+    (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
+    :type logout_callback:
     (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
     :type internal_attributes: dict[string, dict[str, str | list[str]]]
     :rtype: Sequence[satosa.frontends.base.FrontendModule]
 
     :param config: The configuration of the satosa proxy
-    :param callback: Function that will be called by the frontend after the authentication request
+    :param auth_callback: Function that will be called by the frontend after the authentication request
+    :param logout_callback: Function that will be called by the frontend after the logout request
     has been processed.
     :return: A list of frontend modules
     """
     frontend_modules = _load_plugins(config.get("CUSTOM_PLUGIN_MODULE_PATHS"), config["FRONTEND_MODULES"],
-                                     frontend_filter, config["BASE"], internal_attributes, callback)
+                                     frontend_filter, config["BASE"], internal_attributes, auth_callback,
+                                     logout_callback)
     logger.info("Setup frontends: {}".format([frontend.name for frontend in frontend_modules]))
     return frontend_modules
 
@@ -151,7 +160,7 @@ def _load_plugin_config(config):
             raise SATOSAConfigurationError("The configuration is corrupt.") from exc
 
 
-def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attributes, callback):
+def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attributes, auth_callback, logout_callback):
     """
     Loads endpoint plugins
 
@@ -178,7 +187,7 @@ def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attri
             if module_class:
                 module_config = _replace_variables_in_plugin_module_config(plugin_config["config"], base_url,
                                                                            plugin_config["name"])
-                instance = module_class(callback, internal_attributes, module_config, base_url,
+                instance = module_class(auth_callback, logout_callback, internal_attributes, module_config, base_url,
                                         plugin_config["name"])
                 loaded_plugin_modules.append(instance)
     return loaded_plugin_modules

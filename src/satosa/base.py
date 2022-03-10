@@ -41,9 +41,11 @@ class SATOSABase(object):
 
         logger.info("Loading backend modules...")
         backends = load_backends(self.config, self._auth_resp_callback_func,
+                                 self._logout_resp_callback_func,
                                  self.config["INTERNAL_ATTRIBUTES"])
         logger.info("Loading frontend modules...")
         frontends = load_frontends(self.config, self._auth_req_callback_func,
+                                   self._logout_req_callback_func,
                                    self.config["INTERNAL_ATTRIBUTES"])
 
         self.response_micro_services = []
@@ -102,6 +104,9 @@ class SATOSABase(object):
 
         return self._auth_req_finish(context, internal_request)
 
+    def _logout_req_callback_func(self, context, internal_request):
+        raise NotImplementedError()
+
     def _auth_req_finish(self, context, internal_request):
         backend = self.module_router.backend_routing(context)
         context.request = None
@@ -149,6 +154,9 @@ class SATOSABase(object):
                 context, internal_response)
 
         return self._auth_resp_finish(context, internal_response)
+
+    def _logout_resp_callback_func(self, context, internal_response):
+        raise NotImplementedError()
 
     def _handle_satosa_authentication_error(self, error):
         """
