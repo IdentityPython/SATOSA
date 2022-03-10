@@ -67,10 +67,10 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
     KEY_ENDPOINTS = 'endpoints'
     KEY_IDP_CONFIG = 'idp_config'
 
-    def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name):
+    def __init__(self, auth_req_callback_func, logout_req_callback_func, internal_attributes, config, base_url, name):
         self._validate_config(config)
 
-        super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
+        super().__init__(auth_req_callback_func, logout_req_callback_func, internal_attributes, base_url, name)
         self.config = self.init_config(config)
 
         self.endpoints = config[self.KEY_ENDPOINTS]

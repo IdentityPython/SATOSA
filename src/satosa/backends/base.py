@@ -10,10 +10,11 @@ class BackendModule(object):
     Base class for a backend module.
     """
 
-    def __init__(self, auth_callback_func, internal_attributes, base_url, name):
+    def __init__(self, auth_callback_func, logout_callback_func, internal_attributes, base_url, name):
         """
         :type auth_callback_func:
         (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
+        :type logout_callback_func:
         :type internal_attributes: dict[string, dict[str, str | list[str]]]
         :type base_url: str
         :type name: str
@@ -27,6 +28,7 @@ class BackendModule(object):
         :param name: name of the plugin
         """
         self.auth_callback_func = auth_callback_func
+        self.logout_callback_func = logout_callback_func
         self.internal_attributes = internal_attributes
         self.converter = AttributeMapper(internal_attributes)
         self.base_url = base_url
