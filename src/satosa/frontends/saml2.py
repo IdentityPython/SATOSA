@@ -110,7 +110,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         :param binding_in: The binding type (http post, http redirect, ..)
         :return: response
         """
-        return NotImplementedError()
+        return self._handle_logout_request(context, binding_in, self.idp)
 
     def handle_backend_error(self, exception):
         """
@@ -273,6 +273,27 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         context.decorate(Context.KEY_AUTHN_CONTEXT_CLASS_REF, authn_context)
         context.decorate(Context.KEY_METADATA_STORE, self.idp.metadata)
         return self.auth_req_callback_func(context, internal_req)
+
+    def _handle_logout_request(self, context, binding_in, idp):
+        """
+        :type context: satosa.context.Context
+        :type binding_in: str
+        :type idp: saml.server.Server
+        :rtype: satosa.response.Response
+
+        :param context: The current context
+        :param binding_in: The pysaml binding type
+        :param idp: The saml frontend idp server
+        :return: response
+        """
+        req_info = idp.parse_logout_request(context.request["SAMLRequest"], binding_in)
+        logout_req = req_info.message
+        msg = "{}".format(logout_req)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
+        internal_req = InternalData()
+        return self.logout_req_callback_func(context, internal_req)
+
 
     def _get_approved_attributes(self, idp, idp_policy, sp_entity_id, state):
         """

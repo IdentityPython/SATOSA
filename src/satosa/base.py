@@ -105,12 +105,33 @@ class SATOSABase(object):
         return self._auth_req_finish(context, internal_request)
 
     def _logout_req_callback_func(self, context, internal_request):
-        raise NotImplementedError()
+        """
+        This function is called by a frontend module when a logout request has been processed.
+
+        :type context: satosa.context.Context
+        :typr internal_request:
+        :rtype:
+
+        :param context: The request context
+        :param internal_request: request processed by the frontend
+        :return Response
+        """
+        state = context.state
+        state[STATE_KEY] = {"requester": internal_request.requester}
+        msg = "Requesting provider: {}".format(internal_request.requester)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(state), message=msg)
+        logger.info(logline)
+        return self._logout_req_finish(context, internal_request)
 
     def _auth_req_finish(self, context, internal_request):
         backend = self.module_router.backend_routing(context)
         context.request = None
         return backend.start_auth(context, internal_request)
+
+    def _logout_req_finish(self, context, internal_request):
+        backend = self.module_router.backend_routing(context)
+        context.request = None
+        return backend.start_logout(context, internal_request)
 
     def _auth_resp_finish(self, context, internal_response):
         user_id_to_attr = self.config["INTERNAL_ATTRIBUTES"].get("user_id_to_attr", None)
