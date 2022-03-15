@@ -17,6 +17,7 @@ from saml2.metadata import create_metadata_string
 from saml2.authn_context import requested_authn_context
 from saml2.samlp import RequesterID
 from saml2.samlp import Scoping
+from saml2.saml import NameID
 
 import satosa.logging_util as lu
 import satosa.util as util
@@ -27,6 +28,7 @@ from satosa.context import Context
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from satosa.exception import SATOSAAuthenticationError
+from satosa.exception import SATOSAUnknownError
 from satosa.response import SeeOther, Response
 from satosa.saml_util import make_saml_response
 from satosa.metadata_creation.description import (
@@ -194,6 +196,18 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             return self.disco_query(context)
 
         return self.authn_request(context, entity_id)
+
+    def start_logout(self, context, internal_req):
+        """
+        See super class method satosa.backends.base.BackendModule#start_logout
+
+        :type context: satosa.context.Context
+        :type internal_req: satosa.internal.InternalData
+        :rtype:
+        """
+
+        entity_id = self.get_idp_entity_id(context)
+        return self.logout_request(context, entity_id)
 
     def disco_query(self, context):
         """
@@ -364,6 +378,48 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         context.state.pop(Context.KEY_FORCE_AUTHN, None)
         return self.auth_callback_func(context, self._translate_response(authn_response, context.state))
 
+    def logout_request(self, context, entity_id):
+        """
+        Perform Logout request on idp with given entity_id.
+        This is the start of single logout.
+
+        :type context: satosa.context.Context
+        :type entity_id: str
+        :rtype: satosa.response.Response
+
+        :param context: The current context
+        :param entity_id: Target IDP entity id
+        :return: response to the user agent
+        """
+        try:
+            binding, destination = self.sp.pick_binding(
+                    "single_logout_service", None, "idpsso", entity_id=entity_id
+            )
+            msg = "binding: {}, destination: {}".format(binding, destination)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
+
+            slo_endp, response_binding = self.sp.config.getattr("endpoints", "sp")["single_logout_service"][0]
+            name_id_format = self.sp.config.getattr("name_id_format", "sp")
+            name_id = NameID(format=name_id_format)
+            req_id, req = self.sp.create_logout_request(
+                destination, issuer_entity_id=entity_id, name_id=name_id
+            )
+            msg = "req_id: {}, req: {}".format(req_id, req)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
+            relay_state = util.rndstr()
+            ht_args = self.sp.apply_binding(binding, "%s" % req, destination, relay_state=relay_state)
+            msg = "ht_args: {}".format(ht_args)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
+        except Exception as exc:
+            msg = "Failed to construct the LogoutRequest for state"
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline, exc_info=True)
+            raise SATOSAUnknownError
+        return make_saml_response(binding, ht_args)
+
     def disco_response(self, context):
         """
         Endpoint for the discovery server response
@@ -411,11 +467,13 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             if authenticating_authorities
             else None
         )
+        session_index = response.session_info()['session_index']
         auth_info = AuthenticationInformation(
             auth_class_ref=authn_context_ref,
             timestamp=authn_instant,
             authority=authenticating_authority,
             issuer=issuer,
+            session_index=session_index,
         )
 
         # The SAML response may not include a NameID.

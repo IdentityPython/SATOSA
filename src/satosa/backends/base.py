@@ -48,6 +48,20 @@ class BackendModule(object):
         """
         raise NotImplementedError()
 
+    def start_logout(self, context, internal_request):
+        """
+        This is the start up function of the backend logout.
+
+        :type context: satosa.context.Context
+        :type internal_request: satosa.internal.InternalData
+        :rtype
+
+        :param context: the request context
+        :param internal_request: Information about the logout request
+        :return:
+        """
+        raise NotImplementedError()
+
     def register_endpoints(self):
         """
         Register backend functions to endpoint urls.
