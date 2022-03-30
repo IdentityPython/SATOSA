@@ -24,6 +24,7 @@ from .plugin_loader import load_backends
 from .plugin_loader import load_frontends
 from .plugin_loader import load_request_microservices
 from .plugin_loader import load_response_microservices
+from .plugin_loader import load_database
 from .routing import ModuleRouter
 from .state import State
 from .state import cookie_to_state
@@ -70,14 +71,19 @@ class SATOSABase(object):
                 self.config["MICRO_SERVICES"],
                 self.config["INTERNAL_ATTRIBUTES"],
                 self.config["BASE"]))
-            self._link_micro_services(self.request_micro_services, self._auth_req_finish)
+            self._link_micro_services(
+                self.request_micro_services, self._auth_req_finish)
 
             self.response_micro_services.extend(
                 load_response_microservices(self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
                                             self.config["MICRO_SERVICES"],
                                             self.config["INTERNAL_ATTRIBUTES"],
                                             self.config["BASE"]))
-            self._link_micro_services(self.response_micro_services, self._auth_resp_finish)
+            self._link_micro_services(
+                self.response_micro_services, self._auth_resp_finish)
+
+        logger.info("Loading database...")
+        self.db = load_database(self.config)
 
         self.module_router = ModuleRouter(frontends, backends,
                                           self.request_micro_services + self.response_micro_services)
@@ -147,9 +153,11 @@ class SATOSABase(object):
         return backend.start_logout(context, internal_request)
 
     def _auth_resp_finish(self, context, internal_response):
-        user_id_to_attr = self.config["INTERNAL_ATTRIBUTES"].get("user_id_to_attr", None)
+        user_id_to_attr = self.config["INTERNAL_ATTRIBUTES"].get(
+            "user_id_to_attr", None)
         if user_id_to_attr:
-            internal_response.attributes[user_id_to_attr] = [internal_response.subject_id]
+            internal_response.attributes[user_id_to_attr] = [
+                internal_response.subject_id]
 
         # remove all session state unless CONTEXT_STATE_DELETE is False
         context.state.delete = self.config.get("CONTEXT_STATE_DELETE", True)
@@ -226,7 +234,8 @@ class SATOSABase(object):
             msg = "ERROR_ID [{err_id}]\nSTATE:\n{state}".format(
                 err_id=error.error_id, state=state
             )
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.error(logline, exc_info=True)
             return self._handle_satosa_authentication_error(error)
 
@@ -248,7 +257,8 @@ class SATOSABase(object):
         finally:
             context.state = state
             msg = f"Loaded state {state} from cookie {context.cookie}"
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline)
 
     def _save_state(self, resp, context):
@@ -303,7 +313,8 @@ class SATOSABase(object):
                 "error": str(e),
                 "error_id": error_id,
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
@@ -317,7 +328,8 @@ class SATOSABase(object):
                 "error": str(e),
                 "error_id": error_id,
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
@@ -331,7 +343,8 @@ class SATOSABase(object):
                 "error": str(e),
                 "error_id": error_id,
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
@@ -345,7 +358,8 @@ class SATOSABase(object):
                 "error": str(e),
                 "error_id": error_id,
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
@@ -359,7 +373,8 @@ class SATOSABase(object):
                 "error": str(e),
                 "error_id": error_id,
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
@@ -373,7 +388,8 @@ class SATOSABase(object):
                 "error": str(e),
                 "error_id": error_id,
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
@@ -387,7 +403,8 @@ class SATOSABase(object):
                 "error": str(e),
                 "error_id": error_id,
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:

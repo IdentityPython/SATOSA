@@ -289,3 +289,31 @@ def load_response_microservices(plugin_path, plugins, internal_attributes, base_
                                             base_url)
     logger.info("Loaded response micro services:{}".format([type(k).__name__ for k in response_services]))
     return response_services
+
+
+def load_database(config):
+    """
+    Loads the storage database specifies in the config
+
+    :type config: satosa.satosa_config.SATOSAConfig
+
+    :param config: The configuration of the satosa proxy
+    """
+    try:
+        db = config["DATABASE"]["name"]
+    except SATOSAConfigurationError as err:
+        logger.error(err)
+    if db == "memory":
+        from satosa.store import SessionStorage
+        return SessionStorage(config)
+    elif db == "mongodb":
+        from satosa.store import SessionStorageMDB
+        return SessionStorageMDB(config)
+    elif db == "postgresql":
+        from satosa.store import SessionStoragePDB
+        try:
+            return SessionStoragePDB(config)
+        except Exception as error:
+            return error
+    else:
+        raise NotImplementedError()
