@@ -130,12 +130,15 @@ class SATOSABase(object):
     def _auth_req_finish(self, context, internal_request):
         backend = self.module_router.backend_routing(context)
         context.request = None
+        self.db.store_authn_req(context.state, internal_request)  # not necessary
         return backend.start_auth(context, internal_request)
 
     def _logout_req_finish(self, context, internal_request):
         backend = self.module_router.backend_routing(context)
         context.request = None
-        return backend.start_logout(context, internal_request)
+        self.db.store_logout_req(context.state, internal_request)
+        internal_authn_resp = self.db.get_authn_resp(context.state)
+        return backend.start_logout(context, internal_request, internal_authn_resp)
 
     def _auth_resp_finish(self, context, internal_response):
         user_id_to_attr = self.config["INTERNAL_ATTRIBUTES"].get("user_id_to_attr", None)
@@ -145,6 +148,8 @@ class SATOSABase(object):
         # remove all session state unless CONTEXT_STATE_DELETE is False
         context.state.delete = self.config.get("CONTEXT_STATE_DELETE", True)
         context.request = None
+        self.db.store_authn_resp(context.state, internal_response)
+        self.db.get_authn_resp(context.state)
 
         frontend = self.module_router.frontend_routing(context)
         return frontend.handle_authn_response(context, internal_response)
