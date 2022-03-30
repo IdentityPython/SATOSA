@@ -316,7 +316,26 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         msg = "{}".format(logout_req)
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.debug(logline)
-        internal_req = InternalData()
+
+        resp_args = {}
+        resp_args['name_id'] = logout_req.name_id.text if logout_req.name_id.text else None
+        resp_args['session_indexes'] = []
+        for session_index in logout_req.session_index:
+            resp_args['session_indexes'].append(session_index.text)
+        requester = logout_req.issuer.text
+        requester_name = self._get_sp_display_name(idp, requester)
+
+        context.state[self.name] = self._create_state_data(context, resp_args,
+                                                        context.request.get("RelayState"))
+
+        name_id_value = logout_req.name_id.text
+        name_id_format = logout_req.name_id.format
+
+        internal_req = InternalData(
+            subject_id=name_id_value,
+            subject_type=name_id_format,
+            requester=requester,
+        )
         return self.logout_req_callback_func(context, internal_req)
 
 
