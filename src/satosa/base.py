@@ -13,6 +13,7 @@ from .exception import SATOSAConfigurationError
 from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
 from .plugin_loader import load_backends, load_frontends
 from .plugin_loader import load_request_microservices, load_response_microservices
+from .plugin_loader import load_database
 from .routing import ModuleRouter, SATOSANoBoundEndpointError
 from .state import cookie_to_state, SATOSAStateError, State, state_to_cookie
 
@@ -65,6 +66,9 @@ class SATOSABase(object):
                                             self.config["INTERNAL_ATTRIBUTES"],
                                             self.config["BASE"]))
             self._link_micro_services(self.response_micro_services, self._auth_resp_finish)
+
+        logger.info("Loading database...")
+        self.db = load_database(self.config)
 
         self.module_router = ModuleRouter(frontends, backends,
                                           self.request_micro_services + self.response_micro_services)
