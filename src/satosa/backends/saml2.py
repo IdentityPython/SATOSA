@@ -200,7 +200,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         return self.authn_request(context, entity_id)
 
-    def start_logout(self, context, internal_req):
+    def start_logout(self, context, internal_req, internal_authn_resp):
         """
         See super class method satosa.backends.base.BackendModule#start_logout
 
@@ -210,7 +210,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         """
 
         entity_id = self.get_idp_entity_id(context)
-        return self.logout_request(context, entity_id)
+        return self.logout_request(context, entity_id, internal_authn_resp)
 
     def disco_query(self, context):
         """
@@ -496,7 +496,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         context.state.pop(Context.KEY_FORCE_AUTHN, None)
         return self.auth_callback_func(context, self._translate_response(authn_response, context.state))
 
-    def logout_request(self, context, entity_id):
+    def logout_request(self, context, entity_id, internal_authn_resp):
         """
         Perform Logout request on idp with given entity_id.
         This is the start of single logout.
@@ -521,9 +521,12 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             slo_endp, response_binding = self.sp.config.getattr(
                 "endpoints", "sp")["single_logout_service"][0]
             name_id_format = self.sp.config.getattr("name_id_format", "sp")
-            name_id = NameID(format=name_id_format)
+            name_id = internal_authn_resp["subject_id"]
+            name_id = NameID(format=name_id_format, text=name_id)
+            session_indexes = internal_authn_resp["auth_info"]["session_index"]
             req_id, req = self.sp.create_logout_request(
-                destination, issuer_entity_id=entity_id, name_id=name_id
+                destination, issuer_entity_id=entity_id, name_id=name_id,
+                session_indexes=session_indexes, sign=True
             )
             msg = "req_id: {}, req: {}".format(req_id, req)
             logline = lu.LOG_FMT.format(
@@ -597,13 +600,14 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             if authenticating_authorities
             else None
         )
-        session_index = response.session_info()['session_index']
+        session_indexes = []
+        session_indexes.append(response.session_info()['session_index'])
         auth_info = AuthenticationInformation(
             auth_class_ref=authn_context_ref,
             timestamp=authn_instant,
             authority=authenticating_authority,
             issuer=issuer,
-            session_index=session_index,
+            session_index=session_indexes,
         )
 
         # The SAML response may not include a NameID.
