@@ -547,6 +547,21 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             raise SATOSAUnknownError
         return make_saml_response(binding, ht_args)
 
+    def logout_response(self, context, binding):
+        """
+        Endpoint for the idp logout response
+
+        :type context: satosa.context.Context
+        :type binding: str
+        :rtype: satosa.response.Response
+
+        :param context: The current context
+        :param binding: SAML binding type
+        :return Response
+        """
+        raise NotImplementedError()
+
+
     def disco_response(self, context):
         """
         Endpoint for the discovery server response
@@ -703,6 +718,11 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         if self.enable_metadata_reload():
             url_map.append(
                 ("^%s/%s$" % (self.name, "reload-metadata"), self._reload_metadata))
+
+        for endp, binding in sp_endpoints["single_logout_service"]:
+            parsed_endp = urlparse(endp)
+            url_map.append(("^%s$" % parsed_endp.path[1:],
+                functools.partial(self.logout_response, binding=binding)))
 
         return url_map
 
