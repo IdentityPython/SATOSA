@@ -99,6 +99,25 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         """
         return self._handle_authn_request(context, binding_in, self.idp)
 
+    def handle_logout_message(self, context, binding_in):
+        """
+        This method is bound to the starting endpoint of the logout.
+
+        :type context: satosa.context.Context
+        :type binding_in: str
+        :rtype:
+
+        :param context: The current context
+        :param binding_in: The binding type
+        :return:
+        """
+        if context.request["SAMLRequest"]:
+            return self.handle_logout_request(context, binding_in)
+        elif context.request["SAMLResponse"]:
+            return self.handle_logout_logout_response(context, binding_in)
+        else:
+            return NotImplementedError()
+
     def handle_logout_request(self, context, binding_in):
         """
         This method is bound to the starting endpoint of the logout.
@@ -111,6 +130,9 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         :return: response
         """
         return self._handle_logout_request(context, binding_in, self.idp)
+
+    def handle_logout_logout_response(self, context, binding_in):
+        return NotImplementedError()
 
     def handle_backend_error(self, exception):
         """
@@ -577,7 +599,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
                                     functools.partial(self.handle_authn_request, binding_in=binding)))
                 elif endp_category == "single_logout_service":
                     url_map.append(("(%s)/%s$" % (valid_providers, parsed_endp.path),
-                                    functools.partial(self.handle_logout_request, binding_in=binding)))
+                                    functools.partial(self.handle_logout_message, binding_in=binding)))
                 else:
                     raise NotImplementedError()
 
