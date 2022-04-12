@@ -99,6 +99,6 @@ class OrcidBackend(_OAuthBackend):
             mail=' '.join([e['email'] for e in emails]),
             name=name,
             givenname=r['name']['given-names']['value'],
-            surname=r['name']['family-name']['value'],
+            surname=(r['name']['family-name'] or {}).get('value'),
         )
         return ret
