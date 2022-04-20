@@ -67,9 +67,10 @@ class OpenIDConnectFrontend(FrontendModule):
         )
 
         db_uri = self.config.get("db_uri")
+        self.stateless = StorageBase.type(db_uri) == "stateless"
         self.user_db = (
             StorageBase.from_uri(db_uri, db_name="satosa", collection="authz_codes")
-            if db_uri and not StorageBase.type(db_uri) == "stateless"
+            if db_uri and not self.stateless
             else {}
         )
 
@@ -129,6 +130,9 @@ class OpenIDConnectFrontend(FrontendModule):
             extra_id_token_claims=lambda user_id, client_id:
                 self._get_extra_id_token_claims(user_id, client_id),
         )
+
+        if self.stateless:
+            del self.user_db[internal_resp.subject_id]
 
         del context.state[self.name]
         http_response = auth_resp.request(auth_req["redirect_uri"], should_fragment_encode(auth_req))
