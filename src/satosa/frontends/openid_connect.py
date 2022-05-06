@@ -1,20 +1,32 @@
 """
 A OpenID Connect frontend module for the satosa proxy
 """
+
 import json
 import logging
 from collections import defaultdict
 from urllib.parse import urlencode, urlparse
 
 from jwkest.jwk import rsa_load, RSAKey
+
 from oic.oic import scope2claims
-from oic.oic.message import (AuthorizationRequest, AuthorizationErrorResponse, TokenErrorResponse,
-                             UserInfoErrorResponse)
-from oic.oic.provider import RegistrationEndpoint, AuthorizationEndpoint, TokenEndpoint, UserinfoEndpoint
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import AuthorizationErrorResponse
+from oic.oic.message import TokenErrorResponse
+from oic.oic.message import UserInfoErrorResponse
+from oic.oic.provider import RegistrationEndpoint
+from oic.oic.provider import AuthorizationEndpoint
+from oic.oic.provider import TokenEndpoint
+from oic.oic.provider import UserinfoEndpoint
+
 from pyop.access_token import AccessToken
 from pyop.authz_state import AuthorizationState
-from pyop.exceptions import (InvalidAuthenticationRequest, InvalidClientRegistrationRequest,
-                             InvalidClientAuthentication, OAuthError, BearerTokenError, InvalidAccessToken)
+from pyop.exceptions import InvalidAuthenticationRequest
+from pyop.exceptions import InvalidClientRegistrationRequest
+from pyop.exceptions import InvalidClientAuthentication
+from pyop.exceptions import OAuthError
+from pyop.exceptions import BearerTokenError
+from pyop.exceptions import InvalidAccessToken
 from pyop.provider import Provider
 from pyop.storage import StorageBase
 from pyop.subject_identifier import HashBasedSubjectIdentifierFactory
@@ -55,9 +67,10 @@ class OpenIDConnectFrontend(FrontendModule):
         )
 
         db_uri = self.config.get("db_uri")
+        self.stateless = StorageBase.type(db_uri) == "stateless"
         self.user_db = (
             StorageBase.from_uri(db_uri, db_name="satosa", collection="authz_codes")
-            if db_uri
+            if db_uri and not self.stateless
             else {}
         )
 
@@ -108,13 +121,18 @@ class OpenIDConnectFrontend(FrontendModule):
         claims = self.converter.from_internal("openid", internal_resp.attributes)
         # Filter unset claims
         claims = {k: v for k, v in claims.items() if v}
-        self.user_db[internal_resp.subject_id] = dict(combine_claim_values(claims.items()))
+        self.user_db[internal_resp.subject_id] = dict(
+            combine_claim_values(claims.items())
+        )
         auth_resp = self.provider.authorize(
             auth_req,
             internal_resp.subject_id,
             extra_id_token_claims=lambda user_id, client_id:
                 self._get_extra_id_token_claims(user_id, client_id),
         )
+
+        if self.stateless:
+            del self.user_db[internal_resp.subject_id]
 
         del context.state[self.name]
         http_response = auth_resp.request(auth_req["redirect_uri"], should_fragment_encode(auth_req))
