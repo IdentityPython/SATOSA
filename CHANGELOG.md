@@ -1,5 +1,14 @@
 # Changelog
 
+## 8.1.0 (2022-05-06)
+
+- OIDC frontend: support stateless code flow
+- OIDC frontend: support Redis and session expiration
+- orcid backend: allow family-name to be optional
+- docs: add references to external contributions
+- docs: update structure
+
+
 ## 8.0.1 (2022-02-22)
 
 - Reinitialize state if error occurs while loading state
