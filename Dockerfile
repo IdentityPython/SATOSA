@@ -1,15 +1,9 @@
-FROM debian:stable-slim
+FROM python:3-slim-buster
 
-RUN apt-get -y update \
-    && apt-get -y upgrade \
-    && apt-get -y dist-upgrade \
-    && apt-get -y --no-install-recommends install \
-        python3 \
-        python3-pip \
-        python3-venv \
-        xmlsec1 \
-    && apt-get -y autoremove \
-    && apt-get -y clean
+ARG TARGETPLATFORM
+
+RUN apt-get -y update && apt-get -y --no-install-recommends install xmlsec1 && apt-get -y upgrade
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then apt-get install -y --no-install-recommends gcc libc6-dev; fi
 
 RUN mkdir -p /src/satosa
 COPY . /src/satosa
@@ -18,6 +12,10 @@ COPY docker/start.sh /start.sh
 RUN chmod +x /setup.sh /start.sh \
     && sync \
     && /setup.sh
+
+
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then apt-get remove -y --no-install-recommends gcc libc6-dev; fi
+RUN apt-get -y autoremove && apt-get -y clean
 
 COPY docker/attributemaps /opt/satosa/attributemaps
 

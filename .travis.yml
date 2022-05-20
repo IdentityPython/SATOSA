@@ -18,11 +18,13 @@ script:
 
 jobs:
   allow_failures:
-    - python: 3.9-dev
+    - python: 3.11-dev
   include:
     - python: 3.6
     - python: 3.7
     - python: 3.8
+    - python: 3.9
+    - python: 3.10
     - python: pypy3
 
     - stage: Expose env-var information
@@ -67,12 +69,13 @@ jobs:
     - stage: Build docker image by commit and deploy on DockerHub
       before_install: skip
       install: skip
+      before_script: 
+        - docker buildx create --use --driver docker-container --bootstrap
+        - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
       script:
         - set -e
         - test "$TRAVIS_SECURE_ENV_VARS" = "true" || exit 0
-        - docker build -f Dockerfile -t "$DOCKER_TAG_COMMIT" .
-        - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USERNAME" --password-stdin
-        - docker push "$DOCKER_TAG_COMMIT"
+        - docker buildx build --platform linux/amd64,linux/arm64 -f Dockerfile -t "$DOCKER_TAG_COMMIT" --push .
 
     - stage: Tag docker image with branch name
       if: type = push AND branch IS present
