@@ -1,5 +1,11 @@
 # Changelog
 
+## 8.1.1 (2022-06-23)
+
+- OIDC frontend: Set minimum pyop version to v3.4.0 to ensure the needed methods are available
+- docs: Fix orcid mapping in example internal_attributes
+
+
 ## 8.1.0 (2022-05-06)
 
 - OIDC frontend: support stateless code flow
