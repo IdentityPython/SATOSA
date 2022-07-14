@@ -1,4 +1,6 @@
+import os.path
 import responses
+from urllib.parse import urlparse
 from werkzeug.test import Client
 from werkzeug.wrappers import Response
 
@@ -13,6 +15,7 @@ class TestAccountLinking:
         account_linking_module_config["config"]["api_url"] = api_url
         account_linking_module_config["config"]["redirect_url"] = redirect_url
         satosa_config_dict["MICRO_SERVICES"].insert(0, account_linking_module_config)
+        base_path = urlparse(satosa_config_dict["BASE"]).path.lstrip("\n")
 
         # application
         test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), Response)
@@ -36,5 +39,5 @@ class TestAccountLinking:
             rsps.add(responses.GET, "{}/get_id".format(api_url), "test_userid", status=200)
 
             # incoming account linking response
-            http_resp = test_client.get("/account_linking/handle_account_linking")
+            http_resp = test_client.get(os.path.join("/", base_path, "account_linking/handle_account_linking"))
             assert http_resp.status_code == 200

@@ -29,7 +29,7 @@ class BackendModule(object):
         self.auth_callback_func = auth_callback_func
         self.internal_attributes = internal_attributes
         self.converter = AttributeMapper(internal_attributes)
-        self.base_url = base_url
+        self.base_url = base_url.rstrip("/") if base_url else ""
         self.name = name
 
     def start_auth(self, context, internal_request):

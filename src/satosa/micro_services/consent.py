@@ -4,6 +4,7 @@ A consent module for the satosa proxy
 import hashlib
 import json
 import logging
+import os.path
 from base64 import urlsafe_b64encode
 
 import requests
@@ -238,4 +239,13 @@ class Consent(ResponseMicroService):
 
         :return: A list of endpoints bound to a function
         """
-        return [("^consent%s$" % self.endpoint, self._handle_consent_response)]
+        return [
+            (
+                "^{}$".format(
+                    os.path.join(
+                        self.base_path, "consent", self.endpoint.lstrip("/")
+                    )
+                ),
+                self._handle_consent_response,
+            )
+        ]

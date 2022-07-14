@@ -3,6 +3,7 @@ An account linking module for the satosa proxy
 """
 import json
 import logging
+import os.path
 
 import requests
 from jwkest.jwk import rsa_load, RSAKey
@@ -161,4 +162,13 @@ class AccountLinking(ResponseMicroService):
 
         :return: A list of endpoints bound to a function
         """
-        return [("^account_linking%s$" % self.endpoint, self._handle_al_response)]
+        return [
+            (
+                "^{}$".format(
+                    os.path.join(
+                        self.base_path, "account_linking", self.endpoint.lstrip("/")
+                    )
+                ),
+                self._handle_al_response,
+            )
+        ]

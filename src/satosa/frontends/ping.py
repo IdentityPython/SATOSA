@@ -1,4 +1,5 @@
 import logging
+import os.path
 
 import satosa.logging_util as lu
 from satosa.frontends.base import FrontendModule
@@ -43,7 +44,7 @@ class PingFrontend(FrontendModule):
         :rtype: list[(str, ((satosa.context.Context, Any) -> satosa.response.Response, Any))]
         :raise ValueError: if more than one backend is configured
         """
-        url_map = [("^{}".format(self.name), self.ping_endpoint)]
+        url_map = [("^{}".format(os.path.join(self.endpoint_basepath, self.name)), self.ping_endpoint)]
 
         return url_map
 
