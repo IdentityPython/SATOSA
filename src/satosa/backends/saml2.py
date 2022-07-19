@@ -26,6 +26,7 @@ from satosa.base import SAMLEIDASBaseModule
 from satosa.base import STATE_KEY as STATE_KEY_BASE
 from satosa.context import Context
 from satosa.internal import AuthenticationInformation
+from satosa.internal import LogoutInformation
 from satosa.internal import InternalData
 from satosa.exception import SATOSAAuthenticationError
 from satosa.exception import SATOSAMissingStateError
@@ -559,7 +560,23 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :param binding: SAML binding type
         :return Response
         """
-        raise NotImplementedError()
+        if not context.request.get("SAMLResponse"):
+            msg = "Missing Response for state"
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
+            raise SATOSAUnknownError(context.state, "Missing Response")
+
+        try:
+            logout_response = self.sp.parse_logout_request_response(
+                    context.request["SAMLResponse"], binding)
+        except Exception as err:
+            msg = "Failed to parse logout response for state"
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline, exc_info=True)
+            raise SATOSAUnknownError(context.state, "Failed to parse logout response") from err
+
+        return self.logout_callback_func(context, self._translate_logout_response(
+            logout_response, context.state))
 
 
     def disco_response(self, context):
@@ -656,6 +673,25 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         logger.info(logline)
 
         return internal_resp
+
+    def _translate_logout_response(self, response, state):
+        timestamp = response.response.issue_instant
+        issuer = response.response.issuer.text
+
+        status = {
+            "status_code": response.response.status.status_code.value,
+        }
+
+        logout_info = LogoutInformation(
+            timestamp=timestamp,
+            issuer=issuer,
+            status=status
+        )
+
+        msg = "logout response content"
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(state), message=msg)
+        logger.debug(logline)
+        return logout_info
 
     def _metadata_endpoint(self, context):
         """
