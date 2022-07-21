@@ -114,7 +114,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         if context.request["SAMLRequest"]:
             return self.handle_logout_request(context, binding_in)
         elif context.request["SAMLResponse"]:
-            return self.handle_logout_logout_response(context, binding_in)
+            return self.handle_logout_response(context, binding_in)
         else:
             return NotImplementedError()
 
@@ -131,8 +131,13 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         """
         return self._handle_logout_request(context, binding_in, self.idp)
 
-    def handle_logout_logout_response(self, context, binding_in):
-        return NotImplementedError()
+    def handle_logout_response(self, context, binding_in):
+        """
+        See super class method satosa.frontends.base.FrontendModule#handle_logout_response
+        :type context: satosa.context.Context
+        :type binding_in: str
+        """
+        return self._handle_logout_response(context, binding_in, self.idp)
 
     def handle_backend_error(self, exception):
         """
@@ -522,6 +527,19 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
 
         del context.state[self.name]
         return make_saml_response(resp_args["binding"], http_args)
+
+    def _handle_logout_response(self, context, internal_response, idp):
+        """
+        See super class method satosa.frontends.base.FrontendModule#handle_logout_response
+        :type context: satosa.context.Context
+        :type internal_response: satosa.internal.InternalData
+        :rtype satosa.response.LogoutResponse
+
+        :param context: the current context
+        :param internal_response: the internal logout response
+        :param idp: the saml frontend idp
+        """
+        return NotImplementedError()
 
     def _handle_backend_error(self, exception, idp):
         """
