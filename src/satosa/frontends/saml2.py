@@ -338,6 +338,24 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             subject_type=name_id_format,
             requester=requester,
         )
+
+        # Return logout response to SP that initiated logout if logout request contains
+        # the <aslo:Asynchronous> element within the <samlp:Extensions> element
+        extensions = logout_req.extensions if logout_req.extensions else None
+        _extensions = []
+        for ext in extensions.extension_elements:
+            _extensions.append(ext.namespace)
+
+        if "urn:oasis:names:tc:SAML:2.0:protocol:ext:async-slo" not in _extensions:
+            binding, destination = self.idp.pick_binding(
+                "single_logout_service", None, "spsso", entity_id=logout_req.issuer.text
+            )
+            logout_resp = self.idp.create_logout_response(logout_req, [binding])
+            http_args = self.idp.apply_binding(binding, "%s" % logout_resp, destination)
+            msg = "http_args: {}".format(http_args)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            make_saml_response(binding, http_args)
+
         return self.logout_req_callback_func(context, internal_req)
 
 
