@@ -166,6 +166,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         # Create the idp
         idp_config = IdPConfig().load(copy.deepcopy(self.idp_config))
         self.idp = Server(config=idp_config)
+        self.sp_sessions = {}
         return self._register_endpoints(backend_names) + url_map
 
     def _create_state_data(self, context, resp_args, relay_state):
@@ -364,6 +365,29 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             requester=requester,
         )
 
+        sp_sessions = self._sp_session_info(context)
+
+        for sp_info in sp_sessions:
+            for authn_statement in sp_info[1]:
+                if authn_statement[0].session_index == resp_args["session_indexes"][0]:
+                    continue
+                else:
+                    binding, slo_destination = self.idp.pick_binding(
+                        "single_logout_service", None, "spsso", entity_id=sp_info[0][0]
+                    )
+
+                    lreq_id, lreq = self.idp.create_logout_request(
+                        destination=slo_destination,
+                        issuer_entity_id=sp_info[0][0],
+                        name_id=NameID(text=sp_info[0][1].text),
+                        session_indexes=[authn_statement[0].session_index]
+                    )
+
+                    http_args = self.idp.apply_binding(binding, "%s" % lreq, slo_destination)
+                    msg = "http_args: {}".format(http_args)
+                    logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                    make_saml_response(binding, http_args)
+
         # Return logout response to SP that initiated logout if logout request contains
         # the <aslo:Asynchronous> element within the <samlp:Extensions> element
         extensions = logout_req.extensions if logout_req.extensions else None
@@ -383,6 +407,22 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
 
         return self.logout_req_callback_func(context, internal_req)
 
+    def _sp_session_info(self, context):
+        """
+        :type context: satosa.context.Context
+        :rtype: list[((str, saml2.saml.NameID), [[saml2.saml.AuthnStatement]])]
+
+        :param context: The current context
+        :return: list of service provider session information
+        """
+        sp_sessions = []
+
+        session_id = context.state["SESSION_ID"]
+        if session_id in self.sp_sessions:
+            for sp in self.sp_sessions[session_id]:
+                sp_sessions.append(
+                    (sp, self.idp.session_db.get_authn_statements(sp[1])))
+            return sp_sessions
 
     def _get_approved_attributes(self, idp, idp_policy, sp_entity_id, state):
         """
@@ -486,6 +526,12 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             sp_name_qualifier=None,
             name_qualifier=None,
         )
+
+        session_id = context.state["SESSION_ID"]
+        if session_id not in self.sp_sessions.keys():
+            self.sp_sessions[session_id] = []
+
+        self.sp_sessions[session_id].append((sp_entity_id, name_id))
 
         msg = "returning attributes {}".format(json.dumps(ava))
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
