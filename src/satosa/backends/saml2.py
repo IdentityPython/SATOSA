@@ -574,10 +574,9 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline, exc_info=True)
             raise SATOSAUnknownError(context.state, "Failed to parse logout response") from err
-
-        return self.logout_callback_func(context, self._translate_logout_response(
-            logout_response, context.state))
-
+        message = "Logout {}".format("OK" if logout_response else "Failed")
+        status = "200 OK" if logout_response else "500 FAILED"
+        return Response(message=message, status=status)
 
     def disco_response(self, context):
         """
