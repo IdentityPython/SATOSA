@@ -46,6 +46,11 @@ from satosa.internal import InternalData
 logger = logging.getLogger(__name__)
 
 
+class MirrorPublicSubjectIdentifierFactory(HashBasedSubjectIdentifierFactory):
+    def create_public_identifier(self, user_id):
+        return user_id
+
+
 class OpenIDConnectFrontend(FrontendModule):
     """
     A OpenID Connect frontend module
@@ -75,7 +80,10 @@ class OpenIDConnectFrontend(FrontendModule):
         )
 
         sub_hash_salt = self.config.get("sub_hash_salt", rndstr(16))
-        authz_state = _init_authorization_state(provider_config, db_uri, sub_hash_salt)
+        mirror_public = self.config.get("sub_mirror_public", False)
+        authz_state = _init_authorization_state(
+            provider_config, db_uri, sub_hash_salt, mirror_public
+        )
 
         client_db_uri = self.config.get("client_db_uri")
         cdb_file = self.config.get("client_db_path")
@@ -460,7 +468,9 @@ def _create_provider(
     return provider
 
 
-def _init_authorization_state(provider_config, db_uri, sub_hash_salt):
+def _init_authorization_state(
+    provider_config, db_uri, sub_hash_salt, mirror_public=False
+):
     if db_uri:
         authz_code_db = StorageBase.from_uri(
             db_uri,
@@ -499,8 +509,14 @@ def _init_authorization_state(provider_config, db_uri, sub_hash_salt):
         ]
         if k in provider_config
     }
+
+    subject_id_factory = (
+        MirrorPublicSubjectIdentifierFactory(sub_hash_salt)
+        if mirror_public
+        else HashBasedSubjectIdentifierFactory(sub_hash_salt)
+    )
     return AuthorizationState(
-        HashBasedSubjectIdentifierFactory(sub_hash_salt),
+        subject_id_factory,
         authz_code_db,
         access_token_db,
         refresh_token_db,
