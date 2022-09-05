@@ -203,19 +203,11 @@ class AppleBackend(BackendModule):
         backend_state = context.state[self.name]
 
         # Apple sends some user information only via POST in the first request
-        if "user" in context.request:
-            userinfo = json.load(context.request["user"])
-            userinfo["name"] = " ".join(
-                filter(
-                    None,
-                    [
-                        userinfo.get("firstName", ""),
-                        userinfo.get("middleName", ""),
-                        userinfo.get("lastName", ""),
-                    ],
-                )
-            )
-        else:
+        # https://developer.apple.com/documentation/sign_in_with_apple/sign_in_with_apple_rest_api/authenticating_users_with_sign_in_with_apple
+        try:
+            userdata = context.request.get("user", "{}")
+            userinfo = json.load(userdata)
+        except Exception as e:
             # Apple has no userinfo endpoint
             userinfo = {}
 
