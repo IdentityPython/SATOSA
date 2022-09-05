@@ -202,13 +202,16 @@ class AppleBackend(BackendModule):
         """
         backend_state = context.state[self.name]
 
-        # Apple sends some user information only via POST in the first request
-        # https://developer.apple.com/documentation/sign_in_with_apple/sign_in_with_apple_rest_api/authenticating_users_with_sign_in_with_apple
+        # Apple has no userinfo endpoint
+        # but may send some user information via POST in the first request.
+        #
+        # References:
+        # - https://developer.apple.com/documentation/sign_in_with_apple/sign_in_with_apple_rest_api/authenticating_users_with_sign_in_with_apple
+        # - https://developer.apple.com/documentation/sign_in_with_apple/namei
         try:
             userdata = context.request.get("user", "{}")
             userinfo = json.load(userdata)
         except Exception as e:
-            # Apple has no userinfo endpoint
             userinfo = {}
 
         authn_resp = self.client.parse_response(
