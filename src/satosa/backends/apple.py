@@ -76,10 +76,7 @@ class AppleBackend(BackendModule):
         """
         oidc_nonce = rndstr()
         oidc_state = rndstr()
-        state_data = {
-            NONCE_KEY: oidc_nonce,
-            STATE_KEY: oidc_state
-        }
+        state_data = {NONCE_KEY: oidc_nonce, STATE_KEY: oidc_state}
         context.state[self.name] = state_data
 
         args = {
@@ -88,7 +85,7 @@ class AppleBackend(BackendModule):
             "client_id": self.client.client_id,
             "redirect_uri": self.client.registration_response["redirect_uris"][0],
             "state": oidc_state,
-            "nonce": oidc_nonce
+            "nonce": oidc_nonce,
         }
         args.update(self.config["client"]["auth_req_params"])
         auth_req = self.client.construct_AuthorizationRequest(request_args=args)
@@ -104,7 +101,9 @@ class AppleBackend(BackendModule):
         :return: A list that can be used to map the request to SATOSA to this endpoint.
         """
         url_map = []
-        redirect_path = urlparse(self.config["client"]["client_metadata"]["redirect_uris"][0]).path
+        redirect_path = urlparse(
+            self.config["client"]["client_metadata"]["redirect_uris"][0]
+        ).path
         if not redirect_path:
             raise SATOSAError("Missing path in redirect uri")
 
@@ -122,10 +121,16 @@ class AppleBackend(BackendModule):
         """
         backend_state = context.state[self.name]
         if nonce != backend_state[NONCE_KEY]:
-            msg = "Missing or invalid nonce in authn response for state: {}".format(backend_state)
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            msg = "Missing or invalid nonce in authn response for state: {}".format(
+                backend_state
+            )
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg
+            )
             logger.debug(logline)
-            raise SATOSAAuthenticationError(context.state, "Missing or invalid nonce in authn response")
+            raise SATOSAAuthenticationError(
+                context.state, "Missing or invalid nonce in authn response"
+            )
 
     def _get_tokens(self, authn_response, context):
         """
@@ -142,14 +147,14 @@ class AppleBackend(BackendModule):
                 "client_secret": self.client.client_secret,
                 "code": authn_response["code"],
                 "grant_type": "authorization_code",
-                "redirect_uri": self.client.registration_response['redirect_uris'][0],
+                "redirect_uri": self.client.registration_response["redirect_uris"][0],
             }
 
             token_resp = requests.post(
                 "https://appleid.apple.com/auth/token",
                 data=args,
-                headers={"Content-Type": "application/x-www-form-urlencoded"}
-                ).json()
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            ).json()
 
             logger.debug("apple response received")
             logger.debug(token_resp)
@@ -157,7 +162,9 @@ class AppleBackend(BackendModule):
             self._check_error_response(token_resp, context)
 
             keyjar = self.client.keyjar
-            id_token_claims = dict(Message().from_jwt(token_resp["id_token"], keyjar=keyjar))
+            id_token_claims = dict(
+                Message().from_jwt(token_resp["id_token"], keyjar=keyjar)
+            )
 
             return token_resp["access_token"], id_token_claims
 
@@ -176,7 +183,9 @@ class AppleBackend(BackendModule):
                 error=response["error"],
                 description=response.get("error_description", ""),
             )
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg
+            )
             logger.debug(logline)
             raise SATOSAAuthenticationError(context.state, "Access denied")
 
@@ -192,24 +201,44 @@ class AppleBackend(BackendModule):
         :return:
         """
         backend_state = context.state[self.name]
-        authn_resp = self.client.parse_response(AuthorizationResponse, info=context.request, sformat="dict")
+
+        # Apple has no userinfo endpoint
+        # but may send some user information via POST in the first request.
+        #
+        # References:
+        # - https://developer.apple.com/documentation/sign_in_with_apple/sign_in_with_apple_rest_api/authenticating_users_with_sign_in_with_apple
+        # - https://developer.apple.com/documentation/sign_in_with_apple/namei
+        try:
+            userdata = context.request.get("user", "{}")
+            userinfo = json.load(userdata)
+        except Exception as e:
+            userinfo = {}
+
+        authn_resp = self.client.parse_response(
+            AuthorizationResponse, info=context.request, sformat="dict"
+        )
         if backend_state[STATE_KEY] != authn_resp["state"]:
-            msg = "Missing or invalid state in authn response for state: {}".format(backend_state)
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            msg = "Missing or invalid state in authn response for state: {}".format(
+                backend_state
+            )
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg
+            )
             logger.debug(logline)
-            raise SATOSAAuthenticationError(context.state, "Missing or invalid state in authn response")
+            raise SATOSAAuthenticationError(
+                context.state, "Missing or invalid state in authn response"
+            )
 
         self._check_error_response(authn_resp, context)
         access_token, id_token_claims = self._get_tokens(authn_resp, context)
         if not id_token_claims:
             id_token_claims = {}
 
-        # Apple has no userinfo endpoint
-        userinfo = {}
-
         if not id_token_claims and not userinfo:
             msg = "No id_token or userinfo, nothing to do.."
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg
+            )
             logger.error(logline)
             raise SATOSAAuthenticationError(context.state, "No user info available.")
 
@@ -218,7 +247,9 @@ class AppleBackend(BackendModule):
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.debug(logline)
         del context.state[self.name]
-        internal_resp = self._translate_response(all_user_claims, self.client.authorization_endpoint)
+        internal_resp = self._translate_response(
+            all_user_claims, self.client.authorization_endpoint
+        )
         return self.auth_callback_func(context, internal_resp)
 
     def _translate_response(self, response, issuer):
@@ -245,7 +276,9 @@ class AppleBackend(BackendModule):
         See satosa.backends.oauth.get_metadata_desc
         :rtype: satosa.metadata_creation.description.MetadataDescription
         """
-        return get_metadata_desc_for_oauth_backend(self.config["provider_metadata"]["issuer"], self.config)
+        return get_metadata_desc_for_oauth_backend(
+            self.config["provider_metadata"]["issuer"], self.config
+        )
 
 
 def _create_client(provider_metadata, client_metadata, verify_ssl=True):
@@ -258,15 +291,15 @@ def _create_client(provider_metadata, client_metadata, verify_ssl=True):
     :return: client instance to use for communicating with the configured provider
     :rtype: oic.oic.Client
     """
-    client = oic.Client(
-        client_authn_method=CLIENT_AUTHN_METHOD, verify_ssl=verify_ssl
-    )
+    client = oic.Client(client_authn_method=CLIENT_AUTHN_METHOD, verify_ssl=verify_ssl)
 
     # Provider configuration information
     if "authorization_endpoint" in provider_metadata:
         # no dynamic discovery necessary
-        client.handle_provider_config(ProviderConfigurationResponse(**provider_metadata),
-                                      provider_metadata["issuer"])
+        client.handle_provider_config(
+            ProviderConfigurationResponse(**provider_metadata),
+            provider_metadata["issuer"],
+        )
     else:
         # do dynamic discovery
         client.provider_config(provider_metadata["issuer"])
@@ -277,9 +310,12 @@ def _create_client(provider_metadata, client_metadata, verify_ssl=True):
         client.store_registration_info(RegistrationRequest(**client_metadata))
     else:
         # do dynamic registration
-        client.register(client.provider_info['registration_endpoint'],
-                        **client_metadata)
+        client.register(
+            client.provider_info["registration_endpoint"], **client_metadata
+        )
 
-    client.subject_type = (client.registration_response.get("subject_type") or
-                           client.provider_info["subject_types_supported"][0])
+    client.subject_type = (
+        client.registration_response.get("subject_type")
+        or client.provider_info["subject_types_supported"][0]
+    )
     return client
