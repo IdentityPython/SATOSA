@@ -286,10 +286,11 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             kwargs["scoping"] = Scoping(requester_id=[RequesterID(text=requester)])
 
         try:
-            acs_endp, response_binding = self.sp.config.getattr("endpoints", "sp")["assertion_consumer_service"][0]
+            acs_endp, response_binding = self._get_acs(context)
             relay_state = util.rndstr()
             req_id, binding, http_info = self.sp.prepare_for_negotiated_authenticate(
                 entityid=entity_id,
+                assertion_consumer_service_url=acs_endp,
                 response_binding=response_binding,
                 relay_state=relay_state,
                 **kwargs,
@@ -310,6 +311,28 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         context.state[self.name] = {"relay_state": relay_state}
         return make_saml_response(binding, http_info)
+
+    def _get_acs(self, context):
+        """Select the AssertionConsumerServiceURL and binding based on the request"""
+        acs_config = self.sp.config.getattr("endpoints", "sp")["assertion_consumer_service"]
+        try:
+            hostname = context.http_headers["HTTP_HOST"]
+            for acs, binding in acs_config:
+                parsed_acs = urlparse(acs)
+                if hostname == parsed_acs.netloc:
+                    msg = "Selected ACS '{}' based on the request".format(acs)
+                    logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                    logger.debug(logline)
+                    return acs, binding
+        except (TypeError, KeyError):
+            pass
+
+        msg = "Can't find an ACS URL to this hostname ({}), selecting the first one".format(
+            context.http_headers.get("HTTP_HOST", "") if context.http_headers else ""
+        )
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
+        return acs_config[0]
 
     def authn_response(self, context, binding):
         """
