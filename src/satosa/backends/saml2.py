@@ -84,6 +84,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
     KEY_SP_CONFIG = 'sp_config'
     KEY_SEND_REQUESTER_ID = 'send_requester_id'
     KEY_MIRROR_FORCE_AUTHN = 'mirror_force_authn'
+    KEY_IS_PASSIVE = 'is_passive'
     KEY_MEMORIZE_IDP = 'memorize_idp'
     KEY_USE_MEMORIZED_IDP_WHEN_FORCE_AUTHN = 'use_memorized_idp_when_force_authn'
 
@@ -284,6 +285,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         if self.config.get(SAMLBackend.KEY_SEND_REQUESTER_ID):
             requester = context.state.state_dict[STATE_KEY_BASE]['requester']
             kwargs["scoping"] = Scoping(requester_id=[RequesterID(text=requester)])
+        if self.config.get(SAMLBackend.KEY_IS_PASSIVE):
+            kwargs["is_passive"] = "true"
 
         try:
             acs_endp, response_binding = self.sp.config.getattr("endpoints", "sp")["assertion_consumer_service"][0]
