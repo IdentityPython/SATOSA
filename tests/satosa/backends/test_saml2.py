@@ -182,23 +182,37 @@ class TestSAMLBackend:
         assert context.state[self.samlbackend.name]["relay_state"] == req_params["RelayState"]
 
     @pytest.mark.parametrize("hostname", ["example.com:8443", "example.net"])
-    def test_dynamic_acs_selection(self, context, sp_conf, idp_conf, hostname):
-        new_acs_endpoints = [
+    @pytest.mark.parametrize(
+        "strat",
+        ["", "use_first_acs", "prefer_matching_host", "invalid"],
+    )
+    def test_acs_selection_strategy(self, context, sp_conf, idp_conf, hostname, strat):
+        acs_endpoints = [
+            ("https://example.com/saml2/acs/post", BINDING_HTTP_POST),
             ("https://example.net/saml2/acs/post", BINDING_HTTP_POST),
             ("https://example.com:8443/saml2/acs/post", BINDING_HTTP_POST),
         ]
-        sp_conf["service"]["sp"]["endpoints"]["assertion_consumer_service"].extend(
-            new_acs_endpoints
-        )
-        req = self._make_authn_request(hostname, context, sp_conf, idp_conf["entityid"])
-        assert urlparse(req.assertion_consumer_service_url).netloc == hostname
+        config = {"sp_config": sp_conf}
+        config["sp_config"]["service"]["sp"]["endpoints"][
+            "assertion_consumer_service"
+        ] = acs_endpoints
+        if strat:
+            config["acs_selection_strategy"] = strat
 
-    def _make_authn_request(self, http_host, context, sp_conf, entity_id):
+        req = self._make_authn_request(hostname, context, config, idp_conf["entityid"])
+
+        if strat == "prefer_matching_host":
+            expected_acs = hostname
+        else:
+            expected_acs = urlparse(acs_endpoints[0][0]).netloc
+        assert urlparse(req.assertion_consumer_service_url).netloc == expected_acs
+
+    def _make_authn_request(self, http_host, context, config, entity_id):
         context.http_headers = {"HTTP_HOST": http_host} if http_host else {}
         self.samlbackend = SAMLBackend(
             Mock(),
             INTERNAL_ATTRIBUTES,
-            {"sp_config": sp_conf},
+            config,
             "base_url",
             "samlbackend",
         )
@@ -211,13 +225,18 @@ class TestSAMLBackend:
     def test_unknown_or_no_hostname_selects_first_acs(
         self, context, sp_conf, idp_conf, hostname
     ):
-        sp_conf["service"]["sp"]["endpoints"]["assertion_consumer_service"] = (
+        config = {"sp_config": sp_conf}
+        config["sp_config"]["service"]["sp"]["endpoints"][
+            "assertion_consumer_service"
+        ] = (
             ("https://first-hostname/saml2/acs/post", BINDING_HTTP_POST),
             ("https://other-hostname/saml2/acs/post", BINDING_HTTP_POST),
         )
-        req = self._make_authn_request(hostname, context, sp_conf, idp_conf["entityid"])
+        config["acs_selection_strategy"] = "prefer_matching_host"
+        req = self._make_authn_request(hostname, context, config, idp_conf["entityid"])
         assert (
-            req.assertion_consumer_service_url == "https://first-hostname/saml2/acs/post"
+            req.assertion_consumer_service_url
+            == "https://first-hostname/saml2/acs/post"
         )
 
     def test_authn_response(self, context, idp_conf, sp_conf):
