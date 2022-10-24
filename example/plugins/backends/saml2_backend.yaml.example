@@ -64,8 +64,10 @@ config:
           - [<base_url>/<name>/acs/post, 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST']
           discovery_response:
           - [<base_url>/<name>/disco, 'urn:oasis:names:tc:SAML:profiles:SSO:idp-discovery-protocol']
-        name_id_format: 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient'
-        # A name_id_format of 'None' will cause the authentication request to not
-        # include a Format attribute in the NameIDPolicy.
-        # name_id_format: 'None'
+
+        # name_id_format: a list of strings to set the <NameIDFormat> element in SP metadata
+        # name_id_policy_format: a string to set the Format attribute in the NameIDPolicy element
+        # of the authentication request
+        # name_id_format_allow_create: sets the AllowCreate attribute in the NameIDPolicy element
+        # of the authentication request
         name_id_format_allow_create: true
