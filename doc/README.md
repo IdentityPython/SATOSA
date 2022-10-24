@@ -339,15 +339,25 @@ found [here](../example/plugins/backends/saml2_backend.yaml.example).
 
 #### Name ID Format
 
-The SAML backend can indicate which *Name ID* format it wants by specifying the key
-`name_id_format` in the SP entity configuration in the backend plugin configuration:
+The SAML backend has two ways to indicate which *Name ID* format it wants:
+* `name_id_format`: is a list of strings to set the `<NameIDFormat>` element in
+  SP metadata
+* `name_id_policy_format`: is a string to set the `Format` attribute in the
+  `<NameIDPolicy>` element in the authentication request.
+
+The default is to not set any of the above. Note that if the IdP can not
+provide the NameID in a format, which is requested in the `<NameIDPolicy>`, it
+must return an error.
 
  ```yaml
  config:
    sp_config:
      service:
        sp:
-        name_id_format: urn:oasis:names:tc:SAML:2.0:nameid-format:transient
+        name_id_format:
+        - urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+        - urn:oasis:names:tc:SAML:2.0:nameid-format:transient
+        name_id_policy_format: urn:oasis:names:tc:SAML:2.0:nameid-format:transient
  ```
 
 #### Use a discovery service
