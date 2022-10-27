@@ -207,7 +207,7 @@ class SATOSABase(object):
             context.state = state
             msg = "Loaded state {state} from cookie {cookie}".format(state=state, cookie=context.cookie)
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.info(logline)
+            logger.debug(logline)
 
     def _save_state(self, resp, context):
         """
