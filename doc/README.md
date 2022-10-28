@@ -6,7 +6,7 @@ This document describes how to install and configure the SATOSA proxy.
 
 ## Docker
 
-A pre-built Docker image is accessible at the [Docker Hub](https://hub.docker.com/r/satosa/), and is the
+A pre-built Docker image is accessible at the [Docker Hub](https://hub.docker.com/_/satosa), and is the
 recommended ways of running the proxy.
 
 ## Manual installation
@@ -30,7 +30,7 @@ apt-get install libffi-dev libssl-dev xmlsec1
    pip install <satosa_path>
    ```
 
-Alternatively the application can be installed directly from PyPI (`pip install satosa`), or the [Docker image](https://hub.docker.com/r/satosa/) can be used.
+Alternatively the application can be installed directly from PyPI (`pip install satosa`), or the [Docker image](https://hub.docker.com/_/satosa) can be used.
 
 
 # Configuration
