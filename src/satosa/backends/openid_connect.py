@@ -15,6 +15,7 @@ from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.settings import PyoidcSettings
 
 import satosa.logging_util as lu
+from satosa.context import Context, get_auth_req_params
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from .base import BackendModule
@@ -106,6 +107,7 @@ class OpenIDConnectBackend(BackendModule):
             "nonce": oidc_nonce
         }
         args.update(self.config["client"]["auth_req_params"])
+        args.update(get_auth_req_params(context))
         auth_req = self.client.construct_AuthorizationRequest(request_args=args)
         login_url = auth_req.request(self.client.authorization_endpoint)
         return Redirect(login_url)
