@@ -286,7 +286,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                     raise SATOSAAuthenticationError(context.state, msg)
 
         kwargs = {}
-        target_accr = context.state.get(Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF)
+        target_accr = context.state.get(Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF)\
+            or context.get_decoration(Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF)
         authn_context = self.construct_requested_authn_context(entity_id, target_accr=target_accr)
         if authn_context:
             kwargs["requested_authn_context"] = authn_context

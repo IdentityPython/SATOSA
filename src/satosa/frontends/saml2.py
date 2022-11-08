@@ -286,6 +286,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         )
         authn_context = [ref.text for ref in authn_context_class_ref_nodes]
         context.decorate(Context.KEY_AUTHN_CONTEXT_CLASS_REF, authn_context)
+        context.state[Context.KEY_AUTHN_CONTEXT_CLASS_REF] = authn_context
         context.decorate(Context.KEY_METADATA_STORE, self.idp.metadata)
         return self.auth_req_callback_func(context, internal_req)
 

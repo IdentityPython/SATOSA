@@ -48,7 +48,9 @@ class Context(object):
     KEY_SAML_IS_PASSIVE = 'is_passive'
     KEY_MEMORIZED_IDP = 'memorized_idp'
     KEY_REQUESTER_METADATA = 'requester_metadata'
+    # ACR list requested by SP/client
     KEY_AUTHN_CONTEXT_CLASS_REF = 'authn_context_class_ref'
+    # ACR list to be sent to backend
     KEY_TARGET_AUTHN_CONTEXT_CLASS_REF = 'target_authn_context_class_ref'
     KEY_AUTH_REQ_PARAMS = 'auth_req_params'
     KEY_PROMPT = 'prompt'
