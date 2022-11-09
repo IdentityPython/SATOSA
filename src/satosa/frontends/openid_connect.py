@@ -72,7 +72,7 @@ class OpenIDConnectFrontend(FrontendModule):
         )
 
         db_uri = self.config.get("db_uri")
-        self.stateless = StorageBase.type(db_uri) == "stateless"
+        self.stateless = db_uri and StorageBase.type(db_uri) == "stateless"
         self.user_db = (
             StorageBase.from_uri(db_uri, db_name="satosa", collection="authz_codes")
             if db_uri and not self.stateless
