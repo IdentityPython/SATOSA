@@ -5,7 +5,6 @@ a primary identifier or key for the user and assert it as
 the value for a configured attribute, for example uid.
 """
 
-import copy
 import logging
 import urllib.parse
 

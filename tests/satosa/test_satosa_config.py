@@ -3,7 +3,6 @@ import os
 from unittest.mock import mock_open, patch
 
 import pytest
-from satosa.exception import SATOSAConfigurationError
 
 from satosa.exception import SATOSAConfigurationError
 from satosa.satosa_config import SATOSAConfig

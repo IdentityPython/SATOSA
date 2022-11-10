@@ -1,7 +1,6 @@
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from satosa.micro_services.attribute_generation import AddSyntheticAttributes
-from satosa.exception import SATOSAAuthenticationError
 from satosa.context import Context
 
 class TestAddSyntheticAttributes:

@@ -1,7 +1,5 @@
 from unittest import TestCase
 
-import pytest
-
 from satosa.context import Context
 from satosa.internal import InternalData
 from satosa.state import State

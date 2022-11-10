@@ -11,9 +11,7 @@ from collections import UserDict
 from satosa.cookies import SimpleCookie
 from uuid import uuid4
 
-from lzma import LZMACompressor
-from lzma import LZMADecompressor
-from lzma import LZMAError
+from lzma import LZMACompressor, LZMADecompressor
 
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
