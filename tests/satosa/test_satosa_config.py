@@ -59,21 +59,13 @@ class TestSATOSAConfig:
         satosa_config_dict[modules_key] = ["/fake_file_path"]
         expected_config = {"foo": "bar"}
 
+        with pytest.raises(SATOSAConfigurationError):
+            SATOSAConfig(satosa_config_dict)
+
         with patch("builtins.open", mock_open(read_data=json.dumps(expected_config))):
             config = SATOSAConfig(satosa_config_dict)
 
         assert config[modules_key] == [expected_config]
-
-    @pytest.mark.parametrize("modules_key", [
-        "BACKEND_MODULES",
-        "FRONTEND_MODULES",
-        "MICRO_SERVICES"
-    ])
-    def test_can_read_endpoint_configs_from_file(self, satosa_config_dict, modules_key):
-        satosa_config_dict[modules_key] = ["/fake_file_path"]
-
-        with pytest.raises(SATOSAConfigurationError):
-            SATOSAConfig(satosa_config_dict)
 
     def test_can_substitute_from_environment_variable(self, monkeypatch):
         monkeypatch.setenv("SATOSA_COOKIE_STATE_NAME", "oatmeal_raisin")
