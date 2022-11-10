@@ -1,6 +1,7 @@
 """
 A reflector backend module for the satosa proxy
 """
+import base64
 from datetime import datetime
 
 from satosa.internal import AuthenticationInformation
@@ -74,7 +75,7 @@ class ReflectorBackend(BackendModule):
         """
         entity_descriptions = []
         description = MetadataDescription(
-            urlsafe_b64encode(ReflectorBackend.ENTITY_ID.encode("utf-8")).decode(
+            base64.urlsafe_b64encode(ReflectorBackend.ENTITY_ID.encode("utf-8")).decode(
                 "utf-8"
             )
         )
