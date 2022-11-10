@@ -3,11 +3,12 @@ import json
 import base64
 from urllib.parse import urlparse, urlencode, parse_qsl
 
+import mongomock
 import pytest
 from jwkest.jwk import rsa_load, RSAKey
 from jwkest.jws import JWS
 from oic.oic.message import ClaimsRequest, Claims
-from pyop.storage import MongoWrapper
+from pyop.storage import StorageBase
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.config import IdPConfig
 from werkzeug.test import Client
@@ -25,6 +26,7 @@ CLIENT_ID = "client1"
 CLIENT_SECRET = "secret"
 CLIENT_REDIRECT_URI = "https://client.example.com/cb"
 REDIRECT_URI = "https://client.example.com/cb"
+DB_URI = "mongodb://localhost/satosa"
 
 @pytest.fixture(scope="session")
 def client_db_path(tmpdir_factory):
@@ -45,7 +47,7 @@ def client_db_path(tmpdir_factory):
     return path
 
 @pytest.fixture
-def oidc_frontend_config(signing_key_path, mongodb_instance):
+def oidc_frontend_config(signing_key_path):
     data = {
         "module": "satosa.frontends.openid_connect.OpenIDConnectFrontend",
         "name": "OIDCFrontend",
@@ -53,16 +55,9 @@ def oidc_frontend_config(signing_key_path, mongodb_instance):
             "issuer": "https://proxy-op.example.com",
             "signing_key_path": signing_key_path,
             "provider": {"response_types_supported": ["id_token"]},
-            "client_db_uri": mongodb_instance.get_uri(),  # use mongodb for integration testing
-            "db_uri": mongodb_instance.get_uri()  # use mongodb for integration testing
+            "client_db_uri": DB_URI,  # use mongodb for integration testing
+            "db_uri": DB_URI  # use mongodb for integration testing
         }
-    }
-
-    # insert client in mongodb
-    cdb = MongoWrapper(mongodb_instance.get_uri(), "satosa", "clients")
-    cdb[CLIENT_ID] = {
-        "redirect_uris": [REDIRECT_URI],
-        "response_types": ["id_token"]
     }
 
     return data
@@ -87,8 +82,20 @@ def oidc_stateless_frontend_config(signing_key_path, client_db_path):
     return data
 
 
+@mongomock.patch(servers=(('localhost', 27017),))
 class TestOIDCToSAML:
+    def _client_setup(self):
+        """Insert client in mongodb."""
+        self._cdb = StorageBase.from_uri(
+            DB_URI, db_name="satosa", collection="clients", ttl=None
+        )
+        self._cdb[CLIENT_ID] = {
+            "redirect_uris": [REDIRECT_URI],
+            "response_types": ["id_token"]
+        }
+
     def test_full_flow(self, satosa_config_dict, oidc_frontend_config, saml_backend_config, idp_conf):
+        self._client_setup()
         subject_id = "testuser1"
 
         # proxy config

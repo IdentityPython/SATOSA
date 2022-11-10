@@ -1,6 +1,7 @@
 import glob
 import os
 
+import mongomock
 import pytest
 from saml2.config import Config
 from saml2.mdstore import MetaDataFile
@@ -10,7 +11,7 @@ from satosa.scripts.satosa_saml_metadata import create_and_write_saml_metadata
 
 
 @pytest.fixture
-def oidc_frontend_config(signing_key_path, mongodb_instance):
+def oidc_frontend_config(signing_key_path):
     data = {
         "module": "satosa.frontends.openid_connect.OpenIDConnectFrontend",
         "name": "OIDCFrontend",
@@ -23,6 +24,7 @@ def oidc_frontend_config(signing_key_path, mongodb_instance):
     return data
 
 
+@mongomock.patch(servers=(('localhost', 27017),))
 class TestConstructSAMLMetadata:
     def test_saml_saml(self, tmpdir, cert_and_key, satosa_config_dict, saml_frontend_config,
                        saml_backend_config):
