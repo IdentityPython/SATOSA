@@ -130,8 +130,6 @@ def satosa_config_dict(backend_plugin_config, frontend_plugin_config, request_mi
     config = {
         "BASE": BASE_URL,
         "COOKIE_STATE_NAME": "TEST_STATE",
-        "BACKEND_MODULES": ["foo"],
-        "FRONTEND_MODULES": ["bar"],
         "INTERNAL_ATTRIBUTES": {"attributes": {}},
         "STATE_ENCRYPTION_KEY": "state_encryption_key",
         "CUSTOM_PLUGIN_MODULE_PATHS": [os.path.dirname(__file__)],
@@ -190,12 +188,6 @@ def saml_frontend_config(cert_and_key, sp_conf):
         "config": {
             "idp_config": {
                 "entityid": "frontend-entity_id",
-                "organization": {"display_name": "Test Identities", "name": "Test Identities Org.",
-                                 "url": "http://www.example.com"},
-                "contact_person": [{"contact_type": "technical", "email_address": "technical@example.com",
-                                    "given_name": "Technical"},
-                                   {"contact_type": "support", "email_address": "support@example.com",
-                                    "given_name": "Support"}],
                 "service": {
                     "idp": {
                         "endpoints": {
