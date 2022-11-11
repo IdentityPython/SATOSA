@@ -557,7 +557,7 @@ class TestOpenIDConnectFrontend(object):
         frontend_with_extra_scopes.auth_req_callback_func = mock_callback
         # discovery
         http_response = frontend_with_extra_scopes.provider_config(context)
-        provider_config = ProviderConfigurationResponse().deserialize(http_response.message, "json")
+        _ = ProviderConfigurationResponse().deserialize(http_response.message, "json")
 
         # client registration
         registration_request = RegistrationRequest(redirect_uris=[redirect_uri], response_types=[response_type])

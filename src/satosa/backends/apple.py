@@ -210,7 +210,7 @@ class AppleBackend(BackendModule):
         try:
             userdata = context.request.get("user", "{}")
             userinfo = json.load(userdata)
-        except Exception as e:
+        except Exception:
             userinfo = {}
 
         authn_resp = self.client.parse_response(

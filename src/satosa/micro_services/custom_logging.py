@@ -39,7 +39,7 @@ class CustomLoggingService(ResponseMicroService):
         try:
             spEntityID = context.state.state_dict['SATOSA_BASE']['requester']
             idpEntityID = data.auth_info.issuer
-        except KeyError as err:
+        except KeyError:
             msg = "{} Unable to determine the entityID's for the IdP or SP".format(logprefix)
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
@@ -70,8 +70,6 @@ class CustomLoggingService(ResponseMicroService):
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             return super().process(context, data)
-
-        record = None
 
         try:
             msg = "{} Using context {}".format(logprefix, context)

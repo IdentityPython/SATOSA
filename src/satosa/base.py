@@ -200,7 +200,7 @@ class SATOSABase(object):
                 self.config["COOKIE_STATE_NAME"],
                 self.config["STATE_ENCRYPTION_KEY"],
             )
-        except SATOSAStateError as e:
+        except SATOSAStateError:
             state = State()
         finally:
             context.state = state
