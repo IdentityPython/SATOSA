@@ -424,6 +424,26 @@ config:
   [...]
 ```
 
+#### Assertion Consumer Service selection
+
+When SATOSA sends the SAML2 authentication request to the IDP, it always
+specifies the AssertionConsumerServiceURL and binding. When
+`acs_selection_strategy` configuration option is set to `use_first_acs` (the
+default), then the first element of the `assertion_consumer_service` list will
+be selected. If `acs_selection_strategy` is `prefer_matching_host`, then SATOSA
+will try to select the `assertion_consumer_service`, which matches the host in
+the HTTP request (in simple words, it tries to select an ACS that matches the
+URL in the user's browser). If there is no match, it will fall back to using the
+first assertion consumer service.
+
+Default value: `use_first_acs`.
+
+```yaml
+config:
+  acs_selection_strategy: prefer_matching_host
+  [...]
+```
+
 ## OpenID Connect plugins
 
 ### OIDC Frontend

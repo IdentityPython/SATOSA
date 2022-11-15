@@ -16,6 +16,7 @@ config:
   use_memorized_idp_when_force_authn: no
   send_requester_id: no
   enable_metadata_reload: no
+  acs_selection_strategy: prefer_matching_host
 
   sp_config:
     name: "SP Name"

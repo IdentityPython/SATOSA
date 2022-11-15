@@ -289,10 +289,11 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             kwargs["is_passive"] = "true"
 
         try:
-            acs_endp, response_binding = self.sp.config.getattr("endpoints", "sp")["assertion_consumer_service"][0]
+            acs_endp, response_binding = self._get_acs(context)
             relay_state = util.rndstr()
             req_id, binding, http_info = self.sp.prepare_for_negotiated_authenticate(
                 entityid=entity_id,
+                assertion_consumer_service_url=acs_endp,
                 response_binding=response_binding,
                 relay_state=relay_state,
                 **kwargs,
@@ -300,7 +301,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         except Exception as e:
             msg = "Failed to construct the AuthnRequest for state"
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.debug(logline, exc_info=True)
+            logger.error(logline, exc_info=True)
             raise SATOSAAuthenticationError(context.state, "Failed to construct the AuthnRequest") from e
 
         if self.sp.config.getattr('allow_unsolicited', 'sp') is False:
@@ -313,6 +314,58 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         context.state[self.name] = {"relay_state": relay_state}
         return make_saml_response(binding, http_info)
+
+    def _get_acs(self, context):
+        """
+        Select the AssertionConsumerServiceURL and binding.
+
+        :param context: The current context
+        :type context: satosa.context.Context
+        :return: Selected ACS URL and binding
+        :rtype: tuple(str, str)
+        """
+        acs_strategy = self.config.get("acs_selection_strategy", "use_first_acs")
+        if acs_strategy == "use_first_acs":
+            acs_strategy_fn = self._use_first_acs
+        elif acs_strategy == "prefer_matching_host":
+            acs_strategy_fn = self._prefer_matching_host
+        else:
+            msg = "Invalid value for '{}' ({}). Using the first ACS instead".format(
+                "acs_selection_strategy", acs_strategy
+            )
+            logger.error(msg)
+            acs_strategy_fn = self._use_first_acs
+        return acs_strategy_fn(context)
+
+    def _use_first_acs(self, context):
+        return self.sp.config.getattr("endpoints", "sp")["assertion_consumer_service"][
+            0
+        ]
+
+    def _prefer_matching_host(self, context):
+        acs_config = self.sp.config.getattr("endpoints", "sp")[
+            "assertion_consumer_service"
+        ]
+        try:
+            hostname = context.http_headers["HTTP_HOST"]
+            for acs, binding in acs_config:
+                parsed_acs = urlparse(acs)
+                if hostname == parsed_acs.netloc:
+                    msg = "Selected ACS '{}' based on the request".format(acs)
+                    logline = lu.LOG_FMT.format(
+                        id=lu.get_session_id(context.state), message=msg
+                    )
+                    logger.debug(logline)
+                    return acs, binding
+        except (TypeError, KeyError):
+            pass
+
+        msg = "Can't find an ACS URL to this hostname ({}), selecting the first one".format(
+            context.http_headers.get("HTTP_HOST", "") if context.http_headers else ""
+        )
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.debug(logline)
+        return self._use_first_acs(context)
 
     def authn_response(self, context, binding):
         """
