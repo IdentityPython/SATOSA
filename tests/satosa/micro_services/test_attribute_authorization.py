@@ -1,3 +1,4 @@
+import pytest
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from satosa.micro_services.attribute_authorization import AttributeAuthorization
@@ -25,7 +26,7 @@ class TestAttributeAuthorization:
            ctx = Context()
            ctx.state = dict()
            authz_service.process(ctx, resp)
-        except SATOSAAuthenticationError as ex:
+        except SATOSAAuthenticationError:
            assert False
 
     def test_authz_allow_fail(self):
@@ -38,13 +39,10 @@ class TestAttributeAuthorization:
         resp.attributes = {
             "a0": ["bar"],
         }
-        try:
+        with pytest.raises(SATOSAAuthenticationError):
            ctx = Context()
            ctx.state = dict()
            authz_service.process(ctx, resp)
-           assert False
-        except SATOSAAuthenticationError as ex:
-           assert True
 
     def test_authz_allow_second(self):
         attribute_allow = {
@@ -60,7 +58,7 @@ class TestAttributeAuthorization:
            ctx = Context()
            ctx.state = dict()
            authz_service.process(ctx, resp)
-        except SATOSAAuthenticationError as ex:
+        except SATOSAAuthenticationError:
            assert False
 
     def test_authz_deny_success(self):
@@ -73,13 +71,10 @@ class TestAttributeAuthorization:
         resp.attributes = {
             "a0": ["foo2"],
         }
-        try:
+        with pytest.raises(SATOSAAuthenticationError):
            ctx = Context()
            ctx.state = dict()
            authz_service.process(ctx, resp)
-           assert False
-        except SATOSAAuthenticationError as ex:
-           assert True
 
     def test_authz_deny_fail(self):
         attribute_deny = {
@@ -95,5 +90,5 @@ class TestAttributeAuthorization:
            ctx = Context()
            ctx.state = dict()
            authz_service.process(ctx, resp)
-        except SATOSAAuthenticationError as ex:
+        except SATOSAAuthenticationError:
            assert False

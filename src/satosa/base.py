@@ -9,7 +9,6 @@ from saml2.s_utils import UnknownSystemEntity
 
 from satosa import util
 from .context import Context
-from .exception import SATOSAConfigurationError
 from .exception import SATOSAError, SATOSAAuthenticationError, SATOSAUnknownError
 from .plugin_loader import load_backends, load_frontends
 from .plugin_loader import load_request_microservices, load_response_microservices
@@ -201,7 +200,7 @@ class SATOSABase(object):
                 self.config["COOKIE_STATE_NAME"],
                 self.config["STATE_ENCRYPTION_KEY"],
             )
-        except SATOSAStateError as e:
+        except SATOSAStateError:
             state = State()
         finally:
             context.state = state

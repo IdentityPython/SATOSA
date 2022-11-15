@@ -1,4 +1,4 @@
-from ..attribute_processor import AttributeProcessorError, AttributeProcessorWarning
+from ..attribute_processor import AttributeProcessorWarning
 from .base_processor import BaseProcessor
 
 class ScopeRemoverProcessor(BaseProcessor):

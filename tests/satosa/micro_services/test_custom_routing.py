@@ -5,11 +5,10 @@ import pytest
 
 from satosa.context import Context
 from satosa.state import State
-from satosa.exception import SATOSAError, SATOSAConfigurationError, SATOSAStateError
+from satosa.exception import SATOSAError, SATOSAConfigurationError
 from satosa.internal import InternalData
 from satosa.micro_services.custom_routing import DecideIfRequesterIsAllowed
 from satosa.micro_services.custom_routing import DecideBackendByTargetIssuer
-from satosa.micro_services.custom_routing import CustomRoutingError
 
 
 TARGET_ENTITY = "entity1"

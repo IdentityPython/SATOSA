@@ -173,10 +173,8 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
             raise ValueError("No configuration given")
 
         for key in required_keys:
-            try:
-                _val = config[key]
-            except KeyError as e:
-                raise ValueError("Missing configuration key: %s" % key) from e
+            if key not in config:
+                raise ValueError("Missing configuration key: %s" % key)
 
     def _handle_authn_request(self, context, binding_in, idp):
         """
@@ -630,7 +628,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
 
         try:
             return extensions[0]["display_name"]
-        except (IndexError, KeyError) as e:
+        except (IndexError, KeyError):
             pass
 
         return None

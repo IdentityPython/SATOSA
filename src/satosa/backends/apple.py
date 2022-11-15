@@ -22,7 +22,6 @@ from .oauth import get_metadata_desc_for_oauth_backend
 from ..exception import SATOSAAuthenticationError, SATOSAError
 from ..response import Redirect
 
-import base64
 import json
 import requests
 
@@ -211,7 +210,7 @@ class AppleBackend(BackendModule):
         try:
             userdata = context.request.get("user", "{}")
             userinfo = json.load(userdata)
-        except Exception as e:
+        except Exception:
             userinfo = {}
 
         authn_resp = self.client.parse_response(

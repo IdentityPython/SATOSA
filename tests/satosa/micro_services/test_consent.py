@@ -1,7 +1,7 @@
 import json
 import re
 from collections import Counter
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse
 
 import pytest
 import requests

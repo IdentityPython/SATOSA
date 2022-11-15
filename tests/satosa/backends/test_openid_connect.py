@@ -9,7 +9,7 @@ import pytest
 import responses
 from Cryptodome.PublicKey import RSA
 from jwkest.jwk import RSAKey
-from oic.oic.message import RegistrationRequest, IdToken
+from oic.oic.message import IdToken
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
 from satosa.backends.openid_connect import OpenIDConnectBackend, _create_client, STATE_KEY, NONCE_KEY

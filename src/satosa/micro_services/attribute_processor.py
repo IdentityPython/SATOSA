@@ -1,5 +1,4 @@
 import importlib
-import json
 import logging
 
 from satosa.exception import SATOSAError

@@ -1,8 +1,6 @@
 """
 Complete test for a SAML to SAML proxy.
 """
-import json
-
 from werkzeug.test import Client
 from werkzeug.wrappers import Response
 

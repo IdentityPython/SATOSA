@@ -66,7 +66,7 @@ class Consent(ResponseMicroService):
         except ConnectionError as e:
             msg = "Consent service is not reachable, no consent given."
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.error(logline)
+            logger.error(logline, exc_info=e)
             # Send an internal_response without any attributes
             consent_attributes = None
 
@@ -136,7 +136,7 @@ class Consent(ResponseMicroService):
         except requests.exceptions.ConnectionError as e:
             msg = "Consent service is not reachable, no consent is given."
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.error(logline)
+            logger.error(logline, exc_info=e)
             # Send an internal_response without any attributes
             internal_response.attributes = {}
             return self._end_consent(context, internal_response)
