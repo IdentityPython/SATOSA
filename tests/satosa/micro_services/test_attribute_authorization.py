@@ -44,6 +44,20 @@ class TestAttributeAuthorization:
            ctx.state = dict()
            authz_service.process(ctx, resp)
 
+    def test_authz_allow_missing(self):
+        attribute_allow = {
+           "": { "default": {"a0": ['foo1','foo2']} }
+        }
+        attribute_deny = {}
+        authz_service = self.create_authz_service(attribute_allow, attribute_deny)
+        resp = InternalData(auth_info=AuthenticationInformation())
+        resp.attributes = {
+        }
+        with pytest.raises(SATOSAAuthenticationError):
+           ctx = Context()
+           ctx.state = dict()
+           authz_service.process(ctx, resp)
+
     def test_authz_allow_second(self):
         attribute_allow = {
            "": { "default": {"a0": ['foo1','foo2']} }

@@ -53,6 +53,9 @@ structure above) are ORed together - i.e any attribute match is sufficient.
             if attribute_name in attributes:
                 if not any([any(filter(re.compile(af).search, attributes[attribute_name])) for af in attribute_filters]):
                     raise SATOSAAuthenticationError(context.state, "Permission denied")
+            else:
+                raise SATOSAAuthenticationError(context.state, "Permission denied")
+
 
         for attribute_name, attribute_filters in get_dict_defaults(self.attribute_deny, requester, provider).items():
             if attribute_name in attributes:
