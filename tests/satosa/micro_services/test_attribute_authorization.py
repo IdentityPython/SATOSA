@@ -6,9 +6,23 @@ from satosa.exception import SATOSAAuthenticationError
 from satosa.context import Context
 
 class TestAttributeAuthorization:
-    def create_authz_service(self, attribute_allow, attribute_deny):
-        authz_service = AttributeAuthorization(config=dict(attribute_allow=attribute_allow,attribute_deny=attribute_deny), name="test_authz",
-                                               base_url="https://satosa.example.com")
+    def create_authz_service(
+        self,
+        attribute_allow,
+        attribute_deny,
+        force_attributes_presence_on_allow=False,
+        force_attributes_presence_on_deny=False,
+    ):
+        authz_service = AttributeAuthorization(
+            config=dict(
+                force_attributes_presence_on_allow=force_attributes_presence_on_allow,
+                force_attributes_presence_on_deny=force_attributes_presence_on_deny,
+                attribute_allow=attribute_allow,
+                attribute_deny=attribute_deny,
+            ),
+            name="test_authz",
+            base_url="https://satosa.example.com",
+        )
         authz_service.next = lambda ctx, data: data
         return authz_service
 
@@ -49,7 +63,7 @@ class TestAttributeAuthorization:
            "": { "default": {"a0": ['foo1','foo2']} }
         }
         attribute_deny = {}
-        authz_service = self.create_authz_service(attribute_allow, attribute_deny)
+        authz_service = self.create_authz_service(attribute_allow, attribute_deny, force_attributes_presence_on_allow=True)
         resp = InternalData(auth_info=AuthenticationInformation())
         resp.attributes = {
         }
