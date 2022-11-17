@@ -1,5 +1,25 @@
 # Changelog
 
+## 8.2.0 (2022-11-17)
+
+- attribute_authorization: new configuration options `force_attributes_presence_on_allow` and `force_attributes_presence_on_deny` to enforce attribute presence enforcement
+- saml2 backend: new configuration option `acs_selection_strategy` to support different ways of selecting an ACS URL
+- saml2 backend: new configuration option `is_passive` to set whether the discovery service is allowed to visibly interact with the user agent.
+- orcid backend: make the name claim optional
+- apple backend: retrieve the name of user when available.
+- openid_connect frontend: new configuration option `sub_mirror_subject` the set sub to mirror the subject identifier as received in the backend.
+- openid_connect frontend: check for empty `db_uri` before using it with a storage backend
+- attribute_generation: try to render mustach tempate only on string values
+- logging: move cookie state log to the debug level
+- chore: fix non-formatting flake8 changes
+- tests: remove dependency on actual MongoDB instance
+- build: update links for the Docker image on Docker Hub
+- docs: properly document the `name_id_format` and `name_id_policy_format` options
+- docs attribute_generation: correct example configuration
+- docs: fix mailing list link.
+- docs: fix typos and grammar
+
+
 ## 8.1.1 (2022-06-23)
 
 - OIDC frontend: Set minimum pyop version to v3.4.0 to ensure the needed methods are available
