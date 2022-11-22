@@ -9,6 +9,7 @@ from satosa.exception import SATOSAError, SATOSAConfigurationError
 from satosa.internal import InternalData
 from satosa.micro_services.custom_routing import DecideIfRequesterIsAllowed
 from satosa.micro_services.custom_routing import DecideBackendByTargetIssuer
+from satosa.micro_services.custom_routing import DecideBackendByRequester
 
 
 TARGET_ENTITY = "entity1"
@@ -200,5 +201,39 @@ class TestDecideBackendByTargetIssuer(TestCase):
         self.context.decorate(Context.KEY_TARGET_ENTITYID, 'mapped_idp.example.org')
         data = InternalData(requester='test_requester')
         data.requester = 'somebody else'
+        newctx, newdata = self.plugin.process(self.context, data)
+        assert newctx.target_backend == 'mapped_backend'
+
+
+class TestDecideBackendByRequester(TestCase):
+    def setUp(self):
+        context = Context()
+        context.state = State()
+
+        config = {
+            'requester_mapping': {
+                'test_requester': 'mapped_backend',
+            },
+        }
+
+        plugin = DecideBackendByRequester(
+            config=config,
+            name='test_decide_service',
+            base_url='https://satosa.example.org',
+        )
+        plugin.next = lambda ctx, data: (ctx, data)
+
+        self.config = config
+        self.context = context
+        self.plugin = plugin
+
+    def test_when_requester_is_not_mapped_skip(self):
+        data = InternalData(requester='other_test_requester')
+        newctx, newdata = self.plugin.process(self.context, data)
+        assert not newctx.target_backend
+
+    def test_when_requester_is_mapped_choose_mapping_backend(self):
+        data = InternalData(requester='test_requester')
+        data.requester = 'test_requester'
         newctx, newdata = self.plugin.process(self.context, data)
         assert newctx.target_backend == 'mapped_backend'
