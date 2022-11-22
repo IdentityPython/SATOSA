@@ -79,7 +79,7 @@ class DecideBackendByRequester(RequestMicroService):
         :param context: request context
         :param data: the internal request
         """
-        context.target_backend = self.requester_mapping[data.requester]
+        context.target_backend = self.requester_mapping.get(data.requester)
         return super().process(context, data)
 
 
