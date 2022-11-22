@@ -227,10 +227,24 @@ class TestDecideBackendByRequester(TestCase):
         self.context = context
         self.plugin = plugin
 
-    def test_when_requester_is_not_mapped_skip(self):
+    def test_when_requester_is_not_mapped_and_no_default_backend_skip(self):
         data = InternalData(requester='other_test_requester')
         newctx, newdata = self.plugin.process(self.context, data)
         assert not newctx.target_backend
+
+    def test_when_requester_is_not_mapped_choose_default_backend(self):
+        # override config to set default backend
+        self.config['default_backend'] = 'default_backend'
+        self.plugin = DecideBackendByRequester(
+            config=self.config,
+            name='test_decide_service',
+            base_url='https://satosa.example.org',
+        )
+        self.plugin.next = lambda ctx, data: (ctx, data)
+
+        data = InternalData(requester='other_test_requester')
+        newctx, newdata = self.plugin.process(self.context, data)
+        assert newctx.target_backend == 'default_backend'
 
     def test_when_requester_is_mapped_choose_mapping_backend(self):
         data = InternalData(requester='test_requester')
