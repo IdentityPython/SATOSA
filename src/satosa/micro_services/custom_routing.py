@@ -67,11 +67,13 @@ class DecideBackendByRequester(RequestMicroService):
         """
         Constructor.
         :param config: mapping from requester identifier to
-        backend module name under the key 'requester_mapping'
+        backend module name under the key 'requester_mapping'.
+        May also include default backend under key 'default_backend'.
         :type config: Dict[str, Dict[str, str]]
         """
         super().__init__(*args, **kwargs)
         self.requester_mapping = config['requester_mapping']
+        self.default_backend = config.get('default_backend')
 
     def process(self, context, data):
         """
@@ -79,7 +81,7 @@ class DecideBackendByRequester(RequestMicroService):
         :param context: request context
         :param data: the internal request
         """
-        context.target_backend = self.requester_mapping[data.requester]
+        context.target_backend = self.requester_mapping.get(data.requester) or self.default_backend
         return super().process(context, data)
 
 
