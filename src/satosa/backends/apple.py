@@ -76,8 +76,8 @@ class AppleBackend(OpenIDConnectBackend):
         # - https://developer.apple.com/documentation/sign_in_with_apple/namei
         try:
             userdata = context.request.get("user", "{}")
-            userinfo = json.load(userdata)
-        except Exception:
+            userinfo = json.loads(userdata)
+        except json.JSONDecodeError:
             userinfo = {}
 
         authn_resp = self.client.parse_response(
