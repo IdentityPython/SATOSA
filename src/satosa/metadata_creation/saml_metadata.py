@@ -154,3 +154,18 @@ def create_signed_entity_descriptor(entity_descriptor, security_context, valid_f
         raise ValueError("Could not construct valid EntityDescriptor tag")
 
     return xmldoc
+
+
+def create_entity_descriptor_metadata(entity_descriptor, valid_for=None):
+    """
+    :param entity_descriptor: the entity descriptor to create metadata for
+    :param valid_for: number of hours the metadata should be valid
+    :return: the EntityDescriptor metadata
+
+    :type entity_descriptor: saml2.md.EntityDescriptor]
+    :type valid_for: Optional[int]
+    """
+    if valid_for:
+        entity_descriptor.valid_until = in_a_while(hours=valid_for)
+
+    return str(entity_descriptor)
