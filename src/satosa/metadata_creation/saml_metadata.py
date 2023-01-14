@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def _create_entity_descriptor(entity_config):
-    cnf = Config().load(copy.deepcopy(entity_config))
+    cnf = entity_config if isinstance(entity_config,  Config) else Config().load(copy.deepcopy(entity_config))
     return entity_descriptor(cnf)
 
 
@@ -28,7 +28,7 @@ def _create_backend_metadata(backend_modules):
         if isinstance(plugin_module, SAMLBackend):
             logline = "Generating SAML backend '{}' metadata".format(plugin_module.name)
             logger.info(logline)
-            backend_metadata[plugin_module.name] = [_create_entity_descriptor(plugin_module.config["sp_config"])]
+            backend_metadata[plugin_module.name] = [_create_entity_descriptor(plugin_module.sp.config)]
 
     return backend_metadata
 
