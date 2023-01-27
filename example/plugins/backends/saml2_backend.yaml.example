@@ -27,6 +27,7 @@ config:
     contact_person:
     - {contact_type: technical, email_address: 'mailto:technical@example.com', given_name: Technical}
     - {contact_type: support, email_address: 'mailto:support@example.com', given_name: Support}
+    - {contact_type: other, email_address: 'mailto:security@example.com', given_name: Security, extension_attributes: {'xmlns:remd': 'http://refeds.org/metadata', 'remd:contactType': 'http://refeds.org/metadata/contactType/security'}}
 
     metadata:
       local: [idp.xml]
