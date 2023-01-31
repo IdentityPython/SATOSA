@@ -25,7 +25,14 @@ logger = logging.getLogger(__name__)
 _SESSION_ID_KEY = "SESSION_ID"
 
 
-def state_to_cookie(state, name, path, encryption_key):
+def state_to_cookie(state:str,
+                    name:str,
+                    path:str,
+                    encryption_key:str,
+                    domain:str=None,
+                    secure:bool=True,
+                    httponly:bool=True,
+                    max_age:str=""):
     """
     Saves a state to a cookie
 
@@ -41,15 +48,17 @@ def state_to_cookie(state, name, path, encryption_key):
     :param encryption_key: Key to encrypt the state information
     :return: A cookie
     """
-
     cookie_data = "" if state.delete else state.urlstate(encryption_key)
-
     cookie = SimpleCookie()
     cookie[name] = cookie_data
     cookie[name]["samesite"] = "None"
-    cookie[name]["secure"] = True
+    cookie[name]["secure"] = secure
+    if httponly:
+        cookie[name]["httponly"] = httponly
+    if domain:
+        cookie[name]["domain"] = domain
     cookie[name]["path"] = path
-    cookie[name]["max-age"] = 0 if state.delete else ""
+    cookie[name]["max-age"] = 0 if state.delete else max_age
 
     msg = "Saved state in cookie {name} with properties {props}".format(
         name=name, props=list(cookie[name].items())
@@ -60,7 +69,7 @@ def state_to_cookie(state, name, path, encryption_key):
     return cookie
 
 
-def cookie_to_state(cookie_str, name, encryption_key):
+def cookie_to_state(cookie_str:str, name:str, encryption_key:str):
     """
     Loads a state from a cookie
 
@@ -78,8 +87,7 @@ def cookie_to_state(cookie_str, name, encryption_key):
         cookie = SimpleCookie(cookie_str)
         state = State(cookie[name].value, encryption_key)
     except KeyError as e:
-        msg_tmpl = 'No cookie named {name} in {data}'
-        msg = msg_tmpl.format(name=name, data=cookie_str)
+        msg = f'No cookie named {name} in {cookie_str}'
         raise SATOSAStateError(msg) from e
     except ValueError as e:
         msg_tmpl = 'Failed to process {name} from {data}'
@@ -182,7 +190,9 @@ class State(UserDict):
 
         urlstate_data = {} if urlstate_data is None else urlstate_data
         if urlstate_data and not encryption_key:
-            raise ValueError("If an 'urlstate_data' is supplied 'encrypt_key' must be specified.")
+            raise ValueError(
+                "If an 'urlstate_data' is supplied 'encrypt_key' must be specified."
+            )
 
         if urlstate_data:
             try:
