@@ -39,9 +39,9 @@ class OpenIDConnectFrontend(FrontendModule):
     A OpenID Connect frontend module
     """
 
-    def __init__(self, auth_req_callback_func, internal_attributes, conf, base_url, name):
+    def __init__(self, auth_req_callback_func, logout_req_callback_func, internal_attributes, conf, base_url, name):
         self._validate_config(conf)
-        super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
+        super().__init__(auth_req_callback_func, logout_req_callback_func, internal_attributes, base_url, name)
 
         self.config = conf
         self.signing_key = RSAKey(key=rsa_load(conf["signing_key_path"]), use="sig", alg="RS256",
