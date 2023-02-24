@@ -951,9 +951,9 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
     KEY_ORGANIZATION = 'organization'
     KEY_ORGANIZATION_KEYS = ['display_name', 'name', 'url']
 
-    def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name):
+    def __init__(self, auth_req_callback_func, logout_req_callback, internal_attributes, config, base_url, name):
         self.has_multiple_backends = False
-        super().__init__(auth_req_callback_func, internal_attributes, config, base_url, name)
+        super().__init__(auth_req_callback_func, logout_req_callback, internal_attributes, config, base_url, name)
 
     def handle_authn_request(self, context, binding_in):
         """
