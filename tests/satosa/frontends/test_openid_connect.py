@@ -88,7 +88,8 @@ class TestOpenIDConnectFrontend(object):
 
     def create_frontend(self, frontend_config):
         # will use in-memory storage
-        instance = OpenIDConnectFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
+        instance = OpenIDConnectFrontend(lambda ctx, req: None, lambda ctx, req: None,
+                                         INTERNAL_ATTRIBUTES,
                                          frontend_config, BASE_URL, "oidc_frontend")
         instance.register_endpoints(["foo_backend"])
         return instance
@@ -98,6 +99,7 @@ class TestOpenIDConnectFrontend(object):
         internal_attributes_with_extra_scopes = copy.deepcopy(INTERNAL_ATTRIBUTES)
         internal_attributes_with_extra_scopes["attributes"].update(EXTRA_CLAIMS)
         instance = OpenIDConnectFrontend(
+            lambda ctx, req: None,
             lambda ctx, req: None,
             internal_attributes_with_extra_scopes,
             frontend_config_with_extra_scopes,
@@ -467,7 +469,7 @@ class TestOpenIDConnectFrontend(object):
 
     def test_token_endpoint_issues_refresh_tokens_if_configured(self, context, frontend_config, authn_req):
         frontend_config["provider"]["refresh_token_lifetime"] = 60 * 60 * 24 * 365
-        frontend = OpenIDConnectFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
+        frontend = OpenIDConnectFrontend(lambda ctx, req: None, lambda ctx, req: None, INTERNAL_ATTRIBUTES,
                                          frontend_config, BASE_URL, "oidc_frontend")
         frontend.register_endpoints(["test_backend"])
 
