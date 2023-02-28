@@ -16,10 +16,12 @@ class ReflectorBackend(BackendModule):
 
     ENTITY_ID = ORG_NAME = AUTH_CLASS_REF = SUBJECT_ID = "reflector"
 
-    def __init__(self, outgoing, internal_attributes, config, base_url, name):
+    def __init__(self, outgoing, logout, internal_attributes, config, base_url, name):
         """
         :type outgoing:
         (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
+        :type logout:
+
         :type internal_attributes: dict[str, dict[str, list[str] | str]]
         :type config: dict[str, Any]
         :type base_url: str
@@ -27,12 +29,14 @@ class ReflectorBackend(BackendModule):
 
         :param outgoing: Callback should be called by the module after
                                    the authorization in the backend is done.
+        :param logout: Callback should be called by the module after logout
+                                    in the backend is done.
         :param internal_attributes: Internal attribute map
         :param config: The module config
         :param base_url: base url of the service
         :param name: name of the plugin
         """
-        super().__init__(outgoing, internal_attributes, base_url, name)
+        super().__init__(outgoing, logout, internal_attributes, base_url, name)
 
     def start_auth(self, context, internal_req):
         """

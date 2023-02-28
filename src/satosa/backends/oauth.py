@@ -32,7 +32,7 @@ class _OAuthBackend(BackendModule):
     See satosa.backends.oauth.FacebookBackend.
     """
 
-    def __init__(self, outgoing, internal_attributes, config, base_url, name, external_type, user_id_attr):
+    def __init__(self, outgoing, logout, internal_attributes, config, base_url, name, external_type, user_id_attr):
         """
         :param outgoing: Callback should be called by the module after the authorization in the
         backend is done.
@@ -52,7 +52,7 @@ class _OAuthBackend(BackendModule):
         :type name: str
         :type external_type: str
         """
-        super().__init__(outgoing, internal_attributes, base_url, name)
+        super().__init__(outgoing, logout, internal_attributes, base_url, name)
         self.config = config
         self.redirect_url = "%s/%s" % (self.config["base_url"], self.config["authz_page"])
         self.external_type = external_type
@@ -190,11 +190,13 @@ class FacebookBackend(_OAuthBackend):
     """
     DEFAULT_GRAPH_ENDPOINT = "https://graph.facebook.com/v2.5/me"
 
-    def __init__(self, outgoing, internal_attributes, config, base_url, name):
+    def __init__(self, outgoing, logout, internal_attributes, config, base_url, name):
         """
         Constructor.
         :param outgoing: Callback should be called by the module after the authorization in the
         backend is done.
+        :param logout: Callback should be called by the module after the logout in the backend is
+        done.
         :param internal_attributes: Mapping dictionary between SATOSA internal attribute names and
         the names returned by underlying IdP's/OP's as well as what attributes the calling SP's and
         RP's expects namevice.
@@ -204,6 +206,8 @@ class FacebookBackend(_OAuthBackend):
 
         :type outgoing:
         (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
+        :type logout:
+        (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
         :type internal_attributes: dict[string, dict[str, str | list[str]]]
         :type config: dict[str, dict[str, str] | list[str] | str]
         :type base_url: str
@@ -211,7 +215,7 @@ class FacebookBackend(_OAuthBackend):
         """
         config.setdefault("response_type", "code")
         config["verify_accesstoken_state"] = False
-        super().__init__(outgoing, internal_attributes, config, base_url, name, "facebook", "id")
+        super().__init__(outgoing, logout, internal_attributes, config, base_url, name, "facebook", "id")
 
     def get_request_args(self, get_state=stateID):
         request_args = super().get_request_args(get_state=get_state)

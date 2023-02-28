@@ -33,7 +33,7 @@ class OpenIDConnectBackend(BackendModule):
     OIDC module
     """
 
-    def __init__(self, auth_callback_func, internal_attributes, config, base_url, name):
+    def __init__(self, auth_callback_func, logout_callback_func, internal_attributes, config, base_url, name):
         """
         OIDC backend module.
         :param auth_callback_func: Callback should be called by the module after the authorization
@@ -52,8 +52,9 @@ class OpenIDConnectBackend(BackendModule):
         :type base_url: str
         :type name: str
         """
-        super().__init__(auth_callback_func, internal_attributes, base_url, name)
+        super().__init__(auth_callback_func, logout_callback_func, internal_attributes, base_url, name)
         self.auth_callback_func = auth_callback_func
+        self.logout_callback_func = logout_callback_func
         self.config = config
         self.client = _create_client(
             config["provider_metadata"],
