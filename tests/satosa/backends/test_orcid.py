@@ -25,6 +25,7 @@ class TestOrcidBackend(object):
     def create_backend(self, internal_attributes, backend_config):
         self.orcid_backend = OrcidBackend(
             Mock(),
+            Mock(),
             internal_attributes,
             backend_config,
             backend_config["base_url"],
