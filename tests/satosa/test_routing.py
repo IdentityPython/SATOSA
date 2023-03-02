@@ -13,11 +13,11 @@ class TestModuleRouter:
     def create_router(self):
         backends = []
         for provider in BACKEND_NAMES:
-            backends.append(TestBackend(None, {"attributes": {}}, None, None, provider))
+            backends.append(TestBackend(None, None, {"attributes": {}}, None, None, provider))
 
         frontends = []
         for receiver in FRONTEND_NAMES:
-            frontends.append(TestFrontend(None, {"attributes": {}}, None, None, receiver))
+            frontends.append(TestFrontend(None, None, {"attributes": {}}, None, None, receiver))
 
         request_micro_service_name = "RequestService"
         response_micro_service_name = "ResponseService"
