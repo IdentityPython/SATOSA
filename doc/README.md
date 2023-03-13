@@ -78,8 +78,7 @@ bind_password: !ENVFILE LDAP_BIND_PASSWORD_FILE
 
 | Parameter name | Data type | Example value | Description |
 | -------------- | --------- | ------------- | ----------- |
-| `BASE` | string | `https://proxy.example.com` | The base url of the proxy. For the OIDC Frontend, this is used to set the issuer as well, and due to implementation constraints, avoid
-using trailing slashes in this case.  |
+| `BASE` | string | `https://proxy.example.com` | The base url of the proxy. For the OIDC Frontend, this is used to set the issuer as well, and due to implementation constraints, avoid using trailing slashes in this case.  |
 | `COOKIE_STATE_NAME` | string | `satosa_state` | name of the cookie SATOSA uses for preserving state between requests |
 | `CONTEXT_STATE_DELETE` | bool | `True` | controls whether SATOSA will delete the state cookie after receiving the authentication response from the upstream IdP|
 | `STATE_ENCRYPTION_KEY` | string | `52fddd3528a44157` | key used for encrypting the state cookie, will be overridden by the environment variable `SATOSA_STATE_ENCRYPTION_KEY` if it is set |
