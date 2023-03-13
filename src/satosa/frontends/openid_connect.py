@@ -4,6 +4,7 @@ A OpenID Connect frontend module for the satosa proxy
 
 import json
 import logging
+import os.path
 from collections import defaultdict
 from urllib.parse import urlencode, urlparse
 
@@ -172,7 +173,16 @@ class OpenIDConnectFrontend(FrontendModule):
         :rtype: list[(str, ((satosa.context.Context, Any) -> satosa.response.Response, Any))]
         :raise ValueError: if more than one backend is configured
         """
-        provider_config = ("^.well-known/openid-configuration$", self.provider_config)
+        # See https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig
+        # Unfortunately since the issuer is always `base_url` for all OIDC frontend instances,
+        # the discovery endpoint will be the same for every instance.
+        # This means that only one frontend will be usable for autodiscovery.
+        autoconf_path = ".well-known/openid-configuration"
+        base_path = urlparse(self.base_url).path.lstrip("/")
+        provider_config = (
+            "^{}$".format(os.path.join(base_path, autoconf_path)),
+            self.provider_config,
+        )
         jwks_uri = ("^{}/jwks$".format(self.endpoint_basepath), self.jwks)
 
         backend_name = None
@@ -193,35 +203,47 @@ class OpenIDConnectFrontend(FrontendModule):
 
         if backend_name:
             # if there is only one backend, include its name in the path so the default routing can work
-            auth_endpoint = "{}/{}/{}/{}".format(self.base_url, backend_name, self.name, AuthorizationEndpoint.url)
+            auth_endpoint = os.path.join(
+                self.base_url,
+                backend_name,
+                self.name,
+                AuthorizationEndpoint.url,
+            )
             self.provider.configuration_information["authorization_endpoint"] = auth_endpoint
             auth_path = urlparse(auth_endpoint).path.lstrip("/")
         else:
-            auth_path = "{}/{}".format(self.endpoint_basepath, AuthorizationEndpoint.url)
+            auth_path = os.path.join(self.endpoint_basepath, AuthorizationRequest.url)
 
         authentication = ("^{}$".format(auth_path), self.handle_authn_request)
         url_map = [provider_config, jwks_uri, authentication]
 
         if any("code" in v for v in self.provider.configuration_information["response_types_supported"]):
-            self.provider.configuration_information["token_endpoint"] = "{}/{}".format(
-                self.endpoint_baseurl, TokenEndpoint.url
+            self.provider.configuration_information["token_endpoint"] = os.path.join(
+                self.endpoint_baseurl,
+                TokenEndpoint.url,
             )
             token_endpoint = (
-                "^{}/{}".format(self.endpoint_basepath, TokenEndpoint.url), self.token_endpoint
+                "^{}".format(os.path.join(self.endpoint_basepath, TokenEndpoint.url)),
+                self.token_endpoint,
             )
             url_map.append(token_endpoint)
 
             self.provider.configuration_information["userinfo_endpoint"] = (
-                "{}/{}".format(self.endpoint_baseurl, UserinfoEndpoint.url)
+                os.path.join(self.endpoint_baseurl, UserinfoEndpoint.url)
             )
             userinfo_endpoint = (
-                "^{}/{}".format(self.endpoint_basepath, UserinfoEndpoint.url), self.userinfo_endpoint
+                "^{}".format(
+                    os.path.join(self.endpoint_basepath, UserinfoEndpoint.url)
+                ),
+                self.userinfo_endpoint,
             )
             url_map.append(userinfo_endpoint)
 
         if "registration_endpoint" in self.provider.configuration_information:
             client_registration = (
-                "^{}/{}".format(self.endpoint_basepath, RegistrationEndpoint.url),
+                "^{}".format(
+                    os.path.join(self.endpoint_basepath, RegistrationEndpoint.url)
+                ),
                 self.client_registration,
             )
             url_map.append(client_registration)
