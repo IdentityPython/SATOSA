@@ -204,10 +204,14 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         :type context: satosa.context.Context
         :type internal_req: satosa.internal.InternalData
-        :rtype:
+        :rtype: satosa.response.Response
         """
 
-        entity_id = self.get_idp_entity_id(context)
+        entity_id = internal_authn_resp["auth_info"]["issuer"]
+        if entity_id is None:
+            message = "Logout Failed"
+            status = "500 FAILED"
+            return Response(message=message, status=status)
         return self.logout_request(context, entity_id, internal_authn_resp)
 
     def disco_query(self, context):
