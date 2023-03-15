@@ -1,8 +1,11 @@
 import re
+import logging
 
 from .base import ResponseMicroService
+from ..context import Context
 from ..exception import SATOSAError
 
+logger = logging.getLogger(__name__)
 
 class AddStaticAttributes(ResponseMicroService):
     """
@@ -57,6 +60,14 @@ class FilterAttributeValues(ResponseMicroService):
 
                 if filter_type == "regexp":
                     filter_func = re.compile(filter_value).search
+                elif filter_type == "shibmdscope_match_scope":
+                    mdstore = context.get_decoration(Context.KEY_METADATA_STORE)
+                    md_scopes = list(mdstore.shibmd_scopes(target_provider,"idpsso_descriptor"))
+                    filter_func = lambda v: self._shibmdscope_match_scope(v, md_scopes)
+                elif filter_type == "shibmdscope_match_value":
+                    mdstore = context.get_decoration(Context.KEY_METADATA_STORE)
+                    md_scopes = list(mdstore.shibmd_scopes(target_provider,"idpsso_descriptor"))
+                    filter_func = lambda v: self._shibmdscope_match_value(v, md_scopes)
                 else:
                     raise SATOSAError("Unknown filter type")
 
@@ -65,3 +76,19 @@ class FilterAttributeValues(ResponseMicroService):
                         attributes[attribute] = list(filter(filter_func, attributes[attribute]))
                 elif attribute_name in attributes:
                     attributes[attribute_name] = list(filter(filter_func, attributes[attribute_name]))
+
+    def _shibmdscope_match_value(self, value, md_scopes):
+        for md_scope in md_scopes:
+            if not md_scope['regexp'] and md_scope['text'] == value:
+                return True
+            elif md_scope['regexp'] and re.compile(md_scope['text']).match(value):
+                return True
+        return False
+
+    def _shibmdscope_match_scope(self, value, md_scopes):
+        split_value = value.split('@')
+        if len(split_value) != 2:
+            logger.info(f"Discarding invalid scoped value {value}")
+            return False
+        value_scope = split_value[1]
+        return self._shibmdscope_match_value(value_scope, md_scopes)
