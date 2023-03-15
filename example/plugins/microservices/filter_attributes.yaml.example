@@ -6,10 +6,20 @@ config:
         "":
             # default rules for any requester
             "":
-                # enforce controlled vocabulary
+                # enforce controlled vocabulary (via simple notation)
                 eduPersonAffiliation: "^(faculty|student|staff|alum|member|affiliate|employee|library-walk-in)$"
                 eduPersonPrimaryAffiliation: "^(faculty|student|staff|alum|member|affiliate|employee|library-walk-in)$"
-                eduPersonScopedAffiliation: "^(faculty|student|staff|alum|member|affiliate|employee|library-walk-in)@"
+                eduPersonScopedAffiliation:
+                    # enforce controlled vocabulary (via extended notation)
+                    regexp: "^(faculty|student|staff|alum|member|affiliate|employee|library-walk-in)@"
+                    # enforce correct scope
+                    shibmdscope_match_scope:
+                eduPersonPrincipalName:
+                    # enforce correct scope
+                    shibmdscope_match_scope:
+                schacHomeOrganization:
+                    # enforce scoping rule on attribute value
+                    shibmdscope_match_value:
 
         target_provider1:
             requester1:
