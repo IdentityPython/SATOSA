@@ -1,6 +1,7 @@
 import re
 
 from .base import ResponseMicroService
+from ..exception import SATOSAError
 
 
 class AddStaticAttributes(ResponseMicroService):
@@ -40,17 +41,27 @@ class FilterAttributeValues(ResponseMicroService):
     def _apply_requester_filters(self, attributes, provider_filters, requester):
         # apply default requester filters
         default_requester_filters = provider_filters.get("", {})
-        self._apply_filter(attributes, default_requester_filters)
+        self._apply_filters(attributes, default_requester_filters)
 
         # apply requester specific filters
         requester_filters = provider_filters.get(requester, {})
-        self._apply_filter(attributes, requester_filters)
+        self._apply_filters(attributes, requester_filters)
 
-    def _apply_filter(self, attributes, attribute_filters):
-        for attribute_name, attribute_filter in attribute_filters.items():
-            regex = re.compile(attribute_filter)
-            if attribute_name == "":  # default filter for all attributes
-                for attribute, values in attributes.items():
-                    attributes[attribute] = list(filter(regex.search, attributes[attribute]))
-            elif attribute_name in attributes:
-                attributes[attribute_name] = list(filter(regex.search, attributes[attribute_name]))
+    def _apply_filters(self, attributes, attribute_filters):
+        for attribute_name, attribute_filters in attribute_filters.items():
+            if type(attribute_filters) == str:
+                # convert simple notation to filter list
+                attribute_filters = {'regexp': attribute_filters}
+
+            for filter_type, filter_value in attribute_filters.items():
+
+                if filter_type == "regexp":
+                    filter_func = re.compile(filter_value).search
+                else:
+                    raise SATOSAError("Unknown filter type")
+
+                if attribute_name == "":  # default filter for all attributes
+                    for attribute, values in attributes.items():
+                        attributes[attribute] = list(filter(filter_func, attributes[attribute]))
+                elif attribute_name in attributes:
+                    attributes[attribute_name] = list(filter(filter_func, attributes[attribute_name]))
