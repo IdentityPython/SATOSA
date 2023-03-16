@@ -3,7 +3,6 @@ An account linking module for the satosa proxy
 """
 import json
 import logging
-import os.path
 
 import requests
 from jwkest.jwk import rsa_load, RSAKey
@@ -13,6 +12,7 @@ from satosa.internal import InternalData
 from ..exception import SATOSAAuthenticationError
 from ..micro_services.base import ResponseMicroService
 from ..response import Redirect
+from ..util import join_paths
 
 import satosa.logging_util as lu
 logger = logging.getLogger(__name__)
@@ -165,8 +165,8 @@ class AccountLinking(ResponseMicroService):
         return [
             (
                 "^{}$".format(
-                    os.path.join(
-                        self.base_path, "account_linking", self.endpoint.lstrip("/")
+                    join_paths(
+                        self.base_path, "account_linking", self.endpoint
                     )
                 ),
                 self._handle_al_response,

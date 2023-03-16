@@ -89,3 +89,29 @@ def rndstr(size=16, alphabet=""):
     if not alphabet:
         alphabet = string.ascii_letters[0:52] + string.digits
     return type(alphabet)().join(rng.choice(alphabet) for _ in range(size))
+
+
+def join_paths(base, *paths):
+    """
+    Joins strings with a "/" separator, like they were path components, but
+    tries to avoid adding an unnecessary separator.  Note that the contents of
+    the strings are not sanitized in any way. If any of the components begins or
+    ends with a "/", the separator is not inserted, and any number of empty
+    strings at the beginning would not add a leading slash.  Any number of empty
+    strings at the end only add a single trailing slash.
+
+    Raises TypeError if any of the components are not strings.
+    """
+    sep = "/"
+
+    path = base
+    try:
+        for p in paths:
+            if not path or path.endswith(sep) or p.startswith(sep):
+                path += p
+            else:
+                path += sep + p
+    except (AttributeError, TypeError) as err:
+        raise TypeError("Arguments must be strings") from err
+
+    return path

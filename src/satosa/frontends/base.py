@@ -2,8 +2,8 @@
 Holds a base class for frontend modules used in the SATOSA proxy.
 """
 from ..attribute_mapping import AttributeMapper
+from ..util import join_paths
 
-import os.path
 from urllib.parse import urlparse
 
 
@@ -31,7 +31,7 @@ class FrontendModule(object):
         self.converter = AttributeMapper(internal_attributes)
         self.base_url = base_url or ""
         self.name = name
-        self.endpoint_baseurl = os.path.join(self.base_url, self.name)
+        self.endpoint_baseurl = join_paths(self.base_url, self.name)
         self.endpoint_basepath = urlparse(self.endpoint_baseurl).path.lstrip("/")
 
     def handle_authn_response(self, context, internal_resp):

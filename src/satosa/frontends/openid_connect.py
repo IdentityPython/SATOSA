@@ -4,7 +4,6 @@ A OpenID Connect frontend module for the satosa proxy
 
 import json
 import logging
-import os.path
 from collections import defaultdict
 from urllib.parse import urlencode, urlparse
 
@@ -38,7 +37,7 @@ from .base import FrontendModule
 from ..response import BadRequest, Created
 from ..response import SeeOther, Response
 from ..response import Unauthorized
-from ..util import rndstr
+from ..util import join_paths, rndstr
 
 import satosa.logging_util as lu
 from satosa.internal import InternalData
@@ -174,13 +173,14 @@ class OpenIDConnectFrontend(FrontendModule):
         :raise ValueError: if more than one backend is configured
         """
         # See https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig
-        # Unfortunately since the issuer is always `base_url` for all OIDC frontend instances,
-        # the discovery endpoint will be the same for every instance.
-        # This means that only one frontend will be usable for autodiscovery.
+        #
+        # We skip the scheme + host + port of the issuer URL, because we can only map the
+        # path for the provider config endpoint. We are safe to use urlparse().path here,
+        # because for issuer OIDC allows only https URLs without query and fragment parts.
+        issuer = self.provider.configuration_information["issuer"]
         autoconf_path = ".well-known/openid-configuration"
-        base_path = urlparse(self.base_url).path.lstrip("/")
         provider_config = (
-            "^{}$".format(os.path.join(base_path, autoconf_path)),
+            "^{}$".format(join_paths(urlparse(issuer).path.lstrip("/"), autoconf_path)),
             self.provider_config,
         )
         jwks_uri = ("^{}/jwks$".format(self.endpoint_basepath), self.jwks)
@@ -203,7 +203,7 @@ class OpenIDConnectFrontend(FrontendModule):
 
         if backend_name:
             # if there is only one backend, include its name in the path so the default routing can work
-            auth_endpoint = os.path.join(
+            auth_endpoint = join_paths(
                 self.base_url,
                 backend_name,
                 self.name,
@@ -212,28 +212,28 @@ class OpenIDConnectFrontend(FrontendModule):
             self.provider.configuration_information["authorization_endpoint"] = auth_endpoint
             auth_path = urlparse(auth_endpoint).path.lstrip("/")
         else:
-            auth_path = os.path.join(self.endpoint_basepath, AuthorizationRequest.url)
+            auth_path = join_paths(self.endpoint_basepath, AuthorizationRequest.url)
 
         authentication = ("^{}$".format(auth_path), self.handle_authn_request)
         url_map = [provider_config, jwks_uri, authentication]
 
         if any("code" in v for v in self.provider.configuration_information["response_types_supported"]):
-            self.provider.configuration_information["token_endpoint"] = os.path.join(
+            self.provider.configuration_information["token_endpoint"] = join_paths(
                 self.endpoint_baseurl,
                 TokenEndpoint.url,
             )
             token_endpoint = (
-                "^{}".format(os.path.join(self.endpoint_basepath, TokenEndpoint.url)),
+                "^{}".format(join_paths(self.endpoint_basepath, TokenEndpoint.url)),
                 self.token_endpoint,
             )
             url_map.append(token_endpoint)
 
             self.provider.configuration_information["userinfo_endpoint"] = (
-                os.path.join(self.endpoint_baseurl, UserinfoEndpoint.url)
+                join_paths(self.endpoint_baseurl, UserinfoEndpoint.url)
             )
             userinfo_endpoint = (
                 "^{}".format(
-                    os.path.join(self.endpoint_basepath, UserinfoEndpoint.url)
+                    join_paths(self.endpoint_basepath, UserinfoEndpoint.url)
                 ),
                 self.userinfo_endpoint,
             )
@@ -242,7 +242,7 @@ class OpenIDConnectFrontend(FrontendModule):
         if "registration_endpoint" in self.provider.configuration_information:
             client_registration = (
                 "^{}".format(
-                    os.path.join(self.endpoint_basepath, RegistrationEndpoint.url)
+                    join_paths(self.endpoint_basepath, RegistrationEndpoint.url)
                 ),
                 self.client_registration,
             )

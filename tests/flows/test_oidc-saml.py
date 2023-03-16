@@ -17,6 +17,7 @@ from werkzeug.wrappers import Response
 from satosa.metadata_creation.saml_metadata import create_entity_descriptors
 from satosa.proxy_server import make_app
 from satosa.satosa_config import SATOSAConfig
+from satosa.util import join_paths
 from tests.users import USERS
 from tests.users import OIDC_USERS
 from tests.util import FakeIdP
@@ -94,7 +95,7 @@ class TestOIDCToSAML:
 
     def _discover_provider(self, client, provider):
         discovery_path = (
-            os.path.join(urlparse(provider).path, ".well-known/openid-configuration")
+            join_paths(urlparse(provider).path, ".well-known/openid-configuration")
         )
         return json.loads(client.get(discovery_path).data.decode("utf-8"))
 

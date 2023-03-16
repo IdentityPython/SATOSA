@@ -4,7 +4,6 @@ A consent module for the satosa proxy
 import hashlib
 import json
 import logging
-import os.path
 from base64 import urlsafe_b64encode
 
 import requests
@@ -17,6 +16,7 @@ import satosa.logging_util as lu
 from satosa.internal import InternalData
 from satosa.micro_services.base import ResponseMicroService
 from satosa.response import Redirect
+from satosa.util import join_paths
 
 
 logger = logging.getLogger(__name__)
@@ -242,8 +242,8 @@ class Consent(ResponseMicroService):
         return [
             (
                 "^{}$".format(
-                    os.path.join(
-                        self.base_path, "consent", self.endpoint.lstrip("/")
+                    join_paths(
+                        self.base_path, "consent", self.endpoint
                     )
                 ),
                 self._handle_consent_response,
