@@ -81,7 +81,7 @@ class FilterAttributeValues(ResponseMicroService):
         for md_scope in md_scopes:
             if not md_scope['regexp'] and md_scope['text'] == value:
                 return True
-            elif md_scope['regexp'] and re.compile(md_scope['text']).match(value):
+            elif md_scope['regexp'] and re.fullmatch(md_scope['text'], value):
                 return True
         return False
 
