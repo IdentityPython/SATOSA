@@ -62,7 +62,8 @@ class OpenIDConnectFrontend(FrontendModule):
 
         self.config = conf
         provider_config = self.config["provider"]
-        provider_config["issuer"] = base_url
+        if not provider_config.get("issuer"):
+            provider_config["issuer"] = base_url
 
         self.signing_key = RSAKey(
             key=rsa_load(self.config["signing_key_path"]),
