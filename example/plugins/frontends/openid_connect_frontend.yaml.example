@@ -33,6 +33,11 @@ config:
   sub_hash_salt: randomSALTvalue
 
   provider:
+    # If you do not specify the issuer here, then BASE will be used as Issuer.
+    # Note that even though this setting must be specified as a full URL,
+    # provider discovery will only work, if the request can be routed back to
+    # SATOSA.
+    issuer: https://op.example.com/satosa/OIDC
     client_registration_supported: Yes
     response_types_supported: ["code", "id_token token"]
     subject_types_supported: ["pairwise"]

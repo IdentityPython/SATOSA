@@ -44,6 +44,7 @@ EXTRA_CLAIMS = {
 EXTRA_SCOPES = {
     "eduperson": ["eduperson_scoped_affiliation", "eduperson_principal_name"]
 }
+ISSUER = "https://other-op.example.com/satosa/other-op"
 
 class TestOpenIDConnectFrontend(object):
     @pytest.fixture
@@ -392,6 +393,16 @@ class TestOpenIDConnectFrontend(object):
         assert (
             "^{}/{}".format(frontend.endpoint_basepath, UserinfoEndpoint.url),
             frontend.userinfo_endpoint,
+        ) in urls
+
+    def test_discovery_endpoint_honours_issuer_override(self, frontend_config):
+        frontend_config["provider"]["issuer"] = ISSUER
+        frontend = self.create_frontend(frontend_config)
+        discovery_path = urlparse(ISSUER).path[1:]
+        urls = frontend.register_endpoints(["test"])
+        assert (
+            "^{}/{}$".format(discovery_path, ".well-known/openid-configuration"),
+            frontend.provider_config,
         ) in urls
 
     def test_register_endpoints_token_and_userinfo_endpoint_is_not_published_if_only_implicit_flow(
