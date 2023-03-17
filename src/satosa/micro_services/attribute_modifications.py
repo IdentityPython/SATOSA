@@ -62,11 +62,11 @@ class FilterAttributeValues(ResponseMicroService):
                     filter_func = re.compile(filter_value).search
                 elif filter_type == "shibmdscope_match_scope":
                     mdstore = context.get_decoration(Context.KEY_METADATA_STORE)
-                    md_scopes = list(mdstore.shibmd_scopes(target_provider,"idpsso_descriptor"))
+                    md_scopes = list(mdstore.shibmd_scopes(target_provider,"idpsso_descriptor")) if mdstore else []
                     filter_func = lambda v: self._shibmdscope_match_scope(v, md_scopes)
                 elif filter_type == "shibmdscope_match_value":
                     mdstore = context.get_decoration(Context.KEY_METADATA_STORE)
-                    md_scopes = list(mdstore.shibmd_scopes(target_provider,"idpsso_descriptor"))
+                    md_scopes = list(mdstore.shibmd_scopes(target_provider,"idpsso_descriptor")) if mdstore else []
                     filter_func = lambda v: self._shibmdscope_match_value(v, md_scopes)
                 else:
                     raise SATOSAError("Unknown filter type")
