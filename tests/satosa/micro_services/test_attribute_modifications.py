@@ -1,3 +1,5 @@
+import pytest
+from satosa.exception import SATOSAError
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from satosa.micro_services.attribute_modifications import FilterAttributeValues
@@ -116,3 +118,43 @@ class TestFilterAttributeValues:
         }
         filtered = filter_service.process(None, resp)
         assert filtered.attributes == {"a1": ["1:foo:bar:2"]}
+
+    def test_filter_one_attribute_from_all_target_providers_for_all_requesters_in_extended_notation(self):
+        attribute_filters = {
+            "": {
+                "": {
+                    "a2": {
+                        "regexp": "^foo:bar$"
+                    }
+                }
+            }
+        }
+        filter_service = self.create_filter_service(attribute_filters)
+
+        resp = InternalData(AuthenticationInformation())
+        resp.attributes = {
+            "a1": ["abc:xyz"],
+            "a2": ["foo:bar", "1:foo:bar:2"],
+        }
+        filtered = filter_service.process(None, resp)
+        assert filtered.attributes == {"a1": ["abc:xyz"], "a2": ["foo:bar"]}
+
+    def test_invalid_filter_type(self):
+        attribute_filters = {
+            "": {
+                "": {
+                    "a2": {
+                        "invalid_filter": None
+                    }
+                }
+            }
+        }
+        filter_service = self.create_filter_service(attribute_filters)
+
+        resp = InternalData(AuthenticationInformation())
+        resp.attributes = {
+            "a1": ["abc:xyz"],
+            "a2": ["foo:bar", "1:foo:bar:2"],
+        }
+        with pytest.raises(SATOSAError):
+            filtered = filter_service.process(None, resp)
