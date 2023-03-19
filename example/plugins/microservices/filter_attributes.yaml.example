@@ -17,6 +17,16 @@ config:
                 eduPersonPrincipalName:
                     # enforce correct scope
                     shibmdscope_match_scope:
+                subject-id:
+                    # enforce attribute syntax
+                    regexp: "^[0-9A-Za-z][-=0-9A-Za-z]{0,126}@[0-9A-Za-z][-.0-9A-Za-z]{0,126}\\Z"
+                    # enforce correct scope
+                    shibmdscope_match_scope:
+                pairwise-id:
+                    # enforce attribute syntax
+                    regexp: "^[0-9A-Za-z][-=0-9A-Za-z]{0,126}@[0-9A-Za-z][-.0-9A-Za-z]{0,126}\\Z"
+                    # enforce correct scope
+                    shibmdscope_match_scope:
                 schacHomeOrganization:
                     # enforce scoping rule on attribute value
                     shibmdscope_match_value:
