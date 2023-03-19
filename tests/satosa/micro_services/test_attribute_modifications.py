@@ -304,6 +304,7 @@ class TestFilterAttributeValues:
 
         mdstore = MetadataStore(None, Config())
         mdstore.imp(self.create_idp_metadata_conf_with_shibmd_scopes(idp_entityid, ["[^.]*\.foo\.bar$"]))
+        # mark scope as regexp (cannot be done via pysaml2 YAML config)
         mdstore[idp_entityid]['idpsso_descriptor'][0]['extensions']['extension_elements'][0]['regexp'] = 'true'
         ctx = Context()
         ctx.decorate(Context.KEY_METADATA_STORE, mdstore)
