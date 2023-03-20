@@ -28,6 +28,7 @@ CLIENT_SECRET = "secret"
 CLIENT_REDIRECT_URI = "https://client.example.com/cb"
 REDIRECT_URI = "https://client.example.com/cb"
 DB_URI = "mongodb://localhost/satosa"
+EXTRA_ISSUER = "https://other-op.example.com/satosa/other/op"
 
 @pytest.fixture(scope="session")
 def client_db_path(tmpdir_factory):
@@ -104,6 +105,7 @@ class TestOIDCToSAML:
         subject_id = "testuser1"
 
         # proxy config
+        oidc_frontend_config["config"]["provider"]["issuer"] = EXTRA_ISSUER
         satosa_config_dict["FRONTEND_MODULES"] = [oidc_frontend_config]
         satosa_config_dict["BACKEND_MODULES"] = [saml_backend_config]
         satosa_config_dict["INTERNAL_ATTRIBUTES"]["attributes"] = {attr_name: {"openid": [attr_name],
@@ -115,7 +117,7 @@ class TestOIDCToSAML:
         test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), Response)
 
         # get frontend OP config info
-        issuer = satosa_config_dict["BASE"]
+        issuer = EXTRA_ISSUER
         provider_config = self._discover_provider(test_client, issuer)
 
         # create auth req
