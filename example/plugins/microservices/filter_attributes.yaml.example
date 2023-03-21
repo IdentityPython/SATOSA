@@ -2,6 +2,35 @@ module: satosa.micro_services.attribute_modifications.FilterAttributeValues
 name: AttributeFilter
 config:
     attribute_filters:
+        # default rules for any IdentityProvider
+        "":
+            # default rules for any requester
+            "":
+                # enforce controlled vocabulary (via simple notation)
+                eduPersonAffiliation: "^(faculty|student|staff|alum|member|affiliate|employee|library-walk-in)$"
+                eduPersonPrimaryAffiliation: "^(faculty|student|staff|alum|member|affiliate|employee|library-walk-in)$"
+                eduPersonScopedAffiliation:
+                    # enforce controlled vocabulary (via extended notation)
+                    regexp: "^(faculty|student|staff|alum|member|affiliate|employee|library-walk-in)@"
+                    # enforce correct scope
+                    shibmdscope_match_scope:
+                eduPersonPrincipalName:
+                    # enforce correct scope
+                    shibmdscope_match_scope:
+                subject-id:
+                    # enforce attribute syntax
+                    regexp: "^[0-9A-Za-z][-=0-9A-Za-z]{0,126}@[0-9A-Za-z][-.0-9A-Za-z]{0,126}\\Z"
+                    # enforce correct scope
+                    shibmdscope_match_scope:
+                pairwise-id:
+                    # enforce attribute syntax
+                    regexp: "^[0-9A-Za-z][-=0-9A-Za-z]{0,126}@[0-9A-Za-z][-.0-9A-Za-z]{0,126}\\Z"
+                    # enforce correct scope
+                    shibmdscope_match_scope:
+                schacHomeOrganization:
+                    # enforce scoping rule on attribute value
+                    shibmdscope_match_value:
+
         target_provider1:
             requester1:
                 attr1: "^foo:bar$"
