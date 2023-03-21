@@ -21,6 +21,7 @@ from saml2.s_utils import deflate_and_base64_encode
 
 from satosa.backends.saml2 import SAMLBackend
 from satosa.context import Context
+from satosa.exception import SATOSAAuthenticationError
 from satosa.internal import InternalData
 from tests.users import USERS
 from tests.util import FakeIdP, create_metadata_from_config_dict, FakeSP
@@ -241,13 +242,11 @@ class TestSAMLBackend:
 
     def test_authn_response(self, context, idp_conf, sp_conf):
         response_binding = BINDING_HTTP_REDIRECT
-        fakesp = FakeSP(SPConfig().load(sp_conf))
-        fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf))
-        destination, request_params = fakesp.make_auth_req(idp_conf["entityid"])
-        url, auth_resp = fakeidp.handle_auth_req(request_params["SAMLRequest"], request_params["RelayState"],
-                                                 BINDING_HTTP_REDIRECT,
-                                                 "testuser1", response_binding=response_binding)
-
+        request_params, auth_resp = self._perform_request_response(
+            idp_conf,
+            sp_conf,
+            response_binding
+        )
         context.request = auth_resp
         context.state[self.samlbackend.name] = {"relay_state": request_params["RelayState"]}
         self.samlbackend.authn_response(context, response_binding)
@@ -256,29 +255,53 @@ class TestSAMLBackend:
         assert_authn_response(internal_resp)
         assert self.samlbackend.name not in context.state
 
+    def _perform_request_response(
+        self, idp_conf, sp_conf, response_binding, receive_nameid=True
+    ):
+        fakesp = FakeSP(SPConfig().load(sp_conf))
+        fakeidp = FakeIdP(USERS, config=IdPConfig().load(idp_conf))
+        destination, request_params = fakesp.make_auth_req(idp_conf["entityid"])
+        auth_resp_func = (
+            fakeidp.handle_auth_req
+            if receive_nameid
+            else fakeidp.handle_auth_req_no_name_id
+        )
+        url, auth_resp = auth_resp_func(
+            request_params["SAMLRequest"],
+            request_params["RelayState"],
+            BINDING_HTTP_REDIRECT,
+            "testuser1",
+            response_binding=response_binding,
+        )
+
+        return request_params, auth_resp
+
+    def test_no_relay_state_raises_error(self, context, idp_conf, sp_conf):
+        response_binding = BINDING_HTTP_REDIRECT
+        request_params, auth_resp = self._perform_request_response(
+            idp_conf,
+            sp_conf,
+            response_binding
+        )
+        context.request = auth_resp
+        # not setting context.state[self.samlbackend.name] to simulate a request
+        # without a session id
+
+        with pytest.raises(SATOSAAuthenticationError):
+            self.samlbackend.authn_response(context, response_binding)
+
     @pytest.mark.skipif(
             saml2.__version__ < '4.6.1',
             reason="Optional NameID needs pysaml2 v4.6.1 or higher")
     def test_authn_response_no_name_id(self, context, idp_conf, sp_conf):
         response_binding = BINDING_HTTP_REDIRECT
 
-        fakesp_conf = SPConfig().load(sp_conf)
-        fakesp = FakeSP(fakesp_conf)
-
-        fakeidp_conf = IdPConfig().load(idp_conf)
-        fakeidp = FakeIdP(USERS, config=fakeidp_conf)
-
-        destination, request_params = fakesp.make_auth_req(
-            idp_conf["entityid"])
-
-        # Use the fake IdP to mock up an authentication request that has no
-        # <NameID> element.
-        url, auth_resp = fakeidp.handle_auth_req_no_name_id(
-            request_params["SAMLRequest"],
-            request_params["RelayState"],
-            BINDING_HTTP_REDIRECT,
-            "testuser1",
-            response_binding=response_binding)
+        request_params, auth_resp = self._perform_request_response(
+            idp_conf,
+            sp_conf,
+            response_binding,
+            receive_nameid=False,
+        )
 
         backend = self.samlbackend
 

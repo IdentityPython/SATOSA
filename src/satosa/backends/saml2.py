@@ -404,11 +404,18 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             del self.outstanding_queries[req_id]
 
         # check if the relay_state matches the cookie state
-        if context.state[self.name]["relay_state"] != context.request["RelayState"]:
-            msg = "State did not match relay state for state"
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.debug(logline)
-            raise SATOSAAuthenticationError(context.state, "State did not match relay state")
+        try:
+            if context.state[self.name]["relay_state"] != context.request["RelayState"]:
+                msg = "State did not match relay state for state"
+                logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                logger.debug(logline)
+                raise SATOSAAuthenticationError(context.state, "State did not match relay state")
+        except KeyError:
+            raise SATOSAAuthenticationError(
+                context.state,
+                "Unable to verify the relay state; the request initiation address may not match "
+                "the ACS address",
+            )
 
         context.decorate(Context.KEY_METADATA_STORE, self.sp.metadata)
         if self.config.get(SAMLBackend.KEY_MEMORIZE_IDP):
