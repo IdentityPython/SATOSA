@@ -418,7 +418,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             logger.info(logline)
             raise SATOSAMissingStateError(msg)
 
-        if not context.request.get("SAMLResponse"):
+        samlresponse = context.request.get("SAMLResponse")
+        if not samlresponse:
             msg = {
                 "message": "Authentication failed",
                 "error": "SAML Response not found in context.request",
@@ -429,9 +430,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         try:
             authn_response = self.sp.parse_authn_request_response(
-                context.request["SAMLResponse"],
-                binding,
-                outstanding=self.outstanding_queries,
+                samlresponse, binding, outstanding=self.outstanding_queries
             )
         except Exception as e:
             msg = {
@@ -456,7 +455,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             del self.outstanding_queries[req_id]
 
         # check if the relay_state matches the cookie state
-        if context.state[self.name]["relay_state"] != context.request["RelayState"]:
+        if context.state[self.name].get("relay_state") != context.request["RelayState"]:
             msg = {
                 "message": "Authentication failed",
                 "error": "Response state query param did not match relay state for request",
