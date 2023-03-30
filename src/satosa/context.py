@@ -15,12 +15,11 @@ def get_prompt_list(context):
 
 def prompt_to_saml_param(context, saml_param):
     prompt_list = get_prompt_list(context)
-    if saml_param == Context.KEY_SAML_IS_PASSIVE:
-        return "none" in prompt_list
-    # there is no standard way to force only account selection in SAML, force new login instead
-    if saml_param == Context.KEY_SAML_FORCE_AUTHN:
-        return "select_account" in prompt_list or "login" in prompt_list
-
+    prompt_mapping = context.state.get(Context.KEY_PROMPT_TO_SAML_PARAM)
+    for p, s in prompt_mapping.items():
+        if s == saml_param and p in prompt_list:
+            return True
+    return False
 
 def add_prompt_to_context(context, prompt_value):
     state_auth_req_params = context.state.get(Context.KEY_AUTH_REQ_PARAMS) or {}
@@ -54,6 +53,7 @@ class Context(object):
     KEY_TARGET_AUTHN_CONTEXT_CLASS_REF = 'target_authn_context_class_ref'
     KEY_AUTH_REQ_PARAMS = 'auth_req_params'
     KEY_PROMPT = 'prompt'
+    KEY_PROMPT_TO_SAML_PARAM = 'prompt_to_saml_param'
 
     def __init__(self):
         self._path = None

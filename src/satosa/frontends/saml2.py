@@ -224,9 +224,9 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         logger.debug(logline)
 
         # keep prompt-like values (ForceAuthn and IsPassive) to be used by plugins
-        if getattr(authn_req, Context.KEY_SAML_FORCE_AUTHN):
+        if getattr(authn_req, Context.KEY_SAML_FORCE_AUTHN) in ["1", "true"]:
             add_prompt_to_context(context, "login")
-        if getattr(authn_req, Context.KEY_SAML_IS_PASSIVE):
+        if getattr(authn_req, Context.KEY_SAML_IS_PASSIVE) in ["1", "true"]:
             add_prompt_to_context(context, "none")
 
         try:
@@ -1255,3 +1255,4 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         # authentication request dynamically create an IdP instance.
         self.idp = self._create_co_virtual_idp(context, co_name=co_name)
         return super()._metadata_endpoint(context=context);
+
