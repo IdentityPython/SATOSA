@@ -43,6 +43,18 @@ class TestCreateEntityDescriptors:
                 expected_url = "{}/{}/{}/{}".format(BASE_URL, backend_name, encoded_target_entity_id, path)
                 assert expected_url in sso_urls_for_binding
 
+    def assert_single_logout_endpoints_for_saml_frontend(self, entity_descriptor, saml_frontend_config, backend_names):
+        metadata = InMemoryMetaData(None, str(entity_descriptor))
+        metadata.load()
+        slo = metadata.service(saml_frontend_config["config"]["idp_config"]["entityid"], "idpsso_descriptor",
+                               "single_logout_service")
+
+        for backend_name in backend_names:
+            for binding, path in saml_frontend_config["config"]["endpoints"]["single_logout_service"].items():
+                slo_urls_for_binding = [endpoint["location"] for endpoint in slo[binding]]
+                expected_url = "{}/{}/{}".format(BASE_URL, backend_name, path)
+                assert expected_url in slo_urls_for_binding
+
     def assert_assertion_consumer_service_endpoints_for_saml_backend(self, entity_descriptor, saml_backend_config):
         metadata = InMemoryMetaData(None, str(entity_descriptor))
         metadata.load()
@@ -63,6 +75,8 @@ class TestCreateEntityDescriptors:
         entity_descriptor = frontend_metadata[saml_frontend_config["name"]][0]
         self.assert_single_sign_on_endpoints_for_saml_frontend(entity_descriptor, saml_frontend_config,
                                                                [saml_backend_config["name"]])
+        self.assert_single_logout_endpoints_for_saml_frontend(entity_descriptor, saml_frontend_config,
+                                                              [saml_backend_config["name"]])
         assert len(backend_metadata) == 1
         self.assert_assertion_consumer_service_endpoints_for_saml_backend(
             backend_metadata[saml_backend_config["name"]][0],
@@ -79,6 +93,8 @@ class TestCreateEntityDescriptors:
         entity_descriptor = frontend_metadata[saml_frontend_config["name"]][0]
         self.assert_single_sign_on_endpoints_for_saml_frontend(entity_descriptor, saml_frontend_config,
                                                                [oidc_backend_config["name"]])
+        self.assert_single_logout_endpoints_for_saml_frontend(entity_descriptor, saml_frontend_config,
+                                                              [oidc_backend_config["name"]])
         # OIDC backend does not produce any SAML metadata
         assert not backend_metadata
 
@@ -95,6 +111,8 @@ class TestCreateEntityDescriptors:
         self.assert_single_sign_on_endpoints_for_saml_frontend(entity_descriptor, saml_frontend_config,
                                                                [saml_backend_config["name"],
                                                                 oidc_backend_config["name"]])
+        self.assert_single_logout_endpoints_for_saml_frontend(entity_descriptor, saml_frontend_config,
+                                                              [oidc_backend_config["name"]])
         # only the SAML backend produces SAML metadata
         assert len(backend_metadata) == 1
         self.assert_assertion_consumer_service_endpoints_for_saml_backend(
@@ -189,6 +207,8 @@ class TestCreateEntityDescriptors:
         entity_descriptor = saml_entities[0]
         self.assert_single_sign_on_endpoints_for_saml_frontend(entity_descriptor, saml_frontend_config,
                                                                [oidc_backend_config["name"]])
+        self.assert_single_logout_endpoints_for_saml_frontend(entity_descriptor, saml_frontend_config,
+                                                              [oidc_backend_config["name"]])
 
         mirrored_saml_entities = frontend_metadata[saml_mirror_frontend_config["name"]]
         assert len(mirrored_saml_entities) == 1
