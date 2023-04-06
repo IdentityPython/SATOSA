@@ -549,7 +549,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             logline = lu.LOG_FMT.format(
                 id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline, exc_info=True)
-            raise SATOSAUnknownError
+            status = "500 FAILED"
+            return Response(message=msg, status=status)
         return make_saml_response(binding, ht_args)
 
     def logout_response(self, context, binding):
