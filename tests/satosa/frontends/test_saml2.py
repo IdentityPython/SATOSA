@@ -44,7 +44,9 @@ INTERNAL_ATTRIBUTES = {
 }
 
 ENDPOINTS = {"single_sign_on_service": {BINDING_HTTP_REDIRECT: "sso/redirect",
-                                        BINDING_HTTP_POST: "sso/post"}}
+                                        BINDING_HTTP_POST: "sso/post"},
+             "single_logout_service": {BINDING_HTTP_REDIRECT: "slo/redirect",
+                                       BINDING_HTTP_POST: "slo/post"}}
 BASE_URL = "https://satosa-idp.example.com"
 
 
