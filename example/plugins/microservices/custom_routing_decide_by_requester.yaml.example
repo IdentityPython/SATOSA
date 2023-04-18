@@ -1,0 +1,8 @@
+module: satosa.micro_services.custom_routing.DecideBackendByRequester
+name: DecideBackendByRequester
+config:
+  default_backend: Saml2
+  requester_mapping:
+     'requestor-id': 'backend_custom'
+
+

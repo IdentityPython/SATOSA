@@ -22,7 +22,7 @@ config:
         url: https://messproject.org
       contact_person:
         - contact_type: technical
-          email_address: help@messproject.org
+          email_address: 'mailto:help@messproject.org'
           given_name: MESS Technical Support
       # SAML attributes and static values about the CO to be asserted for each user.
       # The key is the SATOSA internal attribute name.

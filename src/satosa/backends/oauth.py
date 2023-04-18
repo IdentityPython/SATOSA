@@ -263,7 +263,7 @@ class FacebookBackend(_OAuthBackend):
         try:
             picture_url = data["picture"]["data"]["url"]
             data["picture"] = picture_url
-        except KeyError as e:
+        except KeyError:
             pass
         return data
 

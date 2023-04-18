@@ -1,15 +1,14 @@
 import logging
 
 import satosa.logging_util as lu
-import satosa.micro_services.base
-from satosa.logging_util import satosa_logging
+from satosa.frontends.base import FrontendModule
 from satosa.response import Response
 
 
 logger = logging.getLogger(__name__)
 
 
-class PingFrontend(satosa.frontends.base.FrontendModule):
+class PingFrontend(FrontendModule):
     """
     SATOSA frontend that responds to a query with a simple
     200 OK, intended to be used as a simple heartbeat monitor.
@@ -20,12 +19,12 @@ class PingFrontend(satosa.frontends.base.FrontendModule):
 
         self.config = config
 
-    def handle_authn_response(self, context, internal_resp, extra_id_token_claims=None):
+    def handle_authn_response(self, context, internal_resp):
         """
         See super class method satosa.frontends.base.FrontendModule#handle_authn_response
         :type context: satosa.context.Context
         :type internal_response: satosa.internal.InternalData
-        :rtype oic.utils.http_util.Response
+        :rtype: satosa.response.Response
         """
         raise NotImplementedError()
 
@@ -33,7 +32,7 @@ class PingFrontend(satosa.frontends.base.FrontendModule):
         """
         See super class satosa.frontends.base.FrontendModule
         :type exception: satosa.exception.SATOSAError
-        :rtype: oic.utils.http_util.Response
+        :rtype: satosa.response.Response
         """
         raise NotImplementedError()
 
@@ -50,6 +49,8 @@ class PingFrontend(satosa.frontends.base.FrontendModule):
 
     def ping_endpoint(self, context):
         """
+        :type context: satosa.context.Context
+        :rtype: satosa.response.Response
         """
         msg = "Ping returning 200 OK"
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)

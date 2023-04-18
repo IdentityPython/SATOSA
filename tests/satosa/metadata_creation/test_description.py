@@ -1,5 +1,3 @@
-from unittest.mock import mock_open, patch
-
 import pytest
 
 from satosa.metadata_creation.description import ContactPersonDesc, UIInfoDesc, OrganizationDesc, MetadataDescription

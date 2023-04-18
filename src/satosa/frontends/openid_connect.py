@@ -1,22 +1,34 @@
 """
 A OpenID Connect frontend module for the satosa proxy
 """
+
 import json
 import logging
 from collections import defaultdict
 from urllib.parse import urlencode, urlparse
 
 from jwkest.jwk import rsa_load, RSAKey
+
 from oic.oic import scope2claims
-from oic.oic.message import (AuthorizationRequest, AuthorizationErrorResponse, TokenErrorResponse,
-                             UserInfoErrorResponse)
-from oic.oic.provider import RegistrationEndpoint, AuthorizationEndpoint, TokenEndpoint, UserinfoEndpoint
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import AuthorizationErrorResponse
+from oic.oic.message import TokenErrorResponse
+from oic.oic.message import UserInfoErrorResponse
+from oic.oic.provider import RegistrationEndpoint
+from oic.oic.provider import AuthorizationEndpoint
+from oic.oic.provider import TokenEndpoint
+from oic.oic.provider import UserinfoEndpoint
+
 from pyop.access_token import AccessToken
 from pyop.authz_state import AuthorizationState
-from pyop.exceptions import (InvalidAuthenticationRequest, InvalidClientRegistrationRequest,
-                             InvalidClientAuthentication, OAuthError, BearerTokenError, InvalidAccessToken)
+from pyop.exceptions import InvalidAuthenticationRequest
+from pyop.exceptions import InvalidClientRegistrationRequest
+from pyop.exceptions import InvalidClientAuthentication
+from pyop.exceptions import OAuthError
+from pyop.exceptions import BearerTokenError
+from pyop.exceptions import InvalidAccessToken
 from pyop.provider import Provider
-from pyop.storage import MongoWrapper
+from pyop.storage import StorageBase
 from pyop.subject_identifier import HashBasedSubjectIdentifierFactory
 from pyop.userinfo import Userinfo
 from pyop.util import should_fragment_encode
@@ -34,6 +46,11 @@ from satosa.internal import InternalData
 logger = logging.getLogger(__name__)
 
 
+class MirrorPublicSubjectIdentifierFactory(HashBasedSubjectIdentifierFactory):
+    def create_public_identifier(self, user_id):
+        return user_id
+
+
 class OpenIDConnectFrontend(FrontendModule):
     """
     A OpenID Connect frontend module
@@ -43,82 +60,54 @@ class OpenIDConnectFrontend(FrontendModule):
         self._validate_config(conf)
         super().__init__(auth_req_callback_func, logout_req_callback_func, internal_attributes, base_url, name)
 
+
         self.config = conf
-        self.signing_key = RSAKey(key=rsa_load(conf["signing_key_path"]), use="sig", alg="RS256",
-                                  kid=conf.get("signing_key_id", ""))
+        provider_config = self.config["provider"]
+        provider_config["issuer"] = base_url
 
-    def _create_provider(self, endpoint_baseurl):
-        response_types_supported = self.config["provider"].get("response_types_supported", ["id_token"])
-        subject_types_supported = self.config["provider"].get("subject_types_supported", ["pairwise"])
-        scopes_supported = self.config["provider"].get("scopes_supported", ["openid"])
-        extra_scopes = self.config["provider"].get("extra_scopes")
-        capabilities = {
-            "issuer": self.base_url,
-            "authorization_endpoint": "{}/{}".format(endpoint_baseurl, AuthorizationEndpoint.url),
-            "jwks_uri": "{}/jwks".format(endpoint_baseurl),
-            "response_types_supported": response_types_supported,
-            "id_token_signing_alg_values_supported": [self.signing_key.alg],
-            "response_modes_supported": ["fragment", "query"],
-            "subject_types_supported": subject_types_supported,
-            "claim_types_supported": ["normal"],
-            "claims_parameter_supported": True,
-            "claims_supported": [attribute_map["openid"][0]
-                                 for attribute_map in self.internal_attributes["attributes"].values()
-                                 if "openid" in attribute_map],
-            "request_parameter_supported": False,
-            "request_uri_parameter_supported": False,
-            "scopes_supported": scopes_supported
-        }
+        self.signing_key = RSAKey(
+            key=rsa_load(self.config["signing_key_path"]),
+            use="sig",
+            alg="RS256",
+            kid=self.config.get("signing_key_id", ""),
+        )
 
-        if 'code' in response_types_supported:
-            capabilities["token_endpoint"] = "{}/{}".format(endpoint_baseurl, TokenEndpoint.url)
-
-        if self.config["provider"].get("client_registration_supported", False):
-            capabilities["registration_endpoint"] = "{}/{}".format(endpoint_baseurl, RegistrationEndpoint.url)
-
-        authz_state = self._init_authorization_state()
         db_uri = self.config.get("db_uri")
+        self.stateless = db_uri and StorageBase.type(db_uri) == "stateless"
+        self.user_db = (
+            StorageBase.from_uri(db_uri, db_name="satosa", collection="authz_codes")
+            if db_uri and not self.stateless
+            else {}
+        )
+
+        sub_hash_salt = self.config.get("sub_hash_salt", rndstr(16))
+        mirror_public = self.config.get("sub_mirror_public", False)
+        authz_state = _init_authorization_state(
+            provider_config, db_uri, sub_hash_salt, mirror_public
+        )
+
         client_db_uri = self.config.get("client_db_uri")
         cdb_file = self.config.get("client_db_path")
         if client_db_uri:
-            cdb = MongoWrapper(client_db_uri, "satosa", "clients")
+            cdb = StorageBase.from_uri(
+                client_db_uri, db_name="satosa", collection="clients", ttl=None
+            )
         elif cdb_file:
             with open(cdb_file) as f:
                 cdb = json.loads(f.read())
         else:
             cdb = {}
-        self.user_db = MongoWrapper(db_uri, "satosa", "authz_codes") if db_uri else {}
-        self.provider = Provider(
+
+        self.endpoint_baseurl = "{}/{}".format(self.base_url, self.name)
+        self.provider = _create_provider(
+            provider_config,
+            self.endpoint_baseurl,
+            self.internal_attributes,
             self.signing_key,
-            capabilities,
             authz_state,
+            self.user_db,
             cdb,
-            Userinfo(self.user_db),
-            extra_scopes=extra_scopes,
-            id_token_lifetime=self.config["provider"].get("id_token_lifetime", 3600),
         )
-
-    def _init_authorization_state(self):
-        sub_hash_salt = self.config.get("sub_hash_salt", rndstr(16))
-        db_uri = self.config.get("db_uri")
-        if db_uri:
-            authz_code_db = MongoWrapper(db_uri, "satosa", "authz_codes")
-            access_token_db = MongoWrapper(db_uri, "satosa", "access_tokens")
-            refresh_token_db = MongoWrapper(db_uri, "satosa", "refresh_tokens")
-            sub_db = MongoWrapper(db_uri, "satosa", "subject_identifiers")
-        else:
-            authz_code_db = None
-            access_token_db = None
-            refresh_token_db = None
-            sub_db = None
-
-        token_lifetimes = {k: self.config["provider"][k] for k in ["authorization_code_lifetime",
-                                                                   "access_token_lifetime",
-                                                                   "refresh_token_lifetime",
-                                                                   "refresh_token_threshold"]
-                           if k in self.config["provider"]}
-        return AuthorizationState(HashBasedSubjectIdentifierFactory(sub_hash_salt), authz_code_db, access_token_db,
-                                  refresh_token_db, sub_db, **token_lifetimes)
 
     def _get_extra_id_token_claims(self, user_id, client_id):
         if "extra_id_token_claims" in self.config["provider"]:
@@ -141,13 +130,18 @@ class OpenIDConnectFrontend(FrontendModule):
         claims = self.converter.from_internal("openid", internal_resp.attributes)
         # Filter unset claims
         claims = {k: v for k, v in claims.items() if v}
-        self.user_db[internal_resp.subject_id] = dict(combine_claim_values(claims.items()))
+        self.user_db[internal_resp.subject_id] = dict(
+            combine_claim_values(claims.items())
+        )
         auth_resp = self.provider.authorize(
             auth_req,
             internal_resp.subject_id,
             extra_id_token_claims=lambda user_id, client_id:
                 self._get_extra_id_token_claims(user_id, client_id),
         )
+
+        if self.stateless:
+            del self.user_db[internal_resp.subject_id]
 
         del context.state[self.name]
         http_response = auth_resp.request(auth_req["redirect_uri"], should_fragment_encode(auth_req))
@@ -196,9 +190,6 @@ class OpenIDConnectFrontend(FrontendModule):
         else:
             backend_name = backend_names[0]
 
-        endpoint_baseurl = "{}/{}".format(self.base_url, self.name)
-        self._create_provider(endpoint_baseurl)
-
         provider_config = ("^.well-known/openid-configuration$", self.provider_config)
         jwks_uri = ("^{}/jwks$".format(self.name), self.jwks)
 
@@ -209,41 +200,35 @@ class OpenIDConnectFrontend(FrontendModule):
             auth_path = urlparse(auth_endpoint).path.lstrip("/")
         else:
             auth_path = "{}/{}".format(self.name, AuthorizationEndpoint.url)
+
         authentication = ("^{}$".format(auth_path), self.handle_authn_request)
         url_map = [provider_config, jwks_uri, authentication]
 
         if any("code" in v for v in self.provider.configuration_information["response_types_supported"]):
-            self.provider.configuration_information["token_endpoint"] = "{}/{}".format(endpoint_baseurl,
-                                                                                       TokenEndpoint.url)
-            token_endpoint = ("^{}/{}".format(self.name, TokenEndpoint.url), self.token_endpoint)
+            self.provider.configuration_information["token_endpoint"] = "{}/{}".format(
+                self.endpoint_baseurl, TokenEndpoint.url
+            )
+            token_endpoint = (
+                "^{}/{}".format(self.name, TokenEndpoint.url), self.token_endpoint
+            )
             url_map.append(token_endpoint)
 
-            self.provider.configuration_information["userinfo_endpoint"] = "{}/{}".format(endpoint_baseurl,
-                                                                                          UserinfoEndpoint.url)
-            userinfo_endpoint = ("^{}/{}".format(self.name, UserinfoEndpoint.url), self.userinfo_endpoint)
+            self.provider.configuration_information["userinfo_endpoint"] = (
+                "{}/{}".format(self.endpoint_baseurl, UserinfoEndpoint.url)
+            )
+            userinfo_endpoint = (
+                "^{}/{}".format(self.name, UserinfoEndpoint.url), self.userinfo_endpoint
+            )
             url_map.append(userinfo_endpoint)
+
         if "registration_endpoint" in self.provider.configuration_information:
-            client_registration = ("^{}/{}".format(self.name, RegistrationEndpoint.url), self.client_registration)
+            client_registration = (
+                "^{}/{}".format(self.name, RegistrationEndpoint.url),
+                self.client_registration,
+            )
             url_map.append(client_registration)
 
         return url_map
-
-    def _validate_config(self, config):
-        """
-        Validates that all necessary config parameters are specified.
-        :type config: dict[str, dict[str, Any] | str]
-        :param config: the module config
-        """
-        if config is None:
-            raise ValueError("OIDCFrontend conf can't be 'None'.")
-
-        for k in {"signing_key_path", "provider"}:
-            if k not in config:
-                raise ValueError("Missing configuration parameter '{}' for OpenID Connect frontend.".format(k))
-
-        if "signing_key_id" in config and type(config["signing_key_id"]) is not str:
-            raise ValueError(
-                "The configuration parameter 'signing_key_id' is not defined as a string for OpenID Connect frontend.")
 
     def _get_authn_request_from_state(self, state):
         """
@@ -409,6 +394,136 @@ class OpenIDConnectFrontend(FrontendModule):
             response = Unauthorized(error_resp.to_json(), headers=[("WWW-Authenticate", AccessToken.BEARER_TOKEN_TYPE)],
                                     content="application/json")
             return response
+
+
+def _validate_config(config):
+    """
+    Validates that all necessary config parameters are specified.
+    :type config: dict[str, dict[str, Any] | str]
+    :param config: the module config
+    """
+    if config is None:
+        raise ValueError("OIDCFrontend configuration can't be 'None'.")
+
+    for k in {"signing_key_path", "provider"}:
+        if k not in config:
+            raise ValueError("Missing configuration parameter '{}' for OpenID Connect frontend.".format(k))
+
+    if "signing_key_id" in config and type(config["signing_key_id"]) is not str:
+        raise ValueError(
+            "The configuration parameter 'signing_key_id' is not defined as a string for OpenID Connect frontend.")
+
+
+def _create_provider(
+    provider_config,
+    endpoint_baseurl,
+    internal_attributes,
+    signing_key,
+    authz_state,
+    user_db,
+    cdb,
+):
+    response_types_supported = provider_config.get("response_types_supported", ["id_token"])
+    subject_types_supported = provider_config.get("subject_types_supported", ["pairwise"])
+    scopes_supported = provider_config.get("scopes_supported", ["openid"])
+    extra_scopes = provider_config.get("extra_scopes")
+    capabilities = {
+        "issuer": provider_config["issuer"],
+        "authorization_endpoint": "{}/{}".format(endpoint_baseurl, AuthorizationEndpoint.url),
+        "jwks_uri": "{}/jwks".format(endpoint_baseurl),
+        "response_types_supported": response_types_supported,
+        "id_token_signing_alg_values_supported": [signing_key.alg],
+        "response_modes_supported": ["fragment", "query"],
+        "subject_types_supported": subject_types_supported,
+        "claim_types_supported": ["normal"],
+        "claims_parameter_supported": True,
+        "claims_supported": [
+            attribute_map["openid"][0]
+            for attribute_map in internal_attributes["attributes"].values()
+            if "openid" in attribute_map
+        ],
+        "request_parameter_supported": False,
+        "request_uri_parameter_supported": False,
+        "scopes_supported": scopes_supported
+    }
+
+    if 'code' in response_types_supported:
+        capabilities["token_endpoint"] = "{}/{}".format(
+            endpoint_baseurl, TokenEndpoint.url
+        )
+
+    if provider_config.get("client_registration_supported", False):
+        capabilities["registration_endpoint"] = "{}/{}".format(
+            endpoint_baseurl, RegistrationEndpoint.url
+        )
+
+    provider = Provider(
+        signing_key,
+        capabilities,
+        authz_state,
+        cdb,
+        Userinfo(user_db),
+        extra_scopes=extra_scopes,
+        id_token_lifetime=provider_config.get("id_token_lifetime", 3600),
+    )
+    return provider
+
+
+def _init_authorization_state(
+    provider_config, db_uri, sub_hash_salt, mirror_public=False
+):
+    if db_uri:
+        authz_code_db = StorageBase.from_uri(
+            db_uri,
+            db_name="satosa",
+            collection="authz_codes",
+            ttl=provider_config.get("authorization_code_lifetime", 600),
+        )
+        access_token_db = StorageBase.from_uri(
+            db_uri,
+            db_name="satosa",
+            collection="access_tokens",
+            ttl=provider_config.get("access_token_lifetime", 3600),
+        )
+        refresh_token_db = StorageBase.from_uri(
+            db_uri,
+            db_name="satosa",
+            collection="refresh_tokens",
+            ttl=provider_config.get("refresh_token_lifetime", None),
+        )
+        sub_db = StorageBase.from_uri(
+            db_uri, db_name="satosa", collection="subject_identifiers", ttl=None
+        )
+    else:
+        authz_code_db = None
+        access_token_db = None
+        refresh_token_db = None
+        sub_db = None
+
+    token_lifetimes = {
+        k: provider_config[k]
+        for k in [
+            "authorization_code_lifetime",
+            "access_token_lifetime",
+            "refresh_token_lifetime",
+            "refresh_token_threshold",
+        ]
+        if k in provider_config
+    }
+
+    subject_id_factory = (
+        MirrorPublicSubjectIdentifierFactory(sub_hash_salt)
+        if mirror_public
+        else HashBasedSubjectIdentifierFactory(sub_hash_salt)
+    )
+    return AuthorizationState(
+        subject_id_factory,
+        authz_code_db,
+        access_token_db,
+        refresh_token_db,
+        sub_db,
+        **token_lifetimes,
+    )
 
 
 def combine_return_input(values):

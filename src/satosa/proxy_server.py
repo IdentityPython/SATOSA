@@ -1,7 +1,6 @@
 import json
 import logging
 import logging.config
-import sys
 from io import BytesIO
 from urllib.parse import parse_qsl as _parse_query_string
 

@@ -1,9 +1,8 @@
 import os
-import re
 
 from yaml import SafeLoader as _safe_loader
 from yaml import YAMLError
-from yaml import safe_load as load
+from yaml import safe_load as load  # noqa: F401
 
 
 def _constructor_env_variables(loader, node):

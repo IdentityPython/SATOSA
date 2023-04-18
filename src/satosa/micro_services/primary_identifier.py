@@ -5,7 +5,6 @@ a primary identifier or key for the user and assert it as
 the value for a configured attribute, for example uid.
 """
 
-import copy
 import logging
 import urllib.parse
 
@@ -139,7 +138,7 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
         # Find the entityID for the SP that initiated the flow
         try:
             spEntityID = context.state.state_dict['SATOSA_BASE']['requester']
-        except KeyError as err:
+        except KeyError:
             msg = "{} Unable to determine the entityID for the SP requester".format(logprefix)
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
@@ -152,7 +151,7 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
         # Find the entityID for the IdP that issued the assertion
         try:
             idpEntityID = data.auth_info.issuer
-        except KeyError as err:
+        except KeyError:
             msg = "{} Unable to determine the entityID for the IdP issuer".format(logprefix)
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)

@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='SATOSA',
-    version='8.0.0',
+    version='8.2.0',
     description='Protocol proxy (SAML/OIDC).',
     author='DIRG',
     author_email='satosa-dev@lists.sunet.se',
@@ -15,7 +15,7 @@ setup(
     packages=find_packages('src/'),
     package_dir={'': 'src'},
     install_requires=[
-        "pyop >= 3.3.1",
+        "pyop >= v3.4.0",
         "pysaml2 >= 6.5.1",
         "pycryptodomex",
         "requests",

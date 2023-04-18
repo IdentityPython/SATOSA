@@ -78,7 +78,7 @@ class OrcidBackend(_OAuthBackend):
             request_args=rargs, state=aresp['state'])
 
         user_info = self.user_information(
-            atresp['access_token'], atresp['orcid'], atresp['name'])
+            atresp['access_token'], atresp['orcid'], atresp.get('name'))
         internal_response = InternalData(
             auth_info=self.auth_info(context.request))
         internal_response.attributes = self.converter.to_internal(
@@ -87,7 +87,7 @@ class OrcidBackend(_OAuthBackend):
         del context.state[self.name]
         return self.auth_callback_func(context, internal_response)
 
-    def user_information(self, access_token, orcid, name):
+    def user_information(self, access_token, orcid, name=None):
         base_url = self.config['server_info']['user_info']
         url = urljoin(base_url, '{}/person'.format(orcid))
         headers = {
@@ -97,13 +97,15 @@ class OrcidBackend(_OAuthBackend):
         r = requests.get(url, headers=headers)
         r = r.json()
         emails, addresses = r['emails']['email'], r['addresses']['address']
+        rname = r.get('name') or {}
         ret = dict(
             address=', '.join([e['country']['value'] for e in addresses]),
             displayname=name,
             edupersontargetedid=orcid, orcid=orcid,
             mail=' '.join([e['email'] for e in emails]),
             name=name,
-            givenname=r['name']['given-names']['value'],
-            surname=r['name']['family-name']['value'],
+            givenname=(rname.get('given-names') or {}).get('value'),
+            surname=(rname.get('family-name') or {}).get('value'),
         )
+
         return ret

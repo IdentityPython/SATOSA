@@ -404,6 +404,26 @@ class TestOpenIDConnectFrontend(object):
         provider_info = ProviderConfigurationResponse().deserialize(frontend.provider_config(None).message, "json")
         assert ("registration_endpoint" in provider_info) == client_registration_enabled
 
+    @pytest.mark.parametrize("sub_mirror_public", [
+        True,
+        False
+    ])
+    def test_mirrored_subject(self, context, frontend_config, authn_req, sub_mirror_public):
+        frontend_config["sub_mirror_public"] = sub_mirror_public
+        frontend_config["provider"]["subject_types_supported"] = ["public"]
+        frontend = self.create_frontend(frontend_config)
+
+        self.insert_client_in_client_db(frontend, authn_req["redirect_uri"])
+        internal_response = self.setup_for_authn_response(context, frontend, authn_req)
+        http_resp = frontend.handle_authn_response(context, internal_response)
+
+        resp = AuthorizationResponse().deserialize(urlparse(http_resp.message).fragment)
+        id_token = IdToken().from_jwt(resp["id_token"], key=[frontend.signing_key])
+        if sub_mirror_public:
+            assert id_token["sub"] == OIDC_USERS["testuser1"]["eduPersonTargetedID"][0]
+        else:
+            assert id_token["sub"] != OIDC_USERS["testuser1"]["eduPersonTargetedID"][0]
+
     def test_token_endpoint(self, context, frontend_config, authn_req):
         token_lifetime = 60 * 60 * 24
         frontend_config["provider"]["access_token_lifetime"] = token_lifetime
@@ -539,7 +559,7 @@ class TestOpenIDConnectFrontend(object):
         frontend_with_extra_scopes.auth_req_callback_func = mock_callback
         # discovery
         http_response = frontend_with_extra_scopes.provider_config(context)
-        provider_config = ProviderConfigurationResponse().deserialize(http_response.message, "json")
+        _ = ProviderConfigurationResponse().deserialize(http_response.message, "json")
 
         # client registration
         registration_request = RegistrationRequest(redirect_uris=[redirect_uri], response_types=[response_type])
