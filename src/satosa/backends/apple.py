@@ -6,7 +6,10 @@ from .openid_connect import OpenIDConnectBackend, STATE_KEY
 from oic.oauth2.message import Message
 from oic.oic.message import AuthorizationResponse
 import satosa.logging_util as lu
+from .oauth import _get_metadata_to_decorate
+from ..context import Context
 from ..exception import SATOSAAuthenticationError
+
 import json
 import requests
 
@@ -110,6 +113,7 @@ class AppleBackend(OpenIDConnectBackend):
             raise SATOSAAuthenticationError(context.state, "No user info available.")
 
         all_user_claims = dict(list(userinfo.items()) + list(id_token_claims.items()))
+        context.decorate(Context.KEY_METADATA_STORE, _get_metadata_to_decorate(self.config))
 
         # convert "string or Boolean" claims to actual booleans
         for bool_claim_name in ["email_verified", "is_private_email"]:
