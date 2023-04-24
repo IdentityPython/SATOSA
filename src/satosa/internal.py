@@ -1,12 +1,15 @@
 """Internal data representation for SAML/OAuth/OpenID connect."""
+from __future__ import annotations
 
-
+from typing import Any, Mapping, NewType, Optional, Type, TypeVar
 import warnings as _warnings
 from collections import UserDict
 
+TDatafySubclass = TypeVar("TDatafySubclass", bound="_Datafy")
+
 
 class _Datafy(UserDict):
-    _DEPRECATED_TO_NEW_MEMBERS = {}
+    _DEPRECATED_TO_NEW_MEMBERS: Mapping[str, str] = {}
 
     def _get_new_key(self, old_key):
         new_key = self.__class__._DEPRECATED_TO_NEW_MEMBERS.get(old_key, old_key)
@@ -42,10 +45,9 @@ class _Datafy(UserDict):
             raise AttributeError(msg) from e
         return value
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         """
         Converts an object to a dict
-        :rtype: dict[str, str]
         :return: A dict representation of the object
         """
         data = {
@@ -57,10 +59,8 @@ class _Datafy(UserDict):
         return data
 
     @classmethod
-    def from_dict(cls, data):
+    def from_dict(cls: type[TDatafySubclass], data: dict[str, Any]) -> TDatafySubclass:
         """
-        :type data: dict[str, str]
-        :rtype: satosa.internal.AuthenticationInformation
         :param data: A dict representation of an object
         :return: An object
         """
@@ -75,19 +75,15 @@ class AuthenticationInformation(_Datafy):
 
     def __init__(
         self,
-        auth_class_ref=None,
-        timestamp=None,
-        issuer=None,
-        authority=None,
+        auth_class_ref: Optional[str] = None,
+        timestamp: Optional[str] = None,
+        issuer: Optional[str] = None,
+        authority: Optional[Any] = None,
         *args,
         **kwargs,
     ):
         """
         Initiate the data carrier
-
-        :type auth_class_ref: str
-        :type timestamp: str
-        :type issuer: str
 
         :param auth_class_ref: What method that was used for the authentication
         :param timestamp: Time when the authentication was done
@@ -107,12 +103,12 @@ class InternalData(_Datafy):
 
     def __init__(
         self,
-        auth_info=None,
-        requester=None,
-        requester_name=None,
-        subject_id=None,
-        subject_type=None,
-        attributes=None,
+        auth_info: Optional[AuthenticationInformation] = None,
+        requester: Optional[str] = None,
+        requester_name: Optional[list[Mapping[str, Any]]] = None,
+        subject_id: Optional[str] = None,
+        subject_type: Optional[str] = None,
+        attributes: Optional[dict[str, Any]] = None,
         *args,
         **kwargs,
     ):
@@ -123,13 +119,6 @@ class InternalData(_Datafy):
         :param subject_id:
         :param subject_type:
         :param attributes:
-
-        :type auth_info: AuthenticationInformation
-        :type requester: str
-        :type requester_name:
-        :type subject_id: str
-        :type subject_type: str
-        :type attributes: dict
         """
         super().__init__(self, *args, **kwargs)
         self.auth_info = (
