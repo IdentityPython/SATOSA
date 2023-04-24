@@ -125,7 +125,7 @@ attribute to use, e.g. `address.formatted` will access the attribute value
 attributes:
   mail:
     openid: [email]
-    saml: [mail, emailAdress, email]
+    saml: [mail, emailAddress, email]
   address:
     openid: [address.formatted]
     saml: [postaladdress]
@@ -140,7 +140,7 @@ attributes (in the proxy backend) <-> internal <-> returned attributes (from the
 * Any plugin using the `openid` profile will use the attribute value from
   `email` delivered from the target provider as the value for `mail`.
 * Any plugin using the `saml` profile will use the attribute value from `mail`,
-  `emailAdress` and `email` depending on which attributes are delivered by the
+  `emailAddress` and `email` depending on which attributes are delivered by the
   target provider as the value for `mail`.
 * Any plugin using the `openid` profile will use the attribute value under the
   key `formatted` in the `address` attribute delivered by the target provider.
@@ -266,7 +266,7 @@ provider.
 2. The **SAMLMirrorFrontend** module mirrors each target provider as a separate entity in the SAML metadata.
 In this proxy this is handled with dynamic entity id's, encoding the target provider.
 This allows external discovery services to present the mirrored providers transparently, as separate entities
-in its UI. The following flow diagram shows the communcation:
+in its UI. The following flow diagram shows the communication:
 
    `SP -> optional discovery service -> selected proxy SAML entity -> target IdP`
 
@@ -311,7 +311,7 @@ config:
 
 #### Policy
 
-Some settings related to how a SAML response is formed can be overriden on a per-instance or a per-SP
+Some settings related to how a SAML response is formed can be overridden on a per-instance or a per-SP
 basis. This example summarizes the most common settings (hopefully self-explanatory) with their defaults:
 
 ```yaml
@@ -328,7 +328,7 @@ config:
 ```
 
 Overrides per SP entityID is possible by using the entityID as a key instead of the "default" key
-in the yaml structure. The most specific key takes presedence. If no policy overrides are provided
+in the yaml structure. The most specific key takes precedence. If no policy overrides are provided
 the defaults above are used.
 
 ### SAML2 Backend
@@ -397,7 +397,7 @@ the user will have to always select a target provider when a discovery service
 is configured. If the parameter is set to `True` (and `ForceAuthn` is not set),
 the proxy will remember and reuse the selected target provider for the duration
 that the state cookie is valid. If `ForceAuthn` is set, then the
-`use_memorized_idp_when_force_authn` configuration option can overide
+`use_memorized_idp_when_force_authn` configuration option can override
 this property and still reuse the selected target provider.
 
 The default behaviour is `False`.
@@ -803,12 +803,12 @@ Backends and Frontends act like adapters, while micro-services act like plugins
 and all of them can be developed by anyone and shared with everyone.
 
 Other people that have been working with the SaToSa proxy, have built
-extentions mainly in the form of additional micro-services that are shared to
+extensions mainly in the form of additional micro-services that are shared to
 be used by anyone.
 
-- SUNET maintains a small collection of extentions that focus around the SWAMID
+- SUNET maintains a small collection of extensions that focus around the SWAMID
   policies.
-  The extentions are licensed under the Apache2.0 license.
+  The extensions are licensed under the Apache2.0 license.
   You can find the code using the following URL:
 
   - https://github.com/SUNET/swamid-satosa/
@@ -828,16 +828,16 @@ be used by anyone.
   - https://github.com/italia/Satosa-Saml2Spid
 
 - DAASI International have been a long-time user of this software and have made
-  their extentions available.
-  The extentions are licensed under the Apache2.0 license.
+  their extensions available.
+  The extensions are licensed under the Apache2.0 license.
   You can find the code using the following URL:
 
   - https://gitlab.daasi.de/didmos2/didmos2-auth/-/tree/master/src/didmos_oidc/satosa/micro_services
 
-  The extentions include:
+  The extensions include:
 
   - SCIM attribute store to fetch attributes via SCIM API (instead of LDAP)
-  - Authoritzation module for blocking services if necessary group memberships or
+  - Authorization module for blocking services if necessary group memberships or
     attributes are missing in the identity (for service providers that do not
     evaluate attributes themselves)
   - Backend chooser with Django UI for letting the user choose between any
