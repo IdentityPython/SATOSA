@@ -54,6 +54,7 @@ class ResponseMicroService(MicroService):
     """
     Base class for response micro services
     """
+
     pass
 
 
@@ -61,4 +62,5 @@ class RequestMicroService(MicroService):
     """
     Base class for request micro services
     """
+
     pass

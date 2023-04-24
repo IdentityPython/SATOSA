@@ -7,6 +7,7 @@ class SATOSABadContextError(SATOSAError):
     """
     Raise this exception if validating the Context and failing.
     """
+
     pass
 
 
@@ -14,12 +15,13 @@ class Context(object):
     """
     Holds methods for sharing proxy data through the current request
     """
-    KEY_METADATA_STORE = 'metadata_store'
-    KEY_TARGET_ENTITYID = 'target_entity_id'
-    KEY_FORCE_AUTHN = 'force_authn'
-    KEY_MEMORIZED_IDP = 'memorized_idp'
-    KEY_AUTHN_CONTEXT_CLASS_REF = 'authn_context_class_ref'
-    KEY_TARGET_AUTHN_CONTEXT_CLASS_REF = 'target_authn_context_class_ref'
+
+    KEY_METADATA_STORE = "metadata_store"
+    KEY_TARGET_ENTITYID = "target_entity_id"
+    KEY_FORCE_AUTHN = "force_authn"
+    KEY_MEMORIZED_IDP = "memorized_idp"
+    KEY_AUTHN_CONTEXT_CLASS_REF = "authn_context_class_ref"
+    KEY_TARGET_AUTHN_CONTEXT_CLASS_REF = "target_authn_context_class_ref"
 
     def __init__(self):
         self._path = None
@@ -72,7 +74,7 @@ class Context(object):
         """
         if not p:
             raise ValueError("path can't be set to None")
-        elif p.startswith('/'):
+        elif p.startswith("/"):
             raise ValueError("path can't start with '/'")
         self._path = p
 

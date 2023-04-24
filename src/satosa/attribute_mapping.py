@@ -13,9 +13,9 @@ def scope(s):
     :param s: string to extract scope from (filtered string in mako template)
     :return: the scope
     """
-    if '@' not in s:
+    if "@" not in s:
         raise ValueError("Unscoped string")
-    (local_part, _, domain_part) = s.partition('@')
+    (local_part, _, domain_part) = s.partition("@")
     return domain_part
 
 
@@ -97,8 +97,7 @@ class AttributeMapper(object):
                 continue
 
             external_attribute_name = mapping[attribute_profile]
-            attribute_values = self._collate_attribute_values_by_priority_order(external_attribute_name,
-                                                                                external_dict)
+            attribute_values = self._collate_attribute_values_by_priority_order(external_attribute_name, external_dict)
             if attribute_values:  # Only insert key if it has some values
                 logline = "backend attribute {external} mapped to {internal} ({value})".format(
                     external=external_attribute_name, internal=internal_attribute_name, value=attribute_values
@@ -106,9 +105,7 @@ class AttributeMapper(object):
                 logger.debug(logline)
                 internal_dict[internal_attribute_name] = attribute_values
             else:
-                logline = "skipped backend attribute {}: no value found".format(
-                    external_attribute_name
-                )
+                logline = "skipped backend attribute {}: no value found".format(external_attribute_name)
                 logger.debug(logline)
         internal_dict = self._handle_template_attributes(attribute_profile, internal_dict)
         return internal_dict
@@ -143,8 +140,9 @@ class AttributeMapper(object):
 
             external_attribute_name = mapping[attribute_profile]
             templates = [t for t in external_attribute_name if "$" in t]  # these looks like templates...
-            template_attribute_values = [self._render_attribute_template(template, internal_dict) for template in
-                                         templates]
+            template_attribute_values = [
+                self._render_attribute_template(template, internal_dict) for template in templates
+            ]
             flattened_attribute_values = list(chain.from_iterable(template_attribute_values))
             attribute_values = flattened_attribute_values or internal_dict.get(internal_attribute_name, None)
             if attribute_values:  # only insert key if it has some values
@@ -188,9 +186,7 @@ class AttributeMapper(object):
             try:
                 attribute_mapping = self.from_internal_attributes[internal_attribute_name]
             except KeyError:
-                logline = "no attribute mapping found for the internal attribute {}".format(
-                    internal_attribute_name
-                )
+                logline = "no attribute mapping found for the internal attribute {}".format(internal_attribute_name)
                 logger.debug(logline)
                 continue
 
@@ -206,14 +202,17 @@ class AttributeMapper(object):
             # select the first attribute name
             external_attribute_name = external_attribute_names[0]
             logline = "frontend attribute {external} mapped from {internal} ({value})".format(
-                external=external_attribute_name, internal=internal_attribute_name, value=internal_dict[internal_attribute_name]
+                external=external_attribute_name,
+                internal=internal_attribute_name,
+                value=internal_dict[internal_attribute_name],
             )
             logger.debug(logline)
 
             if self.separator in external_attribute_name:
                 nested_attribute_names = external_attribute_name.split(self.separator)
-                nested_dict = self._create_nested_attribute_value(nested_attribute_names[1:],
-                                                                  internal_dict[internal_attribute_name])
+                nested_dict = self._create_nested_attribute_value(
+                    nested_attribute_names[1:], internal_dict[internal_attribute_name]
+                )
                 external_dict[nested_attribute_names[0]] = nested_dict
             else:
                 external_dict[external_attribute_name] = internal_dict[internal_attribute_name]

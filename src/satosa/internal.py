@@ -12,9 +12,7 @@ class _Datafy(UserDict):
         new_key = self.__class__._DEPRECATED_TO_NEW_MEMBERS.get(old_key, old_key)
         is_key_deprecated = old_key != new_key
         if is_key_deprecated:
-            msg = "'{old_key}' is deprecated; use '{new_key}' instead.".format(
-                old_key=old_key, new_key=new_key
-            )
+            msg = "'{old_key}' is deprecated; use '{new_key}' instead.".format(old_key=old_key, new_key=new_key)
             _warnings.warn(msg, DeprecationWarning)
         return new_key
 
@@ -40,9 +38,7 @@ class _Datafy(UserDict):
         try:
             value = self.__getitem__(key)
         except KeyError as e:
-            msg = "'{type}' object has no attribute '{attr}'".format(
-                type=type(self), attr=key
-            )
+            msg = "'{type}' object has no attribute '{attr}'".format(type=type(self), attr=key)
             raise AttributeError(msg) from e
         return value
 
@@ -55,16 +51,9 @@ class _Datafy(UserDict):
         data = {
             key: value
             for key, value_obj in self.items()
-            for value in [
-                value_obj.to_dict() if hasattr(value_obj, "to_dict") else value_obj
-            ]
+            for value in [value_obj.to_dict() if hasattr(value_obj, "to_dict") else value_obj]
         }
-        data.update(
-            {
-                key: data.get(value)
-                for key, value in self.__class__._DEPRECATED_TO_NEW_MEMBERS.items()
-            }
-        )
+        data.update({key: data.get(value) for key, value in self.__class__._DEPRECATED_TO_NEW_MEMBERS.items()})
         return data
 
     @classmethod
@@ -149,11 +138,7 @@ class InternalData(_Datafy):
             else AuthenticationInformation(**(auth_info or {}))
         )
         self.requester = requester
-        self.requester_name = (
-            requester_name
-            if requester_name is not None
-            else [{"text": requester, "lang": "en"}]
-        )
+        self.requester_name = requester_name if requester_name is not None else [{"text": requester, "lang": "en"}]
         self.subject_id = subject_id
         self.subject_type = subject_type
         self.attributes = attributes if attributes is not None else {}
