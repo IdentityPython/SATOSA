@@ -151,6 +151,7 @@ class SATOSABase(object):
         backend = self.module_router.backend_routing(context)
         context.request = None
         internal_authn_resp = self.db.get_authn_resp(context.state)
+        self.db.delete_session(context.state)
         return backend.start_logout(context, internal_request, internal_authn_resp)
 
     def _auth_resp_finish(self, context, internal_response):
@@ -169,12 +170,11 @@ class SATOSABase(object):
         frontend = self.module_router.frontend_routing(context)
         return frontend.handle_authn_response(context, internal_response)
 
-    def _logout_resp_finish(self, context, internal_response):
-        self.db.delete_session(context.state)
+    def _logout_resp_finish(self, context):
         context.request = None
 
         frontend = self.module_router.frontend_routing(context)
-        return frontend.handle_logout_response(context, internal_response)
+        return frontend.handle_logout_response(context)
 
     def _auth_resp_callback_func(self, context, internal_response):
         """
@@ -207,7 +207,7 @@ class SATOSABase(object):
 
         return self._auth_resp_finish(context, internal_response)
 
-    def _logout_resp_callback_func(self, context, internal_response):
+    def _logout_resp_callback_func(self, context):
         """
         This function is called by a backend module when logout is complete
 
@@ -220,7 +220,7 @@ class SATOSABase(object):
         """
         context.request = None
         context.state["ROUTER"] = "idp"
-        return self._logout_resp_finish(context, internal_response)
+        return self._logout_resp_finish(context)
 
     def _handle_satosa_authentication_error(self, error):
         """

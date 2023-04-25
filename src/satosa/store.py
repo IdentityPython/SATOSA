@@ -3,7 +3,7 @@ class Storage:
         self.db_config = config["DATABASE"]
 
 
-class SessionStorage:
+class SessionStorage(Storage):
     """
     In-memory storage
     """
@@ -54,7 +54,13 @@ class SessionStoragePDB(Storage):
         USER = self.db_config["user"]
         PWD = self.db_config["password"]
 
-        engine = create_engine(f"postgresql://{USER}:{PWD}@{HOST}:{PORT}/{DB_NAME}")
+        engine = create_engine("postgresql://{USER}:{PWD}@{HOST}:{PORT}/{DB_NAME}".format(
+            USER=USER,
+            PWD=PWD,
+            HOST=HOST,
+            PORT=PORT,
+            DB_NAME=DB_NAME
+        ))
         Base.metadata.create_all(engine)
         self.Session = sessionmaker(bind=engine)
 
@@ -76,8 +82,8 @@ class SessionStoragePDB(Storage):
         authn_response = vars(authn_response[-1])["authn_response"]
         return authn_response
 
-    def delete_session(self, state, response_id):
+    def delete_session(self, state):
         session = self.Session()
-        session.query(AuthnResponse).filter_by(id=response_id).delete()
+        session.query(AuthnResponse).filter(AuthnResponse.session_id == state["SESSION_ID"]).delete()
         session.commit()
         session.close()
