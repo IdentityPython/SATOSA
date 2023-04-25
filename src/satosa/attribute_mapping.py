@@ -115,10 +115,13 @@ class AttributeMapper(object):
 
         return result
 
-    def _render_attribute_template(self, template: str, data: Mapping[str, list[str]]) -> list[list[str]]:
+    def _render_attribute_template(self, template: str, data: Mapping[str, list[str]]) -> list[str]:
         t = Template(template, cache_enabled=True, imports=["from satosa.attribute_mapping import scope"])
         try:
-            return t.render(**data).split(self.multivalue_separator)
+            _rendered = t.render(**data)
+            if not isinstance(_rendered, str):
+                raise TypeError("Rendered data is not a string")
+            return _rendered.split(self.multivalue_separator)
         except (NameError, TypeError):
             return []
 
@@ -139,7 +142,7 @@ class AttributeMapper(object):
                 self._render_attribute_template(template, internal_dict) for template in templates
             ]
             flattened_attribute_values: list[str] = list(chain.from_iterable(template_attribute_values))
-            attribute_values = flattened_attribute_values or internal_dict.get(internal_attribute_name, None)
+            attribute_values = flattened_attribute_values or internal_dict.get(internal_attribute_name)
             if attribute_values:  # only insert key if it has some values
                 internal_dict[internal_attribute_name] = attribute_values
 
@@ -150,7 +153,7 @@ class AttributeMapper(object):
 
         d = data
         for key in keys:
-            d = d.get(key)
+            d = d.get(key)  # type: ignore[assignment]
             if d is None:
                 return None
         return d

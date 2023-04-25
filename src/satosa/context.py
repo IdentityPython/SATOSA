@@ -26,7 +26,7 @@ class Context(object):
 
     def __init__(self) -> None:
         self._path: Optional[str] = None
-        self.request: dict[str, Any] = None
+        self.request: dict[str, Any] = {}
         self.request_uri = None
         self.request_method = None
         self.qs_params = None
@@ -78,6 +78,8 @@ class Context(object):
         self._path = p
 
     def target_entity_id_from_path(self) -> Optional[str]:
+        if not self.path:
+            return None
         target_entity_id = self.path.split("/")[1]
         return target_entity_id
 
@@ -92,6 +94,5 @@ class Context(object):
         """
         Retrieve information from the context
         """
-
         value = self.internal_data.get(key)
         return value

@@ -36,6 +36,8 @@ class MicroService(object):
         :param data: Data to be modified
         :return: Modified data
         """
+        if not self.next:
+            raise RuntimeError("No next micro service")
         return self.next(context, data)
 
     def register_endpoints(self) -> list[tuple[str, CallbackCallSignature]]:
