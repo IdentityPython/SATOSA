@@ -63,7 +63,6 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
             # or else add the value None.
             if 'name_id' in candidate['attribute_names']:
                 candidate_nameid_value = None
-                candidate_nameid_value = None
                 candidate_name_id_format = candidate.get('name_id_format')
                 name_id_value = data.subject_id
                 name_id_format = data.subject_type
