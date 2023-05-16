@@ -22,20 +22,24 @@ config:
         - attribute_names: [eppn]
         - attribute_names: [name_id]
           name_id_format: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
-          # The line below addes the IdP entityID to the value for the SAML2 
+          # The line below adds the IdP entityID to the value for the SAML2
           # Persistent NameID to ensure the value is fully scoped.
           add_scope: issuer_entityid
         - attribute_names: [edupersontargetedid]
           add_scope: issuer_entityid
+
     # The internal SATOSA attribute into which to place the primary
     # identifier value once found from the above configured ordered
     # candidates.
     primary_identifier: uid
+
     # Whether or not to clear the input attributes after setting the
     # primary identifier value.
     clear_input_attributes: no
+
     # Whether to replace subject_id with the constructed primary identifier
     replace_subject_id: no
+
     # If defined redirect to this page if no primary identifier can
     # be found.
     on_error: https://my.org/errors/no_primary_identifier
