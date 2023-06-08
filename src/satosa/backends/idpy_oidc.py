@@ -6,7 +6,9 @@ from datetime import datetime
 
 from idpyoidc.server.user_authn.authn_context import UNSPECIFIED
 
+import satosa.logging_util as lu
 from satosa.backends.base import BackendModule
+from satosa.exception import SATOSAAuthenticationError
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 
@@ -83,6 +85,23 @@ class IdpyOIDCBackend(BackendModule):
 
         return self.client.context.claims.get_usage('authorization_endpoint')
 
+    def _check_error_response(self, response, context):
+        """
+        Check if the response is an error response.
+        :param response: the response from finalize()
+        :type response: oic.oic.message
+        :raise SATOSAAuthenticationError: if the response is an OAuth error response
+        """
+        if "error" in response:
+            msg = "{name} error: {error} {description}".format(
+                name=type(response).__name__,
+                error=response["error"],
+                description=response.get("error_description", ""),
+            )
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
+            raise SATOSAAuthenticationError(context.state, "Access denied")
+
     def _authn_response(self, context):
         """
         Handles the authentication response from the AS.
@@ -95,6 +114,7 @@ class IdpyOIDCBackend(BackendModule):
         """
 
         _info = self.client.finalize(context.request)
+        self._check_error_response(_info, context)
 
         try:
             auth_info = self.auth_info(context.request)
