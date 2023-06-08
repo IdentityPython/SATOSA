@@ -282,7 +282,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         for aconv in attrconvs:
             if aconv.name_format == name_format:
                 all_attributes = {v: None for v in aconv._fro.values()}
-                attribute_filter = list(idp_policy.restrict(all_attributes, sp_entity_id, idp.metadata).keys())
+                attribute_filter = list(idp_policy.restrict(all_attributes, sp_entity_id).keys())
                 break
         attribute_filter = self.converter.to_internal_filter(self.attribute_profile, attribute_filter)
         msg = "Filter: {}".format(attribute_filter)
