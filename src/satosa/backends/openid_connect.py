@@ -12,6 +12,7 @@ from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import RegistrationRequest
 from oic.utils.authn.authn_context import UNSPECIFIED
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
+from oic.utils.settings import PyoidcSettings
 
 import satosa.logging_util as lu
 from satosa.internal import AuthenticationInformation
@@ -55,10 +56,12 @@ class OpenIDConnectBackend(BackendModule):
         super().__init__(auth_callback_func, internal_attributes, base_url, name)
         self.auth_callback_func = auth_callback_func
         self.config = config
+        cfg_verify_ssl = config["client"].get("verify_ssl", True)
+        oidc_settings = PyoidcSettings(verify_ssl=cfg_verify_ssl)
         self.client = _create_client(
-            config["provider_metadata"],
-            config["client"]["client_metadata"],
-            config["client"].get("verify_ssl", True),
+            provider_metadata=config["provider_metadata"],
+            client_metadata=config["client"]["client_metadata"],
+            settings=oidc_settings,
         )
         if "scope" not in config["client"]["auth_req_params"]:
             config["auth_req_params"]["scope"] = "openid"
@@ -243,7 +246,7 @@ class OpenIDConnectBackend(BackendModule):
         return get_metadata_desc_for_oauth_backend(self.config["provider_metadata"]["issuer"], self.config)
 
 
-def _create_client(provider_metadata, client_metadata, verify_ssl=True):
+def _create_client(provider_metadata, client_metadata, settings=None):
     """
     Create a pyoidc client instance.
     :param provider_metadata: provider configuration information
@@ -254,7 +257,7 @@ def _create_client(provider_metadata, client_metadata, verify_ssl=True):
     :rtype: oic.oic.Client
     """
     client = oic.Client(
-        client_authn_method=CLIENT_AUTHN_METHOD, verify_ssl=verify_ssl
+        client_authn_method=CLIENT_AUTHN_METHOD, settings=settings
     )
 
     # Provider configuration information
