@@ -25,38 +25,23 @@ class IdpyOIDCBackend(BackendModule):
     Backend module for OIDC and OAuth 2.0, can be directly used.
     """
 
-    def __init__(self,
-                 outgoing,
-                 internal_attributes,
-                 config,
-                 base_url,
-                 name,
-                 external_type,
-                 user_id_attr
-                 ):
+    def __init__(self, outgoing, internal_attributes, config, base_url, name):
         """
-        :param outgoing: Callback should be called by the module after the authorization in the
-        backend is done.
-        :param internal_attributes: Mapping dictionary between SATOSA internal attribute names and
-        the names returned by underlying IdP's/OP's as well as what attributes the calling SP's and
-        RP's expects namevice.
-        :param config: Configuration parameters for the module.
-        :param base_url: base url of the service
-        :param name: name of the plugin
-        :param external_type: The name for this module in the internal attributes.
-
         :type outgoing:
         (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
-        :type internal_attributes: dict[string, dict[str, str | list[str]]]
-        :type config: dict[str, dict[str, str] | list[str]]
+        :type internal_attributes: dict[str, dict[str, list[str] | str]]
+        :type config: dict[str, Any]
         :type base_url: str
         :type name: str
-        :type external_type: str
+
+        :param outgoing: Callback should be called by the module after
+                                   the authorization in the backend is done.
+        :param internal_attributes: Internal attribute map
+        :param config: The module config
+        :param base_url: base url of the service
+        :param name: name of the plugin
         """
         super().__init__(outgoing, internal_attributes, base_url, name)
-        self.name = name
-        self.external_type = external_type
-        self.user_id_attr = user_id_attr
 
         self.client = StandAloneClient(config=config["client_config"],
                                        client_type=config["client_config"]['client_type'])
@@ -119,18 +104,20 @@ class IdpyOIDCBackend(BackendModule):
         try:
             auth_info = self.auth_info(context.request)
         except NotImplementedError:
-            auth_info = AuthenticationInformation(UNSPECIFIED, str(datetime.now()), _info["issuer"])
+            auth_info = AuthenticationInformation(auth_class_ref=UNSPECIFIED,
+                                                  timestamp=str(datetime.now()),
+                                                  issuer=_info["issuer"])
 
-        internal_response = InternalData(auth_info=auth_info)
-        internal_response.attributes = self.converter.to_internal(self.external_type,
-                                                                  _info['userinfo'])
-        internal_response.subject_id = _info['userinfo'][self.user_id_attr]
-        del context.state[self.name]
-        # return self.auth_callback_func(context, internal_response)
-        if 'error' in _info:
-            return _info
-        else:
-            return _info['userinfo']
+        attributes = self.converter.to_internal(
+            self.client.client_type, _info['userinfo'],
+        )
+
+        internal_response = InternalData(
+            auth_info=auth_info,
+            attributes=attributes,
+            subject_id=_info['userinfo']['sub']
+        )
+        return internal_response
 
     def auth_info(self, request):
         """
