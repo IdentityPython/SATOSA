@@ -25,6 +25,7 @@ setup(
         "click",
         "chevron",
         "cookies-samesite-compat",
+        "importlib-metadata >= 1.7.0; python_version <= '3.8'",
     ],
     extras_require={
         "ldap": ["ldap3"],
