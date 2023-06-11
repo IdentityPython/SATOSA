@@ -25,6 +25,109 @@ logger = logging.getLogger(__name__)
 _SESSION_ID_KEY = "SESSION_ID"
 
 
+class State(UserDict):
+    """
+    This class holds a state attribute object. A state object must be able to be converted to
+    a json string, otherwise will an exception be raised.
+    """
+
+    def __init__(self, urlstate_data=None, encryption_key=None):
+        """
+        If urlstate is empty a new empty state instance will be returned.
+
+        If urlstate is not empty the constructor will rebuild the state attribute objects
+        from the urlstate string.
+        :type urlstate_data: str
+        :type encryption_key: str
+        :rtype: State
+
+        :param encryption_key: The key to be used for encryption.
+        :param urlstate_data: A string created by the method urlstate in this class.
+        :return: An instance of this class.
+        """
+        self.delete = False
+
+        urlstate_data = {} if urlstate_data is None else urlstate_data
+        if urlstate_data and not encryption_key:
+            raise ValueError("If an 'urlstate_data' is supplied 'encrypt_key' must be specified.")
+
+        if urlstate_data:
+            try:
+                urlstate_data_bytes = urlstate_data.encode("utf-8")
+                urlstate_data_b64decoded = base64.urlsafe_b64decode(urlstate_data_bytes)
+                lzma = LZMADecompressor()
+                urlstate_data_decompressed = lzma.decompress(urlstate_data_b64decoded)
+                urlstate_data_decrypted = _AESCipher(encryption_key).decrypt(
+                    urlstate_data_decompressed
+                )
+                lzma = LZMADecompressor()
+                urlstate_data_decrypted_decompressed = lzma.decompress(urlstate_data_decrypted)
+                urlstate_data_obj = json.loads(urlstate_data_decrypted_decompressed)
+            except Exception as e:
+                error_context = {
+                    "message": "Failed to load state data. Reinitializing empty state.",
+                    "reason": str(e),
+                    "urlstate_data": urlstate_data,
+                }
+                logger.warning(error_context)
+                urlstate_data = {}
+            else:
+                urlstate_data = urlstate_data_obj
+
+        session_id = (
+            urlstate_data[_SESSION_ID_KEY]
+            if urlstate_data and _SESSION_ID_KEY in urlstate_data
+            else uuid4().urn
+        )
+        urlstate_data[_SESSION_ID_KEY] = session_id
+
+        super().__init__(urlstate_data)
+
+    @property
+    def session_id(self):
+        return self.data.get(_SESSION_ID_KEY)
+
+    def urlstate(self, encryption_key):
+        """
+        Will return a url safe representation of the state.
+
+        :type encryption_key: Key used for encryption.
+        :rtype: str
+
+        :return: Url representation av of the state.
+        """
+        lzma = LZMACompressor()
+        urlstate_data = json.dumps(self.data)
+        urlstate_data = lzma.compress(urlstate_data.encode("UTF-8"))
+        urlstate_data += lzma.flush()
+        urlstate_data = _AESCipher(encryption_key).encrypt(urlstate_data)
+        lzma = LZMACompressor()
+        urlstate_data = lzma.compress(urlstate_data)
+        urlstate_data += lzma.flush()
+        urlstate_data = base64.urlsafe_b64encode(urlstate_data)
+        return urlstate_data.decode("utf-8")
+
+    def copy(self):
+        """
+        Returns a deepcopy of the state
+
+        :rtype: satosa.state.State
+
+        :return: A copy of the state
+        """
+        state_copy = State()
+        state_copy.data = copy.deepcopy(self.data)
+        return state_copy
+
+    @property
+    def state_dict(self):
+        """
+        :rtype: dict[str, any]
+        :return: A copy of the state as dictionary.
+        """
+        return copy.deepcopy(self.data)
+
+
 def state_to_cookie(state, name, path, encryption_key):
     """
     Saves a state to a cookie
@@ -156,106 +259,3 @@ class _AESCipher(object):
         :rtype: bytes
         """
         return b[:-ord(b[len(b) - 1:])]
-
-
-class State(UserDict):
-    """
-    This class holds a state attribute object. A state object must be able to be converted to
-    a json string, otherwise will an exception be raised.
-    """
-
-    def __init__(self, urlstate_data=None, encryption_key=None):
-        """
-        If urlstate is empty a new empty state instance will be returned.
-
-        If urlstate is not empty the constructor will rebuild the state attribute objects
-        from the urlstate string.
-        :type urlstate_data: str
-        :type encryption_key: str
-        :rtype: State
-
-        :param encryption_key: The key to be used for encryption.
-        :param urlstate_data: A string created by the method urlstate in this class.
-        :return: An instance of this class.
-        """
-        self.delete = False
-
-        urlstate_data = {} if urlstate_data is None else urlstate_data
-        if urlstate_data and not encryption_key:
-            raise ValueError("If an 'urlstate_data' is supplied 'encrypt_key' must be specified.")
-
-        if urlstate_data:
-            try:
-                urlstate_data_bytes = urlstate_data.encode("utf-8")
-                urlstate_data_b64decoded = base64.urlsafe_b64decode(urlstate_data_bytes)
-                lzma = LZMADecompressor()
-                urlstate_data_decompressed = lzma.decompress(urlstate_data_b64decoded)
-                urlstate_data_decrypted = _AESCipher(encryption_key).decrypt(
-                    urlstate_data_decompressed
-                )
-                lzma = LZMADecompressor()
-                urlstate_data_decrypted_decompressed = lzma.decompress(urlstate_data_decrypted)
-                urlstate_data_obj = json.loads(urlstate_data_decrypted_decompressed)
-            except Exception as e:
-                error_context = {
-                    "message": "Failed to load state data. Reinitializing empty state.",
-                    "reason": str(e),
-                    "urlstate_data": urlstate_data,
-                }
-                logger.warning(error_context)
-                urlstate_data = {}
-            else:
-                urlstate_data = urlstate_data_obj
-
-        session_id = (
-            urlstate_data[_SESSION_ID_KEY]
-            if urlstate_data and _SESSION_ID_KEY in urlstate_data
-            else uuid4().urn
-        )
-        urlstate_data[_SESSION_ID_KEY] = session_id
-
-        super().__init__(urlstate_data)
-
-    @property
-    def session_id(self):
-        return self.data.get(_SESSION_ID_KEY)
-
-    def urlstate(self, encryption_key):
-        """
-        Will return a url safe representation of the state.
-
-        :type encryption_key: Key used for encryption.
-        :rtype: str
-
-        :return: Url representation av of the state.
-        """
-        lzma = LZMACompressor()
-        urlstate_data = json.dumps(self.data)
-        urlstate_data = lzma.compress(urlstate_data.encode("UTF-8"))
-        urlstate_data += lzma.flush()
-        urlstate_data = _AESCipher(encryption_key).encrypt(urlstate_data)
-        lzma = LZMACompressor()
-        urlstate_data = lzma.compress(urlstate_data)
-        urlstate_data += lzma.flush()
-        urlstate_data = base64.urlsafe_b64encode(urlstate_data)
-        return urlstate_data.decode("utf-8")
-
-    def copy(self):
-        """
-        Returns a deepcopy of the state
-
-        :rtype: satosa.state.State
-
-        :return: A copy of the state
-        """
-        state_copy = State()
-        state_copy.data = copy.deepcopy(self.data)
-        return state_copy
-
-    @property
-    def state_dict(self):
-        """
-        :rtype: dict[str, any]
-        :return: A copy of the state as dictionary.
-        """
-        return copy.deepcopy(self.data)
