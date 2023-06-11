@@ -303,7 +303,7 @@ class TestFilterAttributeValues:
         resp.auth_info.issuer = idp_entityid
 
         mdstore = MetadataStore(None, Config())
-        mdstore.imp(self.create_idp_metadata_conf_with_shibmd_scopes(idp_entityid, ["[^.]*\.foo\.bar$"]))
+        mdstore.imp(self.create_idp_metadata_conf_with_shibmd_scopes(idp_entityid, [r"[^.]*\.foo\.bar$"]))
         # mark scope as regexp (cannot be done via pysaml2 YAML config)
         mdstore[idp_entityid]['idpsso_descriptor'][0]['extensions']['extension_elements'][0]['regexp'] = 'true'
         ctx = Context()
