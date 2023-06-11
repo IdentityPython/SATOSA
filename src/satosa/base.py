@@ -219,8 +219,19 @@ class SATOSABase(object):
         :param context: Session context
         """
 
-        cookie = state_to_cookie(context.state, self.config["COOKIE_STATE_NAME"], "/",
-                                 self.config["STATE_ENCRYPTION_KEY"])
+        cookie_name = self.config["COOKIE_STATE_NAME"]
+        cookie = state_to_cookie(
+            context.state,
+            name=cookie_name,
+            path="/",
+            encryption_key=self.config["STATE_ENCRYPTION_KEY"],
+        )
+        resp.headers = [
+            (name, value)
+            for (name, value) in resp.headers
+            if name != "Set-Cookie"
+            or not value.startswith(f"{cookie_name}=")
+        ]
         resp.headers.append(tuple(cookie.output().split(": ", 1)))
 
     def run(self, context):
