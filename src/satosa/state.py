@@ -128,31 +128,46 @@ class State(UserDict):
         return copy.deepcopy(self.data)
 
 
-def state_to_cookie(state, name, path, encryption_key):
+def state_to_cookie(
+    state: State,
+    *,
+    name: str,
+    path: str,
+    encryption_key: str,
+    secure: bool = None,
+    httponly: bool = None,
+    samesite: str = None,
+    max_age: str = None,
+) -> SimpleCookie:
     """
     Saves a state to a cookie
 
-    :type state: satosa.state.State
-    :type name: str
-    :type path: str
-    :type encryption_key: str
-    :rtype: satosa.cookies.SimpleCookie
-
-    :param state: The state to save
-    :param name: Name identifier of the cookie
-    :param path: Endpoint path the cookie will be associated to
-    :param encryption_key: Key to encrypt the state information
-    :return: A cookie
+    :param state: the data to save
+    :param name: identifier of the cookie
+    :param path: path the cookie will be associated to
+    :param encryption_key: the key to use to encrypt the state information
+    :param secure: whether to include the cookie only when the request is transmitted
+                   over a secure channel
+    :param httponly: whether the cookie should only be accessed only by the server
+    :param samesite: whether the cookie should only be sent with requests
+                     initiated from the same registrable domain
+    :param max_age: indicates the maximum lifetime of the cookie,
+                    represented as the number of seconds until the cookie expires
+    :return: A cookie object
     """
-
-    cookie_data = "" if state.delete else state.urlstate(encryption_key)
-
     cookie = SimpleCookie()
-    cookie[name] = cookie_data
-    cookie[name]["samesite"] = "None"
-    cookie[name]["secure"] = True
+    cookie[name] = "" if state.delete else state.urlstate(encryption_key)
     cookie[name]["path"] = path
-    cookie[name]["max-age"] = 0 if state.delete else ""
+    cookie[name]["secure"] = secure if secure is not None else True
+    cookie[name]["httponly"] = httponly if httponly is not None else ""
+    cookie[name]["samesite"] = samesite if samesite is not None else "None"
+    cookie[name]["max-age"] = (
+        0
+        if state.delete
+        else max_age
+        if max_age is not None
+        else ""
+    )
 
     msg = "Saved state in cookie {name} with properties {props}".format(
         name=name, props=list(cookie[name].items())
@@ -163,7 +178,7 @@ def state_to_cookie(state, name, path, encryption_key):
     return cookie
 
 
-def cookie_to_state(cookie_str, name, encryption_key):
+def cookie_to_state(cookie_str: str, name: str, encryption_key: str) -> State:
     """
     Loads a state from a cookie
 
@@ -181,8 +196,7 @@ def cookie_to_state(cookie_str, name, encryption_key):
         cookie = SimpleCookie(cookie_str)
         state = State(cookie[name].value, encryption_key)
     except KeyError as e:
-        msg_tmpl = 'No cookie named {name} in {data}'
-        msg = msg_tmpl.format(name=name, data=cookie_str)
+        msg = f'No cookie named {name} in {cookie_str}'
         raise SATOSAStateError(msg) from e
     except ValueError as e:
         msg_tmpl = 'Failed to process {name} from {data}'

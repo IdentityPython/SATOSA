@@ -40,7 +40,7 @@ class SATOSAConfig(object):
 
         # Load sensitive config from environment variables
         for key in SATOSAConfig.sensitive_dict_keys:
-            val = os.environ.get("SATOSA_{key}".format(key=key))
+            val = os.environ.get(f"SATOSA_{key}")
             if val:
                 self._config[key] = val
 
@@ -56,7 +56,7 @@ class SATOSAConfig(object):
                         plugin_configs.append(plugin_config)
                         break
                 else:
-                    raise SATOSAConfigurationError('Failed to load plugin config \'{}\''.format(config))
+                    raise SATOSAConfigurationError(f"Failed to load plugin config '{config}'")
             self._config[key] = plugin_configs
 
         for parser in parsers:
@@ -86,8 +86,8 @@ class SATOSAConfig(object):
                 raise SATOSAConfigurationError("Missing key '%s' in config" % key)
 
         for key in SATOSAConfig.sensitive_dict_keys:
-            if key not in conf and "SATOSA_{key}".format(key=key) not in os.environ:
-                raise SATOSAConfigurationError("Missing key '%s' from config and ENVIRONMENT" % key)
+            if key not in conf and f"SATOSA_{key}" not in os.environ:
+                raise SATOSAConfigurationError(f"Missing key '{key}' from config and ENVIRONMENT")
 
     def __getitem__(self, item):
         """

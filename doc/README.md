@@ -80,6 +80,10 @@ bind_password: !ENVFILE LDAP_BIND_PASSWORD_FILE
 | -------------- | --------- | ------------- | ----------- |
 | `BASE` | string | `https://proxy.example.com` | base url of the proxy |
 | `COOKIE_STATE_NAME` | string | `satosa_state` | name of the cookie SATOSA uses for preserving state between requests |
+| `COOKIE_SECURE` | bool | `True` | whether to include the cookie only when the request is transmitted over a secure channel |
+| `COOKIE_HTTPONLY` | bool | `True` | whether the cookie should only be accessed only by the server |
+| `COOKIE_SAMESITE` | string | `"None"` | whether the cookie should only be sent with requests initiated from the same registrable domain |
+| `COOKIE_MAX_AGE` | string | `"1200"` | indicates the maximum lifetime of the cookie represented as the number of seconds until the cookie expires |
 | `CONTEXT_STATE_DELETE` | bool | `True` | controls whether SATOSA will delete the state cookie after receiving the authentication response from the upstream IdP|
 | `STATE_ENCRYPTION_KEY` | string | `52fddd3528a44157` | key used for encrypting the state cookie, will be overridden by the environment variable `SATOSA_STATE_ENCRYPTION_KEY` if it is set |
 | `INTERNAL_ATTRIBUTES` | string | `example/internal_attributes.yaml` | path to attribute mapping

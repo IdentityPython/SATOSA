@@ -204,7 +204,7 @@ class SATOSABase(object):
             state = State()
         finally:
             context.state = state
-            msg = "Loaded state {state} from cookie {cookie}".format(state=state, cookie=context.cookie)
+            msg = f"Loaded state {state} from cookie {context.cookie}"
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline)
 
@@ -225,6 +225,10 @@ class SATOSABase(object):
             name=cookie_name,
             path="/",
             encryption_key=self.config["STATE_ENCRYPTION_KEY"],
+            secure=self.config.get("COOKIE_SECURE"),
+            httponly=self.config.get("COOKIE_HTTPONLY"),
+            samesite=self.config.get("COOKIE_SAMESITE"),
+            max_age=self.config.get("COOKIE_MAX_AGE"),
         )
         resp.headers = [
             (name, value)
