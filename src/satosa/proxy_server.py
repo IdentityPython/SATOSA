@@ -143,6 +143,18 @@ class WsgiApplication(SATOSABase):
 
         environ['wsgi.input'].seek(0)
 
+        logline = {
+            "message": "Proxy server received request",
+            "request_method": context.request_method,
+            "request_uri": context.request_uri,
+            "content_length": content_length,
+            "request_data": context.request,
+            "query_params": context.qs_params,
+            "http_headers": context.http_headers,
+            "server_headers": context.server,
+        }
+        logger.debug(logline)
+
         try:
             resp = self.run(context)
             if isinstance(resp, Exception):
