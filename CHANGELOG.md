@@ -1,5 +1,16 @@
 # Changelog
 
+## 8.4.0 (2023-06-11)
+
+- Make cookie parameters configurable
+- Avoid setting duplicate set-cookie headers
+- Complete the support for the mdui:UIInfo element
+- satosa-saml-metadata: make signing optional
+- metadata_creation: for SAML backend, use sp.config to render metadata
+- tests: update markers of supported Python versions
+- deps: move away from pkg_resources when deriving the package version at runtime
+
+
 ## 8.3.0 (2023-06-08)
 
 - FilterAttributeValues plugin: add new filter types shibmdscope_match_scope and shibmdscope_match_value; add tests
