@@ -7,13 +7,12 @@ from urllib.parse import parse_qsl as _parse_query_string
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 
 import satosa
-import satosa.logging_util as lu
 
 from .base import SATOSABase
 from .context import Context
-from .response import ServiceError, NotFound
-from .routing import SATOSANoBoundEndpointError
-from saml2.s_utils import UnknownSystemEntity
+from .response import ServiceError
+from .response import NotFound
+
 
 logger = logging.getLogger(__name__)
 
@@ -143,21 +142,25 @@ class WsgiApplication(SATOSABase):
 
         environ['wsgi.input'].seek(0)
 
+        logline = {
+            "message": "Proxy server received request",
+            "request_method": context.request_method,
+            "request_uri": context.request_uri,
+            "content_length": content_length,
+            "request_data": context.request,
+            "query_params": context.qs_params,
+            "http_headers": context.http_headers,
+            "server_headers": context.server,
+        }
+        logger.debug(logline)
+
         try:
             resp = self.run(context)
             if isinstance(resp, Exception):
                 raise resp
             return resp(environ, start_response)
-        except SATOSANoBoundEndpointError as e:
-            msg = str(e)
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.debug(logline)
-            resp = NotFound("The Service or Identity Provider you requested could not be found.")
-            return resp(environ, start_response)
         except Exception as e:
-            if type(e) != UnknownSystemEntity:
-                logline = "{}".format(e)
-                logger.exception(logline)
+            logger.exception(str(e))
             if debug:
                 raise
 

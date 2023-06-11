@@ -163,7 +163,6 @@ class TestOpenIDConnectBackend(object):
         self.setup_userinfo_endpoint(backend_config["provider_metadata"]["userinfo_endpoint"], userinfo)
 
         self.oidc_backend.response_endpoint(incoming_authn_response)
-        assert self.oidc_backend.name not in incoming_authn_response.state
 
         args = self.oidc_backend.auth_callback_func.call_args[0]
         assert isinstance(args[0], Context)
@@ -198,7 +197,6 @@ class TestOpenIDConnectBackend(object):
             "token_type": "Bearer",
         }
         self.oidc_backend.response_endpoint(context)
-        assert self.oidc_backend.name not in context.state
         args = self.oidc_backend.auth_callback_func.call_args[0]
         self.assert_expected_attributes(internal_attributes, userinfo, args[1].attributes)
 

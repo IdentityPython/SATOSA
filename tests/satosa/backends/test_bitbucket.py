@@ -159,7 +159,6 @@ class TestBitBucketBackend(object):
             mock_do_access_token_request
 
         self.bb_backend._authn_response(incoming_authn_response)
-        assert self.bb_backend.name not in incoming_authn_response.state
 
         self.assert_expected_attributes()
         self.assert_token_request(**mock_do_access_token_request.call_args[1])
@@ -190,5 +189,4 @@ class TestBitBucketBackend(object):
             "state": mock_get_state.return_value
         }
         self.bb_backend._authn_response(context)
-        assert self.bb_backend.name not in context.state
         self.assert_expected_attributes()

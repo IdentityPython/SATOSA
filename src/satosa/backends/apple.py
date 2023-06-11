@@ -245,7 +245,6 @@ class AppleBackend(BackendModule):
         msg = "UserInfo: {}".format(all_user_claims)
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.debug(logline)
-        del context.state[self.name]
         internal_resp = self._translate_response(
             all_user_claims, self.client.authorization_endpoint
         )

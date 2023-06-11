@@ -27,6 +27,8 @@ from satosa.context import Context
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from satosa.exception import SATOSAAuthenticationError
+from satosa.exception import SATOSAMissingStateError
+from satosa.exception import SATOSAAuthenticationFlowError
 from satosa.response import SeeOther, Response
 from satosa.saml_util import make_saml_response
 from satosa.metadata_creation.description import (
@@ -224,6 +226,14 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         loc = self.sp.create_discovery_service_request(
             disco_url, self.sp.config.entityid, **args
         )
+
+        msg = {
+            "message": "Sending user to the discovery service",
+            "disco_url": loc
+        }
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.info(logline)
+
         return SeeOther(loc)
 
     def construct_requested_authn_context(self, entity_id, *, target_accr=None):
@@ -268,10 +278,13 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             with open(self.idp_blacklist_file) as blacklist_file:
                 blacklist_array = json.load(blacklist_file)['blacklist']
                 if entity_id in blacklist_array:
-                    msg = "IdP with EntityID {} is blacklisted".format(entity_id)
+                    msg = {
+                        "message": "AuthnRequest Failed",
+                        "error": f"Selected IdP with EntityID {entity_id} is blacklisted for this backend",
+                    }
                     logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-                    logger.debug(logline, exc_info=False)
-                    raise SATOSAAuthenticationError(context.state, "Selected IdP is blacklisted for this backend")
+                    logger.info(logline)
+                    raise SATOSAAuthenticationError(context.state, msg)
 
         kwargs = {}
         target_accr = context.state.get(Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF)
@@ -299,16 +312,22 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                 **kwargs,
             )
         except Exception as e:
-            msg = "Failed to construct the AuthnRequest for state"
+            msg = {
+                "message": "AuthnRequest Failed",
+                "error": f"Failed to construct the AuthnRequest for state: {e}",
+            }
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.error(logline, exc_info=True)
-            raise SATOSAAuthenticationError(context.state, "Failed to construct the AuthnRequest") from e
+            logger.info(logline)
+            raise SATOSAAuthenticationError(context.state, msg) from e
 
         if self.sp.config.getattr('allow_unsolicited', 'sp') is False:
             if req_id in self.outstanding_queries:
-                msg = "Request with duplicate id {}".format(req_id)
+                msg = {
+                    "message": "AuthnRequest Failed",
+                    "error": f"Request with duplicate id {req_id}",
+                }
                 logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-                logger.debug(logline)
+                logger.info(logline)
                 raise SATOSAAuthenticationError(context.state, msg)
             self.outstanding_queries[req_id] = req_id
 
@@ -378,43 +397,78 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :param binding: The saml binding type
         :return: response
         """
-        if not context.request.get("SAMLResponse"):
-            msg = "Missing Response for state"
+
+        if self.name not in context.state:
+            """
+            If we end up here, it means that the user returns to the proxy
+            without the SATOSA session cookie. This can happen at least in the
+            following cases:
+            - the user deleted the cookie from the browser
+            - the browser of the user blocked the cookie
+            - the user has completed an authentication flow, the cookie has
+              been removed by SATOSA and then the user used the back button
+              of their browser and resend the authentication response, but
+              without the SATOSA session cookie
+            """
+            msg = {
+                "message": "Authentication failed",
+                "error": "Received AuthN response without a SATOSA session cookie",
+            }
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.debug(logline)
-            raise SATOSAAuthenticationError(context.state, "Missing Response")
+            logger.info(logline)
+            raise SATOSAMissingStateError(msg)
+
+        if not context.request.get("SAMLResponse"):
+            msg = {
+                "message": "Authentication failed",
+                "error": "SAML Response not found in context.request",
+            }
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.info(logline)
+            raise SATOSAAuthenticationError(context.state, msg)
 
         try:
             authn_response = self.sp.parse_authn_request_response(
                 context.request["SAMLResponse"],
-                binding, outstanding=self.outstanding_queries)
-        except Exception as err:
-            msg = "Failed to parse authn request for state"
+                binding,
+                outstanding=self.outstanding_queries,
+            )
+        except Exception as e:
+            msg = {
+                "message": "Authentication failed",
+                "error": f"Failed to parse Authn response: {err}",
+            }
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline, exc_info=True)
-            raise SATOSAAuthenticationError(context.state, "Failed to parse authn request") from err
+            logger.info(logline)
+            raise SATOSAAuthenticationError(context.state, msg) from e
 
         if self.sp.config.getattr('allow_unsolicited', 'sp') is False:
             req_id = authn_response.in_response_to
             if req_id not in self.outstanding_queries:
-                msg = "No request with id: {}".format(req_id),
+                msg = {
+                    "message": "Authentication failed",
+                    "error": f"No corresponding request with id: {req_id}",
+                }
                 logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-                logger.debug(logline)
+                logger.info(logline)
                 raise SATOSAAuthenticationError(context.state, msg)
             del self.outstanding_queries[req_id]
 
         # check if the relay_state matches the cookie state
         if context.state[self.name]["relay_state"] != context.request["RelayState"]:
-            msg = "State did not match relay state for state"
+            msg = {
+                "message": "Authentication failed",
+                "error": "Response state query param did not match relay state for request",
+            }
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.debug(logline)
-            raise SATOSAAuthenticationError(context.state, "State did not match relay state")
+            logger.info(logline)
+            raise SATOSAAuthenticationError(context.state, msg)
 
         context.decorate(Context.KEY_METADATA_STORE, self.sp.metadata)
         if self.config.get(SAMLBackend.KEY_MEMORIZE_IDP):
             issuer = authn_response.response.issuer.text.strip()
             context.state[Context.KEY_MEMORIZED_IDP] = issuer
-        context.state.pop(self.name, None)
         context.state.pop(Context.KEY_FORCE_AUTHN, None)
         return self.auth_callback_func(context, self._translate_response(authn_response, context.state))
 
@@ -431,13 +485,18 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         info = context.request
         state = context.state
 
-        try:
-            entity_id = info["entityID"]
-        except KeyError as err:
-            msg = "No IDP chosen for state"
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(state), message=msg)
-            logger.debug(logline, exc_info=True)
-            raise SATOSAAuthenticationError(state, "No IDP chosen") from err
+        if 'SATOSA_BASE' not in state:
+            raise SATOSAAuthenticationFlowError("Discovery response without AuthN request")
+
+        entity_id = info.get("entityID")
+        msg = {
+            "message": "Received response from the discovery service",
+            "entity_id": entity_id,
+        }
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.info(logline)
+        if not entity_id:
+            raise SATOSAAuthenticationError(state, msg) from err
 
         return self.authn_request(context, entity_id)
 
@@ -488,11 +547,20 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             subject_id=name_id,
         )
 
-        msg = "backend received attributes:\n{}".format(
-            json.dumps(response.ava, indent=4)
-        )
+        msg = "backend received attributes: {}".format(response.ava)
         logline = lu.LOG_FMT.format(id=lu.get_session_id(state), message=msg)
         logger.debug(logline)
+
+        msg = {
+            "message": "Attributes received by the backend",
+            "issuer": issuer,
+            "attributes": " ".join(list(response.ava.keys()))
+        }
+        if name_id_format:
+            msg['name_id'] = name_id_format
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(state), message=msg)
+        logger.info(logline)
+
         return internal_resp
 
     def _metadata_endpoint(self, context):

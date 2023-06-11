@@ -132,11 +132,12 @@ class TestSAMLBackend:
         disco_resp = parse_qs(urlparse(resp.message).query)
         info = parse_qs(urlparse(disco_resp["return"][0]).query)
         info["entityID"] = idp_conf["entityid"]
-        request_context = Context()
+        request_context = context
         request_context.request = info
         request_context.state = context.state
 
         # pass discovery response to backend and check that it redirects to the selected IdP
+        context.state["SATOSA_BASE"] = {"requester": "the-service-identifier"}
         resp = self.samlbackend.disco_response(request_context)
         assert_redirect_to_idp(resp, idp_conf)
 
@@ -155,7 +156,6 @@ class TestSAMLBackend:
         # pass auth response to backend and verify behavior
         self.samlbackend.authn_response(response_context, response_binding)
         context, internal_resp = self.samlbackend.auth_callback_func.call_args[0]
-        assert self.samlbackend.name not in context.state
         assert context.state[test_state_key] == "my_state"
         assert_authn_response(internal_resp)
 
@@ -254,7 +254,6 @@ class TestSAMLBackend:
 
         context, internal_resp = self.samlbackend.auth_callback_func.call_args[0]
         assert_authn_response(internal_resp)
-        assert self.samlbackend.name not in context.state
 
     @pytest.mark.skipif(
             saml2.__version__ < '4.6.1',
@@ -290,7 +289,6 @@ class TestSAMLBackend:
 
         context, internal_resp = backend.auth_callback_func.call_args[0]
         assert_authn_response(internal_resp)
-        assert backend.name not in context.state
 
     def test_authn_response_with_encrypted_assertion(self, sp_conf, context):
         with open(os.path.join(

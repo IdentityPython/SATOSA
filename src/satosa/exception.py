@@ -67,3 +67,38 @@ class SATOSAAuthenticationError(SATOSAError):
         :return: Exception message
         """
         return self._message.format(error_id=self.error_id)
+
+class SATOSABasicError(SATOSAError):
+    """
+    eduTEAMS error
+    """
+    def __init__(self, error):
+        self.error = error
+
+class SATOSAMissingStateError(SATOSABasicError):
+    """
+    SATOSA Missing State error.
+
+    This exception should be raised when SATOSA receives a request as part of
+    an authentication flow and while the session state cookie is expected for
+    that step, it is not included in the request
+    """
+    pass
+
+class SATOSAAuthenticationFlowError(SATOSABasicError):
+    """
+    SATOSA Flow error.
+
+    This exception should be raised when SATOSA receives a request that cannot
+    be serviced because previous steps in the authentication flow for that session
+    cannot be found
+    """
+    pass
+
+class SATOSABadRequestError(SATOSABasicError):
+    """
+    SATOSA Bad Request error.
+
+    This exception should be raised when we want to return an HTTP 400 Bad Request
+    """
+    pass
