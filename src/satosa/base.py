@@ -39,32 +39,37 @@ class SATOSABase(object):
         self.config = config
 
         logger.info("Loading backend modules...")
-        backends = load_backends(self.config, self._auth_resp_callback_func,
-                                 self.config["INTERNAL_ATTRIBUTES"])
+        backends = load_backends(self.config, self._auth_resp_callback_func, self.config["INTERNAL_ATTRIBUTES"])
         logger.info("Loading frontend modules...")
-        frontends = load_frontends(self.config, self._auth_req_callback_func,
-                                   self.config["INTERNAL_ATTRIBUTES"])
+        frontends = load_frontends(self.config, self._auth_req_callback_func, self.config["INTERNAL_ATTRIBUTES"])
 
         self.response_micro_services = []
         self.request_micro_services = []
         logger.info("Loading micro services...")
         if "MICRO_SERVICES" in self.config:
-            self.request_micro_services.extend(load_request_microservices(
-                self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
-                self.config["MICRO_SERVICES"],
-                self.config["INTERNAL_ATTRIBUTES"],
-                self.config["BASE"]))
+            self.request_micro_services.extend(
+                load_request_microservices(
+                    self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
+                    self.config["MICRO_SERVICES"],
+                    self.config["INTERNAL_ATTRIBUTES"],
+                    self.config["BASE"],
+                )
+            )
             self._link_micro_services(self.request_micro_services, self._auth_req_finish)
 
             self.response_micro_services.extend(
-                load_response_microservices(self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
-                                            self.config["MICRO_SERVICES"],
-                                            self.config["INTERNAL_ATTRIBUTES"],
-                                            self.config["BASE"]))
+                load_response_microservices(
+                    self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
+                    self.config["MICRO_SERVICES"],
+                    self.config["INTERNAL_ATTRIBUTES"],
+                    self.config["BASE"],
+                )
+            )
             self._link_micro_services(self.response_micro_services, self._auth_resp_finish)
 
-        self.module_router = ModuleRouter(frontends, backends,
-                                          self.request_micro_services + self.response_micro_services)
+        self.module_router = ModuleRouter(
+            frontends, backends, self.request_micro_services + self.response_micro_services
+        )
 
     def _link_micro_services(self, micro_services, finisher):
         if not micro_services:
@@ -138,14 +143,13 @@ class SATOSABase(object):
         # If configured construct the user id from attribute values.
         if "user_id_from_attrs" in self.config["INTERNAL_ATTRIBUTES"]:
             subject_id = [
-                "".join(internal_response.attributes[attr]) for attr in
-                self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"]
+                "".join(internal_response.attributes[attr])
+                for attr in self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"]
             ]
             internal_response.subject_id = "".join(subject_id)
 
         if self.response_micro_services:
-            return self.response_micro_services[0].process(
-                context, internal_response)
+            return self.response_micro_services[0].process(context, internal_response)
 
         return self._auth_resp_finish(context, internal_response)
 
@@ -180,9 +184,7 @@ class SATOSABase(object):
         except SATOSAAuthenticationError as error:
             error.error_id = uuid.uuid4().urn
             state = json.dumps(error.state.state_dict, indent=4)
-            msg = "ERROR_ID [{err_id}]\nSTATE:\n{state}".format(
-                err_id=error.error_id, state=state
-            )
+            msg = "ERROR_ID [{err_id}]\nSTATE:\n{state}".format(err_id=error.error_id, state=state)
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.error(logline, exc_info=True)
             return self._handle_satosa_authentication_error(error)
@@ -219,8 +221,9 @@ class SATOSABase(object):
         :param context: Session context
         """
 
-        cookie = state_to_cookie(context.state, self.config["COOKIE_STATE_NAME"], "/",
-                                 self.config["STATE_ENCRYPTION_KEY"])
+        cookie = state_to_cookie(
+            context.state, self.config["COOKIE_STATE_NAME"], "/", self.config["STATE_ENCRYPTION_KEY"]
+        )
         resp.headers.append(tuple(cookie.output().split(": ", 1)))
 
     def run(self, context):
@@ -259,16 +262,14 @@ class SATOSABase(object):
 
 
 class SAMLBaseModule(object):
-    KEY_ENTITYID_ENDPOINT = 'entityid_endpoint'
-    KEY_ENABLE_METADATA_RELOAD = 'enable_metadata_reload'
-    KEY_ATTRIBUTE_PROFILE = 'attribute_profile'
-    KEY_ACR_MAPPING = 'acr_mapping'
-    VALUE_ATTRIBUTE_PROFILE_DEFAULT = 'saml'
+    KEY_ENTITYID_ENDPOINT = "entityid_endpoint"
+    KEY_ENABLE_METADATA_RELOAD = "enable_metadata_reload"
+    KEY_ATTRIBUTE_PROFILE = "attribute_profile"
+    KEY_ACR_MAPPING = "acr_mapping"
+    VALUE_ATTRIBUTE_PROFILE_DEFAULT = "saml"
 
     def init_config(self, config):
-        self.attribute_profile = config.get(
-            self.KEY_ATTRIBUTE_PROFILE,
-            self.VALUE_ATTRIBUTE_PROFILE_DEFAULT)
+        self.attribute_profile = config.get(self.KEY_ATTRIBUTE_PROFILE, self.VALUE_ATTRIBUTE_PROFILE_DEFAULT)
         self.acr_mapping = config.get(self.KEY_ACR_MAPPING)
         return config
 
@@ -287,13 +288,13 @@ class SAMLBaseModule(object):
 
 
 class SAMLEIDASBaseModule(SAMLBaseModule):
-    VALUE_ATTRIBUTE_PROFILE_DEFAULT = 'eidas'
+    VALUE_ATTRIBUTE_PROFILE_DEFAULT = "eidas"
 
     def init_config(self, config):
         config = super().init_config(config)
 
         spec_eidas = {
-            'entityid_endpoint': True,
+            "entityid_endpoint": True,
         }
 
         return util.check_set_dict_defaults(config, spec_eidas)
