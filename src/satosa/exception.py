@@ -68,12 +68,14 @@ class SATOSAAuthenticationError(SATOSAError):
         """
         return self._message.format(error_id=self.error_id)
 
+
 class SATOSABasicError(SATOSAError):
     """
     eduTEAMS error
     """
     def __init__(self, error):
         self.error = error
+
 
 class SATOSAMissingStateError(SATOSABasicError):
     """
@@ -85,6 +87,7 @@ class SATOSAMissingStateError(SATOSABasicError):
     """
     pass
 
+
 class SATOSAAuthenticationFlowError(SATOSABasicError):
     """
     SATOSA Flow error.
@@ -95,10 +98,25 @@ class SATOSAAuthenticationFlowError(SATOSABasicError):
     """
     pass
 
+
 class SATOSABadRequestError(SATOSABasicError):
     """
     SATOSA Bad Request error.
 
     This exception should be raised when we want to return an HTTP 400 Bad Request
+    """
+    pass
+
+
+class SATOSABadContextError(SATOSAError):
+    """
+    Raise this exception if validating the Context and failing.
+    """
+    pass
+
+
+class SATOSANoBoundEndpointError(SATOSAError):
+    """
+    Raised when a given url path is not bound to any endpoint function
     """
     pass

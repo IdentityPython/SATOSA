@@ -8,20 +8,26 @@ import uuid
 from saml2.s_utils import UnknownSystemEntity
 
 from satosa import util
-from satosa.response import Redirect
 from satosa.response import BadRequest
 from satosa.response import NotFound
+from satosa.response import Redirect
 from .context import Context
-from .exception import SATOSAError
 from .exception import SATOSAAuthenticationError
-from .exception import SATOSAUnknownError
-from .exception import SATOSAMissingStateError
 from .exception import SATOSAAuthenticationFlowError
 from .exception import SATOSABadRequestError
-from .plugin_loader import load_backends, load_frontends
-from .plugin_loader import load_request_microservices, load_response_microservices
-from .routing import ModuleRouter, SATOSANoBoundEndpointError
-from .state import cookie_to_state, SATOSAStateError, State, state_to_cookie
+from .exception import SATOSAError
+from .exception import SATOSAMissingStateError
+from .exception import SATOSANoBoundEndpointError
+from .exception import SATOSAUnknownError
+from .exception import SATOSAStateError
+from .plugin_loader import load_backends
+from .plugin_loader import load_frontends
+from .plugin_loader import load_request_microservices
+from .plugin_loader import load_response_microservices
+from .routing import ModuleRouter
+from .state import State
+from .state import cookie_to_state
+from .state import state_to_cookie
 
 import satosa.logging_util as lu
 
@@ -262,77 +268,104 @@ class SATOSABase(object):
             resp = self._run_bound_endpoint(context, spec)
             self._save_state(resp, context)
         except SATOSABadRequestError as e:
+            error_id = uuid.uuid4().urn
             msg = {
                 "message": "Bad Request",
-                "error": e.error,
-                "error_id": uuid.uuid4().urn
+                "error": str(e),
+                "error_id": error_id,
             }
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
+                redirect_url = f"{generic_error_url}?errorid={error_id}"
                 return Redirect(generic_error_url)
-            else:
-                return BadRequest(e.error)
+            return BadRequest(error)
         except SATOSAMissingStateError as e:
+            error_id = uuid.uuid4().urn
             msg = {
                 "message": "Missing SATOSA State",
-                "error": e.error,
-                "error_id": uuid.uuid4().urn
+                "error": str(e),
+                "error_id": error_id,
             }
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
+                redirect_url = f"{generic_error_url}?errorid={error_id}"
                 return Redirect(generic_error_url)
-            else:
-                raise
+            raise
         except SATOSAAuthenticationFlowError as e:
+            error_id = uuid.uuid4().urn
             msg = {
                 "message": "SATOSA Authentication Flow Error",
-                "error": e.error,
-                "error_id": uuid.uuid4().urn
+                "error": str(e),
+                "error_id": error_id,
+            }
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline)
+            generic_error_url = self.config.get("ERROR_URL")
+            if generic_error_url:
+                redirect_url = f"{generic_error_url}?errorid={error_id}"
+                return Redirect(generic_error_url)
+            raise
+        except SATOSANoBoundEndpointError as e:
+            error_id = uuid.uuid4().urn
+            msg = {
+                "message": "URL-path is not bound to any endpoint function",
+                "error": str(e),
+                "error_id": error_id,
+            }
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline)
+            generic_error_url = self.config.get("ERROR_URL")
+            if generic_error_url:
+                redirect_url = f"{generic_error_url}?errorid={error_id}"
+                return Redirect(generic_error_url)
+            return NotFound("The Service or Identity Provider you requested could not be found.")
+        except SATOSAError as e:
+            error_id = uuid.uuid4().urn
+            msg = {
+                "message": "Uncaught SATOSA error",
+                "error": str(e),
+                "error_id": error_id,
+            }
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline)
+            generic_error_url = self.config.get("ERROR_URL")
+            if generic_error_url:
+                redirect_url = f"{generic_error_url}?errorid={error_id}"
+                return Redirect(generic_error_url)
+            raise
+        except UnknownSystemEntity as e:
+            error_id = uuid.uuid4().urn
+            msg = {
+                "message": "Configuration error: unknown system entity",
+                "error": str(e),
+                "error_id": error_id,
+            }
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.error(logline)
+            generic_error_url = self.config.get("ERROR_URL")
+            if generic_error_url:
+                redirect_url = f"{generic_error_url}?errorid={error_id}"
+                return Redirect(generic_error_url)
+            raise
+        except Exception as e:
+            error_id = uuid.uuid4().urn
+            msg = {
+                "message": "Uncaught exception",
+                "error": str(e),
+                "error_id": error_id,
             }
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
                 return Redirect(generic_error_url)
-            else:
-                raise
-        except SATOSANoBoundEndpointError as e:
-            msg = str(e)
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.error(logline)
-            return NotFound("The Service or Identity Provider you requested could not be found.")
-        except SATOSAError:
-            msg = "Uncaught SATOSA error"
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.error(logline)
-            generic_error_url = self.config.get("ERROR_URL")
-            if generic_error_url:
-                return Redirect(generic_error_url)
-            else:
-                raise
-        except UnknownSystemEntity as e:
-            msg = f"Configuration error: unknown system entity: {e}"
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.error(logline)
-            generic_error_url = self.config.get("ERROR_URL")
-            if generic_error_url:
-                return Redirect(generic_error_url)
-            else:
-                raise
-        except Exception as e:
-            msg = "Uncaught exception"
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.error(logline)
-            generic_error_url = self.config.get("ERROR_URL")
-            if generic_error_url:
-                return Redirect(generic_error_url)
-            else:
-                raise SATOSAUnknownError("Unknown error") from e
-        return resp
+            raise SATOSAUnknownError("Unknown error") from e
+        else:
+            return resp
 
 
 class SAMLBaseModule(object):

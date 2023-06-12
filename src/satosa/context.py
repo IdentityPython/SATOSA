@@ -1,13 +1,6 @@
 from warnings import warn as _warn
 
-from satosa.exception import SATOSAError
-
-
-class SATOSABadContextError(SATOSAError):
-    """
-    Raise this exception if validating the Context and failing.
-    """
-    pass
+from satosa.exception import SATOSABadContextError
 
 
 class Context(object):
