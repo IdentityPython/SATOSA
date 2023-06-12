@@ -38,7 +38,7 @@ class ModuleRouter(object):
     and handles the internal routing between frontends and backends.
     """
 
-    def __init__(self, frontends, backends, micro_services, base_path=""):
+    def __init__(self, frontends, backends, micro_services, base_path=None):
         """
         :type frontends: dict[str, satosa.frontends.base.FrontendModule]
         :type backends: dict[str, satosa.backends.base.BackendModule]
@@ -70,7 +70,7 @@ class ModuleRouter(object):
         else:
             self.micro_services = {}
 
-        self.base_path = base_path
+        self.base_path = base_path if base_path else ""
 
         logger.debug("Loaded backends with endpoints: {}".format(backends))
         logger.debug("Loaded frontends with endpoints: {}".format(frontends))

@@ -30,6 +30,7 @@ class FrontendModule(object):
         self.internal_attributes = internal_attributes
         self.converter = AttributeMapper(internal_attributes)
         self.base_url = base_url or ""
+        self.base_path = urlparse(self.base_url).path.lstrip("/")
         self.name = name
         self.endpoint_baseurl = join_paths(self.base_url, self.name)
         self.endpoint_basepath = urlparse(self.endpoint_baseurl).path.lstrip("/")

@@ -165,9 +165,7 @@ class AccountLinking(ResponseMicroService):
         return [
             (
                 "^{}$".format(
-                    join_paths(
-                        self.base_path, "account_linking", self.endpoint
-                    )
+                    join_paths(self.endpoint_basepath, self.endpoint)
                 ),
                 self._handle_al_response,
             )

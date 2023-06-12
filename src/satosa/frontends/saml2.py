@@ -512,15 +512,12 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         url_map = []
 
         backend_providers = "|".join(providers)
-        base_path = urlparse(self.base_url).path.lstrip("/")
-        if base_path:
-            base_path = base_path + "/"
         for endp_category in self.endpoints:
             for binding, endp in self.endpoints[endp_category].items():
                 endp_path = urlparse(endp).path
                 url_map.append(
                     (
-                        "^{}({})/{}$".format(base_path, backend_providers, endp_path),
+                        "^{}/({})/{}$".format(self.base_path, backend_providers, endp_path),
                         functools.partial(self.handle_authn_request, binding_in=binding)
                     )
                 )
@@ -770,15 +767,12 @@ class SAMLMirrorFrontend(SAMLFrontend):
         url_map = []
 
         backend_providers = "|".join(providers)
-        base_path = urlparse(self.base_url).path.lstrip("/")
-        if base_path:
-            base_path = base_path + "/"
         for endp_category in self.endpoints:
             for binding, endp in self.endpoints[endp_category].items():
                 endp_path = urlparse(endp).path
                 url_map.append(
                     (
-                        "^{}({})/\S+/{}$".format(base_path, backend_providers, endp_path),
+                        "^{}/({})/\S+/{}$".format(self.base_path, backend_providers, endp_path),
                         functools.partial(self.handle_authn_request, binding_in=binding)
                     )
                 )

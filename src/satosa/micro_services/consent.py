@@ -242,9 +242,7 @@ class Consent(ResponseMicroService):
         return [
             (
                 "^{}$".format(
-                    join_paths(
-                        self.base_path, "consent", self.endpoint
-                    )
+                    join_paths(self.endpoint_basepath, self.endpoint)
                 ),
                 self._handle_consent_response,
             )
