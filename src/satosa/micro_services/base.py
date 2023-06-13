@@ -4,6 +4,8 @@ Micro service for SATOSA
 import logging
 from urllib.parse import urlparse
 
+from ..util import join_paths
+
 logger = logging.getLogger(__name__)
 
 

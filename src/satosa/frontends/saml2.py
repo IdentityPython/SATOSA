@@ -33,6 +33,7 @@ from .base import FrontendModule
 from ..response import Response
 from ..response import ServiceError
 from ..saml_util import make_saml_response
+from ..util import join_paths
 from satosa.exception import SATOSAError
 import satosa.util as util
 
@@ -511,14 +512,18 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         """
         url_map = []
 
-        backend_providers = "|".join(providers)
+        backend_providers = "(" + "|".join(providers) + ")"
         for endp_category in self.endpoints:
             for binding, endp in self.endpoints[endp_category].items():
                 endp_path = urlparse(endp).path
                 url_map.append(
                     (
-                        "^{}/({})/{}$".format(self.base_path, backend_providers, endp_path),
-                        functools.partial(self.handle_authn_request, binding_in=binding)
+                        "^{}$".format(
+                            join_paths(self.base_path, backend_providers, endp_path)
+                        ),
+                        functools.partial(
+                            self.handle_authn_request, binding_in=binding
+                        ),
                     )
                 )
 
@@ -766,14 +771,20 @@ class SAMLMirrorFrontend(SAMLFrontend):
         """
         url_map = []
 
-        backend_providers = "|".join(providers)
+        backend_providers = "(" + "|".join(providers) + ")"
         for endp_category in self.endpoints:
             for binding, endp in self.endpoints[endp_category].items():
                 endp_path = urlparse(endp).path
                 url_map.append(
                     (
-                        "^{}/({})/\S+/{}$".format(self.base_path, backend_providers, endp_path),
-                        functools.partial(self.handle_authn_request, binding_in=binding)
+                        "^{}$".format(
+                            join_paths(
+                                self.base_path, backend_providers, "\S+", endp_path
+                            )
+                        ),
+                        functools.partial(
+                            self.handle_authn_request, binding_in=binding
+                        ),
                     )
                 )
 
