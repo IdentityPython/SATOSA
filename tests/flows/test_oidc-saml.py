@@ -28,7 +28,7 @@ CLIENT_SECRET = "secret"
 CLIENT_REDIRECT_URI = "https://client.example.com/cb"
 REDIRECT_URI = "https://client.example.com/cb"
 DB_URI = "mongodb://localhost/satosa"
-EXTRA_ISSUER = "https://other-op.example.com/satosa/other/op"
+EXTRA_ISSUER = "<base_url>/other/op"
 
 @pytest.fixture(scope="session")
 def client_db_path(tmpdir_factory):
@@ -117,7 +117,7 @@ class TestOIDCToSAML:
         test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), Response)
 
         # get frontend OP config info
-        issuer = EXTRA_ISSUER
+        issuer = EXTRA_ISSUER.replace("<base_url>", satosa_config_dict["BASE"])
         provider_config = self._discover_provider(test_client, issuer)
 
         # create auth req
