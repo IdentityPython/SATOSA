@@ -3,6 +3,7 @@ OIDC/OAuth2 backend module.
 """
 import logging
 from datetime import datetime
+from urllib.parse import urlparse
 
 from idpyoidc.client.oauth2.stand_alone_client import StandAloneClient
 from idpyoidc.server.user_authn.authn_context import UNSPECIFIED
@@ -12,6 +13,7 @@ from satosa.backends.base import BackendModule
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from ..exception import SATOSAAuthenticationError
+from ..exception import SATOSAError
 from ..response import Redirect
 
 logger = logging.getLogger(__name__)
@@ -67,7 +69,13 @@ class IdpyOIDCBackend(BackendModule):
         :rtype: Sequence[(str, Callable[[satosa.context.Context], satosa.response.Response]]
         :return: A list that can be used to map the request to SATOSA to this endpoint.
         """
-        return self.client.context.claims.get_usage('redirect_uris')
+        url_map = []
+        redirect_path = self.client.context.claims.get_usage('redirect_uris')
+        if not redirect_path:
+            raise SATOSAError("Missing path in redirect uri")
+        redirect_path = urlparse(redirect_path[0]).path
+        url_map.append(("^%s$" % redirect_path.lstrip("/"), self.response_endpoint))
+        return url_map
 
     def response_endpoint(self, context, *args):
         """
