@@ -108,7 +108,7 @@ def join_paths(*paths, sep: typing.Optional[str] = None) -> str:
 
     try:
         return leading + sep.join(
-            [path.strip(sep) for path in filter(lambda p: p and p.strip(sep), paths)]
+            path.strip(sep) for path in filter(lambda p: p and p.strip(sep), paths)
         )
     except (AttributeError, TypeError) as err:
         raise TypeError("Arguments must be strings") from err
