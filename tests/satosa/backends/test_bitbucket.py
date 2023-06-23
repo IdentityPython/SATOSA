@@ -5,8 +5,7 @@ from urllib.parse import urlparse, parse_qsl
 import pytest
 import responses
 
-from saml2.saml import NAMEID_FORMAT_TRANSIENT
-
+pytest.importorskip('oic')
 from satosa.backends.bitbucket import BitBucketBackend
 from satosa.internal import InternalData
 
@@ -130,7 +129,7 @@ class TestBitBucketBackend(object):
     def test_start_auth(self, context):
         context.path = 'bitbucket/sso/redirect'
         internal_request = InternalData(
-            subject_type=NAMEID_FORMAT_TRANSIENT, requester='test_requester'
+            subject_type="transient", requester='test_requester'
         )
 
         resp = self.bb_backend.start_auth(context,
@@ -181,7 +180,7 @@ class TestBitBucketBackend(object):
 
         context.path = 'bitbucket/sso/redirect'
         internal_request = InternalData(
-            subject_type=NAMEID_FORMAT_TRANSIENT, requester='test_requester'
+            subject_type="transient", requester='test_requester'
         )
 
         self.bb_backend.start_auth(context, internal_request, mock_get_state)

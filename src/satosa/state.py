@@ -4,21 +4,18 @@ server.
 """
 import base64
 import copy
-import hashlib
 import json
 import logging
+import os
 from collections import UserDict
-from satosa.cookies import SimpleCookie
+import lzma
 from uuid import uuid4
 
-from lzma import LZMACompressor, LZMADecompressor
-
-from Cryptodome import Random
-from Cryptodome.Cipher import AES
+from cryptojwt.jwe.aes import AES_CBCEncrypter
 
 import satosa.logging_util as lu
+from satosa.cookies import SimpleCookie
 from satosa.exception import SATOSAStateError
-
 
 logger = logging.getLogger(__name__)
 
@@ -89,73 +86,22 @@ def cookie_to_state(cookie_str, name, encryption_key):
         return state
 
 
-class _AESCipher(object):
-    """
-    This class will perform AES encryption/decryption with a keylength of 256.
+def len_val_construct(*args):
+    _p = []
+    for arg in args:
+        _p.append(f'{len(arg):05d}'.encode())
+        _p.append(arg)
 
-    @see: http://stackoverflow.com/questions/12524994/encrypt-decrypt-using-pycrypto-aes-256
-    """
+    return b''.join(_p)
 
-    def __init__(self, key):
-        """
-        Constructor
 
-        :type key: str
-
-        :param key: The key used for encryption and decryption. The longer key the better.
-        """
-        self.bs = 32
-        self.key = hashlib.sha256(key.encode()).digest()
-
-    def encrypt(self, raw):
-        """
-        Encryptes the parameter raw.
-
-        :type raw: bytes
-        :rtype: str
-
-        :param: bytes to be encrypted.
-
-        :return: A base 64 encoded string.
-        """
-        raw = self._pad(raw)
-        iv = Random.new().read(AES.block_size)
-        cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        return base64.urlsafe_b64encode(iv + cipher.encrypt(raw))
-
-    def decrypt(self, enc):
-        """
-        Decryptes the parameter enc.
-
-        :type enc: bytes
-        :rtype: bytes
-
-        :param: The value to be decrypted.
-        :return: The decrypted value.
-        """
-        enc = base64.urlsafe_b64decode(enc)
-        iv = enc[:AES.block_size]
-        cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        return self._unpad(cipher.decrypt(enc[AES.block_size:]))
-
-    def _pad(self, b):
-        """
-        Will padd the param to be of the correct length for the encryption alg.
-
-        :type b: bytes
-        :rtype: bytes
-        """
-        return b + (self.bs - len(b) % self.bs) * chr(self.bs - len(b) % self.bs).encode("UTF-8")
-
-    @staticmethod
-    def _unpad(b):
-        """
-        Removes the padding performed by the method _pad.
-
-        :type b: bytes
-        :rtype: bytes
-        """
-        return b[:-ord(b[len(b) - 1:])]
+def len_val_parse(arg):
+    _p = []
+    while arg:
+        _len = int(arg[:5])
+        _p.append(arg[5:_len + 5])
+        arg = arg[_len + 5:]
+    return _p
 
 
 class State(UserDict):
@@ -188,12 +134,11 @@ class State(UserDict):
             try:
                 urlstate_data_bytes = urlstate_data.encode("utf-8")
                 urlstate_data_b64decoded = base64.urlsafe_b64decode(urlstate_data_bytes)
-                lzma = LZMADecompressor()
                 urlstate_data_decompressed = lzma.decompress(urlstate_data_b64decoded)
-                urlstate_data_decrypted = _AESCipher(encryption_key).decrypt(
-                    urlstate_data_decompressed
+                ct, iv, tag = len_val_parse(urlstate_data_decompressed)
+                urlstate_data_decrypted = AES_CBCEncrypter(key=encryption_key).decrypt(
+                    msg=ct, iv=iv, tag=tag
                 )
-                lzma = LZMADecompressor()
                 urlstate_data_decrypted_decompressed = lzma.decompress(urlstate_data_decrypted)
                 urlstate_data_obj = json.loads(urlstate_data_decrypted_decompressed)
             except Exception as e:
@@ -222,21 +167,19 @@ class State(UserDict):
 
     def urlstate(self, encryption_key):
         """
-        Will return a url safe representation of the state.
+        Will return an url safe representation of the state.
 
         :type encryption_key: Key used for encryption.
         :rtype: str
 
-        :return: Url representation av of the state.
+        :return: Url representation of the state.
         """
-        lzma = LZMACompressor()
         urlstate_data = json.dumps(self.data)
         urlstate_data = lzma.compress(urlstate_data.encode("UTF-8"))
-        urlstate_data += lzma.flush()
-        urlstate_data = _AESCipher(encryption_key).encrypt(urlstate_data)
-        lzma = LZMACompressor()
-        urlstate_data = lzma.compress(urlstate_data)
-        urlstate_data += lzma.flush()
+        iv = os.urandom(16)
+        ct, tag = AES_CBCEncrypter(key=encryption_key).encrypt(urlstate_data, iv=iv)
+        _data = len_val_construct(ct, iv, tag)
+        urlstate_data = lzma.compress(_data)
         urlstate_data = base64.urlsafe_b64encode(urlstate_data)
         return urlstate_data.decode("utf-8")
 

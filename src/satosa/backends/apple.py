@@ -259,7 +259,7 @@ class AppleBackend(BackendModule):
         :type subject_type: str
         :rtype: InternalData
 
-        :param response: Dictioary with attribute name as key.
+        :param response: Dictionary with attribute name as key.
         :param issuer: The oidc op that gave the repsonse.
         :param subject_type: public or pairwise according to oidc standard.
         :return: A SATOSA internal response.

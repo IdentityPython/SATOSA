@@ -7,6 +7,7 @@ from http.cookies import SimpleCookie
 from urllib.parse import quote_plus
 
 import pytest
+from satosa.util import rndstr
 
 from satosa.state import State, state_to_cookie, cookie_to_state, SATOSAStateError
 
@@ -53,7 +54,8 @@ class TestState:
 
         :return:
         """
-        enc_key = "Ireallyliketoencryptthisdictionary!"
+        # length must be 32,48 or 64
+        enc_key = b"Ireallyliketoencryptthisdictiona"
         state = State()
         my_dict_frontend = get_dict(11, get_str(10), get_str(10))
         my_dict_consent = get_dict(1, get_str(10), get_str(100))
@@ -98,7 +100,7 @@ class TestStateAsCookie:
 
         cookie_name = "state_cookie"
         path = "/"
-        encrypt_key = "2781y4hef90"
+        encrypt_key = rndstr(32).encode()  # MUST be 32, 48 or 64 bytes long
 
         cookie = state_to_cookie(state, cookie_name, path, encrypt_key)
         cookie_str = cookie[cookie_name].OutputString()

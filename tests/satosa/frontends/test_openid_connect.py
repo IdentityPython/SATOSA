@@ -9,6 +9,8 @@ from unittest.mock import Mock
 from urllib.parse import urlparse, parse_qsl
 
 import pytest
+oic = pytest.importorskip("oic")
+
 from oic.oic.message import AuthorizationResponse, AuthorizationRequest, IdToken, ClaimsRequest, \
     Claims, AuthorizationErrorResponse, RegistrationResponse, RegistrationRequest, \
     ClientRegistrationErrorResponse, ProviderConfigurationResponse, AccessTokenRequest, AccessTokenResponse, \

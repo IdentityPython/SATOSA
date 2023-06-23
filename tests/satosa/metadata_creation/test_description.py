@@ -1,9 +1,13 @@
 import pytest
 
-from satosa.metadata_creation.description import ContactPersonDesc, UIInfoDesc, OrganizationDesc, MetadataDescription
+from satosa.metadata_creation.description import ContactPersonDesc
+from satosa.metadata_creation.description import MetadataDescription
+from satosa.metadata_creation.description import OrganizationDesc
+from satosa.metadata_creation.description import UIInfoDesc
 
 
 class TestContactPersonDesc(object):
+
     def test_to_dict(self):
         desc = ContactPersonDesc()
         desc.contact_type = "test"
@@ -19,6 +23,7 @@ class TestContactPersonDesc(object):
 
 
 class TestUIInfoDesc(object):
+
     def test_to_dict(self):
         desc = UIInfoDesc()
         desc.add_description("test", "en")
@@ -45,6 +50,7 @@ class TestUIInfoDesc(object):
 
 
 class TestOrganizationDesc(object):
+
     def test_to_dict(self):
         desc = OrganizationDesc()
         desc.add_display_name("Foo Testing", "en")
@@ -63,6 +69,7 @@ class TestOrganizationDesc(object):
 
 
 class TestMetadataDescription(object):
+
     def test_to_dict(self):
         org_desc = OrganizationDesc()
         org_desc.add_display_name("Foo Testing", "en")

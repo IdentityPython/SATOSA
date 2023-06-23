@@ -66,7 +66,7 @@ class BackendModule(object):
     def get_metadata_desc(self):
         """
         Returns a description of the backend module.
-        This is used when creating SAML metadata for the frontend of the proxy
+
         :rtype: satosa.metadata_creation.description.MetadataDescription
         :return: A description of the backend
         """

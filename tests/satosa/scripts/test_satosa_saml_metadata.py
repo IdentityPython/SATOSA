@@ -3,6 +3,8 @@ import os
 
 import mongomock
 import pytest
+
+pytest.importorskip('saml2')
 from saml2.config import Config
 from saml2.mdstore import MetaDataFile
 from saml2.sigver import security_context
