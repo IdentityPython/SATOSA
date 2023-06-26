@@ -1,17 +1,17 @@
 """
 OIDC/OAuth2 backend module.
 """
-import logging
 from datetime import datetime
+import logging
 from urllib.parse import urlparse
 
 from idpyoidc.client.oauth2.stand_alone_client import StandAloneClient
 from idpyoidc.server.user_authn.authn_context import UNSPECIFIED
 
-import satosa.logging_util as lu
 from satosa.backends.base import BackendModule
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
+import satosa.logging_util as lu
 from ..exception import SATOSAAuthenticationError
 from ..exception import SATOSAError
 from ..response import Redirect
@@ -74,7 +74,7 @@ class IdpyOIDCBackend(BackendModule):
         if not redirect_path:
             raise SATOSAError("Missing path in redirect uri")
         redirect_path = urlparse(redirect_path[0]).path
-        url_map.append(("^%s$" % redirect_path.lstrip("/"), self.response_endpoint))
+        url_map.append((f"^{redirect_path.lstrip('/')}$", self.response_endpoint))
         return url_map
 
     def response_endpoint(self, context, *args):
