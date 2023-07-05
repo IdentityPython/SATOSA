@@ -17,7 +17,7 @@ class SessionStorage(Storage):
     def get_authn_resp(self, state):
         return self.authn_responses.get(state["SESSION_ID"])
 
-    def delete_session(self, state, response_id):
+    def delete_session(self, state):
         if self.authn_responses.get(state["SESSION_ID"]):
             del self.authn_responses[state["SESSION_ID"]]
 
