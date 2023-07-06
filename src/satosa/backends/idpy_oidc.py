@@ -50,6 +50,11 @@ class IdpyOIDCBackend(BackendModule):
         self.client.do_provider_info()
         self.client.do_client_registration()
 
+        _redirect_uris = self.client.context.claims.get_usage('redirect_uris')
+        if not _redirect_uris:
+            raise SATOSAError("Missing path in redirect uri")
+        self.redirect_path = urlparse(_redirect_uris[0]).path
+
     def start_auth(self, context, internal_request):
         """
         See super class method satosa.backends.base#start_auth
@@ -70,11 +75,7 @@ class IdpyOIDCBackend(BackendModule):
         :return: A list that can be used to map the request to SATOSA to this endpoint.
         """
         url_map = []
-        redirect_path = self.client.context.claims.get_usage('redirect_uris')
-        if not redirect_path:
-            raise SATOSAError("Missing path in redirect uri")
-        redirect_path = urlparse(redirect_path[0]).path
-        url_map.append((f"^{redirect_path.lstrip('/')}$", self.response_endpoint))
+        url_map.append((f"^{self.redirect_path.lstrip('/')}$", self.response_endpoint))
         return url_map
 
     def response_endpoint(self, context, *args):
@@ -120,7 +121,10 @@ class IdpyOIDCBackend(BackendModule):
         :param subject_type: public or pairwise according to oidc standard.
         :return: A SATOSA internal response.
         """
-        auth_info = AuthenticationInformation(UNSPECIFIED, str(datetime.now()), issuer)
+        timestamp = response["auth_time"]
+        auth_class_ref = response.get("amr", response.get("acr", UNSPECIFIED))
+        auth_info = AuthenticationInformation(auth_class_ref, timestamp, issuer)
+
         internal_resp = InternalData(auth_info=auth_info)
         internal_resp.attributes = self.converter.to_internal("openid", response)
         internal_resp.subject_id = response["sub"]
