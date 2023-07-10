@@ -31,6 +31,7 @@ setup(
         "ldap": ["ldap3"],
         "pyop_mongo": ["pyop[mongo]"],
         "pyop_redis": ["pyop[redis]"],
+        "idpy_oidc_backend": ["idpyoidc >= 2.1.0"],
     },
     zip_safe=False,
     classifiers=[
