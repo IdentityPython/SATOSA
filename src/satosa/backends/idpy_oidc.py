@@ -1,7 +1,7 @@
 """
 OIDC/OAuth2 backend module.
 """
-from datetime import datetime
+import datetime
 import logging
 from urllib.parse import urlparse
 
@@ -16,6 +16,8 @@ from ..exception import SATOSAAuthenticationError
 from ..exception import SATOSAError
 from ..response import Redirect
 
+
+UTC = datetime.timezone.utc
 logger = logging.getLogger(__name__)
 
 
@@ -121,9 +123,15 @@ class IdpyOIDCBackend(BackendModule):
         :param subject_type: public or pairwise according to oidc standard.
         :return: A SATOSA internal response.
         """
-        timestamp = response["auth_time"]
-        auth_class_ref = response.get("amr", response.get("acr", UNSPECIFIED))
-        auth_info = AuthenticationInformation(auth_class_ref, timestamp, issuer)
+        timestamp_epoch = (
+            response.get("auth_time")
+            or response.get("iat")
+            or int(datetime.datetime.now(UTC).timestamp())
+        )
+        timestamp_dt = datetime.datetime.fromtimestamp(timestamp_epoch, UTC)
+        timestamp_iso = timestamp_dt.isoformat().replace("+00:00", "Z")
+        auth_class_ref = response.get("acr") or response.get("amr") or UNSPECIFIED
+        auth_info = AuthenticationInformation(auth_class_ref, timestamp_iso, issuer)
 
         internal_resp = InternalData(auth_info=auth_info)
         internal_resp.attributes = self.converter.to_internal("openid", response)
