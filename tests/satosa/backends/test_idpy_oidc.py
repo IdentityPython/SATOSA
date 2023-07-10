@@ -1,6 +1,7 @@
 import json
 import re
 import time
+from datetime import datetime
 from unittest.mock import Mock
 from urllib.parse import parse_qsl
 from urllib.parse import urlparse
@@ -88,6 +89,29 @@ class TestIdpyOIDCBackend(object):
             "sub": "username"
         }
 
+    @pytest.fixture
+    def id_token(self, userinfo):
+        issuer_keys = build_keyjar(DEFAULT_KEY_DEFS)
+        signing_key = issuer_keys.get_signing_key(key_type='RSA')[0]
+        signing_key.alg = "RS256"
+        auth_time = int(datetime.utcnow().timestamp())
+        id_token_claims = {
+            "auth_time": auth_time,
+            "iss": ISSUER,
+            "sub": userinfo["sub"],
+            "aud": CLIENT_ID,
+            "nonce": NONCE,
+            "exp": auth_time + 3600,
+            "iat": auth_time,
+        }
+        id_token = IdToken(**id_token_claims)
+        return id_token
+
+    @pytest.fixture
+    def all_user_claims(self, userinfo, id_token):
+        all_user_claims = {**userinfo, **id_token}
+        return all_user_claims
+
     def test_client(self, backend_config):
         assert isinstance(self.oidc_backend.client, StandAloneClient)
         # 3 signing keys. One RSA, one EC and one symmetric
@@ -95,10 +119,10 @@ class TestIdpyOIDCBackend(object):
         assert self.oidc_backend.client.context.jwks_uri == backend_config['client']['jwks_uri']
 
     def assert_expected_attributes(self, attr_map, user_claims, actual_attributes):
-        expected_attributes = {}
-        for out_attr, in_mapping in attr_map["attributes"].items():
-            expected_attributes[out_attr] = [user_claims[in_mapping["openid"][0]]]
-
+        expected_attributes = {
+            out_attr: [user_claims[in_mapping["openid"][0]]]
+            for out_attr, in_mapping in attr_map["attributes"].items()
+        }
         assert actual_attributes == expected_attributes
 
     def setup_token_endpoint(self, userinfo):
@@ -166,16 +190,19 @@ class TestIdpyOIDCBackend(object):
         assert re.search(regex, redirect_uri_path)
         assert callback == self.oidc_backend.response_endpoint
 
-    def test_translate_response_to_internal_response(self, userinfo):
-        internal_response = self.oidc_backend._translate_response(userinfo, ISSUER)
-        assert internal_response.subject_id == userinfo["sub"]
-        self.assert_expected_attributes(self.oidc_backend.internal_attributes, userinfo,
-                                        internal_response.attributes)
+    def test_translate_response_to_internal_response(self, all_user_claims):
+        internal_response = self.oidc_backend._translate_response(all_user_claims, ISSUER)
+        assert internal_response.subject_id == all_user_claims["sub"]
+        self.assert_expected_attributes(
+            self.oidc_backend.internal_attributes,
+            all_user_claims,
+            internal_response.attributes,
+        )
 
     @responses.activate
-    def test_response_endpoint(self, context, userinfo, incoming_authn_response):
-        self.setup_token_endpoint(userinfo)
-        self.setup_userinfo_endpoint(userinfo)
+    def test_response_endpoint(self, context, all_user_claims, incoming_authn_response):
+        self.setup_token_endpoint(all_user_claims)
+        self.setup_userinfo_endpoint(all_user_claims)
 
         response_context = Context()
         response_context.request = incoming_authn_response
@@ -186,8 +213,9 @@ class TestIdpyOIDCBackend(object):
         args = self.oidc_backend.auth_callback_func.call_args[0]
         assert isinstance(args[0], Context)
         assert isinstance(args[1], InternalData)
-        self.assert_expected_attributes(self.oidc_backend.internal_attributes, userinfo,
-                                        args[1].attributes)
+        self.assert_expected_attributes(
+            self.oidc_backend.internal_attributes, all_user_claims, args[1].attributes
+        )
 
     def test_start_auth_redirects_to_provider_authorization_endpoint(self, context):
         _client = self.oidc_backend.client
