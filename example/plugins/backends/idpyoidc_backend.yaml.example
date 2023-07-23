@@ -1,0 +1,12 @@
+module: satosa.backends.idpy_oidc.IdpyOIDCBackend
+name: oidc
+config:
+  client_type: oidc
+  redirect_uris: [<base_url>/<name>]
+  client_id: !ENV SATOSA_OIDC_BACKEND_CLIENTID
+  client_secret: !ENV SATOSA_OIDC_BACKEND_CLIENTSECRET
+  response_types_supported: ["code"]
+  scopes_supported: ["openid", "profile", "email"]
+  subject_type_supported: ["public"]
+  provider_info:
+    issuer: !ENV SATOSA_OIDC_BACKEND_ISSUER
