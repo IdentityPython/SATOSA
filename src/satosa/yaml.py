@@ -43,9 +43,21 @@ def _constructor_envfile_variables(loader, node):
         return new_value
 
 
+def _constructor_tuple_variables(loader, node):
+    """
+    Extracts the tuple variable from the node's value.
+    :param yaml.Loader loader: the yaml loader
+    :param node: the current node in the yaml
+    :return: value of the tuple
+    """
+    return tuple(loader.construct_sequence(node))
+
+
 TAG_ENV = "!ENV"
 TAG_ENVFILE = "!ENVFILE"
+TAG_TUPLE = u'tag:yaml.org,2002:python/tuple'
 
 
 _safe_loader.add_constructor(TAG_ENV, _constructor_env_variables)
 _safe_loader.add_constructor(TAG_ENVFILE, _constructor_envfile_variables)
+_safe_loader.add_constructor(TAG_TUPLE, _constructor_tuple_variables)
