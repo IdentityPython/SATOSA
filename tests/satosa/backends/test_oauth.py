@@ -5,7 +5,7 @@ from urllib.parse import urlparse, parse_qsl
 import pytest
 import responses
 
-pytest.importorskip('oic')
+oic = pytest.importorskip('oic')
 from satosa.backends.oauth import FacebookBackend
 from satosa.internal import InternalData
 

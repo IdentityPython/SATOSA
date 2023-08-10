@@ -1,10 +1,12 @@
 import json
 import re
 
+import pytest
 import responses
 from werkzeug.test import Client
 from werkzeug.wrappers import Response
 
+saml2 = pytest.importorskip('saml2')
 from satosa.proxy_server import make_app
 from satosa.satosa_config import SATOSAConfig
 

@@ -3,8 +3,11 @@ import json
 import base64
 from urllib.parse import urlparse, urlencode, parse_qsl
 
-import mongomock
+
 import pytest
+mongomock = pytest.importorskip('mongomock')
+oic = pytest.importorskip('oic')
+
 from jwkest.jwk import rsa_load, RSAKey
 from jwkest.jws import JWS
 from oic.oic.message import ClaimsRequest, Claims

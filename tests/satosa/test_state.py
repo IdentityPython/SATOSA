@@ -67,13 +67,13 @@ class TestState:
         state["my_dict_hash"] = my_dict_hash
         state["my_dict_router"] = my_dict_router
         state["my_dict_backend"] = my_dict_backend
-        urlstate = state.urlstate(enc_key)
+        urlstate = state.pack(enc_key)
         # Some browsers only support 2000bytes, and since state is not the only parameter it should
         # not be greater then half that size.
         urlstate_len = len(quote_plus(urlstate))
         print("Size of state on the url is:%s" % urlstate_len)
         assert urlstate_len < 1000, "Urlstate is way to long!"
-        state = State(urlstate, enc_key)
+        state = State(urlstate_data=urlstate, encryption_key=enc_key)
         assert state["my_dict_frontend"] == my_dict_frontend
         assert state["my_dict_consent"] == my_dict_consent
         assert state["my_dict_hash"] == my_dict_hash

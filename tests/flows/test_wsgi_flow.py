@@ -4,6 +4,9 @@ Complete test for a SAML to SAML proxy.
 from werkzeug.test import Client
 from werkzeug.wrappers import Response
 
+import pytest
+saml2 = pytest.importorskip('saml2')
+
 from satosa.proxy_server import make_app
 from satosa.response import NotFound
 from satosa.satosa_config import SATOSAConfig

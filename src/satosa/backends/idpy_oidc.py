@@ -46,9 +46,7 @@ class IdpyOIDCBackend(BackendModule):
         super().__init__(auth_callback_func, internal_attributes, base_url, name)
         # self.auth_callback_func = auth_callback_func
         # self.config = config
-        self.client = StandAloneClient(config=config["client"], client_type="oidc")
-        self.client.do_provider_info()
-        self.client.do_client_registration()
+        self.client = create_client(config["client"])
 
     def start_auth(self, context, internal_request):
         """
@@ -142,3 +140,11 @@ class IdpyOIDCBackend(BackendModule):
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline)
             raise SATOSAAuthenticationError(context.state, "Access denied")
+
+
+def create_client(config: dict):
+    _client_type = config.get('client_type') or "oidc"
+    _client = StandAloneClient(config=config, client_type=_client_type)
+    _client.do_provider_info()
+    _client.do_client_registration()
+    return _client
