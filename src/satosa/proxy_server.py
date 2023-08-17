@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 def parse_query_string(data):
     query_param_pairs = _parse_query_string(data)
     query_param_dict = dict(query_param_pairs)
+    if "resource" in query_param_dict:
+        query_param_dict["resource"] = [t[1] for t in query_param_pairs if t[0] == "resource"]
     return query_param_dict
 
 
