@@ -1,11 +1,12 @@
-import pkg_resources as _pkg_resources
+try:
+    from importlib.metadata import version as _resolve_package_version
+except ImportError:
+    from importlib_metadata import version as _resolve_package_version  # type: ignore[no-redef]
 
 
 def _parse_version():
-    data = _pkg_resources.get_distribution('satosa')
-    value = _pkg_resources.parse_version(data.version)
+    value = _resolve_package_version("satosa")
     return value
 
 
-version_info = _parse_version()
-version = str(version_info)
+version = _parse_version()

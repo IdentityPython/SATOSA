@@ -16,6 +16,7 @@ from ..exception import SATOSAAuthenticationError
 from ..exception import SATOSAError
 from ..response import Redirect
 
+UTC = datetime.timezone.utc
 logger = logging.getLogger(__name__)
 
 
@@ -140,7 +141,6 @@ class IdpyOIDCBackend(BackendModule):
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline)
             raise SATOSAAuthenticationError(context.state, "Access denied")
-
 
 def create_client(config: dict):
     _client_type = config.get('client_type') or "oidc"

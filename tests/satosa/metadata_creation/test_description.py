@@ -29,12 +29,18 @@ class TestUIInfoDesc(object):
         desc.add_description("test", "en")
         desc.add_display_name("my company", "en")
         desc.add_logo("logo.jpg", 80, 80, "en")
+        desc.add_keywords(["kw1", "kw2"], "en")
+        desc.add_information_url("https://test", "en")
+        desc.add_privacy_statement_url("https://test", "en")
 
         serialized = desc.to_dict()
         ui_info = serialized["service"]["idp"]["ui_info"]
         assert ui_info["description"] == [{"text": "test", "lang": "en"}]
         assert ui_info["display_name"] == [{"text": "my company", "lang": "en"}]
         assert ui_info["logo"] == [{"text": "logo.jpg", "width": 80, "height": 80, "lang": "en"}]
+        assert ui_info["keywords"] == [{"text": ["kw1", "kw2"], "lang": "en"}]
+        assert ui_info["information_url"] == [{"text": "https://test", "lang": "en"}]
+        assert ui_info["privacy_statement_url"] == [{"text": "https://test", "lang": "en"}]
 
     def test_to_dict_for_logo_without_lang(self):
         desc = UIInfoDesc()
