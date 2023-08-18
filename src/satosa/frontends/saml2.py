@@ -111,9 +111,9 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         :param binding_in: The binding type
         :return:
         """
-        if context.request["SAMLRequest"]:
+        if "SAMLRequest" in context.request:
             return self.handle_logout_request(context, binding_in)
-        elif context.request["SAMLResponse"]:
+        elif "SAMLResponse" in context.request:
             return self.handle_logout_response(context, binding_in)
         else:
             return NotImplementedError()
