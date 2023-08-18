@@ -7,8 +7,10 @@ from urllib.parse import urlparse
 
 import pytest
 import responses
-from cryptojwt import as_unicode
 from cryptojwt.key_jar import build_keyjar
+
+idpyoidc = pytest.importorskip('idpyoidc')
+
 from idpyoidc.client.oauth2.stand_alone_client import StandAloneClient
 from idpyoidc.message.oidc import IdToken
 
