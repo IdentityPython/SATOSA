@@ -353,7 +353,8 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
                             destination=slo_destination,
                             issuer_entity_id=sp_info[0][0],
                             name_id=NameID(text=sp_info[0][1].text),
-                            session_indexes=[authn_statement[0].session_index]
+                            session_indexes=[authn_statement[0].session_index],
+                            sign=True
                         )
 
                         http_args = self.idp.apply_binding(binding, "%s" % lreq, slo_destination)
