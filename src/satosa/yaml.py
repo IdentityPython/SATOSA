@@ -55,7 +55,7 @@ def _constructor_tuple_variables(loader, node):
 
 TAG_ENV = "!ENV"
 TAG_ENVFILE = "!ENVFILE"
-TAG_TUPLE = u'tag:yaml.org,2002:python/tuple'
+TAG_TUPLE = "tag:yaml.org,2002:python/tuple"
 
 
 _safe_loader.add_constructor(TAG_ENV, _constructor_env_variables)
