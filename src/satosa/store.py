@@ -79,6 +79,8 @@ class SessionStoragePDB(Storage):
         authn_response = session.query(AuthnResponse).filter(
             AuthnResponse.session_id == state["SESSION_ID"]).all()
         session.close()
+        if not authn_response:
+            return None
         authn_response = vars(authn_response[-1])["authn_response"]
         return authn_response
 
