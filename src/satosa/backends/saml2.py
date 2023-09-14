@@ -210,6 +210,10 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :rtype: satosa.response.Response
         """
 
+        if internal_authn_resp is None:
+            message = "Session Information Deleted"
+            status = "500 FAILED"
+            return Response(message=message, status=status)
         entity_id = internal_authn_resp["auth_info"]["issuer"]
         if entity_id is None:
             message = "Logout Failed"
