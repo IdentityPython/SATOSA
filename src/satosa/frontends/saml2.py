@@ -33,6 +33,7 @@ from .base import FrontendModule
 from ..response import Response
 from ..response import ServiceError
 from ..saml_util import make_saml_response
+from ..saml_util import propagate_logout
 from satosa.exception import SATOSAError
 from satosa.exception import SATOSABadRequestError
 from satosa.exception import SATOSAMissingStateError
@@ -116,7 +117,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         if "SAMLRequest" in context.request:
             return self.handle_logout_request(context, binding_in)
         elif "SAMLResponse" in context.request:
-            return self.handle_logout_response(context, binding_in)
+            return self.handle_logout_response(context)
         else:
             return NotImplementedError()
 
@@ -387,7 +388,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
                         http_args = self.idp.apply_binding(binding, "%s" % lreq, slo_destination)
                         msg = "http_args: {}".format(http_args)
                         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-                        make_saml_response(binding, http_args)
+                        propagate_logout(binding, http_args)
 
         # Return logout response to SP that initiated logout if logout request contains
         # the <aslo:Asynchronous> element within the <samlp:Extensions> element
@@ -405,7 +406,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
                 http_args = self.idp.apply_binding(binding, "%s" % logout_resp, destination)
                 msg = "http_args: {}".format(http_args)
                 logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-                make_saml_response(binding, http_args)
+                propagate_logout(binding, http_args)
 
         return self.logout_req_callback_func(context, internal_req)
 
