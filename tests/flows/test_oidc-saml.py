@@ -1,18 +1,27 @@
-import os
-import json
 import base64
-from urllib.parse import urlparse, urlencode, parse_qsl
+import json
+import os
+from urllib.parse import parse_qsl
+from urllib.parse import urlencode
+from urllib.parse import urlparse
 
-import mongomock
+from cryptojwt import JWS
+from cryptojwt.jwk.rsa import RSAKey
+from cryptojwt.jwk.rsa import import_rsa_key_from_cert_file
+
 import pytest
-from jwkest.jwk import rsa_load, RSAKey
-from jwkest.jws import JWS
-from oic.oic.message import ClaimsRequest, Claims
+oic = pytest.importorskip("oic")
+mongomock = pytest.importorskip("mongomock")
+
+from oic.oic.message import Claims
+from oic.oic.message import ClaimsRequest
 from pyop.storage import StorageBase
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.config import IdPConfig
 from werkzeug.test import Client
 from werkzeug.wrappers import Response
+
+
 
 from satosa.metadata_creation.saml_metadata import create_entity_descriptors
 from satosa.proxy_server import make_app
@@ -21,12 +30,12 @@ from tests.users import USERS
 from tests.users import OIDC_USERS
 from tests.util import FakeIdP
 
-
 CLIENT_ID = "client1"
 CLIENT_SECRET = "secret"
 CLIENT_REDIRECT_URI = "https://client.example.com/cb"
 REDIRECT_URI = "https://client.example.com/cb"
 DB_URI = "mongodb://localhost/satosa"
+
 
 @pytest.fixture(scope="session")
 def client_db_path(tmpdir_factory):
@@ -45,6 +54,7 @@ def client_db_path(tmpdir_factory):
         f.write(json.dumps(cdb_json))
 
     return path
+
 
 @pytest.fixture
 def oidc_frontend_config(signing_key_path):
@@ -94,30 +104,34 @@ class TestOIDCToSAML:
             "response_types": ["id_token"]
         }
 
-    def test_full_flow(self, satosa_config_dict, oidc_frontend_config, saml_backend_config, idp_conf):
+    def test_full_flow(self, satosa_config_dict, oidc_frontend_config, saml_backend_config,
+                       idp_conf):
         self._client_setup()
         subject_id = "testuser1"
 
         # proxy config
         satosa_config_dict["FRONTEND_MODULES"] = [oidc_frontend_config]
         satosa_config_dict["BACKEND_MODULES"] = [saml_backend_config]
-        satosa_config_dict["INTERNAL_ATTRIBUTES"]["attributes"] = {attr_name: {"openid": [attr_name],
-                                                                               "saml": [attr_name]}
-                                                                   for attr_name in USERS[subject_id]}
+        satosa_config_dict["INTERNAL_ATTRIBUTES"]["attributes"] = {
+            attr_name: {"openid": [attr_name],
+                        "saml": [attr_name]}
+            for attr_name in USERS[subject_id]}
         _, backend_metadata = create_entity_descriptors(SATOSAConfig(satosa_config_dict))
 
         # application
         test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), Response)
 
         # get frontend OP config info
-        provider_config = json.loads(test_client.get("/.well-known/openid-configuration").data.decode("utf-8"))
+        provider_config = json.loads(
+            test_client.get("/.well-known/openid-configuration").data.decode("utf-8"))
 
         # create auth req
         claims_request = ClaimsRequest(id_token=Claims(**{k: None for k in USERS[subject_id]}))
         req_args = {"scope": "openid", "response_type": "id_token", "client_id": CLIENT_ID,
                     "redirect_uri": REDIRECT_URI, "nonce": "nonce",
                     "claims": claims_request.to_json()}
-        auth_req = urlparse(provider_config["authorization_endpoint"]).path + "?" + urlencode(req_args)
+        auth_req = urlparse(provider_config["authorization_endpoint"]).path + "?" + urlencode(
+            req_args)
 
         # make auth req to proxy
         proxied_auth_req = test_client.get(auth_req)
@@ -144,8 +158,11 @@ class TestOIDCToSAML:
 
         # verify auth resp from proxy
         resp_dict = dict(parse_qsl(urlparse(authn_resp.data.decode("utf-8")).fragment))
-        signing_key = RSAKey(key=rsa_load(oidc_frontend_config["config"]["signing_key_path"]),
-                             use="sig", alg="RS256")
+        signing_key = import_rsa_key_from_cert_file(
+            oidc_frontend_config["config"]["signing_key_path"]
+        )
+        # signing_key = RSAKey(key=rsa_load(oidc_frontend_config["config"]["signing_key_path"]),
+        #                      use="sig", alg="RS256")
         id_token_claims = JWS().verify_compact(resp_dict["id_token"], keys=[signing_key])
 
         assert all(
@@ -153,29 +170,33 @@ class TestOIDCToSAML:
             for name, values in OIDC_USERS[subject_id].items()
         )
 
-    def test_full_stateless_id_token_flow(self, satosa_config_dict, oidc_stateless_frontend_config, saml_backend_config, idp_conf):
+    def test_full_stateless_id_token_flow(self, satosa_config_dict, oidc_stateless_frontend_config,
+                                          saml_backend_config, idp_conf):
         subject_id = "testuser1"
 
         # proxy config
         satosa_config_dict["FRONTEND_MODULES"] = [oidc_stateless_frontend_config]
         satosa_config_dict["BACKEND_MODULES"] = [saml_backend_config]
-        satosa_config_dict["INTERNAL_ATTRIBUTES"]["attributes"] = {attr_name: {"openid": [attr_name],
-                                                                               "saml": [attr_name]}
-                                                                   for attr_name in USERS[subject_id]}
+        satosa_config_dict["INTERNAL_ATTRIBUTES"]["attributes"] = {
+            attr_name: {"openid": [attr_name],
+                        "saml": [attr_name]}
+            for attr_name in USERS[subject_id]}
         _, backend_metadata = create_entity_descriptors(SATOSAConfig(satosa_config_dict))
 
         # application
         test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), Response)
 
         # get frontend OP config info
-        provider_config = json.loads(test_client.get("/.well-known/openid-configuration").data.decode("utf-8"))
+        provider_config = json.loads(
+            test_client.get("/.well-known/openid-configuration").data.decode("utf-8"))
 
         # create auth req
         claims_request = ClaimsRequest(id_token=Claims(**{k: None for k in USERS[subject_id]}))
         req_args = {"scope": "openid", "response_type": "id_token", "client_id": CLIENT_ID,
                     "redirect_uri": REDIRECT_URI, "nonce": "nonce",
                     "claims": claims_request.to_json()}
-        auth_req = urlparse(provider_config["authorization_endpoint"]).path + "?" + urlencode(req_args)
+        auth_req = urlparse(provider_config["authorization_endpoint"]).path + "?" + urlencode(
+            req_args)
 
         # make auth req to proxy
         proxied_auth_req = test_client.get(auth_req)
@@ -202,8 +223,9 @@ class TestOIDCToSAML:
 
         # verify auth resp from proxy
         resp_dict = dict(parse_qsl(urlparse(authn_resp.data.decode("utf-8")).fragment))
-        signing_key = RSAKey(key=rsa_load(oidc_stateless_frontend_config["config"]["signing_key_path"]),
-                             use="sig", alg="RS256")
+        signing_key = RSAKey(
+            key=rsa_load(oidc_stateless_frontend_config["config"]["signing_key_path"]),
+            use="sig", alg="RS256")
         id_token_claims = JWS().verify_compact(resp_dict["id_token"], keys=[signing_key])
 
         assert all(
@@ -211,29 +233,33 @@ class TestOIDCToSAML:
             for name, values in OIDC_USERS[subject_id].items()
         )
 
-    def test_full_stateless_code_flow(self, satosa_config_dict, oidc_stateless_frontend_config, saml_backend_config, idp_conf):
+    def test_full_stateless_code_flow(self, satosa_config_dict, oidc_stateless_frontend_config,
+                                      saml_backend_config, idp_conf):
         subject_id = "testuser1"
 
         # proxy config
         satosa_config_dict["FRONTEND_MODULES"] = [oidc_stateless_frontend_config]
         satosa_config_dict["BACKEND_MODULES"] = [saml_backend_config]
-        satosa_config_dict["INTERNAL_ATTRIBUTES"]["attributes"] = {attr_name: {"openid": [attr_name],
-                                                                               "saml": [attr_name]}
-                                                                   for attr_name in USERS[subject_id]}
+        satosa_config_dict["INTERNAL_ATTRIBUTES"]["attributes"] = {
+            attr_name: {"openid": [attr_name],
+                        "saml": [attr_name]}
+            for attr_name in USERS[subject_id]}
         _, backend_metadata = create_entity_descriptors(SATOSAConfig(satosa_config_dict))
 
         # application
         test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), Response)
 
         # get frontend OP config info
-        provider_config = json.loads(test_client.get("/.well-known/openid-configuration").data.decode("utf-8"))
+        provider_config = json.loads(
+            test_client.get("/.well-known/openid-configuration").data.decode("utf-8"))
 
         # create auth req
         claims_request = ClaimsRequest(id_token=Claims(**{k: None for k in USERS[subject_id]}))
         req_args = {"scope": "openid", "response_type": "code", "client_id": CLIENT_ID,
                     "redirect_uri": REDIRECT_URI, "nonce": "nonce",
                     "claims": claims_request.to_json()}
-        auth_req = urlparse(provider_config["authorization_endpoint"]).path + "?" + urlencode(req_args)
+        auth_req = urlparse(provider_config["authorization_endpoint"]).path + "?" + urlencode(
+            req_args)
 
         # make auth req to proxy
         proxied_auth_req = test_client.get(auth_req)
@@ -275,8 +301,9 @@ class TestOIDCToSAML:
 
         # verify auth resp from proxy
         resp_dict = json.loads(authn_resp.data.decode("utf-8"))
-        signing_key = RSAKey(key=rsa_load(oidc_stateless_frontend_config["config"]["signing_key_path"]),
-                             use="sig", alg="RS256")
+        signing_key = RSAKey(
+            key=rsa_load(oidc_stateless_frontend_config["config"]["signing_key_path"]),
+            use="sig", alg="RS256")
         id_token_claims = JWS().verify_compact(resp_dict["id_token"], keys=[signing_key])
 
         assert all(

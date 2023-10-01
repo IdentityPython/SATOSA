@@ -3,22 +3,20 @@ This module contains all needed to keep a request state, without saving any info
 server.
 """
 import base64
+from collections import UserDict
 import copy
-import hashlib
 import json
 import logging
-from collections import UserDict
-from satosa.cookies import SimpleCookie
+from lzma import LZMACompressor
+from lzma import LZMADecompressor
 from uuid import uuid4
 
-from lzma import LZMACompressor, LZMADecompressor
+# from cryptography.hazmat.primitives.ciphers.algorithms import AES
+from cryptojwt.jwe.aes import AES_GCMEncrypter
 
-from Cryptodome import Random
-from Cryptodome.Cipher import AES
-
-import satosa.logging_util as lu
+from satosa.cookies import SimpleCookie
 from satosa.exception import SATOSAStateError
-
+import satosa.logging_util as lu
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +25,8 @@ _SESSION_ID_KEY = "SESSION_ID"
 
 class State(UserDict):
     """
-    This class holds a state attribute object. A state object must be able to be converted to
-    a json string, otherwise will an exception be raised.
+    This class holds a state attribute object. A state object must be possible to convert to
+    a json string, otherwise an exception will be raised.
     """
 
     def __init__(self, urlstate_data=None, encryption_key=None):
@@ -52,27 +50,9 @@ class State(UserDict):
             raise ValueError("If an 'urlstate_data' is supplied 'encrypt_key' must be specified.")
 
         if urlstate_data:
-            try:
-                urlstate_data_bytes = urlstate_data.encode("utf-8")
-                urlstate_data_b64decoded = base64.urlsafe_b64decode(urlstate_data_bytes)
-                lzma = LZMADecompressor()
-                urlstate_data_decompressed = lzma.decompress(urlstate_data_b64decoded)
-                urlstate_data_decrypted = _AESCipher(encryption_key).decrypt(
-                    urlstate_data_decompressed
-                )
-                lzma = LZMADecompressor()
-                urlstate_data_decrypted_decompressed = lzma.decompress(urlstate_data_decrypted)
-                urlstate_data_obj = json.loads(urlstate_data_decrypted_decompressed)
-            except Exception as e:
-                error_context = {
-                    "message": "Failed to load state data. Reinitializing empty state.",
-                    "reason": str(e),
-                    "urlstate_data": urlstate_data,
-                }
-                logger.warning(error_context)
+            urlstate_data_obj = self.unpack(urlstate_data, encryption_key=encryption_key)
+            if urlstate_data_obj is None:
                 urlstate_data = {}
-            else:
-                urlstate_data = urlstate_data_obj
 
         session_id = (
             urlstate_data[_SESSION_ID_KEY]
@@ -87,25 +67,53 @@ class State(UserDict):
     def session_id(self):
         return self.data.get(_SESSION_ID_KEY)
 
-    def urlstate(self, encryption_key):
+    def unpack(self, data: str, encryption_key):
         """
-        Will return a url safe representation of the state.
+
+        :param data: A string created by the method pack in this class.
+        """
+        try:
+            data_bytes = data.encode("utf-8")
+            data_b64decoded = base64.urlsafe_b64decode(data_bytes)
+            lzma = LZMADecompressor()
+            data_decompressed = lzma.decompress(data_b64decoded)
+            data_decrypted = AES_GCMEncrypter(key=encryption_key).decrypt(
+                data_decompressed
+            )
+            lzma = LZMADecompressor()
+            data_decrypted_decompressed = lzma.decompress(data_decrypted)
+            data_obj = json.loads(data_decrypted_decompressed)
+        except Exception as e:
+            error_context = {
+                "message": "Failed to load state data. Reinitializing empty state.",
+                "reason": str(e),
+                "urlstate_data": data,
+            }
+            logger.warning(error_context)
+            data_obj = None
+
+        return data_obj
+
+    def pack(self, encryption_key):
+        """
+        Will return an url safe representation of the state.
 
         :type encryption_key: Key used for encryption.
         :rtype: str
 
         :return: Url representation av of the state.
         """
+
         lzma = LZMACompressor()
-        urlstate_data = json.dumps(self.data)
-        urlstate_data = lzma.compress(urlstate_data.encode("UTF-8"))
-        urlstate_data += lzma.flush()
-        urlstate_data = _AESCipher(encryption_key).encrypt(urlstate_data)
+        _data = json.dumps(self.data)
+        _data = lzma.compress(_data.encode("UTF-8"))
+        _data += lzma.flush()
+        _data = AES_GCMEncrypter(encryption_key).encrypt(_data)
         lzma = LZMACompressor()
-        urlstate_data = lzma.compress(urlstate_data)
-        urlstate_data += lzma.flush()
-        urlstate_data = base64.urlsafe_b64encode(urlstate_data)
-        return urlstate_data.decode("utf-8")
+        _data = lzma.compress(_data)
+        _data += lzma.flush()
+        _data = base64.urlsafe_b64encode(_data)
+        return _data.decode("utf-8")
 
     def copy(self):
         """
@@ -129,15 +137,15 @@ class State(UserDict):
 
 
 def state_to_cookie(
-    state: State,
-    *,
-    name: str,
-    path: str,
-    encryption_key: str,
-    secure: bool = None,
-    httponly: bool = None,
-    samesite: str = None,
-    max_age: str = None,
+        state: State,
+        *,
+        name: str,
+        path: str,
+        encryption_key: str,
+        secure: bool = None,
+        httponly: bool = None,
+        samesite: str = None,
+        max_age: str = None,
 ) -> SimpleCookie:
     """
     Saves a state to a cookie
@@ -205,71 +213,71 @@ def cookie_to_state(cookie_str: str, name: str, encryption_key: str) -> State:
     else:
         return state
 
-
-class _AESCipher(object):
-    """
-    This class will perform AES encryption/decryption with a keylength of 256.
-
-    @see: http://stackoverflow.com/questions/12524994/encrypt-decrypt-using-pycrypto-aes-256
-    """
-
-    def __init__(self, key):
-        """
-        Constructor
-
-        :type key: str
-
-        :param key: The key used for encryption and decryption. The longer key the better.
-        """
-        self.bs = 32
-        self.key = hashlib.sha256(key.encode()).digest()
-
-    def encrypt(self, raw):
-        """
-        Encryptes the parameter raw.
-
-        :type raw: bytes
-        :rtype: str
-
-        :param: bytes to be encrypted.
-
-        :return: A base 64 encoded string.
-        """
-        raw = self._pad(raw)
-        iv = Random.new().read(AES.block_size)
-        cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        return base64.urlsafe_b64encode(iv + cipher.encrypt(raw))
-
-    def decrypt(self, enc):
-        """
-        Decryptes the parameter enc.
-
-        :type enc: bytes
-        :rtype: bytes
-
-        :param: The value to be decrypted.
-        :return: The decrypted value.
-        """
-        enc = base64.urlsafe_b64decode(enc)
-        iv = enc[:AES.block_size]
-        cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        return self._unpad(cipher.decrypt(enc[AES.block_size:]))
-
-    def _pad(self, b):
-        """
-        Will padd the param to be of the correct length for the encryption alg.
-
-        :type b: bytes
-        :rtype: bytes
-        """
-        return b + (self.bs - len(b) % self.bs) * chr(self.bs - len(b) % self.bs).encode("UTF-8")
-
-    @staticmethod
-    def _unpad(b):
-        """
-        Removes the padding performed by the method _pad.
-
-        :type b: bytes
-        :rtype: bytes
-        """
-        return b[:-ord(b[len(b) - 1:])]
+#
+# class _AESCipher(object):
+#     """
+#     This class will perform AES encryption/decryption with a keylength of 256.
+#
+#     @see: http://stackoverflow.com/questions/12524994/encrypt-decrypt-using-pycrypto-aes-256
+#     """
+#
+#     def __init__(self, key):
+#         """
+#         Constructor
+#
+#         :type key: str
+#
+#         :param key: The key used for encryption and decryption. The longer key the better.
+#         """
+#         self.bs = 32
+#         self.key = hashlib.sha256(key.encode()).digest()
+#
+#     def encrypt(self, raw):
+#         """
+#         Encryptes the parameter raw.
+#
+#         :type raw: bytes
+#         :rtype: str
+#
+#         :param: bytes to be encrypted.
+#
+#         :return: A base 64 encoded string.
+#         """
+#         raw = self._pad(raw)
+#         iv = rndstr(AES.block_size)
+#         cipher = AES.new(self.key, AES.MODE_CBC, iv)
+#         return base64.urlsafe_b64encode(iv + cipher.encrypt(raw))
+#
+#     def decrypt(self, enc):
+#         """
+#         Decryptes the parameter enc.
+#
+#         :type enc: bytes
+#         :rtype: bytes
+#
+#         :param: The value to be decrypted.
+#         :return: The decrypted value.
+#         """
+#         enc = base64.urlsafe_b64decode(enc)
+#         iv = enc[:AES.block_size]
+#         cipher = AES.new(self.key, AES.MODE_CBC, iv)
+#         return self._unpad(cipher.decrypt(enc[AES.block_size:]))
+#
+#     def _pad(self, b):
+#         """
+#         Will padd the param to be of the correct length for the encryption alg.
+#
+#         :type b: bytes
+#         :rtype: bytes
+#         """
+#         return b + (self.bs - len(b) % self.bs) * chr(self.bs - len(b) % self.bs).encode("UTF-8")
+#
+#     @staticmethod
+#     def _unpad(b):
+#         """
+#         Removes the padding performed by the method _pad.
+#
+#         :type b: bytes
+#         :rtype: bytes
+#         """
+#         return b[:-ord(b[len(b) - 1:])]
