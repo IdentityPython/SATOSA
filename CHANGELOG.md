@@ -1,5 +1,29 @@
 # Changelog
 
+## 8.4.0 (2023-06-11)
+
+- Make cookie parameters configurable
+- Avoid setting duplicate set-cookie headers
+- Complete the support for the mdui:UIInfo element
+- satosa-saml-metadata: make signing optional
+- metadata_creation: for SAML backend, use sp.config to render metadata
+- tests: update markers of supported Python versions
+- deps: move away from pkg_resources when deriving the package version at runtime
+
+
+## 8.3.0 (2023-06-08)
+
+- FilterAttributeValues plugin: add new filter types shibmdscope_match_scope and shibmdscope_match_value; add tests
+- FilterAttributeValues plugin: add example rules for saml-subject-id and saml-pairwise-id
+- FilterAttributeValues plugin: add example rules enforcing controlled vocabulary for eduPersonAffiliation and eduPersonScopedAffiliation attributes
+- DecideBackendByRequester plugin: add default_backend setting; add tests; minor fixes
+- opend_connect backend: use PyoidcSettings class to configure pyoidc/oic based clients
+- ping frontend: minor adjustments and fixes for interface compliance
+- tests: update code to use matchers API to mock responses
+- examples: improve configuration readability of the primary-identifier plugin
+- examples: minor fixes and enhancements for ContactPerson examples for SAML backend and frontend
+
+
 ## 8.2.0 (2022-11-17)
 
 - attribute_authorization: new configuration options `force_attributes_presence_on_allow` and `force_attributes_presence_on_deny` to enforce attribute presence enforcement

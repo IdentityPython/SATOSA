@@ -52,6 +52,9 @@ class UIInfoDesc(object):
         self._description = []
         self._display_name = []
         self._logos = []
+        self._keywords = []
+        self._information_url = []
+        self._privacy_statement_url = []
 
     def add_description(self, text, lang):
         """
@@ -96,6 +99,52 @@ class UIInfoDesc(object):
             logo_entry["lang"] = lang
         self._logos.append(logo_entry)
 
+    def add_keywords(self, text, lang):
+        """
+        Binds keywords to the given language
+        :type text: List
+        :type lang: str
+
+        :param text: List of keywords
+        :param lang: language
+        """
+
+        if text:
+            self._keywords.append(
+                {
+                    "text": [_keyword.replace(" ", "+") for _keyword in text],
+                    "lang": lang if lang else "en",
+                }
+            )
+
+    def add_information_url(self, text, lang):
+        """
+        Binds information_url to the given language
+        :type text: str
+        :type lang: str
+
+        :param text: Information URL
+        :param lang: language
+        """
+
+        if text:
+            self._information_url.append({"text": text, "lang": lang if lang else "en"})
+
+    def add_privacy_statement_url(self, text, lang):
+        """
+        Binds privacy_statement_url to the given language
+        :type text: str
+        :type lang: str
+
+        :param text: Privacy statement URL
+        :param lang: language
+        """
+
+        if text:
+            self._privacy_statement_url.append(
+                {"text": text, "lang": lang if lang else "en"}
+            )
+
     def to_dict(self):
         """
         Returns a dictionary representation of the UIInfoDesc object.
@@ -110,6 +159,12 @@ class UIInfoDesc(object):
             ui_info["display_name"] = self._display_name
         if self._logos:
             ui_info["logo"] = self._logos
+        if self._keywords:
+            ui_info["keywords"] = self._keywords
+        if self._information_url:
+            ui_info["information_url"] = self._information_url
+        if self._privacy_statement_url:
+            ui_info["privacy_statement_url"] = self._privacy_statement_url
         return {"service": {"idp": {"ui_info": ui_info}}} if ui_info else {}
 
 
@@ -227,9 +282,9 @@ class MetadataDescription(object):
         if self._organization:
             description.update(self._organization.to_dict())
         if self._contact_person:
-            description['contact_person'] = []
+            description["contact_person"] = []
             for person in self._contact_person:
-                description['contact_person'].append(person.to_dict())
+                description["contact_person"].append(person.to_dict())
         if self._ui_info:
             description.update(self._ui_info.to_dict())
         return description

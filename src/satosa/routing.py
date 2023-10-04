@@ -4,8 +4,8 @@ Holds satosa routing logic
 import logging
 import re
 
-from satosa.context import SATOSABadContextError
-from satosa.exception import SATOSAError
+from satosa.exception import SATOSABadContextError
+from satosa.exception import SATOSANoBoundEndpointError
 
 import satosa.logging_util as lu
 
@@ -13,20 +13,6 @@ import satosa.logging_util as lu
 logger = logging.getLogger(__name__)
 
 STATE_KEY = "ROUTER"
-
-
-class SATOSANoBoundEndpointError(SATOSAError):
-    """
-    Raised when a given url path is not bound to any endpoint function
-    """
-    pass
-
-
-class SATOSAUnknownTargetBackend(SATOSAError):
-    """
-    Raised when targeting an unknown backend
-    """
-    pass
 
 
 class ModuleRouter(object):
