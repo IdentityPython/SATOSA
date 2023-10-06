@@ -27,7 +27,7 @@ def prepend_to_import_path(import_paths):
     del sys.path[0:len(import_paths)]  # restore sys.path
 
 
-def load_backends(config, auth_callback, logout_callback, internal_attributes):
+def load_backends(config, auth_callback, internal_attributes, logout_callback=None):
     """
     Load all backend modules specified in the config
 
@@ -55,7 +55,7 @@ def load_backends(config, auth_callback, logout_callback, internal_attributes):
     return backend_modules
 
 
-def load_frontends(config, auth_callback, logout_callback, internal_attributes):
+def load_frontends(config, auth_callback, internal_attributes, logout_callback=None):
     """
     Load all frontend modules specified in the config
 
@@ -160,7 +160,7 @@ def _load_plugin_config(config):
             raise SATOSAConfigurationError("The configuration is corrupt.") from exc
 
 
-def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attributes, auth_callback, logout_callback):
+def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attributes, auth_callback, logout_callback=None):
     """
     Loads endpoint plugins
 
@@ -187,8 +187,8 @@ def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attri
             if module_class:
                 module_config = _replace_variables_in_plugin_module_config(plugin_config["config"], base_url,
                                                                            plugin_config["name"])
-                instance = module_class(auth_callback, logout_callback, internal_attributes, module_config, base_url,
-                                        plugin_config["name"])
+                instance = module_class(auth_callback, internal_attributes, module_config, base_url,
+                                        plugin_config["name"], logout_callback)
                 loaded_plugin_modules.append(instance)
     return loaded_plugin_modules
 
