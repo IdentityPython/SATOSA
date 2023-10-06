@@ -32,7 +32,7 @@ class _OAuthBackend(BackendModule):
     See satosa.backends.oauth.FacebookBackend.
     """
 
-    def __init__(self, outgoing, logout, internal_attributes, config, base_url, name, external_type, user_id_attr):
+    def __init__(self, outgoing, internal_attributes, config, base_url, name, external_type, user_id_attr):
         """
         :param outgoing: Callback should be called by the module after the authorization in the
         backend is done.
@@ -52,7 +52,7 @@ class _OAuthBackend(BackendModule):
         :type name: str
         :type external_type: str
         """
-        super().__init__(outgoing, logout, internal_attributes, base_url, name)
+        super().__init__(outgoing, internal_attributes, base_url, name)
         self.config = config
         self.redirect_url = "%s/%s" % (self.config["base_url"], self.config["authz_page"])
         self.external_type = external_type
