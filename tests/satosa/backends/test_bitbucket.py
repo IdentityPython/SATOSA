@@ -74,7 +74,7 @@ mock_get_state = Mock(return_value="abcdef")
 class TestBitBucketBackend(object):
     @pytest.fixture(autouse=True)
     def create_backend(self):
-        self.bb_backend = BitBucketBackend(Mock(), Mock(), INTERNAL_ATTRIBUTES,
+        self.bb_backend = BitBucketBackend(Mock(), INTERNAL_ATTRIBUTES,
                                            BB_CONFIG, "base_url", "bitbucket")
 
     @pytest.fixture
