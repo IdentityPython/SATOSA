@@ -55,12 +55,14 @@ class SATOSABase(object):
 
         logger.info("Loading backend modules...")
         backends = load_backends(self.config, self._auth_resp_callback_func,
-                                 self._logout_resp_callback_func,
-                                 self.config["INTERNAL_ATTRIBUTES"])
+                                 self.config["INTERNAL_ATTRIBUTES"],
+                                 self._logout_resp_callback_func
+                                 )
         logger.info("Loading frontend modules...")
         frontends = load_frontends(self.config, self._auth_req_callback_func,
-                                   self._logout_req_callback_func,
-                                   self.config["INTERNAL_ATTRIBUTES"])
+                                   self.config["INTERNAL_ATTRIBUTES"],
+                                   self._logout_req_callback_func
+                                   )
 
         self.response_micro_services = []
         self.request_micro_services = []
