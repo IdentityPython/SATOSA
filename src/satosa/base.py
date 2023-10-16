@@ -84,8 +84,10 @@ class SATOSABase(object):
             self._link_micro_services(
                 self.response_micro_services, self._auth_resp_finish)
 
-        logger.info("Loading database...")
-        self.db = load_database(self.config)
+        load_db = self.config.get("LOGOUT_ENABLED", False)
+        if load_db:
+            logger.info("Loading database...")
+            self.db = load_database(self.config)
 
         self.module_router = ModuleRouter(frontends, backends,
                                           self.request_micro_services + self.response_micro_services)
@@ -152,8 +154,12 @@ class SATOSABase(object):
     def _logout_req_finish(self, context, internal_request):
         backend = self.module_router.backend_routing(context)
         context.request = None
-        internal_authn_resp = self.db.get_authn_resp(context.state)
-        self.db.delete_session(context.state)
+        if hasattr(self, "db"):
+            internal_authn_resp = self.db.get_authn_resp(context.state)
+            self.db.delete_session(context.state)
+        else:
+            internal_authn_resp = None
+            context.state.__delete = self.config.get("CONTEXT_STATE_DELETE", True)
         return backend.start_logout(context, internal_request, internal_authn_resp)
 
     def _auth_resp_finish(self, context, internal_response):
@@ -164,10 +170,12 @@ class SATOSABase(object):
                 internal_response.subject_id]
 
         # remove all session state unless CONTEXT_STATE_DELETE is False
-        #context.state.delete = self.config.get("CONTEXT_STATE_DELETE", True)
         context.request = None
-        self.db.store_authn_resp(context.state, internal_response)
-        self.db.get_authn_resp(context.state)
+        if hasattr(self, "db"):
+            self.db.store_authn_resp(context.state, internal_response)
+            self.db.get_authn_resp(context.state)
+        else:
+            context.state.delete = self.config.get("CONTEXT_STATE_DELETE", True)
 
         frontend = self.module_router.frontend_routing(context)
         return frontend.handle_authn_response(context, internal_response)
