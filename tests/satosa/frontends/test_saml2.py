@@ -71,8 +71,8 @@ class TestSAMLFrontend:
 
         base_url = self.construct_base_url_from_entity_id(idp_conf["entityid"])
         samlfrontend = SAMLFrontend(lambda ctx, internal_req: (ctx, internal_req),
-                                    lambda ctx, internal_logout_req: (ctx, internal_logout_req),
-                                    internal_attributes, config, base_url, "saml_frontend")
+                                    internal_attributes, config, base_url, "saml_frontend",
+                                    lambda ctx, internal_logout_req: (ctx, internal_logout_req))
         samlfrontend.register_endpoints(["saml"])
 
         idp_metadata_str = create_metadata_from_config_dict(samlfrontend.idp_config)
@@ -122,8 +122,9 @@ class TestSAMLFrontend:
     ])
     def test_config_error_handling(self, conf):
         with pytest.raises(ValueError):
-            SAMLFrontend(lambda ctx, req: None, lambda ctx, req: None,
-                         INTERNAL_ATTRIBUTES, conf, "base_url", "saml_frontend")
+            SAMLFrontend(lambda ctx, req: None,
+                         INTERNAL_ATTRIBUTES, conf, "base_url", "saml_frontend",
+                         lambda ctx, req: None)
 
     def test_register_endpoints(self, idp_conf):
         """
@@ -137,8 +138,8 @@ class TestSAMLFrontend:
 
         base_url = self.construct_base_url_from_entity_id(idp_conf["entityid"])
         samlfrontend = SAMLFrontend(lambda context, internal_req: (context, internal_req),
-                                    lambda context, internal_logout_req: (context, internal_logout_req),
-                                    INTERNAL_ATTRIBUTES, config, base_url, "saml_frontend")
+                                    INTERNAL_ATTRIBUTES, config, base_url, "saml_frontend",
+                                    lambda context, internal_logout_req: (context, internal_logout_req))
 
         providers = ["foo", "bar"]
         url_map = samlfrontend.register_endpoints(providers)
@@ -252,7 +253,7 @@ class TestSAMLFrontend:
                                                "eduPersonAffiliation", "mail", "displayName", "sn",
                                                "givenName"]}}  # no op mapping for saml attribute names
 
-        samlfrontend = SAMLFrontend(None, None, internal_attributes, conf, base_url, "saml_frontend")
+        samlfrontend = SAMLFrontend(None, internal_attributes, conf, base_url, "saml_frontend", None)
         samlfrontend.register_endpoints(["testprovider"])
 
         internal_req = InternalData(
@@ -362,8 +363,9 @@ class TestSAMLFrontend:
 
     def test_metadata_endpoint(self, context, idp_conf):
         conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS}
-        samlfrontend = SAMLFrontend(lambda ctx, req: None, lambda ctx, req: None,
-                                    INTERNAL_ATTRIBUTES, conf, "base_url", "saml_frontend")
+        samlfrontend = SAMLFrontend(lambda ctx, req: None,
+                                    INTERNAL_ATTRIBUTES, conf, "base_url", "saml_frontend",
+                                    lambda ctx, req: None)
         samlfrontend.register_endpoints(["todo"])
         resp = samlfrontend._metadata_endpoint(context)
         headers = dict(resp.headers)
@@ -405,9 +407,10 @@ class TestSAMLMirrorFrontend:
     @pytest.fixture(autouse=True)
     def create_frontend(self, idp_conf):
         conf = {"idp_config": idp_conf, "endpoints": ENDPOINTS}
-        self.frontend = SAMLMirrorFrontend(lambda ctx, req: None, lambda ctx, req: None,
+        self.frontend = SAMLMirrorFrontend(lambda ctx, req: None,
                                            INTERNAL_ATTRIBUTES, conf, BASE_URL,
-                                           "saml_mirror_frontend")
+                                           "saml_mirror_frontend",
+                                           lambda ctx, req: None)
         self.frontend.register_endpoints([self.BACKEND])
 
     def assert_dynamic_endpoints(self, sso_endpoints):
@@ -497,11 +500,11 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
         # Create, register the endpoints, and then return the frontend
         # instance.
         frontend = SAMLVirtualCoFrontend(lambda ctx, req: None,
-                                         lambda ctx, logout_req: None,
                                          internal_attributes,
                                          conf,
                                          BASE_URL,
-                                         "saml_virtual_co_frontend")
+                                         "saml_virtual_co_frontend",
+                                         lambda ctx, req: None,)
         frontend.register_endpoints([self.BACKEND])
 
         return frontend
