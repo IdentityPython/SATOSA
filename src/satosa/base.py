@@ -162,7 +162,7 @@ class SATOSABase(object):
             self.db.delete_session(context.state)
         else:
             internal_authn_resp = None
-            context.state.__delete = self.config.get("CONTEXT_STATE_DELETE", True)
+            context.state.delete = self.config.get("CONTEXT_STATE_DELETE", True)
         return backend.start_logout(context, internal_request, internal_authn_resp)
 
     def _auth_resp_finish(self, context, internal_response):
