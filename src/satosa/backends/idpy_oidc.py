@@ -14,7 +14,7 @@ from satosa.internal import InternalData
 import satosa.logging_util as lu
 from ..exception import SATOSAAuthenticationError
 from ..exception import SATOSAError
-from ..response import Redirect
+from ..response import Redirect, Response
 
 
 UTC = datetime.timezone.utc
@@ -26,7 +26,8 @@ class IdpyOIDCBackend(BackendModule):
     Backend module for OIDC and OAuth 2.0, can be directly used.
     """
 
-    def __init__(self, auth_callback_func, internal_attributes, config, base_url, name):
+    def __init__(self, auth_callback_func, internal_attributes, config, base_url, name, session_storage,
+                 logout_callback_func):
         """
         OIDC backend module.
         :param auth_callback_func: Callback should be called by the module after the authorization
@@ -45,7 +46,7 @@ class IdpyOIDCBackend(BackendModule):
         :type base_url: str
         :type name: str
         """
-        super().__init__(auth_callback_func, internal_attributes, base_url, name)
+        super().__init__(auth_callback_func, internal_attributes, base_url, name, session_storage, logout_callback_func)
         # self.auth_callback_func = auth_callback_func
         # self.config = config
         self.client = StandAloneClient(config=config["client"], client_type="oidc")
@@ -56,6 +57,9 @@ class IdpyOIDCBackend(BackendModule):
         if not _redirect_uris:
             raise SATOSAError("Missing path in redirect uri")
         self.redirect_path = urlparse(_redirect_uris[0]).path
+
+        front_channel_logout_uri = config["client"].get('front_channel_logout_uri')
+        self.front_channel_logout_path = urlparse(front_channel_logout_uri).path if front_channel_logout_uri else None
 
     def start_auth(self, context, internal_request):
         """
@@ -76,8 +80,9 @@ class IdpyOIDCBackend(BackendModule):
         :rtype: Sequence[(str, Callable[[satosa.context.Context], satosa.response.Response]]
         :return: A list that can be used to map the request to SATOSA to this endpoint.
         """
-        url_map = []
-        url_map.append((f"^{self.redirect_path.lstrip('/')}$", self.response_endpoint))
+        url_map = [(f"^{self.redirect_path.lstrip('/')}$", self.response_endpoint)]
+        if self.front_channel_logout_path:
+            url_map.append((f"^{self.front_channel_logout_path.lstrip('/')}$", self.front_channel_logout_endpoint))
         return url_map
 
     def response_endpoint(self, context, *args):
@@ -108,7 +113,36 @@ class IdpyOIDCBackend(BackendModule):
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.debug(logline)
         internal_resp = self._translate_response(all_user_claims, _info["issuer"])
+        sid = all_user_claims.get("sid")
+        if sid:
+            internal_resp.backend_sid = sid
+            self.session_storage.store_backend_session(sid, _info["issuer"])
         return self.auth_callback_func(context, internal_resp)
+
+    def front_channel_logout_endpoint(self, context, *args):
+        """
+        Handles the front channel logout request from the OP.
+        :type context: satosa.context.Context
+        :type args: Any
+        :rtype: satosa.response.Response
+
+        :param context: SATOSA context
+        :param args: None
+        :return:
+        """
+
+        sid = context.request.get("sid")
+        issuer = context.request.get("iss")
+        session = self.session_storage.get_backend_session(sid, issuer)
+
+        if session:
+            internal_req = InternalData(
+                backend_sid=sid,
+                issuer=session.get("issuer")
+            )
+            return self.logout_callback_func(context, internal_req)
+        else:
+            return Response()
 
     def _translate_response(self, response, issuer):
         """

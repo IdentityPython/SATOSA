@@ -124,6 +124,8 @@ class InternalData(_Datafy):
         subject_id=None,
         subject_type=None,
         attributes=None,
+        frontend_sid=None,
+        backend_sid=None,
         *args,
         **kwargs,
     ):
@@ -157,3 +159,5 @@ class InternalData(_Datafy):
         self.subject_id = subject_id
         self.subject_type = subject_type
         self.attributes = attributes if attributes is not None else {}
+        self.frontend_sid = frontend_sid
+        self.backend_sid = backend_sid

@@ -10,7 +10,8 @@ class BackendModule(object):
     Base class for a backend module.
     """
 
-    def __init__(self, auth_callback_func, internal_attributes, base_url, name):
+    def __init__(self, auth_callback_func, internal_attributes, base_url, name, session_storage=None,
+                 logout_callback_func=None):
         """
         :type auth_callback_func:
         (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
@@ -31,6 +32,8 @@ class BackendModule(object):
         self.converter = AttributeMapper(internal_attributes)
         self.base_url = base_url
         self.name = name
+        self.session_storage = session_storage
+        self.logout_callback_func = logout_callback_func
 
     def start_auth(self, context, internal_request):
         """

@@ -9,7 +9,7 @@ class FrontendModule(object):
     Base class for a frontend module.
     """
 
-    def __init__(self, auth_req_callback_func, internal_attributes, base_url, name):
+    def __init__(self, auth_req_callback_func, internal_attributes, base_url, name, session_storage=None):
         """
         :type auth_req_callback_func:
         (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
@@ -25,6 +25,7 @@ class FrontendModule(object):
         self.converter = AttributeMapper(internal_attributes)
         self.base_url = base_url
         self.name = name
+        self.session_storage = session_storage
 
     def handle_authn_response(self, context, internal_resp):
         """
