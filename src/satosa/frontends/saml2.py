@@ -67,10 +67,10 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
     KEY_ENDPOINTS = 'endpoints'
     KEY_IDP_CONFIG = 'idp_config'
 
-    def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name):
+    def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name, session_storage):
         self._validate_config(config)
 
-        super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
+        super().__init__(auth_req_callback_func, internal_attributes, base_url, name, session_storage)
         self.config = self.init_config(config)
 
         self.endpoints = config[self.KEY_ENDPOINTS]
@@ -829,9 +829,9 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
     KEY_ORGANIZATION = 'organization'
     KEY_ORGANIZATION_KEYS = ['display_name', 'name', 'url']
 
-    def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name):
+    def __init__(self, auth_req_callback_func, internal_attributes, config, base_url, name, session_storage):
         self.has_multiple_backends = False
-        super().__init__(auth_req_callback_func, internal_attributes, config, base_url, name)
+        super().__init__(auth_req_callback_func, internal_attributes, config, base_url, name, session_storage)
 
     def handle_authn_request(self, context, binding_in):
         """

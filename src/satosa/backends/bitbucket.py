@@ -19,7 +19,7 @@ class BitBucketBackend(_OAuthBackend):
 
     logprefix = "BitBucket Backend:"
 
-    def __init__(self, outgoing, internal_attributes, config, base_url, name):
+    def __init__(self, outgoing, internal_attributes, config, base_url, name, session_storage, logout_callback_func):
         """BitBucket backend constructor
         :param outgoing: Callback should be called by the module after the
             authorization in the backend is done.
@@ -39,8 +39,8 @@ class BitBucketBackend(_OAuthBackend):
         """
         config.setdefault('response_type', 'code')
         config['verify_accesstoken_state'] = False
-        super().__init__(outgoing, internal_attributes, config, base_url,
-                         name, 'bitbucket', 'account_id')
+        super().__init__(outgoing, internal_attributes, config, base_url, name, 'bitbucket', 'account_id',
+                         session_storage, logout_callback_func)
 
     def get_request_args(self, get_state=stateID):
         request_args = super().get_request_args(get_state=get_state)

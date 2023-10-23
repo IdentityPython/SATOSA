@@ -22,7 +22,8 @@ logger = logging.getLogger(__name__)
 class LinkedInBackend(_OAuthBackend):
     """LinkedIn OAuth 2.0 backend"""
 
-    def __init__(self, outgoing, internal_attributes, config, base_url, name):
+    def __init__(self, outgoing, internal_attributes, config, base_url, name, session_storage,
+                 logout_callback_func):
         """LinkedIn backend constructor
         :param outgoing: Callback should be called by the module after the
             authorization in the backend is done.
@@ -42,9 +43,8 @@ class LinkedInBackend(_OAuthBackend):
         """
         config.setdefault('response_type', 'code')
         config['verify_accesstoken_state'] = False
-        super().__init__(
-            outgoing, internal_attributes, config, base_url, name, 'linkedin',
-            'id')
+        super().__init__(outgoing, internal_attributes, config, base_url, name, 'linkedin', 'id',
+                         session_storage, logout_callback_func)
 
     def start_auth(self, context, internal_request, get_state=stateID):
         """

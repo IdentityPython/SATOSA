@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class OrcidBackend(_OAuthBackend):
     """Orcid OAuth 2.0 backend"""
 
-    def __init__(self, outgoing, internal_attributes, config, base_url, name):
+    def __init__(self, outgoing, internal_attributes, config, base_url, name, session_storage, logout_callback_func):
         """Orcid backend constructor
         :param outgoing: Callback should be called by the module after the
             authorization in the backend is done.
@@ -41,9 +41,8 @@ class OrcidBackend(_OAuthBackend):
         """
         config.setdefault('response_type', 'code')
         config['verify_accesstoken_state'] = False
-        super().__init__(
-            outgoing, internal_attributes, config, base_url, name, 'orcid',
-            'orcid')
+        super().__init__(outgoing, internal_attributes, config, base_url, name, 'orcid', 'orcid',
+                         session_storage, logout_callback_func)
 
     def get_request_args(self, get_state=stateID):
         oauth_state = get_state(self.config["base_url"], rndstr().encode())

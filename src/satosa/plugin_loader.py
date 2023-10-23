@@ -296,10 +296,8 @@ def load_session_storage(config):
     if session_storage:
         try:
             storage_type = session_storage["type"]
-            if storage_type == "memory":
-                from satosa.session_storage import SessionStorageInMemory
-                return SessionStorageInMemory(config)
-            elif storage_type == "postgresql":
+            if storage_type == "postgresql":
+                logger.info("Using the postgresql session storage.")
                 from satosa.session_storage import SessionStoragePostgreSQL
                 try:
                     return SessionStoragePostgreSQL(config)
@@ -308,5 +306,9 @@ def load_session_storage(config):
         except SATOSAConfigurationError as err:
             logger.error(err)
     else:
-        logger.info("session storage is not defined")
+        logger.info("SESSION_STORAGE is not defined")
+
+    logger.info("Using the in-memory session storage.")
+    from satosa.session_storage import SessionStorageInMemory
+    return SessionStorageInMemory(config)
 

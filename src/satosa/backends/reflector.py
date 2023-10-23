@@ -17,7 +17,7 @@ class ReflectorBackend(BackendModule):
 
     ENTITY_ID = ORG_NAME = AUTH_CLASS_REF = SUBJECT_ID = "reflector"
 
-    def __init__(self, outgoing, internal_attributes, config, base_url, name):
+    def __init__(self, outgoing, internal_attributes, config, base_url, name, session_storage, logout_callback_func):
         """
         :type outgoing:
         (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
@@ -33,7 +33,7 @@ class ReflectorBackend(BackendModule):
         :param base_url: base url of the service
         :param name: name of the plugin
         """
-        super().__init__(outgoing, internal_attributes, base_url, name)
+        super().__init__(outgoing, internal_attributes, base_url, name, session_storage, logout_callback_func)
 
     def start_auth(self, context, internal_req):
         """

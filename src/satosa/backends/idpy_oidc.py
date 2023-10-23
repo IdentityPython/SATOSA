@@ -47,8 +47,6 @@ class IdpyOIDCBackend(BackendModule):
         :type name: str
         """
         super().__init__(auth_callback_func, internal_attributes, base_url, name, session_storage, logout_callback_func)
-        # self.auth_callback_func = auth_callback_func
-        # self.config = config
         self.client = StandAloneClient(config=config["client"], client_type="oidc")
         self.client.do_provider_info()
         self.client.do_client_registration()

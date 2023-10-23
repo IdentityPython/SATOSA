@@ -92,7 +92,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
     VALUE_ACR_COMPARISON_DEFAULT = 'exact'
 
-    def __init__(self, outgoing, internal_attributes, config, base_url, name):
+    def __init__(self, outgoing, internal_attributes, config, base_url, name, session_storage, logout_callback_func):
         """
         :type outgoing:
         (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
@@ -108,7 +108,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :param base_url: base url of the service
         :param name: name of the plugin
         """
-        super().__init__(outgoing, internal_attributes, base_url, name)
+        super().__init__(outgoing, internal_attributes, base_url, name, session_storage, logout_callback_func)
         self.config = self.init_config(config)
 
         self.discosrv = config.get(SAMLBackend.KEY_DISCO_SRV)
