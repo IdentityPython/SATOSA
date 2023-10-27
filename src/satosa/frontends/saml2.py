@@ -360,6 +360,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         name_id_value = logout_req.name_id.text
         name_id_format = logout_req.name_id.format
 
+        sign = self.idp_config.get("service", {}).get("idp", {}).get("logout_requests_signed", True)
         internal_req = InternalData(
             subject_id=name_id_value,
             subject_type=name_id_format,
@@ -382,7 +383,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
                             issuer_entity_id=sp_info[0][0],
                             name_id=NameID(text=sp_info[0][1].text),
                             session_indexes=[authn_statement[0].session_index],
-                            sign=True
+                            sign=sign
                         )
 
                         http_args = self.idp.apply_binding(binding, "%s" % lreq, slo_destination)

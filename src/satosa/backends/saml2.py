@@ -533,9 +533,10 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             name_id = internal_authn_resp["subject_id"]
             name_id = NameID(format=name_id_format, text=name_id)
             session_indexes = internal_authn_resp["auth_info"]["session_index"]
+            sign = self.sp.config.getattr("logout_requests_signed", "sp")
             req_id, req = self.sp.create_logout_request(
                 destination, issuer_entity_id=entity_id, name_id=name_id,
-                session_indexes=session_indexes, sign=True
+                session_indexes=session_indexes, sign=sign
             )
             msg = "req_id: {}, req: {}".format(req_id, req)
             logline = lu.LOG_FMT.format(
