@@ -374,24 +374,31 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
                     if authn_statement[0].session_index == resp_args["session_indexes"][0]:
                         continue
                     else:
-                        binding, slo_destination = self.idp.pick_binding(
-                            "single_logout_service", None, "spsso", entity_id=sp_info[0][0]
-                        )
+                        try:
+                            binding, slo_destination = self.idp.pick_binding(
+                                "single_logout_service", None, "spsso", entity_id=sp_info[0][0]
+                            )
 
-                        lreq_id, lreq = self.idp.create_logout_request(
-                            destination=slo_destination,
-                            issuer_entity_id=sp_info[0][0],
-                            name_id=NameID(text=sp_info[0][1].text),
-                            session_indexes=[authn_statement[0].session_index],
-                            sign=sign
-                        )
+                            lreq_id, lreq = self.idp.create_logout_request(
+                                destination=slo_destination,
+                                issuer_entity_id=sp_info[0][0],
+                                name_id=NameID(text=sp_info[0][1].text),
+                                session_indexes=[authn_statement[0].session_index],
+                                sign=sign
+                            )
 
-                        http_args = self.idp.apply_binding(binding, "%s" % lreq, slo_destination)
-                        msg = "http_args: {}".format(http_args)
-                        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-                        propagate_logout(binding, http_args)
+                            http_args = self.idp.apply_binding(binding, "%s" % lreq, slo_destination)
+                            msg = "http_args: {}".format(http_args)
+                            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                            propagate_logout(binding, http_args)
+                        except:
+                            msg = {
+                                "message": "LogoutRequest Failed",
+                                "error": "Failed to construct the LogoutRequest for SP - {}".format(sp_info[0][0])
+                            }
+                            logline = lu.LOG_FMT(id=lu.get_session_id(context.state), message=msg)
 
-        # Return logout response to SP that initiated logout if logout request contains
+        # Return logout response to the SP that initiated logout if the logout request doesn't contain
         # the <aslo:Asynchronous> element within the <samlp:Extensions> element
         extensions = logout_req.extensions if logout_req.extensions else None
         if extensions is not None:
