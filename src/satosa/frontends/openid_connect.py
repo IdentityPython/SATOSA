@@ -59,7 +59,8 @@ class OpenIDConnectFrontend(FrontendModule):
     A OpenID Connect frontend module
     """
 
-    def __init__(self, auth_req_callback_func, internal_attributes, conf, base_url, name, session_storage):
+    def __init__(self, auth_req_callback_func, internal_attributes, conf, base_url, name, session_storage,
+                 logout_callback):
         _validate_config(conf)
         super().__init__(auth_req_callback_func, internal_attributes, base_url, name, session_storage)
 
@@ -424,12 +425,12 @@ class OpenIDConnectFrontend(FrontendModule):
 
                 logout_token_str = logout_token.to_jwt([self.signing_key], "RS256")
                 logger.debug('signed logout_token {} using alg={}'.format(logout_token_str, "RS256"))
-                resp = requests.post(client.get("back_channel_logout_uri"), json={"logout_token": logout_token_str})
+                resp = requests.post(client.get("back_channel_logout_uri"), json={"logout_token": logout_token_str}, verify=False)
                 
                 if resp.status_code == 200:
                     self.session_storage.delete_frontend_session(internal_request.frontend_sid)
-                    msg = "client {} of the frontend {} logged out successfully.".format(session.get("requester"),
-                                                                                         self.name)
+                    msg = "RP with client id '{}' of the frontend name '{}' logged out successfully.".format(
+                        session.get("requester"), self.name)
                     logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
                     logger.info(logline)
                 else:

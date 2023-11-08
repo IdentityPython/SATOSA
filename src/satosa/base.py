@@ -137,11 +137,10 @@ class SATOSABase(object):
         frontend = self.module_router.frontend_routing(context)
         response = frontend.handle_authn_response(context, internal_response)
 
-        if internal_response.frontend_sid and internal_response.backend_sid:
+        if internal_response.frontend_sid and internal_response.backend_session_id:
             self.session_storage.store_session_map(
                 internal_response["frontend_sid"],
-                internal_response["backend_sid"],
-                internal_response.auth_info.issuer)
+                internal_response["backend_session_id"])
 
         return response
 
@@ -177,31 +176,42 @@ class SATOSABase(object):
         return self._auth_resp_finish(context, internal_response)
 
     def _backend_logout_callback_func(self, context, internal_request):
-        msg = "Initiating frontend logout(s) for the issuer: {}".format(internal_request.issuer)
-        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-        logger.info(logline)
+        frontend_sessions = self.session_storage.get_frontend_sessions_by_backend_session_id(
+            internal_request.backend_session_id)
 
-        frontend_sessions = self.session_storage.get_frontend_sessions_by_backend_sid_and_issuer(
-            internal_request.backend_sid,
-            internal_request.issuer)
+        if frontend_sessions:
+            msg = "Initiating frontend logout(s) for the issuer: {}".format(internal_request.issuer)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.info(logline)
 
-        for frontend_session in frontend_sessions:
-            context.state[ROUTER_STATE_KEY] = frontend_session.get("frontend_name")
-            frontend = self.module_router.frontend_routing(context)
-            internal_request.frontend_sid = frontend_session.get("sid")
-            if frontend.start_logout_from_backend(context, internal_request):
-                self.session_storage.delete_session_map(frontend_session.get("sid"),
-                                                        internal_request.backend_sid,
-                                                        internal_request.issuer)
+            for frontend_session in frontend_sessions:
+                context.state[ROUTER_STATE_KEY] = frontend_session.get("frontend_name")
+                frontend = self.module_router.frontend_routing(context)
+                internal_request.frontend_sid = frontend_session.get("sid")
+                if frontend.start_logout_from_backend(context, internal_request):
+                    self.session_storage.delete_session_map(frontend_session.get("sid"))
 
-        return self._backend_logout_req_finish(context, internal_request)
+            self._backend_logout_req_finish(context, internal_request)
+        else:
+            msg = "No frontend to logout for the issuer: {}".format(internal_request.issuer)
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.info(logline)
+
+        return Response()
 
     def _backend_logout_req_finish(self, context, internal_request):
-        self.session_storage.delete_backend_session(internal_request.backend_sid)
-        msg = "All the frontend logouts for the issuer: {} are processed.".format(internal_request.issuer)
+        frontend_sessions = self.session_storage.get_frontend_sessions_by_backend_session_id(
+            internal_request.backend_session_id)
+
+        if frontend_sessions:
+            msg = "Some frontends could not logout for the backend session id : {}".format(
+                internal_request.backend_session_id)
+        else:
+            msg = "All the frontends logged out for the backend session id: {}.".format(
+                internal_request.backend_session_id)
+            self.session_storage.delete_backend_session(internal_request.backend_session_id)
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.info(logline)
-        return Response()
 
     def _handle_satosa_authentication_error(self, error):
         """

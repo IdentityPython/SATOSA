@@ -285,13 +285,6 @@ def load_response_microservices(plugin_path, plugins, internal_attributes, base_
 
 
 def load_session_storage(config):
-    """
-    Loads the storage database specifies in the config
-
-    :type config: satosa.satosa_config.SATOSAConfig
-
-    :param config: The configuration of the satosa proxy
-    """
     session_storage = config.get("SESSION_STORAGE")
     if session_storage:
         try:

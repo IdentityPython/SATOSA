@@ -190,7 +190,8 @@ class FacebookBackend(_OAuthBackend):
     """
     DEFAULT_GRAPH_ENDPOINT = "https://graph.facebook.com/v2.5/me"
 
-    def __init__(self, outgoing, internal_attributes, config, base_url, name):
+    def __init__(self, outgoing, internal_attributes, config, base_url, name, session_storage,
+                 logout_callback_func):
         """
         Constructor.
         :param outgoing: Callback should be called by the module after the authorization in the
@@ -211,7 +212,8 @@ class FacebookBackend(_OAuthBackend):
         """
         config.setdefault("response_type", "code")
         config["verify_accesstoken_state"] = False
-        super().__init__(outgoing, internal_attributes, config, base_url, name, "facebook", "id")
+        super().__init__(outgoing, internal_attributes, config, base_url, name, "facebook", "id", session_storage,
+                 logout_callback_func)
 
     def get_request_args(self, get_state=stateID):
         request_args = super().get_request_args(get_state=get_state)
