@@ -13,6 +13,7 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+
 # https://developer.okta.com/blog/2019/06/04/what-the-heck-is-sign-in-with-apple
 class AppleBackend(OpenIDConnectBackend):
     """Sign in with Apple backend"""
@@ -109,6 +110,12 @@ class AppleBackend(OpenIDConnectBackend):
             raise SATOSAAuthenticationError(context.state, "No user info available.")
 
         all_user_claims = dict(list(userinfo.items()) + list(id_token_claims.items()))
+
+        # convert "string or Boolean" claims to actual booleans
+        for bool_claim_name in ["email_verified", "is_private_email"]:
+            if type(userinfo.get(bool_claim_name)) == str:
+                userinfo[bool_claim_name] = userinfo[bool_claim_name] == "true"
+
         msg = "UserInfo: {}".format(all_user_claims)
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.debug(logline)
