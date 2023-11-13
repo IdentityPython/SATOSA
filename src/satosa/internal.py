@@ -35,7 +35,7 @@ class _Datafy(UserDict):
 
     def __getattr__(self, key):
         if key == "data":
-            return self.data
+            return super().data
 
         try:
             value = self.__getitem__(key)
