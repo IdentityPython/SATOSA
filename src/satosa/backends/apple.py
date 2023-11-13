@@ -113,11 +113,10 @@ class AppleBackend(OpenIDConnectBackend):
 
         # convert "string or Boolean" claims to actual booleans
         for bool_claim_name in ["email_verified", "is_private_email"]:
-            userinfo[bool_claim_name] = (
-                True
-                if userinfo[bool_claim_name] == "true"
-                else False
-            )
+            if type(all_user_claims.get(bool_claim_name)) == str:
+                all_user_claims[bool_claim_name] = (
+                    True if all_user_claims[bool_claim_name] == "true" else False
+                )
 
         msg = "UserInfo: {}".format(all_user_claims)
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
