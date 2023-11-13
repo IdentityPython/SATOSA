@@ -1,21 +1,20 @@
 """
 OIDC/OAuth2 backend module.
 """
-import datetime
 import logging
+from datetime import datetime
 from urllib.parse import urlparse
 
 from idpyoidc.client.oauth2.stand_alone_client import StandAloneClient
 from idpyoidc.server.user_authn.authn_context import UNSPECIFIED
 
+import satosa.logging_util as lu
 from satosa.backends.base import BackendModule
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
-import satosa.logging_util as lu
 from ..exception import SATOSAAuthenticationError
 from ..exception import SATOSAError
 from ..response import Redirect
-
 
 UTC = datetime.timezone.utc
 logger = logging.getLogger(__name__)
@@ -48,14 +47,7 @@ class IdpyOIDCBackend(BackendModule):
         super().__init__(auth_callback_func, internal_attributes, base_url, name)
         # self.auth_callback_func = auth_callback_func
         # self.config = config
-        self.client = StandAloneClient(config=config["client"], client_type="oidc")
-        self.client.do_provider_info()
-        self.client.do_client_registration()
-
-        _redirect_uris = self.client.context.claims.get_usage('redirect_uris')
-        if not _redirect_uris:
-            raise SATOSAError("Missing path in redirect uri")
-        self.redirect_path = urlparse(_redirect_uris[0]).path
+        self.client = create_client(config["client"])
 
     def start_auth(self, context, internal_request):
         """
@@ -77,7 +69,11 @@ class IdpyOIDCBackend(BackendModule):
         :return: A list that can be used to map the request to SATOSA to this endpoint.
         """
         url_map = []
-        url_map.append((f"^{self.redirect_path.lstrip('/')}$", self.response_endpoint))
+        redirect_path = self.client.context.claims.get_usage('redirect_uris')
+        if not redirect_path:
+            raise SATOSAError("Missing path in redirect uri")
+        redirect_path = urlparse(redirect_path[0]).path
+        url_map.append(("^%s$" % redirect_path.lstrip("/"), self.response_endpoint))
         return url_map
 
     def response_endpoint(self, context, *args):
@@ -123,16 +119,7 @@ class IdpyOIDCBackend(BackendModule):
         :param subject_type: public or pairwise according to oidc standard.
         :return: A SATOSA internal response.
         """
-        timestamp_epoch = (
-            response.get("auth_time")
-            or response.get("iat")
-            or int(datetime.datetime.now(UTC).timestamp())
-        )
-        timestamp_dt = datetime.datetime.fromtimestamp(timestamp_epoch, UTC)
-        timestamp_iso = timestamp_dt.isoformat().replace("+00:00", "Z")
-        auth_class_ref = response.get("acr") or response.get("amr") or UNSPECIFIED
-        auth_info = AuthenticationInformation(auth_class_ref, timestamp_iso, issuer)
-
+        auth_info = AuthenticationInformation(UNSPECIFIED, str(datetime.now()), issuer)
         internal_resp = InternalData(auth_info=auth_info)
         internal_resp.attributes = self.converter.to_internal("openid", response)
         internal_resp.subject_id = response["sub"]
@@ -154,3 +141,10 @@ class IdpyOIDCBackend(BackendModule):
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline)
             raise SATOSAAuthenticationError(context.state, "Access denied")
+
+def create_client(config: dict):
+    _client_type = config.get('client_type') or "oidc"
+    _client = StandAloneClient(config=config, client_type=_client_type)
+    _client.do_provider_info()
+    _client.do_client_registration()
+    return _client

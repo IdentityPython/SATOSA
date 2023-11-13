@@ -1,14 +1,18 @@
-import pytest
-
 from copy import deepcopy
+
+import pytest
 
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
+
+pytest.importorskip('ldap3')
 from satosa.micro_services.ldap_attribute_store import LdapAttributeStore
 from satosa.context import Context
 
 import logging
+
 logging.basicConfig(level=logging.DEBUG)
+
 
 class TestLdapAttributeStore:
     ldap_attribute_store_config = {
@@ -47,7 +51,7 @@ class TestLdapAttributeStore:
             'sn': 'Baxter',
             'uid': 'jbaxter',
             'mail': 'jbaxter@example.com'
-            }
+        }
          ],
         ['employeeNumber=1001,ou=people,dc=example,dc=com', {
             'employeeNumber': '1001',
@@ -56,7 +60,7 @@ class TestLdapAttributeStore:
             'sn': 'Lawson',
             'uid': 'booker.lawson',
             'mail': 'blawson@example.com'
-            }
+        }
          ],
     ]
 
@@ -82,7 +86,7 @@ class TestLdapAttributeStore:
 
     def test_attributes_general(self, ldap_attribute_store):
         ldap_to_internal_map = (self.ldap_attribute_store_config['default']
-                                ['ldap_to_internal_map'])
+        ['ldap_to_internal_map'])
 
         for dn, attributes in self.ldap_person_records:
             # Mock up the internal response the LDAP attribute store is
@@ -106,4 +110,4 @@ class TestLdapAttributeStore:
                 if ldap_attr in ldap_to_internal_map:
                     internal_attr = ldap_to_internal_map[ldap_attr]
                     response_attr = response.attributes[internal_attr]
-                    assert(ldap_value in response_attr)
+                    assert (ldap_value in response_attr)

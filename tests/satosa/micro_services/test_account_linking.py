@@ -5,11 +5,9 @@ import pytest
 import requests
 
 import responses
-from responses import matchers
+from cryptojwt import JWS
 
-from jwkest.jwk import rsa_load, RSAKey
-from jwkest.jws import JWS
-
+from satosa.cert_util import rsa_key_from_pem
 from satosa.exception import SATOSAAuthenticationError
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
@@ -40,17 +38,17 @@ class TestAccountLinking():
         self.account_linking.next = lambda ctx, data: data
 
     @responses.activate
-    def test_existing_account_linking_with_known_known_uuid(self, account_linking_config, internal_response, context):
+    def test_existing_account_linking_with_known_known_uuid(self, account_linking_config,
+                                                            internal_response, context):
         uuid = "uuid"
         data = {
             "idp": internal_response.auth_info.issuer,
             "id": internal_response.subject_id,
             "redirect_endpoint": self.account_linking.base_url + "/account_linking/handle_account_linking"
         }
-        key = RSAKey(key=rsa_load(account_linking_config["sign_key"]), use="sig", alg="RS256")
-        jws = JWS(json.dumps(data), alg=key.alg).sign_compact([key])
-        url = "%s/get_id" % account_linking_config["api_url"]
-        params = {"jwt": jws}
+        key = rsa_key_from_pem(account_linking_config["sign_key"])
+        key.alg = "RS256"
+        jws = JWS(json.dumps(data), key.alg).sign_compact([key])
         responses.add(
             responses.GET,
             url=url,
@@ -82,8 +80,8 @@ class TestAccountLinking():
             "id": internal_response.subject_id,
             "redirect_endpoint": self.account_linking.base_url + "/account_linking/handle_account_linking"
         }
-        key = RSAKey(key=rsa_load(account_linking_config["sign_key"]), use="sig", alg="RS256")
-        jws = JWS(json.dumps(data), alg=key.alg).sign_compact([key])
+        key = rsa_key_from_pem(account_linking_config["sign_key"])
+        jws = JWS(json.dumps(data), alg="RS256").sign_compact([key])
         uuid = "uuid"
         with responses.RequestsMock() as rsps:
             # account is linked, 200 OK

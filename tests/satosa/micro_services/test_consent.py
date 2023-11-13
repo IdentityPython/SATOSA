@@ -6,25 +6,31 @@ from urllib.parse import urlparse
 import pytest
 import requests
 import responses
-from jwkest.jwk import RSAKey, rsa_load
-from jwkest.jws import JWS
+from cryptojwt import JWS
 
-from saml2.saml import NAMEID_FORMAT_PERSISTENT
-
+from satosa.cert_util import rsa_key_from_pem
 from satosa.context import Context
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from satosa.micro_services import consent
-from satosa.micro_services.consent import Consent, UnexpectedResponseError
+from satosa.micro_services.consent import Consent
+from satosa.micro_services.consent import UnexpectedResponseError
 from satosa.response import Redirect
+
+# from cryptojwt.jwk import RSAKey, rsa_load
+# from jwkest.jws import JWS
+#
+# from saml2.saml import NAMEID_FORMAT_PERSISTENT
 
 FILTER = ["displayName", "co"]
 CONSENT_SERVICE_URL = "https://consent.example.com"
-ATTRIBUTES = {"displayName": ["Test"], "co": ["example"], "sn": ["should be removed by consent filter"]}
+ATTRIBUTES = {"displayName": ["Test"], "co": ["example"],
+              "sn": ["should be removed by consent filter"]}
 USER_ID_ATTR = "user_id"
 
 
 class TestConsent:
+
     @pytest.fixture
     def consent_config(self, signing_key_path):
         consent_config = {
@@ -37,7 +43,8 @@ class TestConsent:
     @pytest.fixture(autouse=True)
     def create_module(self, consent_config):
         self.consent_module = Consent(consent_config,
-                                      internal_attributes={"attributes": {}, "user_id_to_attr": USER_ID_ATTR},
+                                      internal_attributes={"attributes": {},
+                                                           "user_id_to_attr": USER_ID_ATTR},
                                       name="Consent", base_url="https://satosa.example.com")
         self.consent_module.next = lambda ctx, data: (ctx, data)
 
@@ -52,7 +59,7 @@ class TestConsent:
     @pytest.fixture
     def internal_request(self):
         req = InternalData(
-            subject_type=NAMEID_FORMAT_PERSISTENT,
+            subject_type="PERSISTENT",
             requester="example_requester",
         )
         req.attributes = FILTER + ["sn"]
@@ -72,14 +79,15 @@ class TestConsent:
         path = urlparse(redirect_resp.message).path
         assert path == "/consent/" + expected_ticket
 
-    def assert_registration_req(self, request, internal_response, sign_key_path, base_url, requester_name):
+    def assert_registration_req(self, request, internal_response, sign_key_path, base_url,
+                                requester_name):
         split_path = request.path_url.lstrip("/").split("/")
         assert len(split_path) == 2
         jwks = split_path[1]
 
         # Verify signature
-        sign_key = RSAKey(key=rsa_load(sign_key_path), use="sig")
-        jws = JWS()
+        sign_key = rsa_key_from_pem(sign_key_path, use="sig", alg="RS256")
+        jws = JWS(alg=sign_key.alg)
         jws.verify_compact(jwks, [sign_key])
 
         consent_args = jws.msg
@@ -218,16 +226,18 @@ class TestConsent:
         assert Counter(filtered_attributes.keys()) == Counter(FILTER)
 
     @responses.activate
-    def test_manage_consent_without_filter_passes_through_all_attributes(self, context, internal_response,
+    def test_manage_consent_without_filter_passes_through_all_attributes(self, context,
+                                                                         internal_response,
                                                                          consent_verify_endpoint_regex):
         # fake previous consent
         responses.add(responses.GET, consent_verify_endpoint_regex, status=200,
                       body=json.dumps(list(internal_response.attributes.keys())))
 
-        context.state[consent.STATE_KEY] = {"filter": []} # No filter
+        context.state[consent.STATE_KEY] = {"filter": []}  # No filter
         self.consent_module.process(context, internal_response)
 
         consent_hash = urlparse(responses.calls[0].request.url).path.split("/")[2]
-        expected_hash = self.consent_module._get_consent_id(internal_response.requester, internal_response.subject_id,
+        expected_hash = self.consent_module._get_consent_id(internal_response.requester,
+                                                            internal_response.subject_id,
                                                             internal_response.attributes)
         assert consent_hash == expected_hash

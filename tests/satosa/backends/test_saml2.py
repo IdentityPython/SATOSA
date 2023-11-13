@@ -10,8 +10,8 @@ from unittest.mock import Mock, patch
 from urllib.parse import urlparse, parse_qs, parse_qsl
 
 import pytest
+saml2 = pytest.importorskip('saml2')
 
-import saml2
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.authn_context import PASSWORD
 from saml2.config import IdPConfig, SPConfig

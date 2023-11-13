@@ -1,5 +1,8 @@
 from urllib.parse import parse_qsl, urlparse, urlencode
 
+import pytest
+saml2 = pytest.importorskip('saml2')
+
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.config import SPConfig, IdPConfig
 from werkzeug.test import Client

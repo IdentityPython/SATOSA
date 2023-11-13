@@ -7,6 +7,7 @@ from http.cookies import SimpleCookie
 from urllib.parse import quote_plus
 
 import pytest
+from satosa.util import rndstr
 
 from satosa.state import State, state_to_cookie, cookie_to_state, SATOSAStateError
 
@@ -53,7 +54,8 @@ class TestState:
 
         :return:
         """
-        enc_key = "Ireallyliketoencryptthisdictionary!"
+        # length must be 32,48 or 64
+        enc_key = b"Ireallyliketoencryptthisdictiona"
         state = State()
         my_dict_frontend = get_dict(11, get_str(10), get_str(10))
         my_dict_consent = get_dict(1, get_str(10), get_str(100))
@@ -65,13 +67,13 @@ class TestState:
         state["my_dict_hash"] = my_dict_hash
         state["my_dict_router"] = my_dict_router
         state["my_dict_backend"] = my_dict_backend
-        urlstate = state.urlstate(enc_key)
+        urlstate = state.pack(enc_key)
         # Some browsers only support 2000bytes, and since state is not the only parameter it should
         # not be greater then half that size.
         urlstate_len = len(quote_plus(urlstate))
         print("Size of state on the url is:%s" % urlstate_len)
         assert urlstate_len < 1000, "Urlstate is way to long!"
-        state = State(urlstate, enc_key)
+        state = State(urlstate_data=urlstate, encryption_key=enc_key)
         assert state["my_dict_frontend"] == my_dict_frontend
         assert state["my_dict_consent"] == my_dict_consent
         assert state["my_dict_hash"] == my_dict_hash
@@ -98,7 +100,7 @@ class TestStateAsCookie:
 
         cookie_name = "state_cookie"
         path = "/"
-        encrypt_key = "2781y4hef90"
+        encrypt_key = rndstr(32).encode()  # MUST be 32, 48 or 64 bytes long
 
         cookie = state_to_cookie(state, name=cookie_name, path=path, encryption_key=encrypt_key)
         cookie_str = cookie[cookie_name].OutputString()

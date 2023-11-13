@@ -17,7 +17,7 @@ setup(
     install_requires=[
         "pyop >= v3.4.0",
         "pysaml2 >= 6.5.1",
-        "pycryptodomex",
+        "cryptojwt >= 1.8.3",
         "requests",
         "PyYAML",
         "gunicorn",

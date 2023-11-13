@@ -2,6 +2,7 @@ import json
 import pytest
 import responses
 
+oic = pytest.importorskip('oic')
 from satosa.backends.orcid import OrcidBackend
 from satosa.context import Context
 from satosa.internal import InternalData

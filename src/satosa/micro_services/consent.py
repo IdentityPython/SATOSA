@@ -7,12 +7,16 @@ import logging
 from base64 import urlsafe_b64encode
 
 import requests
-from jwkest.jwk import RSAKey
-from jwkest.jwk import rsa_load
-from jwkest.jws import JWS
+from cryptojwt import JWS
+from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
+from cryptojwt.jwk.rsa import RSAKey
+# from jwkest.jwk import RSAKey
+# from jwkest.jwk import rsa_load
+# from jwkest.jws import JWS
 from requests.exceptions import ConnectionError
 
 import satosa.logging_util as lu
+from satosa.cert_util import rsa_key_from_pem
 from satosa.internal import InternalData
 from satosa.micro_services.base import ResponseMicroService
 from satosa.response import Redirect
@@ -41,7 +45,7 @@ class Consent(ResponseMicroService):
         if "user_id_to_attr" in internal_attributes:
             self.locked_attr = internal_attributes["user_id_to_attr"]
 
-        self.signing_key = RSAKey(key=rsa_load(config["sign_key"]), use="sig", alg="RS256")
+        self.signing_key = rsa_key_from_pem(config["sign_key"], use="sig", alg="RS256")
         self.endpoint = "/handle_consent"
         logger.info("Consent flow is active")
 

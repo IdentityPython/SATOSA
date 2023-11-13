@@ -5,10 +5,11 @@ import json
 import logging
 
 import requests
-from jwkest.jwk import rsa_load, RSAKey
-from jwkest.jws import JWS
+from cryptojwt import JWS
+from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 
 from satosa.internal import InternalData
+from ..cert_util import rsa_key_from_pem
 from ..exception import SATOSAAuthenticationError
 from ..micro_services.base import ResponseMicroService
 from ..response import Redirect
@@ -30,7 +31,8 @@ class AccountLinking(ResponseMicroService):
         super().__init__(*args, **kwargs)
         self.api_url = config["api_url"]
         self.redirect_url = config["redirect_url"]
-        self.signing_key = RSAKey(key=rsa_load(config["sign_key"]), use="sig", alg="RS256")
+        self.signing_key = rsa_key_from_pem(config["sign_key"])
+        self.signing_key.alg = config.get('signing_alg', "RS256")
         self.endpoint = "/handle_account_linking"
         self.id_to_attr = config.get("id_to_attr", None)
         logger.info("Account linking is active")

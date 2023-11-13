@@ -5,7 +5,7 @@ import json
 import logging
 import uuid
 
-from saml2.s_utils import UnknownSystemEntity
+# from saml2.s_utils import UnknownSystemEntity
 
 from satosa import util
 from satosa.response import BadRequest
@@ -309,48 +309,11 @@ class SATOSABase(object):
                 redirect_url = f"{generic_error_url}?errorid={error_id}"
                 return Redirect(generic_error_url)
             raise
-        except SATOSANoBoundEndpointError as e:
-            error_id = uuid.uuid4().urn
-            msg = {
-                "message": "URL-path is not bound to any endpoint function",
-                "error": str(e),
-                "error_id": error_id,
-            }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.error(logline)
-            generic_error_url = self.config.get("ERROR_URL")
-            if generic_error_url:
-                redirect_url = f"{generic_error_url}?errorid={error_id}"
-                return Redirect(generic_error_url)
-            return NotFound("The Service or Identity Provider you requested could not be found.")
-        except SATOSAError as e:
-            error_id = uuid.uuid4().urn
-            msg = {
-                "message": "Uncaught SATOSA error",
-                "error": str(e),
-                "error_id": error_id,
-            }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.error(logline)
-            generic_error_url = self.config.get("ERROR_URL")
-            if generic_error_url:
-                redirect_url = f"{generic_error_url}?errorid={error_id}"
-                return Redirect(generic_error_url)
-            raise
-        except UnknownSystemEntity as e:
-            error_id = uuid.uuid4().urn
-            msg = {
-                "message": "Configuration error: unknown system entity",
-                "error": str(e),
-                "error_id": error_id,
-            }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.error(logline)
-            generic_error_url = self.config.get("ERROR_URL")
-            if generic_error_url:
-                redirect_url = f"{generic_error_url}?errorid={error_id}"
-                return Redirect(generic_error_url)
-            raise
+        # except UnknownSystemEntity as err:
+        #     msg = "configuration error: unknown system entity " + str(err)
+        #     logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        #     logger.error(logline, exc_info=False)
+        #     raise
         except Exception as e:
             error_id = uuid.uuid4().urn
             msg = {

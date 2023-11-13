@@ -2,17 +2,19 @@ import json
 import re
 import time
 from unittest.mock import Mock
-from urllib.parse import urlparse, parse_qsl
+from urllib.parse import parse_qsl
+from urllib.parse import urlparse
 
-import oic
 import pytest
 import responses
-from Cryptodome.PublicKey import RSA
-from jwkest.jwk import RSAKey
+
+oic = pytest.importorskip('oic')
+from cryptojwt.jwk.rsa import new_rsa_key
 from oic.oic.message import IdToken
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
-from satosa.backends.openid_connect import OpenIDConnectBackend, _create_client, STATE_KEY, NONCE_KEY
+from satosa.backends.openid_connect import OpenIDConnectBackend, _create_client, STATE_KEY, \
+    NONCE_KEY
 from satosa.context import Context
 from satosa.internal import InternalData
 from satosa.response import Response
@@ -23,9 +25,11 @@ NONCE = "the nonce"
 
 
 class TestOpenIDConnectBackend(object):
+
     @pytest.fixture(autouse=True)
     def create_backend(self, internal_attributes, backend_config):
-        self.oidc_backend = OpenIDConnectBackend(Mock(), internal_attributes, backend_config, "base_url", "oidc")
+        self.oidc_backend = OpenIDConnectBackend(Mock(), internal_attributes, backend_config,
+                                                 "base_url", "oidc")
 
     @pytest.fixture
     def backend_config(self):
@@ -78,7 +82,7 @@ class TestOpenIDConnectBackend(object):
 
     @pytest.fixture(scope="session")
     def signing_key(self):
-        return RSAKey(key=RSA.generate(2048), alg="RS256")
+        return new_rsa_key(key_size=2048)
 
     def assert_expected_attributes(self, attr_map, user_claims, actual_attributes):
         expected_attributes = {}
@@ -126,7 +130,8 @@ class TestOpenIDConnectBackend(object):
                       content_type="application/json")
 
     def get_redirect_uri_path(self, backend_config):
-        return urlparse(backend_config["client"]["client_metadata"]["redirect_uris"][0]).path.lstrip("/")
+        return urlparse(
+            backend_config["client"]["client_metadata"]["redirect_uris"][0]).path.lstrip("/")
 
     @pytest.fixture
     def incoming_authn_response(self, context, backend_config):
@@ -157,10 +162,13 @@ class TestOpenIDConnectBackend(object):
         self.assert_expected_attributes(internal_attributes, userinfo, internal_response.attributes)
 
     @responses.activate
-    def test_response_endpoint(self, backend_config, internal_attributes, userinfo, signing_key, incoming_authn_response):
+    def test_response_endpoint(self, backend_config, internal_attributes, userinfo, signing_key,
+                               incoming_authn_response):
         self.setup_jwks_uri(backend_config["provider_metadata"]["jwks_uri"], signing_key)
-        self.setup_token_endpoint(backend_config["provider_metadata"]["token_endpoint"], userinfo, signing_key)
-        self.setup_userinfo_endpoint(backend_config["provider_metadata"]["userinfo_endpoint"], userinfo)
+        self.setup_token_endpoint(backend_config["provider_metadata"]["token_endpoint"], userinfo,
+                                  signing_key)
+        self.setup_userinfo_endpoint(backend_config["provider_metadata"]["userinfo_endpoint"],
+                                     userinfo)
 
         self.oidc_backend.response_endpoint(incoming_authn_response)
 
@@ -178,15 +186,18 @@ class TestOpenIDConnectBackend(object):
         assert login_url.startswith(backend_config["provider_metadata"]["authorization_endpoint"])
         auth_params = dict(parse_qsl(parsed.query))
         assert auth_params["scope"] == backend_config["client"]["auth_req_params"]["scope"]
-        assert auth_params["response_type"] == backend_config["client"]["auth_req_params"]["response_type"]
+        assert auth_params["response_type"] == backend_config["client"]["auth_req_params"][
+            "response_type"]
         assert auth_params["client_id"] == backend_config["client"]["client_metadata"]["client_id"]
-        assert auth_params["redirect_uri"] == backend_config["client"]["client_metadata"]["redirect_uris"][0]
+        assert auth_params["redirect_uri"] == \
+               backend_config["client"]["client_metadata"]["redirect_uris"][0]
         assert "state" in auth_params
         assert "nonce" in auth_params
 
     @responses.activate
     def test_entire_flow(self, context, backend_config, internal_attributes, userinfo):
-        self.setup_userinfo_endpoint(backend_config["provider_metadata"]["userinfo_endpoint"], userinfo)
+        self.setup_userinfo_endpoint(backend_config["provider_metadata"]["userinfo_endpoint"],
+                                     userinfo)
         auth_response = self.oidc_backend.start_auth(context, None)
         auth_params = dict(parse_qsl(urlparse(auth_response.message).query))
 
@@ -202,6 +213,7 @@ class TestOpenIDConnectBackend(object):
 
 
 class TestCreateClient(object):
+
     @pytest.fixture
     def provider_metadata(self):
         return {
@@ -222,8 +234,8 @@ class TestCreateClient(object):
                  "https://client.example.org/callback2"],
             "client_name": "SATOSA Test",
             "logo_uri": "https://client.example.org/logo.png",
-            "subject_type": "pairwise",
-            "token_endpoint_auth_method": "client_secret_basic",
+            "subject_types_supported": "pairwise",
+            "token_endpoint_auth_methods_supported": "client_secret_basic",
             "jwks_uri": "https://client.example.org/my_public_keys.jwks",
             "contacts": ["ve7jtb@example.org", "mary@example.org"],
         }
@@ -237,7 +249,8 @@ class TestCreateClient(object):
     def assert_client_metadata(self, client_metadata, client):
         assert client.client_id == client_metadata["client_id"]
         assert client.client_secret == client_metadata["client_secret"]
-        assert all(x in client.registration_response.to_dict().items() for x in client_metadata.items())
+        assert all(
+            x in client.registration_response.to_dict().items() for x in client_metadata.items())
 
     def test_init(self, provider_metadata, client_metadata):
         client = _create_client(provider_metadata, client_metadata)
@@ -273,6 +286,7 @@ class TestCreateClient(object):
                 status=200,
                 content_type='application/json'
             )
-            client = _create_client(provider_metadata, dict(redirect_uris=client_metadata["redirect_uris"]))
+            client = _create_client(provider_metadata,
+                                    dict(redirect_uris=client_metadata["redirect_uris"]))
 
         self.assert_client_metadata(client_metadata, client)

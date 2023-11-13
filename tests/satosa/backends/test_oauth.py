@@ -5,8 +5,7 @@ from urllib.parse import urlparse, parse_qsl
 import pytest
 import responses
 
-from saml2.saml import NAMEID_FORMAT_TRANSIENT
-
+oic = pytest.importorskip('oic')
 from satosa.backends.oauth import FacebookBackend
 from satosa.internal import InternalData
 
@@ -113,7 +112,7 @@ class TestFacebookBackend(object):
     def test_start_auth(self, context):
         context.path = 'facebook/sso/redirect'
         internal_request = InternalData(
-            subject_type=NAMEID_FORMAT_TRANSIENT, requester='test_requester'
+            subject_type="transient", requester='test_requester'
         )
 
         resp = self.fb_backend.start_auth(context, internal_request, mock_get_state)
@@ -154,7 +153,7 @@ class TestFacebookBackend(object):
 
         context.path = 'facebook/sso/redirect'
         internal_request = InternalData(
-            subject_type=NAMEID_FORMAT_TRANSIENT, requester='test_requester'
+            subject_type="transient", requester='test_requester'
         )
 
         self.fb_backend.start_auth(context, internal_request, mock_get_state)

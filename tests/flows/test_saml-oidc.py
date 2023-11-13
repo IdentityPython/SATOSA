@@ -1,6 +1,10 @@
 import time
 from urllib.parse import urlparse, parse_qsl, urlencode
 
+import pytest
+oic = pytest.importorskip('oic')
+saml2 = pytest.importorskip('saml2')
+
 from oic.oic.message import IdToken
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.config import SPConfig
