@@ -15,10 +15,12 @@ class FrontendModule(object):
         (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
         :type internal_attributes: dict[str, dict[str, str | list[str]]]
         :type name: str
+        :type session_storage: satosa.session_storage.SessionStorage
 
         :param auth_req_callback_func: Callback should be called by the module after the
         authorization response has been processed.
         :param name: name of the plugin
+        :param session_storage: storage to hold the backend session information
         """
         self.auth_req_callback_func = auth_req_callback_func
         self.internal_attributes = internal_attributes

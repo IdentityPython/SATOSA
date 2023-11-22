@@ -12,7 +12,7 @@ class SessionStorage:
 
 class SessionStorageInMemory(SessionStorage):
     """
-    In-memory storage
+    In-memory session storage
     """
 
     def __init__(self, config):
@@ -107,7 +107,7 @@ class SessionMap(Base):
 
 class SessionStoragePostgreSQL(SessionStorage):
     """
-    PostgreSQL storage
+    PostgreSQL session storage
     """
 
     def __init__(self, config):

@@ -408,6 +408,16 @@ class OpenIDConnectFrontend(FrontendModule):
             return response
 
     def start_logout_from_backend(self, context, internal_request):
+        """
+        Performs the back-channel logout for the RP
+        :param context: the current context
+        :param internal_request: internalData containing the frontend sid
+        :return: whether the back-channel logout was successful or not
+
+        :type context: satosa.context.Context
+        :type internal_request: satosa.internal.InternalData
+        :rtype bool
+        """
         logout_status = True
         session = self.session_storage.get_frontend_session(internal_request.frontend_sid)
         client = self.cdb[session.get("requester")]

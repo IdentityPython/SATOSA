@@ -32,6 +32,11 @@ class GitHubBackend(_OAuthBackend):
         :param config: configuration parameters for the module.
         :param base_url: base url of the service
         :param name: name of the plugin
+        :param session_storage: storage to hold the backend session information
+        :param logout_callback_func: Callback should be called by the module after the logout
+        in the backend is done. This may trigger log out flow for all the frontends associated
+        with the backend session
+
         :type outgoing:
             (satosa.context.Context, satosa.internal.InternalData) ->
             satosa.response.Response
@@ -39,6 +44,9 @@ class GitHubBackend(_OAuthBackend):
         :type config: dict[str, dict[str, str] | list[str] | str]
         :type base_url: str
         :type name: str
+        :type session_storage: satosa.session_storage.SessionStorage
+        :type logout_callback_func: str
+        (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
         """
         config.setdefault('response_type', 'code')
         config['verify_accesstoken_state'] = False

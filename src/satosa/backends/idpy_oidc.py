@@ -39,6 +39,10 @@ class IdpyOIDCBackend(BackendModule):
         :param config: Configuration parameters for the module.
         :param base_url: base url of the service
         :param name: name of the plugin
+        :param session_storage: storage to hold the backend session information
+        :param logout_callback_func: Callback should be called by the module after the logout
+        in the backend is done. This may trigger log out flow for all the frontends associated
+        with the backend session
 
         :type auth_callback_func:
         (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
@@ -46,6 +50,9 @@ class IdpyOIDCBackend(BackendModule):
         :type config: dict[str, dict[str, str] | list[str]]
         :type base_url: str
         :type name: str
+        :type session_storage: satosa.session_storage.SessionStorage
+        :type logout_callback_func: str
+        (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
         """
         super().__init__(auth_callback_func, internal_attributes, base_url, name, session_storage, logout_callback_func)
         self.client = StandAloneClient(config=config["client"], client_type="oidc")
@@ -122,15 +129,13 @@ class IdpyOIDCBackend(BackendModule):
             internal_resp.backend_session_id = backend_session_id
         return self.auth_callback_func(context, internal_resp)
 
-    def front_channel_logout_endpoint(self, context, *args):
+    def front_channel_logout_endpoint(self, context):
         """
         Handles the front channel logout request from the OP.
         :type context: satosa.context.Context
-        :type args: Any
         :rtype: satosa.response.Response
 
         :param context: SATOSA context
-        :param args: None
         :return:
         """
 
@@ -149,15 +154,13 @@ class IdpyOIDCBackend(BackendModule):
         else:
             return Response()
 
-    def back_channel_logout_endpoint(self, context, *args):
+    def back_channel_logout_endpoint(self, context):
         """
         Handles the back channel logout request from the OP.
         :type context: satosa.context.Context
-        :type args: Any
         :rtype: satosa.response.Response
 
         :param context: SATOSA context
-        :param args: None
         :return:
         """
         logger.info(lu.LOG_FMT.format(id=lu.get_session_id(context.state),

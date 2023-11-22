@@ -285,6 +285,15 @@ def load_response_microservices(plugin_path, plugins, internal_attributes, base_
 
 
 def load_session_storage(config):
+    """
+    Loads the session storage based on the provided config
+
+    :type config: satosa.satosa_config.SATOSAConfig
+    :rtype: session_storage.SessionStorage
+
+    :param config: The configuration of the satosa proxy
+    :return: Session Storage which could either be in-memory, PostgreSQL, or any other defined storage
+    """
     session_storage = config.get("SESSION_STORAGE")
     if session_storage:
         try:

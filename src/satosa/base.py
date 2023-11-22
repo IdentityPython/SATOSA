@@ -176,6 +176,18 @@ class SATOSABase(object):
         return self._auth_resp_finish(context, internal_response)
 
     def _backend_logout_callback_func(self, context, internal_request):
+        """
+        This function is called by a backend module when the logout request is received by the backend.
+
+        :type context: satosa.context.Context
+        :type internal_request: satosa.internal.InternalData
+        :rtype: satosa.response.Response
+
+        :param context: The request context
+        :param internal_request: The logout request
+        :return: response
+        """
+
         frontend_sessions = self.session_storage.get_frontend_sessions_by_backend_session_id(
             internal_request.backend_session_id)
 

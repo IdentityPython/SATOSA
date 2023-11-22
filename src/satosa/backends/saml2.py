@@ -100,6 +100,9 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :type config: dict[str, Any]
         :type base_url: str
         :type name: str
+        :type session_storage: satosa.session_storage.SessionStorage
+        :type logout_callback_func: str
+        (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
 
         :param outgoing: Callback should be called by the module after
                                    the authorization in the backend is done.
@@ -107,6 +110,10 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :param config: The module config
         :param base_url: base url of the service
         :param name: name of the plugin
+        :param session_storage: storage to hold the backend session information
+        :param logout_callback_func: Callback should be called by the module after the logout
+        in the backend is done. This may trigger log out flow for all the frontends associated
+        with the backend session
         """
         super().__init__(outgoing, internal_attributes, base_url, name, session_storage, logout_callback_func)
         self.config = self.init_config(config)
