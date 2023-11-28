@@ -504,7 +504,7 @@ class TestSAMLVirtualCoFrontend(TestSAMLFrontend):
                                          conf,
                                          BASE_URL,
                                          "saml_virtual_co_frontend",
-                                         lambda ctx, req: None,)
+                                        )
         frontend.register_endpoints([self.BACKEND])
 
         return frontend
