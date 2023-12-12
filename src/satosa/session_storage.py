@@ -47,8 +47,11 @@ class SessionStorageInMemory(SessionStorage):
 
     def get_backend_session(self, sid, issuer=None):
         for session in self.backend_sessions:
-            if issuer and session.get("sid") == sid and session.get("issuer") == issuer:
-                return session
+            if issuer:
+                if session.get("sid") == sid and session.get("issuer") == issuer:
+                    return session
+                else:
+                    continue
             elif session.get("sid") == sid:
                 return session
 
@@ -71,7 +74,7 @@ class SessionStorageInMemory(SessionStorage):
                 for session in self.frontend_sessions:
                     if session.get("sid") == frontend_sid:
                         sessions.append(session)
-                break
+                        break
         return sessions
 
     def delete_session_map(self, frontend_sid):

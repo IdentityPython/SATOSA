@@ -209,7 +209,7 @@ class SATOSABase(object):
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
             logger.info(logline)
 
-        return Response()
+        return Response(message="")
 
     def _backend_logout_req_finish(self, context, internal_request):
         frontend_sessions = self.session_storage.get_frontend_sessions_by_backend_session_id(

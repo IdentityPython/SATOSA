@@ -1,4 +1,5 @@
 import json
+from unittest.mock import patch
 
 import pytest
 import yaml
@@ -7,7 +8,15 @@ from satosa.backends.base import BackendModule
 from satosa.exception import SATOSAConfigurationError
 from satosa.frontends.base import FrontendModule
 from satosa.micro_services.base import RequestMicroService, ResponseMicroService
-from satosa.plugin_loader import backend_filter, frontend_filter, _request_micro_service_filter, _response_micro_service_filter, _load_plugin_config
+from satosa.plugin_loader import (
+    backend_filter,
+    frontend_filter,
+    _request_micro_service_filter,
+    _response_micro_service_filter,
+    _load_plugin_config,
+    load_session_storage,
+)
+from satosa.session_storage import SessionStoragePostgreSQL, SessionStorageInMemory
 
 
 class TestFilters(object):
@@ -75,3 +84,33 @@ class TestLoadPluginConfig(object):
         data = """{foo: bar"""  # missing closing bracket
         with pytest.raises(SATOSAConfigurationError):
             _load_plugin_config(data)
+
+
+class TestLoadSessionStorage(object):
+    def session_storage_postgresql_init_mock(self, config):
+        pass
+
+    @patch.object(
+        SessionStoragePostgreSQL, "__init__", session_storage_postgresql_init_mock
+    )
+    def test_load_postgresql_session(self):
+        config = {
+            "SESSION_STORAGE": {
+                "type": "postgresql",
+                "host": "127.0.0.1",
+                "port": 5432,
+                "db_name": "satosa",
+                "user": "postgres",
+                "password": "secret",
+            }
+        }
+        postgresql_session_storage = load_session_storage(config)
+        assert isinstance(postgresql_session_storage, SessionStoragePostgreSQL)
+
+    def test_load_inmemory_session(self):
+        config = {}
+        inmemory_session_storage = load_session_storage(config)
+        assert isinstance(inmemory_session_storage, SessionStorageInMemory)
+        assert hasattr(inmemory_session_storage, "frontend_sessions")
+        assert hasattr(inmemory_session_storage, "backend_sessions")
+        assert hasattr(inmemory_session_storage, "session_maps")
