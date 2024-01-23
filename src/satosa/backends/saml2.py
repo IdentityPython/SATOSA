@@ -23,7 +23,7 @@ import satosa.util as util
 from satosa.base import SAMLBaseModule
 from satosa.base import SAMLEIDASBaseModule
 from satosa.base import STATE_KEY as STATE_KEY_BASE
-from satosa.context import Context
+from satosa.context import Context, prompt_to_saml_param, get_prompt_list
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from satosa.exception import SATOSAAuthenticationError
@@ -36,14 +36,14 @@ from satosa.metadata_creation.description import (
 )
 from satosa.backends.base import BackendModule
 
-
 logger = logging.getLogger(__name__)
 
 
 def get_memorized_idp(context, config, force_authn):
     memorized_idp = (
-        config.get(SAMLBackend.KEY_MEMORIZE_IDP)
-        and context.state.get(Context.KEY_MEMORIZED_IDP)
+            config.get(SAMLBackend.KEY_MEMORIZE_IDP)
+            and "select_account" not in get_prompt_list(context)
+            and context.state.get(Context.KEY_MEMORIZED_IDP)
     )
     use_when_force_authn = config.get(
         SAMLBackend.KEY_USE_MEMORIZED_IDP_WHEN_FORCE_AUTHN
@@ -52,27 +52,23 @@ def get_memorized_idp(context, config, force_authn):
     return value
 
 
-def get_force_authn(context, config, sp_config):
+def get_saml_param(context, config, sp_config, key):
     """
-    Return the force_authn value.
+    Return the value of ForceAuthn or IsPassive.
 
     The value comes from one of three place:
     - the configuration of the backend
     - the context, as it came through in the AuthnRequest handled by the frontend.
-      note: the frontend should have been set to mirror the force_authn value.
+      note: the frontend should have been set to mirror the value.
     - the cookie, as it has been stored by the proxy on a redirect to the DS
-      note: the frontend should have been set to mirror the force_authn value.
+      note: the frontend should have been set to mirror the value.
 
     The value is either "true" or None
     """
-    mirror = config.get(SAMLBackend.KEY_MIRROR_FORCE_AUTHN)
-    from_state = mirror and context.state.get(Context.KEY_FORCE_AUTHN)
-    from_context = (
-        mirror and context.get_decoration(Context.KEY_FORCE_AUTHN) in ["true", "1"]
-    )
-    from_config = sp_config.getattr("force_authn", "sp")
-    is_set = str(from_state or from_context or from_config).lower() == "true"
-    value = "true" if is_set else None
+    mirror = config.get("mirror_{}".format(key))
+    from_state_or_context = mirror and prompt_to_saml_param(context, key)
+    from_config = str(sp_config.getattr(key, "sp")).lower() == "true"
+    value = "true" if from_state_or_context or from_config else None
     return value
 
 
@@ -86,11 +82,12 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
     KEY_SP_CONFIG = 'sp_config'
     KEY_SEND_REQUESTER_ID = 'send_requester_id'
     KEY_MIRROR_FORCE_AUTHN = 'mirror_force_authn'
-    KEY_IS_PASSIVE = 'is_passive'
     KEY_MEMORIZE_IDP = 'memorize_idp'
     KEY_USE_MEMORIZED_IDP_WHEN_FORCE_AUTHN = 'use_memorized_idp_when_force_authn'
 
     VALUE_ACR_COMPARISON_DEFAULT = 'exact'
+
+    SAML_PARAMS = [Context.KEY_SAML_FORCE_AUTHN, Context.KEY_SAML_IS_PASSIVE]
 
     def __init__(self, outgoing, internal_attributes, config, base_url, name):
         """
@@ -154,23 +151,26 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         idps = self.sp.metadata.identity_providers()
         only_one_idp_in_metadata = (
-            "mdq" not in self.config["sp_config"]["metadata"]
-            and len(idps) == 1
+                "mdq" not in self.config["sp_config"]["metadata"]
+                and len(idps) == 1
         )
 
         only_idp = only_one_idp_in_metadata and idps[0]
         target_entity_id = context.get_decoration(Context.KEY_TARGET_ENTITYID)
-        force_authn = get_force_authn(context, self.config, self.sp.config)
-        memorized_idp = get_memorized_idp(context, self.config, force_authn)
+        saml_params = {
+            saml_param: get_saml_param(context, self.config, self.sp.config, saml_param)
+            for saml_param in SAMLBackend.SAML_PARAMS
+        }
+        memorized_idp = get_memorized_idp(context, self.config, saml_params["force_authn"])
         entity_id = only_idp or target_entity_id or memorized_idp or None
 
         msg = {
             "message": "Selected IdP",
             "only_one": only_idp,
             "target_entity_id": target_entity_id,
-            "force_authn": force_authn,
             "memorized_idp": memorized_idp,
             "entity_id": entity_id,
+            **saml_params
         }
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.info(logline)
@@ -189,9 +189,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         if entity_id is None:
             # since context is not passed to disco_query
             # keep the information in the state cookie
-            context.state[Context.KEY_FORCE_AUTHN] = get_force_authn(
-                context, self.config, self.sp.config
-            )
+            for saml_param in SAMLBackend.SAML_PARAMS:
+                context.state[saml_param] = get_saml_param(context, self.config, self.sp.config, saml_param)
             return self.disco_query(context)
 
         return self.authn_request(context, entity_id)
@@ -212,8 +211,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         return_url = endpoints["discovery_response"][0][0]
 
         disco_url = (
-            context.get_decoration(SAMLBackend.KEY_SAML_DISCOVERY_SERVICE_URL)
-            or self.discosrv
+                context.get_decoration(SAMLBackend.KEY_SAML_DISCOVERY_SERVICE_URL)
+                or self.discosrv
         )
         disco_policy = context.get_decoration(
             SAMLBackend.KEY_SAML_DISCOVERY_SERVICE_POLICY
@@ -238,8 +237,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
     def construct_requested_authn_context(self, entity_id, *, target_accr=None):
         acr_entry = (
-            target_accr
-            or util.get_dict_defaults(self.acr_mapping or {}, entity_id)
+                target_accr
+                or util.get_dict_defaults(self.acr_mapping or {}, entity_id)
         )
         if not acr_entry:
             return None
@@ -287,19 +286,17 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                     raise SATOSAAuthenticationError(context.state, msg)
 
         kwargs = {}
-        target_accr = context.state.get(Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF)
+        target_accr = context.state.get(Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF)\
+            or context.get_decoration(Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF)
         authn_context = self.construct_requested_authn_context(entity_id, target_accr=target_accr)
         if authn_context:
             kwargs["requested_authn_context"] = authn_context
-        if self.config.get(SAMLBackend.KEY_MIRROR_FORCE_AUTHN):
-            kwargs["force_authn"] = get_force_authn(
-                context, self.config, self.sp.config
-            )
+        for saml_param in SAMLBackend.SAML_PARAMS:
+            if self.config.get(f"mirror_{saml_param}"):
+                kwargs[saml_param] = get_saml_param(context, self.config, self.sp.config, saml_param)
         if self.config.get(SAMLBackend.KEY_SEND_REQUESTER_ID):
             requester = context.state.state_dict[STATE_KEY_BASE]['requester']
             kwargs["scoping"] = Scoping(requester_id=[RequesterID(text=requester)])
-        if self.config.get(SAMLBackend.KEY_IS_PASSIVE):
-            kwargs["is_passive"] = "true"
 
         try:
             acs_endp, response_binding = self._get_acs(context)
@@ -468,7 +465,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         if self.config.get(SAMLBackend.KEY_MEMORIZE_IDP):
             issuer = authn_response.response.issuer.text.strip()
             context.state[Context.KEY_MEMORIZED_IDP] = issuer
-        context.state.pop(Context.KEY_FORCE_AUTHN, None)
+        for saml_param in SAMLBackend.SAML_PARAMS:
+            context.state.pop(saml_param, None)
         return self.auth_callback_func(context, self._translate_response(authn_response, context.state))
 
     def disco_response(self, context):

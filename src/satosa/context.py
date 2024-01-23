@@ -3,17 +3,57 @@ from warnings import warn as _warn
 from satosa.exception import SATOSABadContextError
 
 
+def get_auth_req_params(context):
+    return context.state.get(Context.KEY_AUTH_REQ_PARAMS) or context.get_decoration(Context.KEY_AUTH_REQ_PARAMS) or {}
+
+
+def get_prompt_list(context):
+    auth_req_params = get_auth_req_params(context)
+    prompt = auth_req_params.get(Context.KEY_PROMPT, "")
+    return prompt if isinstance(prompt, list) else prompt.split(" ")
+
+
+def prompt_to_saml_param(context, saml_param):
+    prompt_list = get_prompt_list(context)
+    prompt_mapping = context.state.get(Context.KEY_PROMPT_TO_SAML_PARAM)
+    for p, s in prompt_mapping.items():
+        if s == saml_param and p in prompt_list:
+            return True
+    return False
+
+def add_prompt_to_context(context, prompt_value):
+    state_auth_req_params = context.state.get(Context.KEY_AUTH_REQ_PARAMS) or {}
+    context_auth_req_params = context.get_decoration(Context.KEY_AUTH_REQ_PARAMS) or {}
+    state_auth_req_params["prompt"] = prompt_value
+    context_auth_req_params["prompt"] = prompt_value
+    context.state[Context.KEY_AUTH_REQ_PARAMS] = state_auth_req_params
+    context.decorate(Context.KEY_AUTH_REQ_PARAMS, context_auth_req_params)
+
+
+def get_deprecated_context_key(old_key, new_key):
+    msg = "'{old_key}' is deprecated; use '{new_key}' instead.".format(
+        old_key=old_key, new_key=new_key
+    )
+    _warn(msg, DeprecationWarning)
+    return getattr(Context, new_key)
+
 class Context(object):
     """
     Holds methods for sharing proxy data through the current request
     """
     KEY_METADATA_STORE = 'metadata_store'
     KEY_TARGET_ENTITYID = 'target_entity_id'
-    KEY_FORCE_AUTHN = 'force_authn'
+    KEY_SAML_FORCE_AUTHN = 'force_authn'
+    KEY_SAML_IS_PASSIVE = 'is_passive'
     KEY_MEMORIZED_IDP = 'memorized_idp'
     KEY_REQUESTER_METADATA = 'requester_metadata'
+    # ACR list requested by SP/client
     KEY_AUTHN_CONTEXT_CLASS_REF = 'authn_context_class_ref'
+    # ACR list to be sent to backend
     KEY_TARGET_AUTHN_CONTEXT_CLASS_REF = 'target_authn_context_class_ref'
+    KEY_AUTH_REQ_PARAMS = 'auth_req_params'
+    KEY_PROMPT = 'prompt'
+    KEY_PROMPT_TO_SAML_PARAM = 'prompt_to_saml_param'
 
     def __init__(self):
         self._path = None
@@ -34,11 +74,7 @@ class Context(object):
 
     @property
     def KEY_BACKEND_METADATA_STORE(self):
-        msg = "'{old_key}' is deprecated; use '{new_key}' instead.".format(
-            old_key="KEY_BACKEND_METADATA_STORE", new_key="KEY_METADATA_STORE"
-        )
-        _warn(msg, DeprecationWarning)
-        return Context.KEY_METADATA_STORE
+        return get_deprecated_context_key("KEY_BACKEND_METADATA_STORE", "KEY_METADATA_STORE")
 
     @property
     def path(self):

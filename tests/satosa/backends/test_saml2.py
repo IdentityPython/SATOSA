@@ -450,7 +450,7 @@ class TestSAMLBackendRedirects:
         resp = samlbackend.start_auth(context, InternalData())
         assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
 
-    def test_use_of_disco_or_redirect_to_idp_when_using_mdq_and_forceauthn_is_not_set(
+    def test_use_of_disco_or_redirect_to_idp_when_using_mdq_and_prompt_is_not_set(
         self, context, sp_conf, idp_conf
     ):
         sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
@@ -481,7 +481,7 @@ class TestSAMLBackendRedirects:
         resp = samlbackend.start_auth(context, InternalData())
         assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
 
-        context.decorate(Context.KEY_FORCE_AUTHN, "0")
+        context.decorate(Context.KEY_AUTH_REQ_PARAMS, {})
         context.state[Context.KEY_MEMORIZED_IDP] = idp_conf["entityid"]
         backend_conf[SAMLBackend.KEY_USE_MEMORIZED_IDP_WHEN_FORCE_AUTHN] = True
         samlbackend = SAMLBackend(
@@ -490,48 +490,20 @@ class TestSAMLBackendRedirects:
         resp = samlbackend.start_auth(context, InternalData())
         assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
 
-    def test_use_of_disco_or_redirect_to_idp_when_using_mdq_and_forceauthn_is_set_true(
+    def test_use_of_disco_or_redirect_to_idp_when_using_mdq_and_prompt_is_set_login(
         self, context, sp_conf, idp_conf
     ):
         sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
         sp_conf["metadata"]["mdq"] = ["https://mdq.example.com"]
 
-        context.decorate(Context.KEY_FORCE_AUTHN, "true")
+        context.decorate(Context.KEY_AUTH_REQ_PARAMS, {"prompt": "login"})
         context.state[Context.KEY_MEMORIZED_IDP] = idp_conf["entityid"]
 
         backend_conf = {
             SAMLBackend.KEY_SP_CONFIG: sp_conf,
             SAMLBackend.KEY_DISCO_SRV: DISCOSRV_URL,
             SAMLBackend.KEY_MEMORIZE_IDP: True,
-            SAMLBackend.KEY_MIRROR_FORCE_AUTHN: True,
-        }
-        samlbackend = SAMLBackend(
-            None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
-        )
-        resp = samlbackend.start_auth(context, InternalData())
-        assert_redirect_to_discovery_server(resp, sp_conf, DISCOSRV_URL)
-
-        backend_conf[SAMLBackend.KEY_USE_MEMORIZED_IDP_WHEN_FORCE_AUTHN] = True
-        samlbackend = SAMLBackend(
-            None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"
-        )
-        resp = samlbackend.start_auth(context, InternalData())
-        assert_redirect_to_idp(resp, idp_conf)
-
-    def test_use_of_disco_or_redirect_to_idp_when_using_mdq_and_forceauthn_is_set_1(
-        self, context, sp_conf, idp_conf
-    ):
-        sp_conf["metadata"]["inline"] = [create_metadata_from_config_dict(idp_conf)]
-        sp_conf["metadata"]["mdq"] = ["https://mdq.example.com"]
-
-        context.decorate(Context.KEY_FORCE_AUTHN, "1")
-        context.state[Context.KEY_MEMORIZED_IDP] = idp_conf["entityid"]
-
-        backend_conf = {
-            SAMLBackend.KEY_SP_CONFIG: sp_conf,
-            SAMLBackend.KEY_DISCO_SRV: DISCOSRV_URL,
-            SAMLBackend.KEY_MEMORIZE_IDP: True,
-            SAMLBackend.KEY_MIRROR_FORCE_AUTHN: True,
+            'mirror_force_authn': True,
         }
         samlbackend = SAMLBackend(
             None, INTERNAL_ATTRIBUTES, backend_conf, "base_url", "saml_backend"

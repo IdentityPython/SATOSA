@@ -40,3 +40,10 @@ If the account linking is enabled, the account linking module will save the foll
 * **ACCOUNT_LINKING.usr_id**: The id of the authenticated user
 * **ACCOUNT_LINKING.attr**: Contains all attributes and values given by the authentication
 * **ACCOUNT_LINKING.usr_id_attr**: An empty list
+
+### Authentication context class reference
+* **Context.KEY_AUTHN_CONTEXT_CLASS_REF**: ACR list requested by SP/client
+* **Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF**: ACR list to be sent to backend
+
+ACR obtained from backend is available in `context.state.internal_resp.auth_info.auth_class_ref`.
+The time of this authentication is available in `context.state.internal_resp.auth_info.timestamp`.

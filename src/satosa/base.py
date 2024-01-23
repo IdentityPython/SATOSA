@@ -127,6 +127,11 @@ class SATOSABase(object):
 
         # remove all session state unless CONTEXT_STATE_DELETE is False
         context.state.delete = self.config.get("CONTEXT_STATE_DELETE", True)
+        context.state.prompt_to_saml_param = self.config.get("PROMPT_TO_SAML_PARAM", {
+            "none":"is_passive",
+            "select_account":"force_authn",
+            "login":"force_authn",
+        })
         context.request = None
 
         frontend = self.module_router.frontend_routing(context)
@@ -407,3 +412,4 @@ class SAMLEIDASBaseModule(SAMLBaseModule):
         }
 
         return util.check_set_dict_defaults(config, spec_eidas)
+
