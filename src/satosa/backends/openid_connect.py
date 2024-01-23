@@ -22,6 +22,8 @@ from .oauth import get_metadata_desc_for_oauth_backend
 from ..exception import SATOSAAuthenticationError
 from ..exception import SATOSAError
 from ..exception import SATOSAMissingStateError
+from .oauth import _get_metadata_to_decorate
+from ..context import Context
 from ..response import Redirect
 
 
@@ -242,6 +244,7 @@ class OpenIDConnectBackend(BackendModule):
             logger.error(logline)
             raise SATOSAAuthenticationError(context.state, "No user info available.")
 
+        context.decorate(Context.KEY_METADATA_STORE, _get_metadata_to_decorate(self.config))
         all_user_claims = dict(list(userinfo.items()) + list(id_token_claims.items()))
         msg = "UserInfo: {}".format(all_user_claims)
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
