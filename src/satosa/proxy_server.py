@@ -59,9 +59,9 @@ def unpack_request(environ, content_length=0):
     :return: A dictionary with parameters.
     """
     data = None
-    if environ["REQUEST_METHOD"] == "GET":
+    if environ["REQUEST_METHOD"] in ["GET", "HEAD"]:
         data = unpack_get(environ)
-    elif environ["REQUEST_METHOD"] == "POST":
+    elif environ["REQUEST_METHOD"] in ["POST", "PUT"]:
         data = unpack_post(environ, content_length)
 
     logline = "read request data: {}".format(data)
