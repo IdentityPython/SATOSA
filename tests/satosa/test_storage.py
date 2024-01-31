@@ -4,10 +4,10 @@ from unittest.mock import patch
 from satosa.plugin_loader import load_storage
 from satosa.storage import FrontendSession
 
-
+CONFIG_INMEMORY = {"LOGOUT_ENABLED": True}
 class TestInMemoryStorage(TestCase):
     def test_inmemory_store_frontend_session(self):
-        config = {}
+        config = CONFIG_INMEMORY
         storage = load_storage(config)
         storage.store_frontend_session(
             "OIDC", "requester-Azure", "sub-id", "sid-1FE"
@@ -15,7 +15,7 @@ class TestInMemoryStorage(TestCase):
         assert storage.frontend_sessions
 
     def test_inmemory_get_frontend_session(self):
-        config = {}
+        config = CONFIG_INMEMORY
         storage = load_storage(config)
         assert not storage.get_frontend_session("sid-1FE")
         storage.store_frontend_session(
@@ -24,7 +24,7 @@ class TestInMemoryStorage(TestCase):
         assert storage.get_frontend_session("sid-1FE")
 
     def test_inmemory_delete_frontend_session(self):
-        config = {}
+        config = CONFIG_INMEMORY
         storage = load_storage(config)
         storage.store_frontend_session(
             "OIDC", "requester-Azure", "sub-id", "sid-1FE"
@@ -33,20 +33,20 @@ class TestInMemoryStorage(TestCase):
         assert not storage.get_frontend_session("sid-1FE")
 
     def test_inmemory_store_backend_session(self):
-        config = {}
+        config = CONFIG_INMEMORY
         storage = load_storage(config)
         storage.store_backend_session("sid-1BE", "OIDC")
         assert storage.backend_sessions
 
     def test_inmemory_get_backend_session(self):
-        config = {}
+        config = CONFIG_INMEMORY
         storage = load_storage(config)
         storage.store_backend_session("sid-1BE", "OIDC")
         backend_session = storage.get_backend_session("sid-1BE", "OIDC")
         assert backend_session
 
     def test_inmemory_get_unique_backend_session_from_multiple_same_sid_backends(self):
-        config = {}
+        config = CONFIG_INMEMORY
         storage = load_storage(config)
         storage.store_backend_session("sid-1BE", "OIDC")
         storage.store_backend_session("sid-1BE", "OIDC2")
@@ -54,13 +54,13 @@ class TestInMemoryStorage(TestCase):
         assert backend_session.get("issuer") == "OIDC2"
 
     def test_inmemory_get_backend_session_doesnot_exist(self):
-        config = {}
+        config = CONFIG_INMEMORY
         storage = load_storage(config)
         backend_session = storage.get_backend_session("sid-1BE", "OIDC2")
         assert not backend_session
 
     def test_inmemory_delete_backend_session(self):
-        config = {}
+        config = CONFIG_INMEMORY
         storage = load_storage(config)
         storage.store_backend_session("sid-1BE", "OIDC")
         storage.delete_backend_session(
@@ -70,20 +70,20 @@ class TestInMemoryStorage(TestCase):
         assert not backend_session
 
     def test_inmemory_store_session_map(self):
-        config = {}
+        config = CONFIG_INMEMORY
         storage = load_storage(config)
         storage.store_session_map("sid-1FE", "sid-1BE")
         assert storage.session_maps
 
     def test_inmemory_delete_session_map(self):
-        config = {}
+        config = CONFIG_INMEMORY
         storage = load_storage(config)
         storage.store_session_map("sid-1FE", "sid-1BE")
         storage.delete_session_map("sid-1FE")
         assert not storage.session_maps
 
     def test_inmemory_get_frontend_sessions_by_backend_session_id(self):
-        config = {}
+        config = CONFIG_INMEMORY
         storage = load_storage(config)
         assert not storage.get_frontend_sessions_by_backend_session_id(
             "sid-1BE"
@@ -110,6 +110,7 @@ class TestPostgreSQLStorage(TestCase):
         self, mock_base, mock_session_commit, mock_frontend_session_query
     ):
         config = {
+            "LOGOUT_ENABLED": True,
             "STORAGE": {
                 "type": "satosa.storage.StoragePostgreSQL",
                 "host": "127.0.0.1",

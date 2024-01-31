@@ -113,6 +113,7 @@ class TestOIDCToIdpyOIDC:
         satosa_config_dict["INTERNAL_ATTRIBUTES"]["attributes"] = {
             attr_name: {"openid": [attr_name]} for attr_name in USERS[subject_id]
         }
+        satosa_config_dict['LOGOUT_ENABLED'] = True
 
         # application
         test_client = Client(make_app(SATOSAConfig(satosa_config_dict)), satosaResp)

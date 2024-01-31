@@ -95,6 +95,7 @@ class TestLoadStorage(object):
     )
     def test_load_postgresql_session(self):
         config = {
+            "LOGOUT_ENABLED": True,
             "STORAGE": {
                 "type": "satosa.storage.StoragePostgreSQL",
                 "host": "127.0.0.1",
@@ -108,7 +109,7 @@ class TestLoadStorage(object):
         assert isinstance(postgresql_storage, StoragePostgreSQL)
 
     def test_load_inmemory_session(self):
-        config = {}
+        config = {"LOGOUT_ENABLED": True}
         inmemory_storage = load_storage(config)
         assert isinstance(inmemory_storage, StorageInMemory)
         assert hasattr(inmemory_storage, "frontend_sessions")
