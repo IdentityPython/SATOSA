@@ -33,7 +33,7 @@ class _OAuthBackend(BackendModule):
     """
 
     def __init__(self, outgoing, internal_attributes, config, base_url, name, external_type, user_id_attr,
-                 session_storage, logout_callback_func):
+                 storage, logout_callback_func):
         """
         :param outgoing: Callback should be called by the module after the authorization in the
         backend is done.
@@ -53,7 +53,7 @@ class _OAuthBackend(BackendModule):
         :type name: str
         :type external_type: str
         """
-        super().__init__(outgoing, internal_attributes, base_url, name, session_storage, logout_callback_func)
+        super().__init__(outgoing, internal_attributes, base_url, name, storage, logout_callback_func)
         self.config = config
         self.redirect_url = "%s/%s" % (self.config["base_url"], self.config["authz_page"])
         self.external_type = external_type
@@ -190,7 +190,7 @@ class FacebookBackend(_OAuthBackend):
     """
     DEFAULT_GRAPH_ENDPOINT = "https://graph.facebook.com/v2.5/me"
 
-    def __init__(self, outgoing, internal_attributes, config, base_url, name, session_storage,
+    def __init__(self, outgoing, internal_attributes, config, base_url, name, storage,
                  logout_callback_func):
         """
         Constructor.
@@ -202,7 +202,7 @@ class FacebookBackend(_OAuthBackend):
         :param config: Configuration parameters for the module.
         :param base_url: base url of the service
         :param name: name of the plugin
-        :param session_storage: storage to hold the backend session information
+        :param storage: storage to hold the backend session information
         :param logout_callback_func: Callback should be called by the module after the logout
         in the backend is done. This may trigger log out flow for all the frontends associated
         with the backend session
@@ -213,13 +213,13 @@ class FacebookBackend(_OAuthBackend):
         :type config: dict[str, dict[str, str] | list[str] | str]
         :type base_url: str
         :type name: str
-        :type session_storage: satosa.session_storage.SessionStorage
+        :type storage: satosa.storage.Storage
         :type logout_callback_func: str
         (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
         """
         config.setdefault("response_type", "code")
         config["verify_accesstoken_state"] = False
-        super().__init__(outgoing, internal_attributes, config, base_url, name, "facebook", "id", session_storage,
+        super().__init__(outgoing, internal_attributes, config, base_url, name, "facebook", "id", storage,
                  logout_callback_func)
 
     def get_request_args(self, get_state=stateID):

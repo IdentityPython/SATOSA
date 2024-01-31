@@ -27,7 +27,7 @@ def prepend_to_import_path(import_paths):
     del sys.path[0:len(import_paths)]  # restore sys.path
 
 
-def load_backends(config, auth_callback, internal_attributes, session_storage, logout_callback):
+def load_backends(config, auth_callback, internal_attributes, storage, logout_callback):
     """
     Load all backend modules specified in the config
 
@@ -45,13 +45,13 @@ def load_backends(config, auth_callback, internal_attributes, session_storage, l
         config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
         config["BACKEND_MODULES"],
         backend_filter, config["BASE"],
-        internal_attributes, auth_callback, session_storage, logout_callback
+        internal_attributes, auth_callback, storage, logout_callback
         )
     logger.info("Setup backends: {}".format([backend.name for backend in backend_modules]))
     return backend_modules
 
 
-def load_frontends(config, auth_callback, internal_attributes, session_storage):
+def load_frontends(config, auth_callback, internal_attributes, storage):
     """
     Load all frontend modules specified in the config
 
@@ -67,7 +67,7 @@ def load_frontends(config, auth_callback, internal_attributes, session_storage):
     """
     frontend_modules = _load_plugins(config.get("CUSTOM_PLUGIN_MODULE_PATHS"), config["FRONTEND_MODULES"],
                                      frontend_filter, config["BASE"], internal_attributes, auth_callback,
-                                     session_storage)
+                                     storage)
     logger.info("Setup frontends: {}".format([frontend.name for frontend in frontend_modules]))
     return frontend_modules
 
@@ -153,7 +153,7 @@ def _load_plugin_config(config):
 
 
 def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attributes, auth_callback,
-                  session_storage, logout_callback=None):
+                  storage, logout_callback=None):
     """
     Loads endpoint plugins
 
@@ -181,7 +181,7 @@ def _load_plugins(plugin_paths, plugins, plugin_filter, base_url, internal_attri
                 module_config = _replace_variables_in_plugin_module_config(plugin_config["config"], base_url,
                                                                            plugin_config["name"])
                 instance = module_class(auth_callback, internal_attributes, module_config, base_url,
-                                        plugin_config["name"], session_storage, logout_callback)
+                                        plugin_config["name"], storage, logout_callback)
                 loaded_plugin_modules.append(instance)
     return loaded_plugin_modules
 
@@ -284,33 +284,33 @@ def load_response_microservices(plugin_path, plugins, internal_attributes, base_
     return response_services
 
 
-def load_session_storage(config):
+def load_storage(config):
     """
-    Loads the session storage based on the provided config
+    Loads the storage based on the provided config
 
     :type config: satosa.satosa_config.SATOSAConfig
-    :rtype: session_storage.SessionStorage
+    :rtype: storage.Storage
 
     :param config: The configuration of the satosa proxy
-    :return: Session Storage which could either be in-memory, PostgreSQL, or any other defined storage
+    :return: Storage which could either be in-memory, PostgreSQL, or any other defined storage
     """
-    session_storage = config.get("SESSION_STORAGE")
-    if session_storage:
-        try:
-            storage_type = session_storage["type"]
-            if storage_type == "postgresql":
-                logger.info("Using the postgresql session storage.")
-                from satosa.session_storage import SessionStoragePostgreSQL
-                try:
-                    return SessionStoragePostgreSQL(config)
-                except Exception as error:
-                    return error
-        except SATOSAConfigurationError as err:
-            logger.error(err)
+    logout_enabled = config.get("LOGOUT_ENABLED")
+    if logout_enabled:
+        storage = config.get("STORAGE")
+        if storage:
+            try:
+                storage_type = storage.get("type", "")
+                storage = locate(storage_type)
+                return storage(config)
+            except TypeError as err:
+                raise SATOSAConfigurationError("Unable to load storage for type : {}".format(storage_type)) from err
+        else:
+            logger.info("STORAGE is not defined")
+
+        logger.info("Using the in-memory storage.")
+        from satosa.storage import StorageInMemory
+        return StorageInMemory(config)
     else:
-        logger.info("SESSION_STORAGE is not defined")
-
-    logger.info("Using the in-memory session storage.")
-    from satosa.session_storage import SessionStorageInMemory
-    return SessionStorageInMemory(config)
-
+        logger.info("Logout not enabled. Creating mock storage.")
+        from satosa.storage import StorageMock
+        return StorageMock()

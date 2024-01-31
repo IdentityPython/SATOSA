@@ -27,7 +27,7 @@ class IdpyOIDCBackend(BackendModule):
     Backend module for OIDC and OAuth 2.0, can be directly used.
     """
 
-    def __init__(self, auth_callback_func, internal_attributes, config, base_url, name, session_storage,
+    def __init__(self, auth_callback_func, internal_attributes, config, base_url, name, storage,
                  logout_callback_func):
         """
         OIDC backend module.
@@ -39,7 +39,7 @@ class IdpyOIDCBackend(BackendModule):
         :param config: Configuration parameters for the module.
         :param base_url: base url of the service
         :param name: name of the plugin
-        :param session_storage: storage to hold the backend session information
+        :param storage: storage to hold the backend session information
         :param logout_callback_func: Callback should be called by the module after the logout
         in the backend is done. This may trigger log out flow for all the frontends associated
         with the backend session
@@ -50,11 +50,11 @@ class IdpyOIDCBackend(BackendModule):
         :type config: dict[str, dict[str, str] | list[str]]
         :type base_url: str
         :type name: str
-        :type session_storage: satosa.session_storage.SessionStorage
+        :type storage: satosa.storage.Storage
         :type logout_callback_func: str
         (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
         """
-        super().__init__(auth_callback_func, internal_attributes, base_url, name, session_storage, logout_callback_func)
+        super().__init__(auth_callback_func, internal_attributes, base_url, name, storage, logout_callback_func)
         self.client = StandAloneClient(config=config["client"], client_type="oidc")
         self.client.do_provider_info()
         self.client.do_client_registration()
@@ -125,7 +125,7 @@ class IdpyOIDCBackend(BackendModule):
         internal_resp = self._translate_response(all_user_claims, _info["issuer"])
         sid = all_user_claims.get("sid")
         if sid:
-            backend_session_id = self.session_storage.store_backend_session(sid, _info["issuer"])
+            backend_session_id = self.storage.store_backend_session(sid, _info["issuer"])
             internal_resp.backend_session_id = backend_session_id
         return self.auth_callback_func(context, internal_resp)
 
@@ -143,7 +143,7 @@ class IdpyOIDCBackend(BackendModule):
                                       message="Received front-channel logout request: {}".format(context.request)))
         sid = context.request.get("sid")
         issuer = context.request.get("iss")
-        backend_session = self.session_storage.get_backend_session(sid, issuer)
+        backend_session = self.storage.get_backend_session(sid, issuer)
 
         if backend_session:
             internal_req = InternalData(
@@ -178,7 +178,7 @@ class IdpyOIDCBackend(BackendModule):
                 logout_token = LogoutToken().from_jwt(context.request["logout_token"], None)
                 sid = logout_token.get("sid")
                 issuer = logout_token.get("iss")
-                backend_session = self.session_storage.get_backend_session(sid, issuer)
+                backend_session = self.storage.get_backend_session(sid, issuer)
 
                 if backend_session:
                     internal_req = InternalData(

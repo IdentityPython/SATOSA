@@ -26,13 +26,14 @@ setup(
         "chevron",
         "cookies-samesite-compat",
         "importlib-metadata >= 1.7.0; python_version <= '3.8'",
-        "psycopg2-binary",
     ],
     extras_require={
         "ldap": ["ldap3"],
         "pyop_mongo": ["pyop[mongo]"],
         "pyop_redis": ["pyop[redis]"],
         "idpy_oidc_backend": ["idpyoidc >= 2.1.0"],
+        "storage_postgresql": ["psycopg2-binary"],
+        "logout_enabled": ["SQLAlchemy"],
     },
     zip_safe=False,
     classifiers=[

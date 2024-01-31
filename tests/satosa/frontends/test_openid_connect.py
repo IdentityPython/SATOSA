@@ -86,14 +86,14 @@ class TestOpenIDConnectFrontend(object):
 
         return config
 
-    def create_frontend(self, frontend_config, session_storage):
+    def create_frontend(self, frontend_config, storage):
         # will use in-memory storage
         instance = OpenIDConnectFrontend(lambda ctx, req: None, INTERNAL_ATTRIBUTES,
-                                         frontend_config, BASE_URL, "oidc_frontend", session_storage, None)
+                                         frontend_config, BASE_URL, "oidc_frontend", storage, None)
         instance.register_endpoints(["foo_backend"])
         return instance
 
-    def create_frontend_with_extra_scopes(self, frontend_config_with_extra_scopes, session_storage):
+    def create_frontend_with_extra_scopes(self, frontend_config_with_extra_scopes, storage):
         # will use in-memory storage
         internal_attributes_with_extra_scopes = copy.deepcopy(INTERNAL_ATTRIBUTES)
         internal_attributes_with_extra_scopes["attributes"].update(EXTRA_CLAIMS)
@@ -102,18 +102,18 @@ class TestOpenIDConnectFrontend(object):
             internal_attributes_with_extra_scopes,
             frontend_config_with_extra_scopes,
             BASE_URL,
-            "oidc_frontend_with_extra_scopes", session_storage, None
+            "oidc_frontend_with_extra_scopes", storage, None
         )
         instance.register_endpoints(["foo_backend"])
         return instance
 
     @pytest.fixture
-    def frontend(self, frontend_config, session_storage):
-        return self.create_frontend(frontend_config, session_storage)
+    def frontend(self, frontend_config, storage):
+        return self.create_frontend(frontend_config, storage)
 
     @pytest.fixture
-    def frontend_with_extra_scopes(self, frontend_config_with_extra_scopes, session_storage):
-        return self.create_frontend_with_extra_scopes(frontend_config_with_extra_scopes, session_storage)
+    def frontend_with_extra_scopes(self, frontend_config_with_extra_scopes, storage):
+        return self.create_frontend_with_extra_scopes(frontend_config_with_extra_scopes, storage)
 
     @pytest.fixture
     def authn_req(self):
@@ -406,10 +406,10 @@ class TestOpenIDConnectFrontend(object):
         True,
         False
     ])
-    def test_mirrored_subject(self, context, frontend_config, authn_req, sub_mirror_public, session_storage):
+    def test_mirrored_subject(self, context, frontend_config, authn_req, sub_mirror_public, storage):
         frontend_config["sub_mirror_public"] = sub_mirror_public
         frontend_config["provider"]["subject_types_supported"] = ["public"]
-        frontend = self.create_frontend(frontend_config, session_storage)
+        frontend = self.create_frontend(frontend_config, storage)
 
         self.insert_client_in_client_db(frontend, authn_req["redirect_uri"])
         internal_response = self.setup_for_authn_response(context, frontend, authn_req)

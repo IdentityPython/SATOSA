@@ -19,7 +19,7 @@ from satosa.backends.idpy_oidc import IdpyOIDCBackend
 from satosa.context import Context
 from satosa.internal import InternalData
 from satosa.response import Response
-from satosa.session_storage import SessionStorageInMemory
+from satosa.storage import StorageInMemory
 
 ISSUER = "https://provider.example.com"
 CLIENT_ID = "test_client"
@@ -66,7 +66,7 @@ class TestIdpyOIDCBackend(object):
         }
 
     @pytest.fixture
-    def session_storage(self):
+    def storage(self):
         backend_sessions = [
             {
                 "id": 1,
@@ -91,15 +91,15 @@ class TestIdpyOIDCBackend(object):
             }
         ]
 
-        session_storage = SessionStorageInMemory({})
-        session_storage.backend_sessions = backend_sessions
-        session_storage.frontend_sessions = frontend_sessions
-        session_storage.session_maps = session_maps
-        return session_storage
+        storage = StorageInMemory({})
+        storage.backend_sessions = backend_sessions
+        storage.frontend_sessions = frontend_sessions
+        storage.session_maps = session_maps
+        return storage
 
     @pytest.fixture(autouse=True)
     @responses.activate
-    def create_backend(self, internal_attributes, backend_config, session_storage):
+    def create_backend(self, internal_attributes, backend_config, storage):
         base_url = backend_config['client']['base_url']
         self.issuer_keys = build_keyjar(DEFAULT_KEY_DEFS)
         with responses.RequestsMock() as rsps:
@@ -111,7 +111,7 @@ class TestIdpyOIDCBackend(object):
                 content_type="application/json")
 
             self.oidc_backend = IdpyOIDCBackend(Mock(), internal_attributes, backend_config,
-                                                base_url, "oidc", session_storage, Mock())
+                                                base_url, "oidc", storage, Mock())
 
     @pytest.fixture
     def userinfo(self):

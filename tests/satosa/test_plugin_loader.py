@@ -14,9 +14,9 @@ from satosa.plugin_loader import (
     _request_micro_service_filter,
     _response_micro_service_filter,
     _load_plugin_config,
-    load_session_storage,
+    load_storage,
 )
-from satosa.session_storage import SessionStoragePostgreSQL, SessionStorageInMemory
+from satosa.storage import StoragePostgreSQL, StorageInMemory
 
 
 class TestFilters(object):
@@ -86,17 +86,17 @@ class TestLoadPluginConfig(object):
             _load_plugin_config(data)
 
 
-class TestLoadSessionStorage(object):
-    def session_storage_postgresql_init_mock(self, config):
+class TestLoadStorage(object):
+    def storage_postgresql_init_mock(self, config):
         pass
 
     @patch.object(
-        SessionStoragePostgreSQL, "__init__", session_storage_postgresql_init_mock
+        StoragePostgreSQL, "__init__", storage_postgresql_init_mock
     )
     def test_load_postgresql_session(self):
         config = {
-            "SESSION_STORAGE": {
-                "type": "postgresql",
+            "STORAGE": {
+                "type": "satosa.storage.StoragePostgreSQL",
                 "host": "127.0.0.1",
                 "port": 5432,
                 "db_name": "satosa",
@@ -104,13 +104,13 @@ class TestLoadSessionStorage(object):
                 "password": "secret",
             }
         }
-        postgresql_session_storage = load_session_storage(config)
-        assert isinstance(postgresql_session_storage, SessionStoragePostgreSQL)
+        postgresql_storage = load_storage(config)
+        assert isinstance(postgresql_storage, StoragePostgreSQL)
 
     def test_load_inmemory_session(self):
         config = {}
-        inmemory_session_storage = load_session_storage(config)
-        assert isinstance(inmemory_session_storage, SessionStorageInMemory)
-        assert hasattr(inmemory_session_storage, "frontend_sessions")
-        assert hasattr(inmemory_session_storage, "backend_sessions")
-        assert hasattr(inmemory_session_storage, "session_maps")
+        inmemory_storage = load_storage(config)
+        assert isinstance(inmemory_storage, StorageInMemory)
+        assert hasattr(inmemory_storage, "frontend_sessions")
+        assert hasattr(inmemory_storage, "backend_sessions")
+        assert hasattr(inmemory_storage, "session_maps")

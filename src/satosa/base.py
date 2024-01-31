@@ -24,7 +24,7 @@ from .plugin_loader import load_backends
 from .plugin_loader import load_frontends
 from .plugin_loader import load_request_microservices
 from .plugin_loader import load_response_microservices
-from .plugin_loader import load_session_storage
+from .plugin_loader import load_storage
 from .routing import ModuleRouter
 from .state import State
 from .state import cookie_to_state
@@ -55,14 +55,14 @@ class SATOSABase(object):
         self.config = config
 
         logger.info("Loading session storage...")
-        self.session_storage = load_session_storage(self.config)
+        self.storage = load_storage(self.config)
 
         logger.info("Loading backend modules...")
         backends = load_backends(self.config, self._auth_resp_callback_func, self.config["INTERNAL_ATTRIBUTES"],
-                                 self.session_storage, self._backend_logout_callback_func)
+                                 self.storage, self._backend_logout_callback_func)
         logger.info("Loading frontend modules...")
         frontends = load_frontends(self.config, self._auth_req_callback_func, self.config["INTERNAL_ATTRIBUTES"],
-                                   self.session_storage)
+                                   self.storage)
 
         self.response_micro_services = []
         self.request_micro_services = []
@@ -138,7 +138,7 @@ class SATOSABase(object):
         response = frontend.handle_authn_response(context, internal_response)
 
         if internal_response.frontend_sid and internal_response.backend_session_id:
-            self.session_storage.store_session_map(
+            self.storage.store_session_map(
                 internal_response["frontend_sid"],
                 internal_response["backend_session_id"])
 
@@ -188,7 +188,7 @@ class SATOSABase(object):
         :return: response
         """
 
-        frontend_sessions = self.session_storage.get_frontend_sessions_by_backend_session_id(
+        frontend_sessions = self.storage.get_frontend_sessions_by_backend_session_id(
             internal_request.backend_session_id)
 
         if frontend_sessions:
@@ -201,7 +201,7 @@ class SATOSABase(object):
                 frontend = self.module_router.frontend_routing(context)
                 internal_request.frontend_sid = frontend_session.get("sid")
                 if frontend.start_logout_from_backend(context, internal_request):
-                    self.session_storage.delete_session_map(frontend_session.get("sid"))
+                    self.storage.delete_session_map(frontend_session.get("sid"))
 
             self._backend_logout_req_finish(context, internal_request)
         else:
@@ -212,7 +212,7 @@ class SATOSABase(object):
         return Response(message="")
 
     def _backend_logout_req_finish(self, context, internal_request):
-        frontend_sessions = self.session_storage.get_frontend_sessions_by_backend_session_id(
+        frontend_sessions = self.storage.get_frontend_sessions_by_backend_session_id(
             internal_request.backend_session_id)
 
         if frontend_sessions:
@@ -221,7 +221,7 @@ class SATOSABase(object):
         else:
             msg = "All the frontends logged out for the backend session id: {}.".format(
                 internal_request.backend_session_id)
-            self.session_storage.delete_backend_session(internal_request.backend_session_id)
+            self.storage.delete_backend_session(internal_request.backend_session_id)
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.info(logline)
 

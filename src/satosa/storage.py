@@ -5,12 +5,12 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy.ext.declarative import declarative_base
 
 
-class SessionStorage:
+class Storage:
     def __init__(self, config):
-        self.db_config = config.get("SESSION_STORAGE")
+        self.db_config = config.get("STORAGE")
 
 
-class SessionStorageInMemory(SessionStorage):
+class StorageInMemory(Storage):
     """
     In-memory session storage
     """
@@ -108,7 +108,7 @@ class SessionMap(Base):
     backend_session_id = mapped_column(Integer, ForeignKey("backend_session.id"))
 
 
-class SessionStoragePostgreSQL(SessionStorage):
+class StoragePostgreSQL(Storage):
     """
     PostgreSQL session storage
     """
@@ -226,3 +226,14 @@ class SessionStoragePostgreSQL(SessionStorage):
         session.query(SessionMap).filter(SessionMap.frontend_sid == frontend_sid).delete()
         session.commit()
         session.close()
+
+class StorageMock:
+
+    def __init__(*args, **kwargs):
+        pass
+
+    def __call__(self, *args, **kwargs):
+        pass
+
+    def __getattr__(self, *args, **kwargs):
+        return self

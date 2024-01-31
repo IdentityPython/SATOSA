@@ -96,7 +96,7 @@ class TestOIDCToIdpyOIDC:
 
     @mock.patch("requests.post")
     @mock.patch("idpyoidc.client.oauth2.stand_alone_client.StandAloneClient.finalize")
-    def test_full_flow_front_channel_logout_inmemory_session_storage(
+    def test_full_flow_front_channel_logout_inmemory_storage(
         self,
         mock_stand_alone_client_finalize,
         mock_logout_post_request,
@@ -193,7 +193,7 @@ class TestOIDCToIdpyOIDC:
             frontend_session_before_logout,
             session_maps_before_logout,
         ) = get_session_storage_components_using_sid(
-            test_client.application.app.app.session_storage,
+            test_client.application.app.app.storage,
             "30f8dae4-1da5-41bf-a801-5aad0648af8c",
         )
 
@@ -215,7 +215,7 @@ class TestOIDCToIdpyOIDC:
             frontend_session_after_logout,
             session_maps_after_logout,
         ) = get_session_storage_components_using_sid(
-            test_client.application.app.app.session_storage,
+            test_client.application.app.app.storage,
             "30f8dae4-1da5-41bf-a801-5aad0648af8c",
         )
         assert backend_session_before_logout != backend_session_after_logout
@@ -223,12 +223,12 @@ class TestOIDCToIdpyOIDC:
         assert session_maps_before_logout != session_maps_after_logout
 
 
-def get_session_storage_components_using_sid(session_storage, sid):
-    backend_session = session_storage.get_backend_session(sid)
-    session_maps = copy(session_storage.session_maps)
+def get_session_storage_components_using_sid(storage, sid):
+    backend_session = storage.get_backend_session(sid)
+    session_maps = copy(storage.session_maps)
     frontend_session = ""
     for session_map in session_maps:
-        frontend_session = session_storage.get_backend_session(
+        frontend_session = storage.get_backend_session(
             session_map.get("frontend_sid")
         )
     return backend_session, frontend_session, session_maps
