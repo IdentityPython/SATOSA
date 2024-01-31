@@ -2,37 +2,20 @@
 Apple backend module.
 """
 import logging
-from datetime import datetime
-from urllib.parse import urlparse
-
+from .openid_connect import OpenIDConnectBackend, STATE_KEY
 from oic.oauth2.message import Message
-from oic import oic
-from oic import rndstr
 from oic.oic.message import AuthorizationResponse
-from oic.oic.message import ProviderConfigurationResponse
-from oic.oic.message import RegistrationRequest
-from oic.utils.authn.authn_context import UNSPECIFIED
-from oic.utils.authn.client import CLIENT_AUTHN_METHOD
-
 import satosa.logging_util as lu
-from satosa.internal import AuthenticationInformation
-from satosa.internal import InternalData
-from .base import BackendModule
-from .oauth import get_metadata_desc_for_oauth_backend
-from ..exception import SATOSAAuthenticationError, SATOSAError
-from ..response import Redirect
-
+from ..exception import SATOSAAuthenticationError
 import json
 import requests
 
 
 logger = logging.getLogger(__name__)
 
-NONCE_KEY = "oidc_nonce"
-STATE_KEY = "oidc_state"
 
 # https://developer.okta.com/blog/2019/06/04/what-the-heck-is-sign-in-with-apple
-class AppleBackend(BackendModule):
+class AppleBackend(OpenIDConnectBackend):
     """Sign in with Apple backend"""
 
     def __init__(self, auth_callback_func, internal_attributes, config, base_url, name, storage,
@@ -177,25 +160,6 @@ class AppleBackend(BackendModule):
 
         return authn_response.get("access_token"), authn_response.get("id_token")
 
-    def _check_error_response(self, response, context):
-        """
-        Check if the response is an OAuth error response.
-        :param response: the OIDC response
-        :type response: oic.oic.message
-        :raise SATOSAAuthenticationError: if the response is an OAuth error response
-        """
-        if "error" in response:
-            msg = "{name} error: {error} {description}".format(
-                name=type(response).__name__,
-                error=response["error"],
-                description=response.get("error_description", ""),
-            )
-            logline = lu.LOG_FMT.format(
-                id=lu.get_session_id(context.state), message=msg
-            )
-            logger.debug(logline)
-            raise SATOSAAuthenticationError(context.state, "Access denied")
-
     def response_endpoint(self, context, *args):
         """
         Handles the authentication response from the OP.
@@ -217,8 +181,8 @@ class AppleBackend(BackendModule):
         # - https://developer.apple.com/documentation/sign_in_with_apple/namei
         try:
             userdata = context.request.get("user", "{}")
-            userinfo = json.load(userdata)
-        except Exception:
+            userinfo = json.loads(userdata)
+        except json.JSONDecodeError:
             userinfo = {}
 
         authn_resp = self.client.parse_response(
@@ -250,6 +214,14 @@ class AppleBackend(BackendModule):
             raise SATOSAAuthenticationError(context.state, "No user info available.")
 
         all_user_claims = dict(list(userinfo.items()) + list(id_token_claims.items()))
+
+        # convert "string or Boolean" claims to actual booleans
+        for bool_claim_name in ["email_verified", "is_private_email"]:
+            if type(all_user_claims.get(bool_claim_name)) == str:
+                all_user_claims[bool_claim_name] = (
+                    True if all_user_claims[bool_claim_name] == "true" else False
+                )
+
         msg = "UserInfo: {}".format(all_user_claims)
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.debug(logline)
@@ -257,71 +229,3 @@ class AppleBackend(BackendModule):
             all_user_claims, self.client.authorization_endpoint
         )
         return self.auth_callback_func(context, internal_resp)
-
-    def _translate_response(self, response, issuer):
-        """
-        Translates oidc response to SATOSA internal response.
-        :type response: dict[str, str]
-        :type issuer: str
-        :type subject_type: str
-        :rtype: InternalData
-
-        :param response: Dictioary with attribute name as key.
-        :param issuer: The oidc op that gave the repsonse.
-        :param subject_type: public or pairwise according to oidc standard.
-        :return: A SATOSA internal response.
-        """
-        auth_info = AuthenticationInformation(UNSPECIFIED, str(datetime.now()), issuer)
-        internal_resp = InternalData(auth_info=auth_info)
-        internal_resp.attributes = self.converter.to_internal("openid", response)
-        internal_resp.subject_id = response["sub"]
-        return internal_resp
-
-    def get_metadata_desc(self):
-        """
-        See satosa.backends.oauth.get_metadata_desc
-        :rtype: satosa.metadata_creation.description.MetadataDescription
-        """
-        return get_metadata_desc_for_oauth_backend(
-            self.config["provider_metadata"]["issuer"], self.config
-        )
-
-
-def _create_client(provider_metadata, client_metadata, verify_ssl=True):
-    """
-    Create a pyoidc client instance.
-    :param provider_metadata: provider configuration information
-    :type provider_metadata: Mapping[str, Union[str, Sequence[str]]]
-    :param client_metadata: client metadata
-    :type client_metadata: Mapping[str, Union[str, Sequence[str]]]
-    :return: client instance to use for communicating with the configured provider
-    :rtype: oic.oic.Client
-    """
-    client = oic.Client(client_authn_method=CLIENT_AUTHN_METHOD, verify_ssl=verify_ssl)
-
-    # Provider configuration information
-    if "authorization_endpoint" in provider_metadata:
-        # no dynamic discovery necessary
-        client.handle_provider_config(
-            ProviderConfigurationResponse(**provider_metadata),
-            provider_metadata["issuer"],
-        )
-    else:
-        # do dynamic discovery
-        client.provider_config(provider_metadata["issuer"])
-
-    # Client information
-    if "client_id" in client_metadata:
-        # static client info provided
-        client.store_registration_info(RegistrationRequest(**client_metadata))
-    else:
-        # do dynamic registration
-        client.register(
-            client.provider_info["registration_endpoint"], **client_metadata
-        )
-
-    client.subject_type = (
-        client.registration_response.get("subject_type")
-        or client.provider_info["subject_types_supported"][0]
-    )
-    return client
