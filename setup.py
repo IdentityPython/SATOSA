@@ -32,8 +32,7 @@ setup(
         "pyop_mongo": ["pyop[mongo]"],
         "pyop_redis": ["pyop[redis]"],
         "idpy_oidc_backend": ["idpyoidc >= 2.1.0"],
-        "storage_postgresql": ["psycopg2-binary"],
-        "logout_enabled": ["SQLAlchemy"],
+        "storage_postgresql": ["SQLAlchemy", "psycopg2-binary"],
     },
     zip_safe=False,
     classifiers=[
