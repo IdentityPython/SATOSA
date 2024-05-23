@@ -241,8 +241,8 @@ provider will be preserved, and when using a OAuth or OpenID Connect backend, th
 config:
     [...]
     acr_mapping:
-        "": default-LoA
-        "https://accounts.google.com": LoA1
+        "": "urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified"
+        "https://accounts.google.com": "http://eidas.europa.eu/LoA/low"
 ```
 
 ### SAML2 Frontend
