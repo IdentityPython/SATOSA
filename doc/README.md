@@ -129,7 +129,7 @@ attribute to use, e.g. `address.formatted` will access the attribute value
 attributes:
   mail:
     openid: [email]
-    saml: [mail, emailAdress, email]
+    saml: [mail, emailAddress, email]
   address:
     openid: [address.formatted]
     saml: [postaladdress]
