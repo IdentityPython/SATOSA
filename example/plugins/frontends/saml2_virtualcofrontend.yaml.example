@@ -91,8 +91,8 @@ config:
             lifetime: {minutes: 15}
             name_form: urn:oasis:names:tc:SAML:2.0:attrname-format:uri
   acr_mapping:
-    "": default-LoA
-    "https://accounts.google.com": LoA1
+    "": "urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified"
+    "https://accounts.google.com": "http://eidas.europa.eu/LoA/low"
 
   endpoints:
     single_sign_on_service:
