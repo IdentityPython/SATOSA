@@ -27,11 +27,12 @@ class IdpHinting(RequestMicroService):
         :type config: Dict[str, Dict[str, str]]
         """
         super().__init__(*args, **kwargs)
+        self.override_selected_entry = config.get("override_selected_entry") or False
         try:
-            self.idp_hint_param_names = config['allowed_params']
+            self.idp_hint_param_names = config["allowed_params"]
         except KeyError:
             raise SATOSAConfigurationError(
-                f"{self.__class__.__name__} can't find allowed_params"
+                f"{self.__class__.__name__} No value set for allowed_params configuration option"
             )
 
     def process(self, context, data):
@@ -40,12 +41,14 @@ class IdpHinting(RequestMicroService):
         :param context: request context
         :param data: the internal request
         """
-        target_entity_id = context.get_decoration(context.KEY_TARGET_ENTITYID)
         qs_params = context.qs_params
-
-        issuer_is_already_selected = bool(target_entity_id)
         query_string_is_missing = not qs_params
-        if issuer_is_already_selected or query_string_is_missing:
+        if query_string_is_missing:
+            return super().process(context, data)
+
+        target_entity_id = context.get_decoration(context.KEY_TARGET_ENTITYID)
+        issuer_is_already_selected = bool(target_entity_id)
+        if issuer_is_already_selected and not self.override_selected_entry:
             return super().process(context, data)
 
         hints = (

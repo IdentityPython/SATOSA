@@ -1,6 +1,7 @@
 module: satosa.micro_services.idp_hinting.IdpHinting
 name: IdpHinting
 config:
+  override_selected_entry: false
   allowed_params:
     - idp_hinting
     - idp_hint
