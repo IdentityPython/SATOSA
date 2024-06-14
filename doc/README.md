@@ -92,6 +92,7 @@ bind_password: !ENVFILE LDAP_BIND_PASSWORD_FILE
 | `FRONTEND_MODULES` | string[] | `[saml2_frontend.yaml, openid_connect_frontend.yaml]` | list of plugin configuration file paths, describing enabled frontends |
 | `MICRO_SERVICES` | string[] | `[statistics_service.yaml]` | list of plugin configuration file paths, describing enabled microservices |
 | `LOGGING` | dict | see [Python logging.conf](https://docs.python.org/3/library/logging.config.html) | optional configuration of application logging |
+| `PROMPT_TO_SAML_PARAM` | dict | `{"none":"is_passive","select_account":"force_authn","login":"force_authn"}` | mapping of OIDC prompt values to SAML authentication parameters |
 
 ## Attribute mapping configuration: `internal_attributes.yaml`
 

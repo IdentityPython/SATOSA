@@ -15,6 +15,7 @@ from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.settings import PyoidcSettings
 
 import satosa.logging_util as lu
+from satosa.context import Context, get_auth_req_params
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from .base import BackendModule
@@ -23,7 +24,6 @@ from ..exception import SATOSAAuthenticationError
 from ..exception import SATOSAError
 from ..exception import SATOSAMissingStateError
 from ..response import Redirect
-
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +106,11 @@ class OpenIDConnectBackend(BackendModule):
             "nonce": oidc_nonce
         }
         args.update(self.config["client"]["auth_req_params"])
+        args.update(get_auth_req_params(context))
+        acr_values = context.state.get(Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF) \
+            or context.get_decoration(Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF)
+        if acr_values:
+            args["acr_values"] = acr_values
         auth_req = self.client.construct_AuthorizationRequest(request_args=args)
         login_url = auth_req.request(self.client.authorization_endpoint)
         return Redirect(login_url)
@@ -262,7 +267,8 @@ class OpenIDConnectBackend(BackendModule):
         :param subject_type: public or pairwise according to oidc standard.
         :return: A SATOSA internal response.
         """
-        auth_info = AuthenticationInformation(UNSPECIFIED, str(datetime.now()), issuer)
+        acr = response["acr"] if "acr" in response and response["acr"] else UNSPECIFIED
+        auth_info = AuthenticationInformation(acr, str(datetime.now()), issuer)
         internal_resp = InternalData(auth_info=auth_info)
         internal_resp.attributes = self.converter.to_internal("openid", response)
         internal_resp.subject_id = response["sub"]

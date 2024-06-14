@@ -28,7 +28,7 @@ from saml2.samlp import name_id_policy_from_string
 from saml2.server import Server
 
 from satosa.base import SAMLBaseModule
-from satosa.context import Context
+from satosa.context import Context, add_prompt_to_context
 from .base import FrontendModule
 from ..response import Response
 from ..response import ServiceError
@@ -223,8 +223,11 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.debug(logline)
 
-        # keep the ForceAuthn value to be used by plugins
-        context.decorate(Context.KEY_FORCE_AUTHN, authn_req.force_authn)
+        # keep prompt-like values (ForceAuthn and IsPassive) to be used by plugins
+        if getattr(authn_req, Context.KEY_SAML_FORCE_AUTHN) in ["1", "true"]:
+            add_prompt_to_context(context, "login")
+        if getattr(authn_req, Context.KEY_SAML_IS_PASSIVE) in ["1", "true"]:
+            add_prompt_to_context(context, "none")
 
         try:
             resp_args = idp.response_args(authn_req)
@@ -283,6 +286,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
         )
         authn_context = [ref.text for ref in authn_context_class_ref_nodes]
         context.decorate(Context.KEY_AUTHN_CONTEXT_CLASS_REF, authn_context)
+        context.state[Context.KEY_AUTHN_CONTEXT_CLASS_REF] = authn_context
         context.decorate(Context.KEY_METADATA_STORE, self.idp.metadata)
         return self.auth_req_callback_func(context, internal_req)
 
@@ -1251,3 +1255,4 @@ class SAMLVirtualCoFrontend(SAMLFrontend):
         # authentication request dynamically create an IdP instance.
         self.idp = self._create_co_virtual_idp(context, co_name=co_name)
         return super()._metadata_endpoint(context=context);
+
