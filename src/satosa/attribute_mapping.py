@@ -1,9 +1,10 @@
 import logging
 from collections import defaultdict
 from itertools import chain
-from typing import Mapping
 
 from mako.template import Template
+
+from satosa.util import resolve_nested_key
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +119,7 @@ class AttributeMapper(object):
     def _collate_attribute_values_by_priority_order(self, attribute_names, data):
         result = []
         for attr_name in attribute_names:
-            attr_val = self._get_nested_attribute_value(attr_name, data)
+            attr_val = resolve_nested_key(attr_name, data, self.separator)
 
             if isinstance(attr_val, list):
                 result.extend(attr_val)
@@ -153,18 +154,6 @@ class AttributeMapper(object):
                 internal_dict[internal_attribute_name] = attribute_values
 
         return internal_dict
-
-    def _get_nested_attribute_value(self, nested_key, data):
-        keys = nested_key.split(self.separator)
-
-        d = data
-        for key in keys:
-            if not isinstance(d, Mapping):
-                return None
-            d = d.get(key)
-            if d is None:
-                return None
-        return d
 
     def _create_nested_attribute_value(self, nested_attribute_names, value):
         if len(nested_attribute_names) == 1:
