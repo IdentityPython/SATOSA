@@ -4,8 +4,8 @@ config:
   idp_blacklist_file: /path/to/blacklist.json
 
   acr_mapping:
-    "": default-LoA
-    "https://accounts.google.com": LoA1
+    "": "urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified"
+    "https://accounts.google.com": "http://eidas.europa.eu/LoA/low"
 
   # disco_srv must be defined if there is more than one IdP in the metadata specified above
   disco_srv: http://disco.example.com
