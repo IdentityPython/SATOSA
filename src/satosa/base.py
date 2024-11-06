@@ -280,7 +280,7 @@ class SATOSABase(object):
             if generic_error_url:
                 redirect_url = f"{generic_error_url}?errorid={error_id}"
                 return Redirect(generic_error_url)
-            return BadRequest(error)
+            return BadRequest(e.error)
         except SATOSAMissingStateError as e:
             error_id = uuid.uuid4().urn
             msg = {
