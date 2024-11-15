@@ -58,7 +58,7 @@ be configured with a SAML2 frontend and an SAML2 backend.
      mv internal_attributes.yaml.example internal_attributes.yaml
      ```
 
-  1. Map the necessary attributes, see the [Attribute mapping configuration](README.md#attr_map)
+  1. Map the necessary attributes, see the [Attribute mapping configuration](README.md#attribute-mapping-configuration-internal_attributesyaml)
      section of the proxy configuration instructions for more
      information.
 

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def _create_entity_descriptor(entity_config):
-    cnf = Config().load(copy.deepcopy(entity_config))
+    cnf = entity_config if isinstance(entity_config,  Config) else Config().load(copy.deepcopy(entity_config))
     return entity_descriptor(cnf)
 
 
@@ -28,7 +28,7 @@ def _create_backend_metadata(backend_modules):
         if isinstance(plugin_module, SAMLBackend):
             logline = "Generating SAML backend '{}' metadata".format(plugin_module.name)
             logger.info(logline)
-            backend_metadata[plugin_module.name] = [_create_entity_descriptor(plugin_module.config["sp_config"])]
+            backend_metadata[plugin_module.name] = [_create_entity_descriptor(plugin_module.sp.config)]
 
     return backend_metadata
 
@@ -154,3 +154,18 @@ def create_signed_entity_descriptor(entity_descriptor, security_context, valid_f
         raise ValueError("Could not construct valid EntityDescriptor tag")
 
     return xmldoc
+
+
+def create_entity_descriptor_metadata(entity_descriptor, valid_for=None):
+    """
+    :param entity_descriptor: the entity descriptor to create metadata for
+    :param valid_for: number of hours the metadata should be valid
+    :return: the EntityDescriptor metadata
+
+    :type entity_descriptor: saml2.md.EntityDescriptor]
+    :type valid_for: Optional[int]
+    """
+    if valid_for:
+        entity_descriptor.valid_until = in_a_while(hours=valid_for)
+
+    return str(entity_descriptor)

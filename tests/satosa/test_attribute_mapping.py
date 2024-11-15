@@ -5,6 +5,56 @@ import pytest
 from satosa.attribute_mapping import AttributeMapper
 
 
+class TestAttributeMapperNestedDataDifferentAttrProfile:
+    def test_nested_mapping_nested_data_to_internal(self):
+        mapping = {
+            "attributes": {
+                "name": {
+                    "openid": ["name"]
+                },
+                "givenname": {
+                    "openid": ["given_name", "name.firstName"]
+                },
+            },
+        }
+
+        data = {
+            "name": {
+                "firstName": "value-first",
+                "lastName": "value-last",
+            },
+            "email": "someuser@apple.com",
+        }
+
+        converter = AttributeMapper(mapping)
+        internal_repr = converter.to_internal("openid", data)
+        assert internal_repr["name"] == [data["name"]]
+        assert internal_repr["givenname"] == [data["name"]["firstName"]]
+
+
+    def test_nested_mapping_simple_data_to_internal(self):
+        mapping = {
+            "attributes": {
+                "name": {
+                    "openid": ["name"]
+                },
+                "givenname": {
+                    "openid": ["given_name", "name.firstName"]
+                },
+            },
+        }
+
+        data = {
+            "name": "value-first",
+            "email": "someuser@google.com",
+        }
+
+        converter = AttributeMapper(mapping)
+        internal_repr = converter.to_internal("openid", data)
+        assert internal_repr["name"] == [data["name"]]
+        assert internal_repr.get("givenname") is None
+
+
 class TestAttributeMapper:
     def test_nested_attribute_to_internal(self):
         mapping = {

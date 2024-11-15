@@ -3,7 +3,10 @@ import re
 
 import pytest
 import requests
+
 import responses
+from responses import matchers
+
 from jwkest.jwk import rsa_load, RSAKey
 from jwkest.jws import JWS
 
@@ -46,13 +49,15 @@ class TestAccountLinking():
         }
         key = RSAKey(key=rsa_load(account_linking_config["sign_key"]), use="sig", alg="RS256")
         jws = JWS(json.dumps(data), alg=key.alg).sign_compact([key])
+        url = "%s/get_id" % account_linking_config["api_url"]
+        params = {"jwt": jws}
         responses.add(
             responses.GET,
-            "%s/get_id?jwt=%s" % (account_linking_config["api_url"], jws),
-            status=200,
+            url=url,
             body=uuid,
+            match=[matchers.query_param_matcher(params)],
             content_type="text/html",
-            match_querystring=True
+            status=200,
         )
 
         self.account_linking.process(context, internal_response)
@@ -82,13 +87,15 @@ class TestAccountLinking():
         uuid = "uuid"
         with responses.RequestsMock() as rsps:
             # account is linked, 200 OK
+            url = "%s/get_id" % account_linking_config["api_url"]
+            params = {"jwt": jws}
             rsps.add(
                 responses.GET,
-                "%s/get_id?jwt=%s" % (account_linking_config["api_url"], jws),
-                status=200,
+                url=url,
                 body=uuid,
+                match=[matchers.query_param_matcher(params)],
                 content_type="text/html",
-                match_querystring=True
+                status=200,
             )
             internal_response = self.account_linking._handle_al_response(context)
         assert internal_response.subject_id == uuid

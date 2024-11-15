@@ -1,6 +1,7 @@
 import logging
 from collections import defaultdict
 from itertools import chain
+from typing import Mapping
 
 from mako.template import Template
 
@@ -97,8 +98,9 @@ class AttributeMapper(object):
                 continue
 
             external_attribute_name = mapping[attribute_profile]
-            attribute_values = self._collate_attribute_values_by_priority_order(external_attribute_name,
-                                                                                external_dict)
+            attribute_values = self._collate_attribute_values_by_priority_order(
+                external_attribute_name, external_dict
+            )
             if attribute_values:  # Only insert key if it has some values
                 logline = "backend attribute {external} mapped to {internal} ({value})".format(
                     external=external_attribute_name, internal=internal_attribute_name, value=attribute_values
@@ -157,6 +159,8 @@ class AttributeMapper(object):
 
         d = data
         for key in keys:
+            if not isinstance(d, Mapping):
+                return None
             d = d.get(key)
             if d is None:
                 return None

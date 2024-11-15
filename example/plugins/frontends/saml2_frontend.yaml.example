@@ -2,8 +2,8 @@ module: satosa.frontends.saml2.SAMLFrontend
 name: Saml2IDP
 config:
   #acr_mapping:
-  #  "": default-LoA
-  #  "https://accounts.google.com": LoA1
+  #  "": "urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified"
+  #  "https://accounts.google.com": "http://eidas.europa.eu/LoA/low"
 
   endpoints:
     single_sign_on_service:

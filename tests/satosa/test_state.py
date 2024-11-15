@@ -100,7 +100,7 @@ class TestStateAsCookie:
         path = "/"
         encrypt_key = "2781y4hef90"
 
-        cookie = state_to_cookie(state, cookie_name, path, encrypt_key)
+        cookie = state_to_cookie(state, name=cookie_name, path=path, encryption_key=encrypt_key)
         cookie_str = cookie[cookie_name].OutputString()
         loaded_state = cookie_to_state(cookie_str, cookie_name, encrypt_key)
 
@@ -117,7 +117,7 @@ class TestStateAsCookie:
         path = "/"
         encrypt_key = "2781y4hef90"
 
-        cookie = state_to_cookie(state, cookie_name, path, encrypt_key)
+        cookie = state_to_cookie(state, name=cookie_name, path=path, encryption_key=encrypt_key)
         cookie_str = cookie[cookie_name].OutputString()
 
         parsed_cookie = SimpleCookie(cookie_str)

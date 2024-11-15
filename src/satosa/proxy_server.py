@@ -7,7 +7,6 @@ from urllib.parse import parse_qsl as _parse_query_string
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 
 import satosa
-import satosa.logging_util as lu
 
 from .base import SATOSABase
 from .context import Context
@@ -15,6 +14,9 @@ from .exception import SATOSAUnknownErrorRedirectUrl
 from .response import ServiceError, NotFound, Redirect
 from .routing import SATOSANoBoundEndpointError
 from saml2.s_utils import UnknownSystemEntity
+from .response import ServiceError
+from .response import NotFound
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +24,8 @@ logger = logging.getLogger(__name__)
 def parse_query_string(data):
     query_param_pairs = _parse_query_string(data)
     query_param_dict = dict(query_param_pairs)
+    if "resource" in query_param_dict:
+        query_param_dict["resource"] = [t[1] for t in query_param_pairs if t[0] == "resource"]
     return query_param_dict
 
 
@@ -144,6 +148,18 @@ class WsgiApplication(SATOSABase):
 
         environ['wsgi.input'].seek(0)
 
+        logline = {
+            "message": "Proxy server received request",
+            "request_method": context.request_method,
+            "request_uri": context.request_uri,
+            "content_length": content_length,
+            "request_data": context.request,
+            "query_params": context.qs_params,
+            "http_headers": context.http_headers,
+            "server_headers": context.server,
+        }
+        logger.debug(logline)
+
         try:
             resp = self.run(context)
             if isinstance(resp, Exception):
@@ -160,9 +176,7 @@ class WsgiApplication(SATOSABase):
             logger.debug('{}: Redirecting to "{}"'.format(error_log, redirect_url))
             return Redirect(redirect_url)(environ, start_response)
         except Exception as e:
-            if type(e) != UnknownSystemEntity:
-                logline = "{}".format(e)
-                logger.exception(logline)
+            logger.exception(str(e))
             if debug:
                 raise
             resp = ServiceError("%s" % e)
