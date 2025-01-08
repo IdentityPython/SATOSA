@@ -1,5 +1,16 @@
 # Changelog
 
+## 8.5.0 (2025-01-08)
+
+- openid connect backend: Add OAuth2/OIDC backend based on idpy-oidc (new extra requirement `idpy_oidc_backend` to pull the library dependecy)
+- apple backend: Rework the Apple backend to be based on the generic OpenIDConnectBackend and fix the userinfo loading
+- Restructure fatal error messages to redirect to generic error page when an errors occur
+- Allow multiple values for the "resource" query param
+- Fix checks for missing state from cookie and missing relay state
+- Allow loading of tuples from YAML configs
+- docs: minor fixes
+
+
 ## 8.4.0 (2023-06-11)
 
 - Make cookie parameters configurable
