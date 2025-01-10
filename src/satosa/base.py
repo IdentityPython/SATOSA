@@ -151,11 +151,11 @@ class SATOSABase(object):
 
         # If configured construct the user id from attribute values.
         if "user_id_from_attrs" in self.config["INTERNAL_ATTRIBUTES"]:
-            subject_id = [
-                "".join(internal_response.attributes[attr]) for attr in
-                self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"]
-            ]
-            internal_response.subject_id = "".join(subject_id)
+            subject_id = ""
+            for attr in self.config["INTERNAL_ATTRIBUTES"]["user_id_from_attrs"]:
+                if attr in internal_response.attributes:
+                    subject_id += internal_response.attributes[attr]
+            internal_response.subject_id = subject_id
 
         if self.response_micro_services:
             return self.response_micro_services[0].process(
