@@ -209,7 +209,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :return: Response
         """
         endpoints = self.sp.config.getattr("endpoints", "sp")
-        return_url = endpoints["discovery_response"][0][0]
+        return_url = "{}/{}".format(self.base_url, endpoints["discovery_response"][0][0])
 
         disco_url = (
             context.get_decoration(SAMLBackend.KEY_SAML_DISCOVERY_SERVICE_URL)
@@ -303,10 +303,11 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         try:
             acs_endp, response_binding = self._get_acs(context)
+            acs_endp_url = "{}/{}".format(self.base_url, acs_endp)
             relay_state = util.rndstr()
             req_id, binding, http_info = self.sp.prepare_for_negotiated_authenticate(
                 entityid=entity_id,
-                assertion_consumer_service_url=acs_endp,
+                assertion_consumer_service_url=acs_endp_url,
                 response_binding=response_binding,
                 relay_state=relay_state,
                 **kwargs,
@@ -588,8 +589,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         url_map = []
         sp_endpoints = self.sp.config.getattr("endpoints", "sp")
         for endp, binding in sp_endpoints["assertion_consumer_service"]:
-            parsed_endp = urlparse(endp)
-            url_map.append(("^%s$" % parsed_endp.path[1:], functools.partial(self.authn_response, binding=binding)))
+            url_map.append(("^%s$" % endp, functools.partial(self.authn_response, binding=binding)))
             if binding == BINDING_HTTP_REDIRECT:
                 msg = " ".join(
                     [
@@ -607,9 +607,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         if self.discosrv:
             for endp, binding in sp_endpoints["discovery_response"]:
-                parsed_endp = urlparse(endp)
                 url_map.append(
-                    ("^%s$" % parsed_endp.path[1:], self.disco_response))
+                    ("^%s$" % endp, self.disco_response))
 
         if self.expose_entityid_endpoint():
             logger.debug("Exposing backend entity endpoint = {}".format(self.sp.config.entityid))
@@ -621,6 +620,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             url_map.append(
                 ("^%s/%s$" % (self.name, "reload-metadata"), self._reload_metadata))
 
+        logger.debug(f"Loaded SAML2 endpoints: {url_map}")
         return url_map
 
     def _reload_metadata(self, context):

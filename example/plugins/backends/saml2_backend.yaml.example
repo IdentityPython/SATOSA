@@ -63,9 +63,9 @@ config:
         allow_unsolicited: true
         endpoints:
           assertion_consumer_service:
-          - [<base_url>/<name>/acs/post, 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST']
+          - [<name>/acs/post, 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST']
           discovery_response:
-          - [<base_url>/<name>/disco, 'urn:oasis:names:tc:SAML:profiles:SSO:idp-discovery-protocol']
+          - [<name>/disco, 'urn:oasis:names:tc:SAML:profiles:SSO:idp-discovery-protocol']
 
         # name_id_format: a list of strings to set the <NameIDFormat> element in SP metadata
         # name_id_policy_format: a string to set the Format attribute in the NameIDPolicy element
