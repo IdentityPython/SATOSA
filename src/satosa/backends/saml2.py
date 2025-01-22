@@ -611,14 +611,12 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                     ("^%s$" % endp, self.disco_response))
 
         if self.expose_entityid_endpoint():
-            logger.debug("Exposing backend entity endpoint = {}".format(self.sp.config.entityid))
-            parsed_entity_id = urlparse(self.sp.config.entityid)
-            url_map.append(("^{0}".format(parsed_entity_id.path[1:]),
-                            self._metadata_endpoint))
+            url_map.append(
+                ("^%s$" % sp_endpoints["metadata_exposal"], self._metadata_endpoint))
 
         if self.enable_metadata_reload():
             url_map.append(
-                ("^%s/%s$" % (self.name, "reload-metadata"), self._reload_metadata))
+                ("^%s$" % sp_endpoints["metadata_reload"], self._reload_metadata))
 
         logger.debug(f"Loaded SAML2 endpoints: {url_map}")
         return url_map

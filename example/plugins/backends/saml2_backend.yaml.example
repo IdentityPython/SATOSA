@@ -66,6 +66,8 @@ config:
           - [<name>/acs/post, 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST']
           discovery_response:
           - [<name>/disco, 'urn:oasis:names:tc:SAML:profiles:SSO:idp-discovery-protocol']
+	  metadata_exposal: <name>/proxy_saml2_backend.xml
+	  metadata_reload: <name>/reload-metadata
 
         # name_id_format: a list of strings to set the <NameIDFormat> element in SP metadata
         # name_id_policy_format: a string to set the Format attribute in the NameIDPolicy element
