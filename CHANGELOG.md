@@ -1,5 +1,21 @@
 # Changelog
 
+## 8.5.1 (2025-02-10)
+
+- ldap_attribute_store plugin: Add configuration option `use_all_results` to
+  specify whether all LDAP results should be processed.
+- ldap_attribute_store plugin: Add configuration option `provider_attribute` to
+  define the extracted attribute (ie, domain) that will be used to select the LDAP
+  configuration.
+- ldap_attribute_store plugin: Add configuration option search_filter to define
+  complex LDAP queries, when the default search based on an identifier is not
+  good enough.
+- ldap_attribute_store plugin: Add configuration option pool_lifetime. The LDAP
+  Server may abandon connections after some time without notifying the client.
+  The new option allows to set the maximum pool lifetime, so that connections
+  close on the client side.
+
+
 ## 8.5.0 (2025-01-08)
 
 - openid connect backend: Add OAuth2/OIDC backend based on idpy-oidc (new extra requirement `idpy_oidc_backend` to pull the library dependecy)
