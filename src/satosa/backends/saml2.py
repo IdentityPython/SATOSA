@@ -17,6 +17,7 @@ from saml2.metadata import create_metadata_string
 from saml2.authn_context import requested_authn_context
 from saml2.samlp import RequesterID
 from saml2.samlp import Scoping
+from saml2.saml import NameID
 
 import satosa.logging_util as lu
 import satosa.util as util
@@ -25,10 +26,12 @@ from satosa.base import SAMLEIDASBaseModule
 from satosa.base import STATE_KEY as STATE_KEY_BASE
 from satosa.context import Context
 from satosa.internal import AuthenticationInformation
+from satosa.internal import LogoutInformation
 from satosa.internal import InternalData
 from satosa.exception import SATOSAAuthenticationError
 from satosa.exception import SATOSAMissingStateError
 from satosa.exception import SATOSAAuthenticationFlowError
+from satosa.exception import SATOSAUnknownError
 from satosa.response import SeeOther, Response
 from satosa.saml_util import make_saml_response
 from satosa.metadata_creation.description import (
@@ -92,7 +95,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
     VALUE_ACR_COMPARISON_DEFAULT = 'exact'
 
-    def __init__(self, outgoing, internal_attributes, config, base_url, name):
+    def __init__(self, outgoing, internal_attributes, config, base_url, name, logout):
         """
         :type outgoing:
         (satosa.context.Context, satosa.internal.InternalData) -> satosa.response.Response
@@ -100,6 +103,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :type config: dict[str, Any]
         :type base_url: str
         :type name: str
+        :type logout:
 
         :param outgoing: Callback should be called by the module after
                                    the authorization in the backend is done.
@@ -107,8 +111,9 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :param config: The module config
         :param base_url: base url of the service
         :param name: name of the plugin
+        :param logout: Logout callback
         """
-        super().__init__(outgoing, internal_attributes, base_url, name)
+        super().__init__(outgoing, internal_attributes, base_url, name, logout)
         self.config = self.init_config(config)
 
         self.discosrv = config.get(SAMLBackend.KEY_DISCO_SRV)
@@ -196,6 +201,26 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         return self.authn_request(context, entity_id)
 
+    def start_logout(self, context, internal_req, internal_authn_resp):
+        """
+        See super class method satosa.backends.base.BackendModule#start_logout
+
+        :type context: satosa.context.Context
+        :type internal_req: satosa.internal.InternalData
+        :rtype: satosa.response.Response
+        """
+
+        if internal_authn_resp is None:
+            message = "Session Information Deleted"
+            status = "500 FAILED"
+            return Response(message=message, status=status)
+        entity_id = internal_authn_resp["auth_info"]["issuer"]
+        if entity_id is None:
+            message = "Logout Failed"
+            status = "500 FAILED"
+            return Response(message=message, status=status)
+        return self.logout_request(context, entity_id, internal_authn_resp)
+
     def disco_query(self, context):
         """
         Makes a request to the discovery server
@@ -282,13 +307,15 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                         "message": "AuthnRequest Failed",
                         "error": f"Selected IdP with EntityID {entity_id} is blacklisted for this backend",
                     }
-                    logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                    logline = lu.LOG_FMT.format(
+                        id=lu.get_session_id(context.state), message=msg)
                     logger.info(logline)
                     raise SATOSAAuthenticationError(context.state, msg)
 
         kwargs = {}
         target_accr = context.state.get(Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF)
-        authn_context = self.construct_requested_authn_context(entity_id, target_accr=target_accr)
+        authn_context = self.construct_requested_authn_context(
+            entity_id, target_accr=target_accr)
         if authn_context:
             kwargs["requested_authn_context"] = authn_context
         if self.config.get(SAMLBackend.KEY_MIRROR_FORCE_AUTHN):
@@ -316,7 +343,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                 "message": "AuthnRequest Failed",
                 "error": f"Failed to construct the AuthnRequest for state: {e}",
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.info(logline)
             raise SATOSAAuthenticationError(context.state, msg) from e
 
@@ -326,7 +354,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                     "message": "AuthnRequest Failed",
                     "error": f"Request with duplicate id {req_id}",
                 }
-                logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                logline = lu.LOG_FMT.format(
+                    id=lu.get_session_id(context.state), message=msg)
                 logger.info(logline)
                 raise SATOSAAuthenticationError(context.state, msg)
             self.outstanding_queries[req_id] = req_id
@@ -414,7 +443,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                 "message": "Authentication failed",
                 "error": "Received AuthN response without a SATOSA session cookie",
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.info(logline)
             raise SATOSAMissingStateError(msg)
 
@@ -424,7 +454,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                 "message": "Authentication failed",
                 "error": "SAML Response not found in context.request",
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.info(logline)
             raise SATOSAAuthenticationError(context.state, msg)
 
@@ -437,7 +468,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                 "message": "Authentication failed",
                 "error": f"Failed to parse Authn response: {e}",
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline, exc_info=True)
             logger.info(logline)
             raise SATOSAAuthenticationError(context.state, msg) from e
@@ -449,7 +481,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                     "message": "Authentication failed",
                     "error": f"No corresponding request with id: {req_id}",
                 }
-                logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+                logline = lu.LOG_FMT.format(
+                    id=lu.get_session_id(context.state), message=msg)
                 logger.info(logline)
                 raise SATOSAAuthenticationError(context.state, msg)
             del self.outstanding_queries[req_id]
@@ -460,7 +493,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                 "message": "Authentication failed",
                 "error": "Response state query param did not match relay state for request",
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.info(logline)
             raise SATOSAAuthenticationError(context.state, msg)
 
@@ -470,6 +504,89 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             context.state[Context.KEY_MEMORIZED_IDP] = issuer
         context.state.pop(Context.KEY_FORCE_AUTHN, None)
         return self.auth_callback_func(context, self._translate_response(authn_response, context.state))
+
+    def logout_request(self, context, entity_id, internal_authn_resp):
+        """
+        Perform Logout request on idp with given entity_id.
+        This is the start of single logout.
+
+        :type context: satosa.context.Context
+        :type entity_id: str
+        :rtype: satosa.response.Response
+
+        :param context: The current context
+        :param entity_id: Target IDP entity id
+        :return: response to the user agent
+        """
+        try:
+            binding, destination = self.sp.pick_binding(
+                "single_logout_service", None, "idpsso", entity_id=entity_id
+            )
+            msg = "binding: {}, destination: {}".format(binding, destination)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
+
+            slo_endp, response_binding = self.sp.config.getattr(
+                "endpoints", "sp")["single_logout_service"][0]
+            name_id_format = self.sp.config.getattr("name_id_format", "sp")
+            name_id = internal_authn_resp["subject_id"]
+            name_id = NameID(format=name_id_format, text=name_id)
+            session_indexes = internal_authn_resp["auth_info"]["session_index"]
+            sign = self.sp.config.getattr("logout_requests_signed", "sp")
+            req_id, req = self.sp.create_logout_request(
+                destination, issuer_entity_id=entity_id, name_id=name_id,
+                session_indexes=session_indexes, sign=sign
+            )
+            msg = "req_id: {}, req: {}".format(req_id, req)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
+            relay_state = util.rndstr()
+            ht_args = self.sp.apply_binding(
+                binding, "%s" % req, destination, relay_state=relay_state)
+            msg = "ht_args: {}".format(ht_args)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
+        except Exception as exc:
+            msg = "Failed to construct the LogoutRequest for state"
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline, exc_info=True)
+            status = "500 FAILED"
+            return Response(message=msg, status=status)
+        return make_saml_response(binding, ht_args)
+
+    def logout_response(self, context, binding):
+        """
+        Endpoint for the idp logout response
+
+        :type context: satosa.context.Context
+        :type binding: str
+        :rtype: satosa.response.Response
+
+        :param context: The current context
+        :param binding: SAML binding type
+        :return Response
+        """
+        if not context.request.get("SAMLResponse"):
+            msg = "Missing Response for state"
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline)
+            raise SATOSAUnknownError(context.state, "Missing Response")
+
+        try:
+            logout_response = self.sp.parse_logout_request_response(
+                    context.request["SAMLResponse"], binding)
+        except Exception as err:
+            msg = "Failed to parse logout response for state"
+            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logger.debug(logline, exc_info=True)
+            message = "Logout Failed"
+            status = "500 FAILED"
+            return Response(message=message, status=status)
+        return self.logout_callback_func(context)
 
     def disco_response(self, context):
         """
@@ -485,7 +602,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         state = context.state
 
         if 'SATOSA_BASE' not in state:
-            raise SATOSAAuthenticationFlowError("Discovery response without AuthN request")
+            raise SATOSAAuthenticationFlowError(
+                "Discovery response without AuthN request")
 
         entity_id = info.get("entityID")
         msg = {
@@ -523,11 +641,14 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
             if authenticating_authorities
             else None
         )
+        session_indexes = []
+        session_indexes.append(response.session_info()['session_index'])
         auth_info = AuthenticationInformation(
             auth_class_ref=authn_context_ref,
             timestamp=authn_instant,
             authority=authenticating_authority,
             issuer=issuer,
+            session_index=session_indexes,
         )
 
         # The SAML response may not include a NameID.
@@ -562,6 +683,25 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         return internal_resp
 
+    def _translate_logout_response(self, response, state):
+        timestamp = response.response.issue_instant
+        issuer = response.response.issuer.text
+
+        status = {
+            "status_code": response.response.status.status_code.value,
+        }
+
+        logout_info = LogoutInformation(
+            timestamp=timestamp,
+            issuer=issuer,
+            status=status
+        )
+
+        msg = "logout response content"
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(state), message=msg)
+        logger.debug(logline)
+        return logout_info
+
     def _metadata_endpoint(self, context):
         """
         Endpoint for retrieving the backend metadata
@@ -571,7 +711,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         :param context: The current context
         :return: response with metadata
         """
-        msg = "Sending metadata response for entityId = {}".format(self.sp.config.entityid)
+        msg = "Sending metadata response for entityId = {}".format(
+            self.sp.config.entityid)
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.debug(logline)
 
@@ -589,7 +730,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         sp_endpoints = self.sp.config.getattr("endpoints", "sp")
         for endp, binding in sp_endpoints["assertion_consumer_service"]:
             parsed_endp = urlparse(endp)
-            url_map.append(("^%s$" % parsed_endp.path[1:], functools.partial(self.authn_response, binding=binding)))
+            url_map.append(("^%s$" % parsed_endp.path[1:], functools.partial(
+                self.authn_response, binding=binding)))
             if binding == BINDING_HTTP_REDIRECT:
                 msg = " ".join(
                     [
@@ -612,7 +754,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                     ("^%s$" % parsed_endp.path[1:], self.disco_response))
 
         if self.expose_entityid_endpoint():
-            logger.debug("Exposing backend entity endpoint = {}".format(self.sp.config.entityid))
+            logger.debug("Exposing backend entity endpoint = {}".format(
+                self.sp.config.entityid))
             parsed_entity_id = urlparse(self.sp.config.entityid)
             url_map.append(("^{0}".format(parsed_entity_id.path[1:]),
                             self._metadata_endpoint))
@@ -620,6 +763,11 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         if self.enable_metadata_reload():
             url_map.append(
                 ("^%s/%s$" % (self.name, "reload-metadata"), self._reload_metadata))
+
+        for endp, binding in sp_endpoints["single_logout_service"]:
+            parsed_endp = urlparse(endp)
+            url_map.append(("^%s$" % parsed_endp.path[1:],
+                functools.partial(self.logout_response, binding=binding)))
 
         return url_map
 
@@ -644,7 +792,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
 
         idp_entities = self.sp.metadata.with_descriptor("idpsso")
         for entity_id, entity in idp_entities.items():
-            description = MetadataDescription(urlsafe_b64encode(entity_id.encode("utf-8")).decode("utf-8"))
+            description = MetadataDescription(urlsafe_b64encode(
+                entity_id.encode("utf-8")).decode("utf-8"))
 
             # Add organization info
             try:
@@ -656,7 +805,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                 for name_info in organization_info.get("organization_name", []):
                     organization.add_name(name_info["text"], name_info["lang"])
                 for display_name_info in organization_info.get("organization_display_name", []):
-                    organization.add_display_name(display_name_info["text"], display_name_info["lang"])
+                    organization.add_display_name(
+                        display_name_info["text"], display_name_info["lang"])
                 for url_info in organization_info.get("organization_url", []):
                     organization.add_url(url_info["text"], url_info["lang"])
                 description.organization = organization
@@ -680,7 +830,8 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                     description.add_contact_person(person_desc)
 
             # Add UI info
-            ui_info = self.sp.metadata.extension(entity_id, "idpsso_descriptor", "{}&UIInfo".format(UI_NAMESPACE))
+            ui_info = self.sp.metadata.extension(
+                entity_id, "idpsso_descriptor", "{}&UIInfo".format(UI_NAMESPACE))
             if ui_info:
                 ui_info = ui_info[0]
                 ui_info_desc = UIInfoDesc()
@@ -689,14 +840,18 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                 for name in ui_info.get("display_name", []):
                     ui_info_desc.add_display_name(name["text"], name["lang"])
                 for logo in ui_info.get("logo", []):
-                    ui_info_desc.add_logo(logo["text"], logo["width"], logo["height"], logo.get("lang"))
+                    ui_info_desc.add_logo(
+                        logo["text"], logo["width"], logo["height"], logo.get("lang"))
                 for keywords in ui_info.get("keywords", []):
-                    ui_info_desc.add_keywords(keywords.get("text", []), keywords.get("lang"))
+                    ui_info_desc.add_keywords(keywords.get(
+                        "text", []), keywords.get("lang"))
                 for information_url in ui_info.get("information_url", []):
-                    ui_info_desc.add_information_url(information_url.get("text"), information_url.get("lang"))
+                    ui_info_desc.add_information_url(
+                        information_url.get("text"), information_url.get("lang"))
                 for privacy_statement_url in ui_info.get("privacy_statement_url", []):
                     ui_info_desc.add_privacy_statement_url(
-                        privacy_statement_url.get("text"), privacy_statement_url.get("lang")
+                        privacy_statement_url.get(
+                            "text"), privacy_statement_url.get("lang")
                     )
                 description.ui_info = ui_info_desc
 
