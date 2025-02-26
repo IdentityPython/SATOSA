@@ -58,7 +58,8 @@ class OpenIDConnectFrontend(FrontendModule):
 
     def __init__(self, auth_req_callback_func, internal_attributes, conf, base_url, name):
         _validate_config(conf)
-        super().__init__(auth_req_callback_func, internal_attributes, base_url, name)
+        super().__init__(auth_req_callback_func,
+                         internal_attributes, base_url, name)
 
         self.config = conf
         provider_config = self.config["provider"]
@@ -143,7 +144,8 @@ class OpenIDConnectFrontend(FrontendModule):
             del self.user_db[internal_resp.subject_id]
 
         del context.state[self.name]
-        http_response = auth_resp.request(auth_req["redirect_uri"], should_fragment_encode(auth_req))
+        http_response = auth_resp.request(
+            auth_req["redirect_uri"], should_fragment_encode(auth_req))
         return SeeOther(http_response)
 
     def handle_backend_error(self, exception):
@@ -194,7 +196,8 @@ class OpenIDConnectFrontend(FrontendModule):
 
         if backend_name:
             # if there is only one backend, include its name in the path so the default routing can work
-            auth_endpoint = "{}/{}/{}/{}".format(self.base_url, backend_name, self.name, AuthorizationEndpoint.url)
+            auth_endpoint = "{}/{}/{}/{}".format(self.base_url,
+                                                 backend_name, self.name, AuthorizationEndpoint.url)
             self.provider.configuration_information["authorization_endpoint"] = auth_endpoint
             auth_path = urlparse(auth_endpoint).path.lstrip("/")
         else:
@@ -250,7 +253,8 @@ class OpenIDConnectFrontend(FrontendModule):
         :return: HTTP response to the client
         """
         try:
-            resp = self.provider.handle_client_registration_request(json.dumps(context.request))
+            resp = self.provider.handle_client_registration_request(
+                json.dumps(context.request))
             return Created(resp.to_json(), content="application/json")
         except InvalidClientRegistrationRequest as e:
             return BadRequest(e.to_json(), content="application/json")
@@ -296,7 +300,8 @@ class OpenIDConnectFrontend(FrontendModule):
             authn_req = self.provider.parse_authentication_request(request)
         except InvalidAuthenticationRequest as e:
             msg = "Error in authn req: {}".format(str(e))
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             error_url = e.to_error_url()
 
@@ -369,14 +374,16 @@ class OpenIDConnectFrontend(FrontendModule):
         except InvalidClientAuthentication as e:
             logline = "invalid client authentication at token endpoint"
             logger.debug(logline, exc_info=True)
-            error_resp = TokenErrorResponse(error='invalid_client', error_description=str(e))
+            error_resp = TokenErrorResponse(
+                error='invalid_client', error_description=str(e))
             response = Unauthorized(error_resp.to_json(), headers=[("WWW-Authenticate", "Basic")],
                                     content="application/json")
             return response
         except OAuthError as e:
             logline = "invalid request: {}".format(str(e))
             logger.debug(logline, exc_info=True)
-            error_resp = TokenErrorResponse(error=e.oauth_error, error_description=str(e))
+            error_resp = TokenErrorResponse(
+                error=e.oauth_error, error_description=str(e))
             return BadRequest(error_resp.to_json(), content="application/json")
 
     def userinfo_endpoint(self, context):
@@ -389,7 +396,8 @@ class OpenIDConnectFrontend(FrontendModule):
             )
             return Response(response.to_json(), content="application/json")
         except (BearerTokenError, InvalidAccessToken) as e:
-            error_resp = UserInfoErrorResponse(error='invalid_token', error_description=str(e))
+            error_resp = UserInfoErrorResponse(
+                error='invalid_token', error_description=str(e))
             response = Unauthorized(error_resp.to_json(), headers=[("WWW-Authenticate", AccessToken.BEARER_TOKEN_TYPE)],
                                     content="application/json")
             return response
@@ -406,7 +414,8 @@ def _validate_config(config):
 
     for k in {"signing_key_path", "provider"}:
         if k not in config:
-            raise ValueError("Missing configuration parameter '{}' for OpenID Connect frontend.".format(k))
+            raise ValueError(
+                "Missing configuration parameter '{}' for OpenID Connect frontend.".format(k))
 
     if "signing_key_id" in config and type(config["signing_key_id"]) is not str:
         raise ValueError(
@@ -422,8 +431,10 @@ def _create_provider(
     user_db,
     cdb,
 ):
-    response_types_supported = provider_config.get("response_types_supported", ["id_token"])
-    subject_types_supported = provider_config.get("subject_types_supported", ["pairwise"])
+    response_types_supported = provider_config.get(
+        "response_types_supported", ["id_token"])
+    subject_types_supported = provider_config.get(
+        "subject_types_supported", ["pairwise"])
     scopes_supported = provider_config.get("scopes_supported", ["openid"])
     extra_scopes = provider_config.get("extra_scopes")
     capabilities = {

@@ -24,6 +24,7 @@ from .plugin_loader import load_backends
 from .plugin_loader import load_frontends
 from .plugin_loader import load_request_microservices
 from .plugin_loader import load_response_microservices
+from .plugin_loader import load_database
 from .routing import ModuleRouter
 from .state import State
 from .state import cookie_to_state
@@ -54,10 +55,14 @@ class SATOSABase(object):
 
         logger.info("Loading backend modules...")
         backends = load_backends(self.config, self._auth_resp_callback_func,
-                                 self.config["INTERNAL_ATTRIBUTES"])
+                                 self.config["INTERNAL_ATTRIBUTES"],
+                                 self._logout_resp_callback_func
+                                 )
         logger.info("Loading frontend modules...")
         frontends = load_frontends(self.config, self._auth_req_callback_func,
-                                   self.config["INTERNAL_ATTRIBUTES"])
+                                   self.config["INTERNAL_ATTRIBUTES"],
+                                   self._logout_req_callback_func
+                                   )
 
         self.response_micro_services = []
         self.request_micro_services = []
@@ -68,14 +73,21 @@ class SATOSABase(object):
                 self.config["MICRO_SERVICES"],
                 self.config["INTERNAL_ATTRIBUTES"],
                 self.config["BASE"]))
-            self._link_micro_services(self.request_micro_services, self._auth_req_finish)
+            self._link_micro_services(
+                self.request_micro_services, self._auth_req_finish)
 
             self.response_micro_services.extend(
                 load_response_microservices(self.config.get("CUSTOM_PLUGIN_MODULE_PATHS"),
                                             self.config["MICRO_SERVICES"],
                                             self.config["INTERNAL_ATTRIBUTES"],
                                             self.config["BASE"]))
-            self._link_micro_services(self.response_micro_services, self._auth_resp_finish)
+            self._link_micro_services(
+                self.response_micro_services, self._auth_resp_finish)
+
+        load_db = self.config.get("LOGOUT_ENABLED", False)
+        if load_db:
+            logger.info("Loading database...")
+            self.db = load_database(self.config)
 
         self.module_router = ModuleRouter(frontends, backends,
                                           self.request_micro_services + self.response_micro_services)
@@ -115,22 +127,64 @@ class SATOSABase(object):
 
         return self._auth_req_finish(context, internal_request)
 
+    def _logout_req_callback_func(self, context, internal_request):
+        """
+        This function is called by a frontend module when a logout request has been processed.
+
+        :type context: satosa.context.Context
+        :typr internal_request:
+        :rtype:
+
+        :param context: The request context
+        :param internal_request: request processed by the frontend
+        :return Response
+        """
+        state = context.state
+        state[STATE_KEY] = {"requester": internal_request.requester}
+        msg = "Requesting provider: {}".format(internal_request.requester)
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(state), message=msg)
+        logger.info(logline)
+        return self._logout_req_finish(context, internal_request)
+
     def _auth_req_finish(self, context, internal_request):
         backend = self.module_router.backend_routing(context)
         context.request = None
         return backend.start_auth(context, internal_request)
 
+    def _logout_req_finish(self, context, internal_request):
+        backend = self.module_router.backend_routing(context)
+        context.request = None
+        if hasattr(self, "db"):
+            internal_authn_resp = self.db.get_authn_resp(context.state)
+            self.db.delete_session(context.state)
+        else:
+            internal_authn_resp = None
+            context.state.delete = self.config.get("CONTEXT_STATE_DELETE", True)
+        return backend.start_logout(context, internal_request, internal_authn_resp)
+
     def _auth_resp_finish(self, context, internal_response):
-        user_id_to_attr = self.config["INTERNAL_ATTRIBUTES"].get("user_id_to_attr", None)
+        user_id_to_attr = self.config["INTERNAL_ATTRIBUTES"].get(
+            "user_id_to_attr", None)
         if user_id_to_attr:
-            internal_response.attributes[user_id_to_attr] = [internal_response.subject_id]
+            internal_response.attributes[user_id_to_attr] = [
+                internal_response.subject_id]
 
         # remove all session state unless CONTEXT_STATE_DELETE is False
-        context.state.delete = self.config.get("CONTEXT_STATE_DELETE", True)
         context.request = None
+        if hasattr(self, "db"):
+            self.db.store_authn_resp(context.state, internal_response)
+            self.db.get_authn_resp(context.state)
+        else:
+            context.state.delete = self.config.get("CONTEXT_STATE_DELETE", True)
 
         frontend = self.module_router.frontend_routing(context)
         return frontend.handle_authn_response(context, internal_response)
+
+    def _logout_resp_finish(self, context):
+        context.request = None
+
+        frontend = self.module_router.frontend_routing(context)
+        return frontend.handle_logout_response(context)
 
     def _auth_resp_callback_func(self, context, internal_response):
         """
@@ -162,6 +216,21 @@ class SATOSABase(object):
                 context, internal_response)
 
         return self._auth_resp_finish(context, internal_response)
+
+    def _logout_resp_callback_func(self, context):
+        """
+        This function is called by a backend module when logout is complete
+
+        :type context: satosa.context.Context
+        :type internal_response: satosa.internal.LogoutInformation
+        :rtype: satosa.response.Response
+
+        :param context: The request context
+        :param internal_response: The logout response
+        """
+        context.request = None
+        context.state["ROUTER"] = "idp"
+        return self._logout_resp_finish(context)
 
     def _handle_satosa_authentication_error(self, error):
         """
@@ -197,7 +266,8 @@ class SATOSABase(object):
             msg = "ERROR_ID [{err_id}]\nSTATE:\n{state}".format(
                 err_id=error.error_id, state=state
             )
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.error(logline, exc_info=True)
             return self._handle_satosa_authentication_error(error)
 
@@ -219,7 +289,8 @@ class SATOSABase(object):
         finally:
             context.state = state
             msg = f"Loaded state {state} from cookie {context.cookie}"
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.debug(logline)
 
     def _save_state(self, resp, context):
@@ -274,7 +345,8 @@ class SATOSABase(object):
                 "error": str(e),
                 "error_id": error_id,
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
@@ -288,7 +360,8 @@ class SATOSABase(object):
                 "error": str(e),
                 "error_id": error_id,
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
@@ -302,7 +375,8 @@ class SATOSABase(object):
                 "error": str(e),
                 "error_id": error_id,
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
@@ -316,7 +390,8 @@ class SATOSABase(object):
                 "error": str(e),
                 "error_id": error_id,
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
@@ -330,7 +405,8 @@ class SATOSABase(object):
                 "error": str(e),
                 "error_id": error_id,
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
@@ -344,7 +420,8 @@ class SATOSABase(object):
                 "error": str(e),
                 "error_id": error_id,
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
@@ -358,7 +435,8 @@ class SATOSABase(object):
                 "error": str(e),
                 "error_id": error_id,
             }
-            logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+            logline = lu.LOG_FMT.format(
+                id=lu.get_session_id(context.state), message=msg)
             logger.error(logline)
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
