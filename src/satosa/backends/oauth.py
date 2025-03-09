@@ -12,6 +12,7 @@ from oic.oauth2.message import AuthorizationResponse
 from oic.utils.authn.authn_context import UNSPECIFIED
 
 import satosa.logging_util as lu
+from satosa.context import Context
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
 from satosa.exception import SATOSAAuthenticationError
@@ -145,6 +146,7 @@ class _OAuthBackend(BackendModule):
         internal_response = InternalData(auth_info=self.auth_info(context.request))
         internal_response.attributes = self.converter.to_internal(self.external_type, user_info)
         internal_response.subject_id = user_info[self.user_id_attr]
+        context.decorate(Context.KEY_METADATA_STORE, _get_metadata_to_decorate(self.config))
         return self.auth_callback_func(context, internal_response)
 
     def auth_info(self, request):
@@ -331,3 +333,22 @@ def get_metadata_desc_for_oauth_backend(entity_id, config):
 
     metadata_description.append(description)
     return metadata_description
+
+
+def _get_metadata_to_decorate(config):
+    metadata_dict = {}
+    if "entity_info" in config:
+        entity_info = config["entity_info"]
+        if "ui_info" in entity_info:
+            ui_info = entity_info["ui_info"]
+            for name in ui_info.get("display_name", []):
+                if name[1] == "en":
+                    metadata_dict["client_name"] = name[0]
+                metadata_dict["client_name#" + name[1]] = name[0]
+            for logo in ui_info.get("logo", []):
+                if logo["lang"] == "en":
+                    metadata_dict["logo_uri"] = logo["image"]
+                    metadata_dict["logo_width"] = logo["width"]
+                    metadata_dict["logo_height"] = logo["height"]
+                metadata_dict["logo_uri#" + logo["lang"]] = logo["image"]
+    return metadata_dict

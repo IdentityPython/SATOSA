@@ -9,8 +9,10 @@ from urllib.parse import urljoin
 from oic.utils.authn.authn_context import UNSPECIFIED
 from oic.oauth2.consumer import stateID
 from oic.oauth2.message import AuthorizationResponse
+from .oauth import _get_metadata_to_decorate
 
 from satosa.backends.oauth import _OAuthBackend
+from satosa.context import Context
 from satosa.internal import InternalData
 from satosa.internal import AuthenticationInformation
 from satosa.util import rndstr
@@ -79,6 +81,7 @@ class OrcidBackend(_OAuthBackend):
         internal_response.attributes = self.converter.to_internal(
             self.external_type, user_info)
         internal_response.subject_id = user_info[self.user_id_attr]
+        context.decorate(Context.KEY_METADATA_STORE, _get_metadata_to_decorate(self.config))
         return self.auth_callback_func(context, internal_response)
 
     def user_information(self, access_token, orcid, name=None):
