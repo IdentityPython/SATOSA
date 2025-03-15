@@ -5,7 +5,9 @@ from saml2.config import Config
 from saml2.sigver import security_context
 
 from ..metadata_creation.saml_metadata import create_entity_descriptors
+from ..metadata_creation.saml_metadata import create_entities_descriptor
 from ..metadata_creation.saml_metadata import create_entity_descriptor_metadata
+from ..metadata_creation.saml_metadata import create_signed_entities_descriptor
 from ..metadata_creation.saml_metadata import create_signed_entity_descriptor
 from ..satosa_config import SATOSAConfig
 
@@ -33,14 +35,14 @@ def _create_split_entity_descriptors(entities, secc, valid, sign=True):
 
 def _create_merged_entities_descriptors(entities, secc, valid, name, sign=True):
     output = []
-    frontend_entity_descriptors = [e for sublist in entities.values() for e in sublist]
-    for frontend in frontend_entity_descriptors:
-        ed_str = (
-            create_signed_entity_descriptor(frontend, secc, valid)
-            if sign
-            else create_entity_descriptor_metadata(frontend, valid)
-        )
-        output.append((ed_str, name))
+    entity_descriptors = [e for sublist in entities.values() for e in sublist]
+
+    ed_str = (
+        create_signed_entities_descriptor(entity_descriptors, secc, valid)
+        if sign
+        else create_entities_descriptor(entity_descriptors, valid)
+    )
+    output.append((ed_str, name))
 
     return output
 

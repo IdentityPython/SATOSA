@@ -169,3 +169,19 @@ def create_entity_descriptor_metadata(entity_descriptor, valid_for=None):
         entity_descriptor.valid_until = in_a_while(hours=valid_for)
 
     return str(entity_descriptor)
+
+def create_entities_descriptor(entity_descriptors, valid_for=None):
+    """
+    :param entity_descriptors: the entity descriptors to put in in an EntitiesDescriptor
+    :param valid_for: number of hours the metadata should be valid
+    :return: the EntitiesDescriptor metadata
+
+    :type entity_descriptors: Sequence[saml2.md.EntityDescriptor]]
+    :type valid_for: Optional[int]
+    """
+    entities_desc, xmldoc = entities_descriptor(entity_descriptors, valid_for=valid_for, name=None, ident=None,
+                                                sign=False, secc=None)
+    if not valid_instance(entities_desc):
+        raise ValueError("Could not construct valid EntitiesDescriptor tag")
+
+    return str(entities_desc)
