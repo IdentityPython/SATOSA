@@ -1,5 +1,8 @@
 # Changelog
 
+## 8.5.3 (2025-09-17)
+- update dependency of pysaml2 to >=7.5.3
+
 ## 8.5.1 (2025-02-10)
 
 - ldap_attribute_store plugin: Add configuration option `use_all_results` to
