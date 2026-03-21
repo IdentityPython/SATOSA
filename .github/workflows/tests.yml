@@ -2,6 +2,7 @@ name: Run tests
 
 on:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
@@ -10,7 +11,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.9"
       - name: Install system deps
         run: sudo apt-get update && sudo apt-get install -y xmlsec1
       - name: Install tox
