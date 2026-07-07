@@ -459,7 +459,7 @@ class SAMLFrontend(FrontendModule, SAMLBaseModule):
                 "(not under policy/default)."
             )
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.warning(msg)
+            logger.warning(logline)
 
         resp = idp.create_authn_response(**args)
         http_args = idp.apply_binding(
