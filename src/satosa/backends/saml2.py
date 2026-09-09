@@ -296,7 +296,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                 context, self.config, self.sp.config
             )
         if self.config.get(SAMLBackend.KEY_SEND_REQUESTER_ID):
-            requester = context.state.state_dict[STATE_KEY_BASE]['requester']
+            requester = context.state[STATE_KEY_BASE]['requester']
             kwargs["scoping"] = Scoping(requester_id=[RequesterID(text=requester)])
         if self.config.get(SAMLBackend.KEY_IS_PASSIVE):
             kwargs["is_passive"] = "true"
