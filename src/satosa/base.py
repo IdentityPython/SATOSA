@@ -279,7 +279,7 @@ class SATOSABase(object):
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
                 redirect_url = f"{generic_error_url}?errorid={error_id}"
-                return Redirect(generic_error_url)
+                return Redirect(redirect_url)
             return BadRequest(e.error)
         except SATOSAMissingStateError as e:
             error_id = uuid.uuid4().urn
@@ -293,7 +293,7 @@ class SATOSABase(object):
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
                 redirect_url = f"{generic_error_url}?errorid={error_id}"
-                return Redirect(generic_error_url)
+                return Redirect(redirect_url)
             raise
         except SATOSAAuthenticationFlowError as e:
             error_id = uuid.uuid4().urn
@@ -307,7 +307,7 @@ class SATOSABase(object):
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
                 redirect_url = f"{generic_error_url}?errorid={error_id}"
-                return Redirect(generic_error_url)
+                return Redirect(redirect_url)
             raise
         except SATOSANoBoundEndpointError as e:
             error_id = uuid.uuid4().urn
@@ -321,7 +321,7 @@ class SATOSABase(object):
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
                 redirect_url = f"{generic_error_url}?errorid={error_id}"
-                return Redirect(generic_error_url)
+                return Redirect(redirect_url)
             return NotFound("The Service or Identity Provider you requested could not be found.")
         except SATOSAError as e:
             error_id = uuid.uuid4().urn
@@ -335,7 +335,7 @@ class SATOSABase(object):
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
                 redirect_url = f"{generic_error_url}?errorid={error_id}"
-                return Redirect(generic_error_url)
+                return Redirect(redirect_url)
             raise
         except UnknownSystemEntity as e:
             error_id = uuid.uuid4().urn
@@ -349,7 +349,7 @@ class SATOSABase(object):
             generic_error_url = self.config.get("ERROR_URL")
             if generic_error_url:
                 redirect_url = f"{generic_error_url}?errorid={error_id}"
-                return Redirect(generic_error_url)
+                return Redirect(redirect_url)
             raise
         except Exception as e:
             error_id = uuid.uuid4().urn
