@@ -438,7 +438,6 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
                 "error": f"Failed to parse Authn response: {e}",
             }
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
-            logger.debug(logline, exc_info=True)
             logger.info(logline)
             raise SATOSAAuthenticationError(context.state, msg) from e
 
