@@ -495,7 +495,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.info(logline)
         if not entity_id:
-            raise SATOSAAuthenticationError(state, msg) from err
+            raise SATOSAAuthenticationError(state, msg)
 
         return self.authn_request(context, entity_id)
 
