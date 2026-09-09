@@ -301,6 +301,14 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         if self.config.get(SAMLBackend.KEY_IS_PASSIVE):
             kwargs["is_passive"] = "true"
 
+        msg = {
+            "message": "Authentication Request",
+            "requester": context.state.get(STATE_KEY_BASE, {}).get("requester"),
+            "target": entity_id,
+        }
+        logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
+        logger.info(logline)
+
         try:
             acs_endp, response_binding = self._get_acs(context)
             relay_state = util.rndstr()
@@ -494,6 +502,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
         logger.info(logline)
         if not entity_id:
+            msg["error"] = "No IDP chosen for state"
             raise SATOSAAuthenticationError(state, msg)
 
         return self.authn_request(context, entity_id)
