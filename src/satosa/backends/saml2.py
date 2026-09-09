@@ -491,7 +491,7 @@ class SAMLBackend(BackendModule, SAMLBaseModule):
         info = context.request
         state = context.state
 
-        if 'SATOSA_BASE' not in state:
+        if STATE_KEY_BASE not in state:
             raise SATOSAAuthenticationFlowError("Discovery response without AuthN request")
 
         entity_id = info.get("entityID")

@@ -19,6 +19,7 @@ from saml2.entity import Entity
 from saml2.samlp import authn_request_from_string
 from saml2.s_utils import deflate_and_base64_encode
 
+from satosa.base import STATE_KEY as STATE_KEY_BASE
 from satosa.backends.saml2 import SAMLBackend
 from satosa.context import Context
 from satosa.exception import SATOSAAuthenticationError
@@ -139,7 +140,7 @@ class TestSAMLBackend:
         request_context.state = context.state
 
         # pass discovery response to backend and check that it redirects to the selected IdP
-        context.state["SATOSA_BASE"] = {"requester": "the-service-identifier"}
+        context.state[STATE_KEY_BASE] = {"requester": "the-service-identifier"}
         resp = self.samlbackend.disco_response(request_context)
         assert_redirect_to_idp(resp, idp_conf)
 

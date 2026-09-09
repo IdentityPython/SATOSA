@@ -136,7 +136,7 @@ class PrimaryIdentifier(satosa.micro_services.base.ResponseMicroService):
 
         # Find the entityID for the SP that initiated the flow
         try:
-            spEntityID = context.state.state_dict['SATOSA_BASE']['requester']
+            spEntityID = data.requester
         except KeyError:
             msg = "{} Unable to determine the entityID for the SP requester".format(logprefix)
             logline = lu.LOG_FMT.format(id=lu.get_session_id(context.state), message=msg)
