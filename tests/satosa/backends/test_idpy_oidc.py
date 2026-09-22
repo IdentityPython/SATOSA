@@ -2,6 +2,7 @@ import json
 import re
 import time
 from datetime import datetime
+from datetime import timezone
 from unittest.mock import Mock
 from urllib.parse import parse_qsl
 from urllib.parse import urlparse
@@ -94,7 +95,7 @@ class TestIdpyOIDCBackend(object):
         issuer_keys = build_keyjar(DEFAULT_KEY_DEFS)
         signing_key = issuer_keys.get_signing_key(key_type='RSA')[0]
         signing_key.alg = "RS256"
-        auth_time = int(datetime.utcnow().timestamp())
+        auth_time = int(datetime.now(timezone.utc).timestamp())
         id_token_claims = {
             "auth_time": auth_time,
             "iss": ISSUER,

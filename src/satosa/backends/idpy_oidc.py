@@ -1,7 +1,8 @@
 """
 OIDC/OAuth2 backend module.
 """
-import datetime
+from datetime import datetime
+from datetime import timezone
 import logging
 from urllib.parse import urlparse
 
@@ -17,7 +18,6 @@ from ..exception import SATOSAError
 from ..response import Redirect
 
 
-UTC = datetime.timezone.utc
 logger = logging.getLogger(__name__)
 
 
@@ -126,9 +126,9 @@ class IdpyOIDCBackend(BackendModule):
         timestamp_epoch = (
             response.get("auth_time")
             or response.get("iat")
-            or int(datetime.datetime.now(UTC).timestamp())
+            or int(datetime.now(timezone.utc).timestamp())
         )
-        timestamp_dt = datetime.datetime.fromtimestamp(timestamp_epoch, UTC)
+        timestamp_dt = datetime.fromtimestamp(timestamp_epoch, timezone.utc)
         timestamp_iso = timestamp_dt.isoformat().replace("+00:00", "Z")
         auth_class_ref = response.get("acr") or response.get("amr") or UNSPECIFIED
         auth_info = AuthenticationInformation(auth_class_ref, timestamp_iso, issuer)

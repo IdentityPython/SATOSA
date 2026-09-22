@@ -3,6 +3,7 @@ A reflector backend module for the satosa proxy
 """
 import base64
 from datetime import datetime
+from datetime import timezone
 
 from satosa.internal import AuthenticationInformation
 from satosa.internal import InternalData
@@ -44,7 +45,7 @@ class ReflectorBackend(BackendModule):
         :rtype: satosa.response.Response
         """
 
-        timestamp = datetime.utcnow().timestamp()
+        timestamp = datetime.now(timezone.utc).timestamp()
         auth_info = AuthenticationInformation(
             auth_class_ref=ReflectorBackend.AUTH_CLASS_REF,
             timestamp=timestamp,

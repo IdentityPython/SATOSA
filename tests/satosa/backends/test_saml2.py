@@ -6,6 +6,7 @@ import re
 from base64 import urlsafe_b64encode
 from collections import Counter
 from datetime import datetime
+from datetime import timezone
 from unittest.mock import Mock, patch
 from urllib.parse import urlparse, parse_qs, parse_qsl
 
@@ -359,8 +360,8 @@ class TestSAMLBackend:
                 patch('saml2.validate.time_util.utc_now') as mock_utc_now:
             mock_utc_now.return_value = assertion_issued_at + 1
             mock_shift_time.side_effect = [
-                datetime.utcfromtimestamp(assertion_issued_at + 1),
-                datetime.utcfromtimestamp(assertion_issued_at - 1),
+                datetime.fromtimestamp(assertion_issued_at + 1, timezone.utc),
+                datetime.fromtimestamp(assertion_issued_at - 1, timezone.utc),
             ]
             samlbackend.authn_response(context, response_binding)
 
