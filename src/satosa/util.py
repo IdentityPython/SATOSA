@@ -34,13 +34,13 @@ def check_set_dict_defaults(dic, spec):
     for path, value in spec.items():
         keys = path.split('.')
         try:
-            _val = dict_get_nested(dic, keys)
+            _val = _dict_get_nested(dic, keys)
         except KeyError:
             if type(value) is list:
                 value_default = value[0]
             else:
                 value_default = value
-            dict_set_nested(dic, keys, value_default)
+            _dict_set_nested(dic, keys, value_default)
         else:
             if type(value) is list:
                 is_value_valid = _val in value
@@ -58,13 +58,13 @@ def check_set_dict_defaults(dic, spec):
     return dic
 
 
-def dict_set_nested(dic, keys, value):
+def _dict_set_nested(dic, keys, value):
     for key in keys[:-1]:
         dic = dic.setdefault(key, {})
     dic[keys[-1]] = value
 
 
-def dict_get_nested(dic, keys):
+def _dict_get_nested(dic, keys):
     for key in keys[:-1]:
         dic = dic.setdefault(key, {})
     return dic[keys[-1]]
