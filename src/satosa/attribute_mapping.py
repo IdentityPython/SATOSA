@@ -34,6 +34,7 @@ class AttributeMapper(object):
         """
         self.separator = "."  # separator for nested attribute values, e.g. address.street_address
         self.multivalue_separator = ";"  # separates multiple values, e.g. when using templates
+        self.uri_scheme_separator = ":"  # marks names that are URIs/URNs, e.g. urn:oid:1.3.6.1.4.1.5923.1.1.1.6
         self.from_internal_attributes = internal_attributes["attributes"]
         self.template_attributes = internal_attributes.get("template_attributes", None)
 
@@ -155,6 +156,20 @@ class AttributeMapper(object):
 
         return internal_dict
 
+    def _is_nested_attribute_name(self, attribute_name):
+        """
+        Whether a dotted attribute name denotes a nested attribute value.
+
+        The separator is also a legitimate character in attribute names that
+        are URIs or URNs - SAML urn:oid attribute names and OIDC claims named
+        by URI - where the dots carry no nesting meaning. Those names are
+        recognised by their scheme separator and are never split.
+        """
+        return (
+            self.separator in attribute_name
+            and self.uri_scheme_separator not in attribute_name
+        )
+
     def _create_nested_attribute_value(self, nested_attribute_names, value):
         if len(nested_attribute_names) == 1:
             # we've reached the inner-most attribute name, set value here
@@ -203,7 +218,7 @@ class AttributeMapper(object):
             )
             logger.debug(logline)
 
-            if self.separator in external_attribute_name:
+            if self._is_nested_attribute_name(external_attribute_name):
                 nested_attribute_names = external_attribute_name.split(self.separator)
                 nested_dict = self._create_nested_attribute_value(nested_attribute_names[1:],
                                                                   internal_dict[internal_attribute_name])

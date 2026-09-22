@@ -509,3 +509,108 @@ class TestAttributeMapper:
         converter = AttributeMapper(mapping)
         internal_repr = converter.to_internal("foo", attribute_value)
         assert internal_repr["mail"] == ["test@example.com"]
+
+
+class TestAttributeMapperAttributeNameContainingSeparator:
+    """
+    Attribute names that legitimately contain the nesting separator ('.').
+
+    SAML attribute names are commonly urn:oid names, and OIDC claims are
+    commonly named by URI; both contain dots that carry no nesting meaning.
+    Such a name must be emitted as-is, while a genuinely nested name such as
+    the OIDC "address.street_address" claim must still be nested.
+    """
+
+    URI_CLAIM = "https://frejaeid.com/oidc/claims/uniquePersonalIdentifier"
+    OID_ATTRIBUTE = "urn:oid:1.3.6.1.4.1.5923.1.1.1.6"  # eduPersonPrincipalName
+
+    def test_from_internal_does_not_split_a_claim_named_by_uri(self):
+        mapping = {
+            "attributes": {
+                "uniqueid": {
+                    "openid": [self.URI_CLAIM]
+                },
+            },
+        }
+
+        converter = AttributeMapper(mapping)
+        external_repr = converter.from_internal("openid", {"uniqueid": ["value-unique"]})
+        assert external_repr == {self.URI_CLAIM: ["value-unique"]}
+
+    def test_from_internal_does_not_split_a_urn_oid_attribute_name(self):
+        mapping = {
+            "attributes": {
+                "edupersonprincipalname": {
+                    "saml": [self.OID_ATTRIBUTE]
+                },
+            },
+        }
+
+        converter = AttributeMapper(mapping)
+        external_repr = converter.from_internal("saml", {"edupersonprincipalname": ["user@example.com"]})
+        assert external_repr == {self.OID_ATTRIBUTE: ["user@example.com"]}
+
+    def test_to_internal_reads_an_attribute_name_containing_the_separator(self):
+        mapping = {
+            "attributes": {
+                "uniqueid": {
+                    "openid": [self.URI_CLAIM]
+                },
+            },
+        }
+
+        converter = AttributeMapper(mapping)
+        internal_repr = converter.to_internal("openid", {self.URI_CLAIM: ["value-unique"]})
+        assert internal_repr["uniqueid"] == ["value-unique"]
+
+    def test_to_internal_filter_maps_an_attribute_name_containing_the_separator(self):
+        mapping = {
+            "attributes": {
+                "uniqueid": {
+                    "openid": [self.URI_CLAIM]
+                },
+            },
+        }
+
+        converter = AttributeMapper(mapping)
+        assert converter.to_internal_filter("openid", [self.URI_CLAIM]) == ["uniqueid"]
+
+    def test_round_trip_of_an_attribute_name_containing_the_separator(self):
+        mapping = {
+            "attributes": {
+                "uniqueid": {
+                    "openid": [self.URI_CLAIM]
+                },
+            },
+        }
+
+        converter = AttributeMapper(mapping)
+        external_repr = converter.from_internal("openid", {"uniqueid": ["value-unique"]})
+        internal_repr = converter.to_internal("openid", external_repr)
+        assert internal_repr["uniqueid"] == ["value-unique"]
+
+    def test_from_internal_still_nests_a_nested_claim(self):
+        mapping = {
+            "attributes": {
+                "street": {
+                    "openid": ["address.street_address"]
+                },
+            },
+        }
+
+        converter = AttributeMapper(mapping)
+        external_repr = converter.from_internal("openid", {"street": ["Main Street 1"]})
+        assert external_repr == {"address": {"street_address": ["Main Street 1"]}}
+
+    def test_from_internal_still_nests_a_deeply_nested_claim(self):
+        mapping = {
+            "attributes": {
+                "street": {
+                    "openid": ["a.b.c.street_address"]
+                },
+            },
+        }
+
+        converter = AttributeMapper(mapping)
+        external_repr = converter.from_internal("openid", {"street": ["Main Street 1"]})
+        assert external_repr == {"a": {"b": {"c": {"street_address": ["Main Street 1"]}}}}
