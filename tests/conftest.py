@@ -136,7 +136,10 @@ def satosa_config_dict(backend_plugin_config, frontend_plugin_config, request_mi
         "BACKEND_MODULES": [backend_plugin_config],
         "FRONTEND_MODULES": [frontend_plugin_config],
         "MICRO_SERVICES": [request_microservice_config, response_microservice_config],
-        "LOGGING": {"version": 1}
+        # logging.config.dictConfig disables every logger that already
+        # exists unless told otherwise, which would silence the satosa
+        # loggers for the rest of the test session
+        "LOGGING": {"version": 1, "disable_existing_loggers": False},
     }
     return config
 
