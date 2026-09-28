@@ -1,5 +1,21 @@
 # Changelog
 
+## 8.6.0 (2026-09-28)
+
+* Allow attribute names to be URIs and URNs
+* Fix redirect URL for internal errors
+* Fix exception when response from discovery is empty
+* Fix datetime warnings
+* Fix various log calls
+* saml frontend: Avoid repeated work when processing a SAML2 request
+* plugins: Allow idp hints to override pre-selected target identity providers
+* plugins: Set the idp-hint only when it is provided
+* build: Set python3.11 as the required python version
+* tests: Update tox matrix
+* tests: Keep the existing loggers enabled in tests
+* tests: Fix openid conenct backend tests based on idpy-oidc
+
+
 ## 8.5.1 (2025-02-10)
 
 - ldap_attribute_store plugin: Add configuration option `use_all_results` to
