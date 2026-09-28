@@ -14,6 +14,7 @@ setup(
     url='https://github.com/SUNET/SATOSA',
     packages=find_packages('src/'),
     package_dir={'': 'src'},
+    python_requires=">=3.11",
     install_requires=[
         "pyop >= v3.4.0",
         "pysaml2 >= 6.5.1",
@@ -25,7 +26,6 @@ setup(
         "click",
         "chevron",
         "cookies-samesite-compat",
-        "importlib-metadata >= 1.7.0; python_version <= '3.8'",
     ],
     extras_require={
         "ldap": ["ldap3"],
@@ -36,12 +36,10 @@ setup(
     zip_safe=False,
     classifiers=[
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
     ],
     entry_points={
         "console_scripts": ["satosa-saml-metadata=satosa.scripts.satosa_saml_metadata:construct_saml_metadata"]
