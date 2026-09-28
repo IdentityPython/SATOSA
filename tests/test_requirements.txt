@@ -3,3 +3,4 @@ responses >= 0.14
 beautifulsoup4
 ldap3
 mongomock
+cryptojwt
