@@ -86,8 +86,11 @@ def _create_frontend_metadata(frontend_modules, backend_modules):
                     frontend_metadata[frontend.name].append(entity_desc)
 
         elif isinstance(frontend, SAMLFrontend):
-            frontend.register_endpoints([backend.name for
-                                         backend in backend_modules])
+            if "preferred_backend_in_metadata" in frontend.config["idp_config"]:
+                frontend.register_endpoints([frontend.config["idp_config"]["preferred_backend_in_metadata"]])
+            else:
+                frontend.register_endpoints([backend.name for
+                                             backend in backend_modules])
             entity_desc = _create_entity_descriptor(frontend.idp_config)
             frontend_metadata[frontend.name].append(entity_desc)
 
