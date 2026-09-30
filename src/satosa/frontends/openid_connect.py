@@ -364,7 +364,7 @@ class OpenIDConnectFrontend(FrontendModule):
             response = self.provider.handle_token_request(
                 urlencode(context.request),
                 headers,
-                lambda user_id, client_id: self._get_extra_id_token_claims(user_id, client_id))
+                {} if self.stateless else lambda user_id, client_id: self._get_extra_id_token_claims(user_id, client_id))
             return Response(response.to_json(), content="application/json")
         except InvalidClientAuthentication as e:
             logline = "invalid client authentication at token endpoint"
