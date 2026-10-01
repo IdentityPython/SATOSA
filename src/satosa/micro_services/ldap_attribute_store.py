@@ -481,6 +481,7 @@ class LdapAttributeStore(ResponseMicroService):
 
         # Initialize an empty LDAP record. The first LDAP record found using
         # the ordered # list of search filter values will be the record used.
+        responses = []
         record = None
         results = None
         exp_msg = None
@@ -568,23 +569,23 @@ class LdapAttributeStore(ResponseMicroService):
             logger.debug(logline)
             data.attributes = {}
 
-        for record in responses:
-            # This adapts records with different search and connection strategy
-            # (sync without pool), it should be tested with anonimous bind with
-            # message_id.
-            if isinstance(results, bool) and record:
-                record = {
-                    "dn": record.entry_dn if hasattr(record, "entry_dn") else "",
-                    "attributes": (
-                        record.entry_attributes_as_dict
-                        if hasattr(record, "entry_attributes_as_dict")
-                        else {}
-                    ),
-                }
+        if responses:
+            for record in responses:
+                # This adapts records with different search and connection strategy
+                # (sync without pool), it should be tested with anonimous bind with
+                # message_id.
+                if isinstance(results, bool) and record:
+                    record = {
+                        "dn": record.entry_dn if hasattr(record, "entry_dn") else "",
+                        "attributes": (
+                            record.entry_attributes_as_dict
+                            if hasattr(record, "entry_attributes_as_dict")
+                            else {}
+                        ),
+                    }
 
-            # Use a found record, if any, to populate attributes and input for
-            # NameID
-            if record:
+                # Use a found record, if any, to populate attributes and input for
+                # NameID
                 msg = {
                     "message": "Using record with DN and attributes",
                     "DN": record["dn"],
@@ -618,26 +619,26 @@ class LdapAttributeStore(ResponseMicroService):
                 msg = "Added record {} to context".format(record)
                 logline = lu.LOG_FMT.format(id=session_id, message=msg)
                 logger.debug(logline)
-            else:
-                msg = "No record found in LDAP so no attributes will be added"
+        else:
+            msg = "No record found in LDAP so no attributes will be added"
+            logline = lu.LOG_FMT.format(id=session_id, message=msg)
+            logger.warning(logline)
+            on_ldap_search_result_empty = config["on_ldap_search_result_empty"]
+            if on_ldap_search_result_empty:
+                # Redirect to the configured URL with
+                # the entityIDs for the target SP and IdP used by the user
+                # as query string parameters (URL encoded).
+                encoded_sp_entity_id = urllib.parse.quote_plus(requester)
+                encoded_idp_entity_id = urllib.parse.quote_plus(issuer)
+                url = "{}?sp={}&idp={}".format(
+                    on_ldap_search_result_empty,
+                    encoded_sp_entity_id,
+                    encoded_idp_entity_id,
+                )
+                msg = "Redirecting to {}".format(url)
                 logline = lu.LOG_FMT.format(id=session_id, message=msg)
-                logger.warning(logline)
-                on_ldap_search_result_empty = config["on_ldap_search_result_empty"]
-                if on_ldap_search_result_empty:
-                    # Redirect to the configured URL with
-                    # the entityIDs for the target SP and IdP used by the user
-                    # as query string parameters (URL encoded).
-                    encoded_sp_entity_id = urllib.parse.quote_plus(requester)
-                    encoded_idp_entity_id = urllib.parse.quote_plus(issuer)
-                    url = "{}?sp={}&idp={}".format(
-                        on_ldap_search_result_empty,
-                        encoded_sp_entity_id,
-                        encoded_idp_entity_id,
-                    )
-                    msg = "Redirecting to {}".format(url)
-                    logline = lu.LOG_FMT.format(id=session_id, message=msg)
-                    logger.info(logline)
-                    return Redirect(url)
+                logger.info(logline)
+                return Redirect(url)
 
         msg = "Returning data.attributes {}".format(data.attributes)
         logline = lu.LOG_FMT.format(id=session_id, message=msg)
